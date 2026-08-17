@@ -257,23 +257,29 @@ impl From<ConversationRequest> for ChatCompletionRequest {
         let tools: Option<Vec<ToolDefinition>> = if tools_is_empty {
             None
         } else {
-            Some(
-                req.tools
-                    .into_iter()
-                    .map(|t| ToolDefinition::function(t.name, t.description, t.parameters))
-                    .collect(),
-            )
+            // Normalize through the shared tool_normalize layer so name
+            // sanitization and hosted-tool collisions are handled uniformly
+            // across all three backends.
+            match crate::tool_normalize::normalize_tool_definitions_for(
+                crate::ApiBackend::ChatCompletions,
+                &req.tools,
+                &req.hosted_tools,
+            ) {
+                crate::tool_normalize::BackendTools::Chat(v) => Some(v.into_owned()),
+                _ => unreachable!("backend must match"),
+            }
         };
 
         // only set `tool_choice` when there are `tools` to avoid OpenAI client errors
         let tool_choice = req
             .tool_choice
             .filter(|_| !tools_is_empty)
-            .map(|tc| match tc {
-                ConversationToolChoice::Auto => ToolChoice::auto(),
-                ConversationToolChoice::None => ToolChoice::none(),
-                ConversationToolChoice::Required => ToolChoice::required(),
-                ConversationToolChoice::Function(name) => ToolChoice::function(name),
+            .map(|tc| match crate::tool_normalize::normalize_tool_choice_for(
+                crate::ApiBackend::ChatCompletions,
+                tc,
+            ) {
+                crate::tool_normalize::BackendToolChoice::Chat(c) => c,
+                _ => unreachable!("backend must match"),
             });
 
         let response_format = req

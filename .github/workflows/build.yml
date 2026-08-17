@@ -37,3 +37,8 @@ jobs:
 
       - name: Build release binary
         run: cargo build -p xai-grok-pager-bin --release
+
+      - name: Cargo test (sampling-types + agent prompt)
+        run: |
+          cargo test -p xai-grok-sampling-types --lib
+          cargo test -p xai-grok-agent --lib prompt::template

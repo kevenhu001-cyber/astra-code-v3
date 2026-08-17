@@ -287,26 +287,29 @@ pub fn build_messages_request(req: &ConversationRequest) -> crate::messages::Mes
         Some(SystemParam::Blocks(system_blocks))
     };
 
-    let tools: Option<Vec<ToolParam>> = if req.tools.is_empty() {
-        None
-    } else {
-        Some(
-            req.tools
-                .iter()
-                .map(|t| ToolParam {
-                    name: t.name.clone(),
-                    description: t.description.clone(),
-                    input_schema: t.parameters.clone(),
-                })
-                .collect(),
-        )
+    let tools: Option<Vec<ToolParam>> = match crate::tool_normalize::normalize_tool_definitions_for(
+        crate::ApiBackend::Messages,
+        &req.tools,
+        &req.hosted_tools,
+    ) {
+        crate::tool_normalize::BackendTools::Anthropic(v) => {
+            if v.is_empty() {
+                None
+            } else {
+                Some(v.into_owned())
+            }
+        }
+        _ => unreachable!("backend must match"),
     };
 
-    let tool_choice: Option<ToolChoiceParam> = req.tool_choice.as_ref().map(|tc| match tc {
-        ConversationToolChoice::Auto => ToolChoiceParam::Auto,
-        ConversationToolChoice::Required => ToolChoiceParam::Any,
-        ConversationToolChoice::Function(name) => ToolChoiceParam::Tool { name: name.clone() },
-        ConversationToolChoice::None => ToolChoiceParam::Auto, // default
+    let tool_choice: Option<ToolChoiceParam> = req.tool_choice.as_ref().map(|tc| {
+        match crate::tool_normalize::normalize_tool_choice_for(
+            crate::ApiBackend::Messages,
+            tc.clone(),
+        ) {
+            crate::tool_normalize::BackendToolChoice::Anthropic(c) => c,
+            _ => unreachable!("backend must match"),
+        }
     });
 
     let effort = req
