@@ -1221,6 +1221,18 @@ pub(in crate::app::dispatch) fn apply_setting_rollback(
             };
             set_fork_secondary_model_inner(app, restored);
         }
+        // Custom-model fields have no in-memory mirror (raw-TOML writes);
+        // rollback is a no-op because the disk write already failed.
+        ("custom_model_provider", SettingValue::Enum(_))
+        | ("custom_model_id", SettingValue::String(_))
+        | ("custom_model_display_name", SettingValue::String(_))
+        | ("custom_model_api_key", SettingValue::String(_)) => {
+            tracing::warn!(
+                target: "settings",
+                ?key,
+                "custom-model field rollback is a no-op — value lives only on disk",
+            );
+        }
 
         _ => {
             tracing::error!(

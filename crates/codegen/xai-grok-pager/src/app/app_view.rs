@@ -4570,6 +4570,25 @@ impl AppView {
                 } else {
                     (None, full_area)
                 };
+            // Astra owns a small, stable brand rail above every full-screen view.
+            // Keeping it outside the view-specific layout prevents welcome,
+            // dashboard, and chat screens from drifting apart visually.
+            let brand_height = view_area.height.min(2);
+            if brand_height > 0 {
+                let brand_area = ratatui::layout::Rect {
+                    x: view_area.x,
+                    y: view_area.y,
+                    width: view_area.width,
+                    height: brand_height,
+                };
+                render_astra_brand(f.buffer_mut(), brand_area);
+            }
+            let view_area = ratatui::layout::Rect {
+                x: view_area.x,
+                y: view_area.y.saturating_add(brand_height),
+                width: view_area.width,
+                height: view_area.height.saturating_sub(brand_height),
+            };
             if view_area.height > 0 {
                 match *active_view {
                     ActiveView::Welcome => {
@@ -5966,6 +5985,39 @@ impl AppView {
         }
     }
 }
+/// Paint the fixed Astra wordmark in a terminal-safe pixel-art treatment.
+/// The logo deliberately uses only the theme's black/white/orange roles so it
+/// remains legible on basic ANSI terminals as well as truecolor terminals.
+fn render_astra_brand(buf: &mut ratatui::buffer::Buffer, area: ratatui::layout::Rect) {
+    use ratatui::layout::Alignment;
+    use ratatui::style::{Modifier, Style};
+    use ratatui::text::{Line, Span};
+    use ratatui::widgets::{Paragraph, Widget};
+
+    let theme = crate::theme::Theme::current();
+    let orange = Style::default()
+        .fg(theme.accent_model)
+        .add_modifier(Modifier::BOLD);
+    let white = Style::default()
+        .fg(theme.text_primary)
+        .add_modifier(Modifier::BOLD);
+    let line = Line::from(vec![
+        Span::styled("▟▛ ", orange),
+        Span::styled("Astra", white),
+        Span::styled(" ▜▙", orange),
+    ]);
+    let pixel_rule = Line::from(Span::styled("▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪ ▪", orange));
+    let lines = if area.height > 1 {
+        vec![line, pixel_rule]
+    } else {
+        vec![line]
+    };
+    Paragraph::new(lines)
+        .alignment(Alignment::Center)
+        .style(Style::default().bg(theme.bg_base))
+        .render(area, buf);
+}
+
 #[cfg(test)]
 #[path = "app_view_tests.rs"]
 pub(crate) mod tests;

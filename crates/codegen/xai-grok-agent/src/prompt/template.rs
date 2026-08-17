@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn test_base_template_renders() {
         let prompt = render_base(&default_renderer(), &default_placeholders());
-        assert!(prompt.contains(crate::prompt::context::DEFAULT_SYSTEM_PROMPT_LABEL));
+        assert!(!prompt.contains("released by xAI"));
         assert!(prompt.contains("user_query"));
     }
 
@@ -315,8 +315,8 @@ mod tests {
         let p = default_placeholders();
         let prompt = render_base(&default_renderer(), &p);
         assert!(
-            prompt.contains(crate::prompt::context::DEFAULT_SYSTEM_PROMPT_LABEL),
-            "Must contain agent identity"
+            !prompt.contains("released by xAI"),
+            "System prompt must not declare a model/vendor identity"
         );
         assert!(
             prompt.contains("user_query"),
@@ -777,8 +777,8 @@ mod tests {
             !prompt.contains("interactive CLI tool"),
             "non-interactive prompt must NOT claim to be the interactive CLI"
         );
-        // Sanity: rest of the template still renders.
-        assert!(prompt.contains(crate::prompt::context::DEFAULT_SYSTEM_PROMPT_LABEL));
+        // Sanity: rest of the template still renders, without a model identity.
+        assert!(!prompt.contains("released by xAI"));
         assert!(prompt.contains("user_query"));
     }
 

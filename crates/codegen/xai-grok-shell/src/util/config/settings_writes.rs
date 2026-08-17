@@ -398,3 +398,38 @@ pub async fn set_show_tips(value: bool) -> Result<()> {
 pub async fn set_auto_update(value: bool) -> Result<()> {
     update_config(|cfg| cfg.cli.auto_update = Some(value)).await
 }
+
+/// Custom-model provider canonical → (`api_backend`, `base_url`).
+fn custom_model_provider_backend(provider: &str) -> Option<(&'static str, &'static str)> {
+    match provider {
+        "openai" => Some(("chat_completions", "https://api.openai.com/v1")),
+        "openai_responses" => Some(("responses", "https://api.openai.com/v1")),
+        "anthropic" => Some(("messages", "https://api.anthropic.com/v1")),
+        _ => None,
+    }
+}
+
+/// Persist the custom-model provider. Writes `api_backend` + `base_url` on the
+/// `[model.astra-custom]` block. Unknown values are a no-op.
+pub async fn set_custom_model_provider(value: String) -> Result<()> {
+    let Some((backend, base_url)) = custom_model_provider_backend(&value) else {
+        return Ok(());
+    };
+    super::persist::set_custom_model_field("api_backend", backend).await?;
+    super::persist::set_custom_model_field("base_url", base_url).await
+}
+
+/// Persist the custom-model id (`model` on `[model.astra-custom]`). Empty clears.
+pub async fn set_custom_model_id(value: String) -> Result<()> {
+    super::persist::set_custom_model_field("model", &value).await
+}
+
+/// Persist the custom-model display name (`name` on `[model.astra-custom]`). Empty clears.
+pub async fn set_custom_model_display_name(value: String) -> Result<()> {
+    super::persist::set_custom_model_field("name", &value).await
+}
+
+/// Persist the custom-model API key (`api_key` on `[model.astra-custom]`). Empty clears.
+pub async fn set_custom_model_api_key(value: String) -> Result<()> {
+    super::persist::set_custom_model_field("api_key", &value).await
+}

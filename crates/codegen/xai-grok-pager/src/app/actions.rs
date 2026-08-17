@@ -603,6 +603,18 @@ pub enum Action {
     /// Clear the persisted fork-secondary model — restores to built-in
     /// default. Active agent keeps its value; next fork uses the default.
     ClearForkSecondaryModel,
+    /// Commit the custom-model provider preset. Persists `[model.astra-custom]`
+    /// `api_backend` + `base_url` to config.toml. Restart-required.
+    SetCustomModelProvider(String),
+    /// Commit the custom-model id. Persists `[model.astra-custom]` `model`.
+    /// Empty clears the field. Restart-required.
+    SetCustomModelId(String),
+    /// Commit the custom-model display name. Persists `[model.astra-custom]`
+    /// `name`. Empty clears the field. Restart-required.
+    SetCustomModelDisplayName(String),
+    /// Commit the custom-model API key. Persists `[model.astra-custom]`
+    /// `api_key`. Empty clears the field. Restart-required.
+    SetCustomModelApiKey(String),
     /// Commit the `show_tips` preference. Persisted to `[cli].show_tips`.
     /// Restart-required — tips are resolved once at startup.
     SetShowTips(bool),

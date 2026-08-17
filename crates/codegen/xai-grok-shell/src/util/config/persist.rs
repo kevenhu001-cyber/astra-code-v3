@@ -213,6 +213,74 @@ where
     f(&mut cfg);
     save_config_locked(&cfg).await
 }
+
+/// The `[model.<id>]` entry the settings modal's custom-model fields write to.
+pub const CUSTOM_MODEL_KEY: &str = "astra-custom";
+
+/// Upsert one scalar field on the `[model.astra-custom]` block (creating the
+/// block if needed). `[model.*]` is not modeled in the typed [`Config`], so it
+/// must be edited in place rather than through [`update_config`].
+///
+/// Once a non-empty `model` id is present, the entry is pinned as
+/// `[models].default`. An empty `value` removes the field.
+pub async fn set_custom_model_field(field: &str, value: &str) -> Result<()> {
+    let _guard = SAVE_LOCK.lock().await;
+    let path = user_config_path();
+    let mut root: TomlValue = match tokio::fs::read_to_string(&path).await {
+        Ok(s) => {
+            toml::from_str::<TomlValue>(&s).unwrap_or_else(|_| TomlValue::Table(TomlMap::new()))
+        }
+        Err(_) => TomlValue::Table(TomlMap::new()),
+    };
+    if !matches!(root, TomlValue::Table(_)) {
+        root = TomlValue::Table(TomlMap::new());
+    }
+    let root_table = root.as_table_mut().expect("root must be a table");
+
+    let model = root_table
+        .entry("model".to_string())
+        .or_insert_with(|| TomlValue::Table(TomlMap::new()));
+    if !matches!(model, TomlValue::Table(_)) {
+        *model = TomlValue::Table(TomlMap::new());
+    }
+    let entry = model
+        .as_table_mut()
+        .expect("model must be a table")
+        .entry(CUSTOM_MODEL_KEY.to_string())
+        .or_insert_with(|| TomlValue::Table(TomlMap::new()));
+    if !matches!(entry, TomlValue::Table(_)) {
+        *entry = TomlValue::Table(TomlMap::new());
+    }
+    let entry_table = entry.as_table_mut().expect("model entry must be a table");
+    if value.is_empty() {
+        entry_table.remove(field);
+    } else {
+        entry_table.insert(field.to_string(), TomlValue::String(value.to_string()));
+    }
+
+    // Pin as the default once a model id exists, so the configured model is
+    // actually used for new sessions.
+    let has_id = entry_table
+        .get("model")
+        .and_then(|v| v.as_str())
+        .is_some_and(|s| !s.is_empty());
+    if has_id {
+        let models = root_table
+            .entry("models".to_string())
+            .or_insert_with(|| TomlValue::Table(TomlMap::new()));
+        if !matches!(models, TomlValue::Table(_)) {
+            *models = TomlValue::Table(TomlMap::new());
+        }
+        models
+            .as_table_mut()
+            .expect("models must be a table")
+            .insert("default".to_string(), TomlValue::String(CUSTOM_MODEL_KEY.to_string()));
+    }
+
+    let toml_str = toml::to_string_pretty(&root)?;
+    atomic_write_string(&path, &toml_str)?;
+    Ok(())
+}
 #[cfg(test)]
 #[path = "persist_tests.rs"]
 mod tests;

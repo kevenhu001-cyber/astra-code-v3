@@ -988,6 +988,7 @@ pub(super) fn action_for_enum_commit(key: SettingKey, choice: &'static str) -> O
         "default_selected_permission" => {
             Some(Action::SetDefaultSelectedPermission(choice.to_string()))
         }
+        "custom_model_provider" => Some(Action::SetCustomModelProvider(choice.to_string())),
         _ => None,
     }
 }
@@ -1019,6 +1020,11 @@ pub(super) fn action_for_string(
                     .map(Action::SetForkSecondaryModel)
             }
         }
+        // Custom-model fields write `[model.astra-custom]` in config.toml.
+        // Empty value clears the field (no dedicated Clear* action).
+        "custom_model_id" => Some(Action::SetCustomModelId(value)),
+        "custom_model_display_name" => Some(Action::SetCustomModelDisplayName(value)),
+        "custom_model_api_key" => Some(Action::SetCustomModelApiKey(value)),
 
         _ => {
             let _ = value;

@@ -331,6 +331,27 @@ const SCREEN_MODE_CHOICES: &[EnumChoice] = &[
     },
 ];
 
+// Custom-model provider presets. Each maps to `api_backend` + a baked-in
+// `base_url` on `[model.astra-custom]` (see the shell's
+// `set_custom_model_provider`). OpenAI Chat Completions is the default.
+const CUSTOM_MODEL_PROVIDER_CHOICES: &[EnumChoice] = &[
+    EnumChoice {
+        canonical: "openai",
+        display: "OpenAI (Chat Completions)",
+        description: "OpenAI-compatible /v1/chat/completions endpoint.",
+    },
+    EnumChoice {
+        canonical: "openai_responses",
+        display: "OpenAI (Responses)",
+        description: "OpenAI /v1/responses endpoint.",
+    },
+    EnumChoice {
+        canonical: "anthropic",
+        display: "Anthropic (Messages)",
+        description: "Anthropic /v1/messages endpoint.",
+    },
+];
+
 // Voice-capture-mode catalog. SHELL-owned, persisted to `[ui].voice_capture_mode`.
 // `hold` is gated on `kitty_releases_reported`; `effective_enum_choices` hides it
 // elsewhere, and it falls back to `toggle` at runtime. "Kitty-protocol terminal"
@@ -917,6 +938,71 @@ pub fn default_settings() -> Vec<SettingMeta> {
                 supports_preview: false,
             },
             restart_required: false,
+            hidden_in_minimal: false,
+        },
+        // Custom-model fields. Together they define the `[model.astra-custom]`
+        // config.toml entry (provider + model id + display name + API key);
+        // once an id is set, that entry becomes the default model for new
+        // sessions. SHELL-owned (raw-TOML write), restart-required.
+        SettingMeta {
+            key: "custom_model_provider",
+            category: SettingCategory::Models,
+            owner: SettingOwner::Shell,
+            label: "Custom model provider",
+            description: "Provider/protocol for the custom model. Sets the API backend \
+                          and endpoint on [model.astra-custom] in config.toml. Restart required.",
+            keywords: &["model", "provider", "custom", "openai", "anthropic", "endpoint", "backend"],
+            kind: SettingKind::Enum {
+                default: "openai",
+                choices: CUSTOM_MODEL_PROVIDER_CHOICES,
+                supports_preview: false,
+            },
+            restart_required: true,
+            hidden_in_minimal: false,
+        },
+        SettingMeta {
+            key: "custom_model_id",
+            category: SettingCategory::Models,
+            owner: SettingOwner::Shell,
+            label: "Custom model ID",
+            description: "Model identifier sent to the provider API (e.g. `gpt-4o`, \
+                          `claude-opus-4-6`). Writes [model.astra-custom] `model`. Restart required.",
+            keywords: &["model", "custom", "id", "provider", "endpoint"],
+            kind: SettingKind::String {
+                default: "",
+                validator: super::registry::StringValidator::Any,
+            },
+            restart_required: true,
+            hidden_in_minimal: false,
+        },
+        SettingMeta {
+            key: "custom_model_display_name",
+            category: SettingCategory::Models,
+            owner: SettingOwner::Shell,
+            label: "Custom model display name",
+            description: "Human-readable name shown in the model picker. Writes \
+                          [model.astra-custom] `name`. Restart required.",
+            keywords: &["model", "custom", "name", "display", "label", "picker"],
+            kind: SettingKind::String {
+                default: "",
+                validator: super::registry::StringValidator::Any,
+            },
+            restart_required: true,
+            hidden_in_minimal: false,
+        },
+        SettingMeta {
+            key: "custom_model_api_key",
+            category: SettingCategory::Models,
+            owner: SettingOwner::Shell,
+            label: "Custom model API key",
+            description: "API key sent to the provider. Writes [model.astra-custom] `api_key` \
+                          (stored in config.toml). Restart required.",
+            keywords: &["model", "custom", "api", "key", "secret", "auth", "token"],
+            kind: SettingKind::String {
+                default: "",
+                validator: super::registry::StringValidator::Any,
+            },
+            restart_required: true,
             hidden_in_minimal: false,
         },
         // SHARED. `u16` in UiConfig, widened to `i64` for registry.

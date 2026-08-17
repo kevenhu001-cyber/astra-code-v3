@@ -720,6 +720,13 @@ pub fn current_value_for(
                     .unwrap_or_else(|| ui.fork_secondary_model.clone())
             }
         })),
+        // Custom-model fields: values are written to `[model.astra-custom]` in
+        // config.toml but not read back into the modal (raw-TOML, restart to
+        // apply), so the picker shows the registry default.
+        "custom_model_provider" => Some(SettingValue::Enum("openai")),
+        "custom_model_id" => Some(SettingValue::String(String::new())),
+        "custom_model_display_name" => Some(SettingValue::String(String::new())),
+        "custom_model_api_key" => Some(SettingValue::String(String::new())),
 
         _ => None,
     }
@@ -1202,6 +1209,27 @@ mod tests {
                         "UiConfig::default().fork_secondary_model must equal \
                          models::default_model() — drift here breaks the empty-fold contract",
                     );
+                }
+
+                // Custom-model fields: raw-TOML writes with empty-string /
+                // first-choice defaults (see current_value_for).
+                ("custom_model_provider", SettingKind::Enum { default, .. }) => {
+                    assert_eq!(
+                        *default, "openai",
+                        "custom_model_provider default must be 'openai'"
+                    );
+                }
+                ("custom_model_id", SettingKind::String { default, .. }) => {
+                    assert_eq!(*default, "", "custom_model_id default must be empty");
+                }
+                ("custom_model_display_name", SettingKind::String { default, .. }) => {
+                    assert_eq!(
+                        *default, "",
+                        "custom_model_display_name default must be empty"
+                    );
+                }
+                ("custom_model_api_key", SettingKind::String { default, .. }) => {
+                    assert_eq!(*default, "", "custom_model_api_key default must be empty");
                 }
 
                 _ => panic!(

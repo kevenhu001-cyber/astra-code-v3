@@ -1988,6 +1988,106 @@ pub(in crate::app::dispatch) fn clear_fork_secondary_model(app: &mut AppView) ->
     }]
 }
 
+// ---------------------------------------------------------------------------
+// Custom model — four fields that together define the `[model.astra-custom]`
+// config.toml entry (provider + model id + display name + API key). These have
+// no in-memory mirror (raw-TOML writes, restart-required), so rollback is a
+// no-op and the setters just emit PersistSetting + a toast.
+// ---------------------------------------------------------------------------
+
+/// Map a custom-model provider choice back to a `'static` canonical string.
+fn canonical_custom_model_provider(value: &str) -> &'static str {
+    match value {
+        "openai" => "openai",
+        "openai_responses" => "openai_responses",
+        "anthropic" => "anthropic",
+        _ => "openai",
+    }
+}
+
+/// Persist the custom-model provider preset (`api_backend` + `base_url`).
+pub(in crate::app::dispatch) fn set_custom_model_provider(
+    app: &mut AppView,
+    value: String,
+) -> Vec<Effect> {
+    let canonical = canonical_custom_model_provider(&value);
+    refresh_open_settings_modals(app);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model_provider",
+        value = canonical,
+        "setting changed",
+    );
+    app.show_toast(&format!(
+        "\u{2713} Custom model provider: {canonical} (restart to apply)"
+    ));
+    vec![Effect::PersistSetting {
+        key: "custom_model_provider",
+        value: crate::settings::SettingValue::Enum(canonical),
+        rollback_value: crate::settings::SettingValue::Enum("openai"),
+    }]
+}
+
+/// Persist the custom-model id (`model`). Empty clears the field.
+pub(in crate::app::dispatch) fn set_custom_model_id(
+    app: &mut AppView,
+    value: String,
+) -> Vec<Effect> {
+    refresh_open_settings_modals(app);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model_id",
+        value = %value,
+        "setting changed",
+    );
+    app.show_toast("\u{2713} Custom model ID updated (restart to apply)");
+    vec![Effect::PersistSetting {
+        key: "custom_model_id",
+        value: crate::settings::SettingValue::String(value.clone()),
+        rollback_value: crate::settings::SettingValue::String(value),
+    }]
+}
+
+/// Persist the custom-model display name (`name`). Empty clears the field.
+pub(in crate::app::dispatch) fn set_custom_model_display_name(
+    app: &mut AppView,
+    value: String,
+) -> Vec<Effect> {
+    refresh_open_settings_modals(app);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model_display_name",
+        value = %value,
+        "setting changed",
+    );
+    app.show_toast("\u{2713} Custom model display name updated (restart to apply)");
+    vec![Effect::PersistSetting {
+        key: "custom_model_display_name",
+        value: crate::settings::SettingValue::String(value.clone()),
+        rollback_value: crate::settings::SettingValue::String(value),
+    }]
+}
+
+/// Persist the custom-model API key (`api_key`). Empty clears the field.
+pub(in crate::app::dispatch) fn set_custom_model_api_key(
+    app: &mut AppView,
+    value: String,
+) -> Vec<Effect> {
+    refresh_open_settings_modals(app);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model_api_key",
+        value_len = value.len(),
+        "setting changed",
+    );
+    app.show_toast("\u{2713} Custom model API key updated (restart to apply)");
+    vec![Effect::PersistSetting {
+        key: "custom_model_api_key",
+        value: crate::settings::SettingValue::String(value.clone()),
+        rollback_value: crate::settings::SettingValue::String(value),
+    }]
+}
+
 // `web_search_model`, `session_summary_model`, and
 // `default_reasoning_effort` setters were removed alongside their
 // registry entries. Mirror fields and TOML schema stay for compat.

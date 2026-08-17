@@ -1,0 +1,39 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # The repo's `bin/protoc` is a dotslash manifest (macOS/Linux only); on
+  # Linux runners dotslash fetches the pinned protoc release automatically.
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.94.0"
+          components: rustfmt, clippy
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          /usr/bin/env dotslash --help
+
+      - name: Cargo check (fast validation)
+        run: cargo check -p xai-grok-pager-bin
+
+      - name: Build release binary
+        run: cargo build -p xai-grok-pager-bin --release

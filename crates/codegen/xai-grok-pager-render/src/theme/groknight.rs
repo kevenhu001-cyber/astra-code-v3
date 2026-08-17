@@ -13,7 +13,7 @@ const fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color::Rgb(r, g, b)
 }
 
-// GrokNight palette — neutral gray base + TokyoNight accent colors.
+// Astra palette — black/white canvas with a single pixel-orange accent.
 //
 // Backgrounds and text use a custom grayscale ramp anchored at:
 //   • bg  = #141414 (20)
@@ -54,8 +54,8 @@ mod palette {
     pub const TEAL: Color = rgb(26, 188, 156); // #1abc9c
     pub const YELLOW: Color = rgb(224, 175, 104); // #e0af68
 
-    pub const RED_DARK: Color = rgb(66, 14, 20); // #420e14 — quantizes to 256-color red, not gray
-    pub const GREEN_DARK: Color = rgb(6, 56, 6); // #063806 — quantizes to 256-color green, not gray
+    pub const RED_DARK: Color = rgb(64, 24, 4); // Astra orange diff surface
+    pub const GREEN_DARK: Color = rgb(64, 24, 4); // Astra orange diff surface
 }
 use palette::*;
 
@@ -74,14 +74,14 @@ impl Theme {
             bg_terminal: BG,
 
             accent_user: FG_DARK,
-            accent_assistant: MAGENTA,
-            accent_thinking: MAGENTA,
-            accent_tool: DARK5,
-            accent_system: BLUE,
-            accent_error: RED,
-            accent_success: GREEN,
-            accent_running: MAGENTA,
-            accent_skill: BLUE,
+            accent_assistant: ORANGE,
+            accent_thinking: ORANGE,
+            accent_tool: ORANGE,
+            accent_system: ORANGE,
+            accent_error: ORANGE,
+            accent_success: ORANGE,
+            accent_running: ORANGE,
+            accent_skill: ORANGE,
 
             text_primary: FG,
             text_secondary: FG_DARK,
@@ -90,35 +90,35 @@ impl Theme {
             gray: COMMENT,
             gray_bright: DARK5,
 
-            command: YELLOW,
+            command: ORANGE,
             path: ORANGE,
-            running: CYAN,
-            warning: YELLOW,
+            running: ORANGE,
+            warning: ORANGE,
 
-            fuzzy_accent: BLUE,
+            fuzzy_accent: ORANGE,
 
-            accent_plan: rgb(255, 219, 141), // #FFDB8D — golden
+            accent_plan: ORANGE,
 
-            accent_verify: rgb(187, 154, 247), // #bb9af7 — violet
+            accent_verify: ORANGE,
 
-            accent_remember: Color::Rgb(139, 195, 74), // #8BC34A — Material Design light green
+            accent_remember: ORANGE,
 
             selection_border: rgb(60, 60, 65),
             prompt_border: rgb(50, 50, 55), // #323237 — dimmer prompt chrome
             prompt_border_active: rgb(80, 80, 88), // #505058 — brighter when focused
             hover_border: rgb(30, 30, 34),
 
-            accent_model: TEAL,
+            accent_model: ORANGE,
 
             scrollbar_bg: BG_STORM_DARK,
             scrollbar_fg: BG_HIGHLIGHT,
 
             diff_delete_bg: RED_DARK,
-            diff_delete_fg: RED,
+            diff_delete_fg: ORANGE,
             diff_insert_bg: GREEN_DARK,
-            diff_insert_fg: GREEN,
-            diff_equal_fg: COMMENT,
-            diff_gutter_fg: COMMENT,
+            diff_insert_fg: ORANGE,
+            diff_equal_fg: FG_DARK,
+            diff_gutter_fg: FG_DARK,
 
             bg_visual: rgb(54, 54, 54),
 
@@ -126,25 +126,25 @@ impl Theme {
             paste_fg: FG_DARK,
             paste_dim: FG_GUTTER,
 
-            md_heading_h1: TEAL,
+            md_heading_h1: ORANGE,
             md_heading_h1_mod: Modifier::BOLD,
-            md_heading_h2: BLUE,
+            md_heading_h2: ORANGE,
             md_heading_h2_mod: Modifier::BOLD,
-            md_heading_h3: PURPLE,
+            md_heading_h3: ORANGE,
             md_heading_h3_mod: Modifier::BOLD,
-            md_heading_h4: DARK5, // bright gray
+            md_heading_h4: ORANGE,
             md_heading_h4_mod: Modifier::BOLD,
-            md_heading_h5: COMMENT, // medium gray
+            md_heading_h5: ORANGE,
             md_heading_h5_mod: Modifier::BOLD,
-            md_heading_h6: DARK3, // medium gray, unbold
+            md_heading_h6: ORANGE,
             md_heading_h6_mod: Modifier::empty(),
-            md_code: BLUE1,
-            md_task_checked: GREEN,
-            md_task_unchecked: FG_DARK, // text_secondary
-            md_muted: COMMENT,
-            md_code_bg: rgb(28, 28, 28),
+            md_code: ORANGE,
+            md_task_checked: ORANGE,
+            md_task_unchecked: FG_DARK,
+            md_muted: FG_DARK,
+            md_code_bg: rgb(28, 20, 12),
             md_text: FG_DARK,
-            link_fg: rgb(122, 166, 218), // #7aa6da -- soft blue for dark bg
+            link_fg: ORANGE,
         }
     }
 }
