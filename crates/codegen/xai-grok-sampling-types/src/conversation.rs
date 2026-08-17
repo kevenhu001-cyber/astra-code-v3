@@ -56,8 +56,7 @@ use crate::rs;
 use crate::tool_overrides::{ToolOverrides, WebSearchOptions, XSearchOptions, drop_empty};
 use crate::types::{
     ChatCompletionRequest, ChatContentBlock, ChatRequestMessage, ChatResponseMessage, FinishReason,
-    ImageUrl, MessageContent, Role, ToolCallRequest, ToolChoice, ToolDefinition, TraceContext,
-    Usage,
+    ImageUrl, MessageContent, Role, ToolCallRequest, ToolDefinition, TraceContext, Usage,
 };
 
 // ============================================================================
