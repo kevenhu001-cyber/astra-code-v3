@@ -1,0 +1,51 @@
+[package]
+name = "astra-auth"
+version = "0.1.0"
+edition.workspace = true
+license = "Apache-2.0"
+description = "Astra official site + account/auth API server (Rust port of the Go astra-auth)"
+authors = ["Astra"]
+
+[[bin]]
+name = "astra-auth"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+base64 = { workspace = true }
+# bcrypt for password hashing/verification. Go's astra-auth hashes with the
+# `$2a$` prefix at cost 10; the Rust `bcrypt` crate verifies those and emits
+# `$2b$` for new hashes, which Go's bcrypt also accepts — so credentials stay
+# mutually compatible across the old and new servers.
+bcrypt = "0.16"
+chrono = { workspace = true }
+http = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = [
+    "net",
+    "rt",
+    "rt-multi-thread",
+    "macros",
+    "io-util",
+    "time",
+] }
+tokio-rustls = "0.26"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+webpki-roots = "0.26"
+rustls = { version = "0.23", default-features = false, features = [
+    "ring",
+    "logging",
+    "std",
+    "tls12",
+] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+reqwest = { workspace = true }
+
+[lints]
+workspace = true

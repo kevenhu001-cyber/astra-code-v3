@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in &mdash; Astra</title>
+  <meta name="description" content="Create an account or sign in to Astra.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/assets/site.css?v=3">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="shell-wide header-inner">
+      <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/login" aria-current="page">Sign in</a>
+        <a href="/account">Account</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-primary" href="/authorize">Authorize a device</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <path d="M10 17l5-5-5-5"/>
+            <path d="M13 12H3"/>
+          </svg>
+        </div>
+        <h1 id="cardTitle">Welcome back</h1>
+        <p class="sub" id="cardSub">Sign in to manage your account and authorize devices.</p>
+
+        <div class="tabs" role="tablist">
+          <div class="tab active" id="tabLogin" role="tab" aria-selected="true">Sign in</div>
+          <div class="tab" id="tabRegister" role="tab" aria-selected="false">Create account</div>
+        </div>
+
+        <div class="msg err" id="formErr" role="alert"></div>
+        <div class="msg ok" id="formOk"></div>
+
+        <form id="loginForm" autocomplete="on">
+          <div class="field">
+            <label for="loginEmail">Email</label>
+            <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+          </div>
+          <div class="field">
+            <div class="field-row">
+              <label for="loginPassword">Password</label>
+              <a href="#" id="resendLink">Resend verification</a>
+            </div>
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+        </form>
+
+        <form id="registerForm" hidden autocomplete="on">
+          <div class="field">
+            <label for="regEmail">Email</label>
+            <input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+          </div>
+          <div class="field">
+            <label for="regPassword">Password</label>
+            <input id="regPassword" type="password" autocomplete="new-password" minlength="8" maxlength="64" placeholder="At least 8 characters" required>
+            <p class="hint">8&ndash;64 characters. We hash it with bcrypt and never store the plaintext.</p>
+          </div>
+          <div class="field">
+            <label for="regPassword2">Confirm password</label>
+            <input id="regPassword2" type="password" autocomplete="new-password" minlength="8" maxlength="64" required>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Create account</button>
+        </form>
+
+        <div id="verifyPending" hidden>
+          <div class="msg info" style="display:block">
+            <strong>Check your inbox.</strong>
+            <p style="margin:8px 0 0">We sent a verification link to your email. Click it to activate your account &mdash; you will be signed in automatically.</p>
+            <p style="margin:8px 0 0;color:var(--text-30);font-size:12.5px">Self-hosted? The verification link is printed to the server log.</p>
+          </div>
+        </div>
+      </div>
+      <p class="auth-foot">By continuing, you agree that Astra stores your email and a salted password hash on the auth server. <a href="/">Learn more</a>.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell-wide">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+          <p>An uncertainty-driven engineering runtime for the terminal.</p>
+        </div>
+        <div class="footer-col">
+          <h2>Product</h2>
+          <a href="/">Home</a>
+          <a href="/login">Sign in</a>
+          <a href="/account">Account</a>
+        </div>
+        <div class="footer-col">
+          <h2>Account</h2>
+          <a href="/account">My account</a>
+          <a href="/authorize">Authorize device</a>
+        </div>
+        <div class="footer-col">
+          <h2>Run</h2>
+          <a href="https://github.com/kevenhu001-cyber/astra-harness">GitHub</a>
+          <a href="https://github.com/kevenhu001-cyber/astra-harness/blob/main/README.md">Documentation</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Astra Harness</span>
+        <span>Terminal &middot; State &middot; Evidence</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/auth.js?v=3"></script>
+  <script>
+    (function () {
+      var A = window.Astra;
+
+      function switchTab(which) {
+        var login = which === 'login';
+        document.getElementById('tabLogin').classList.toggle('active', login);
+        document.getElementById('tabLogin').setAttribute('aria-selected', String(login));
+        document.getElementById('tabRegister').classList.toggle('active', !login);
+        document.getElementById('tabRegister').setAttribute('aria-selected', String(!login));
+        document.getElementById('loginForm').hidden = !login;
+        document.getElementById('registerForm').hidden = login;
+        document.getElementById('verifyPending').hidden = true;
+        document.getElementById('cardTitle').textContent = login ? 'Welcome back' : 'Create your account';
+        document.getElementById('cardSub').textContent = login
+          ? 'Sign in to manage your account and authorize devices.'
+          : 'Register with your email. Verification required before sign-in.';
+        A.setErr(''); A.setOk('');
+      }
+      document.getElementById('tabLogin').addEventListener('click', function () { switchTab('login'); });
+      document.getElementById('tabRegister').addEventListener('click', function () { switchTab('register'); });
+
+      document.getElementById('loginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        A.setErr(''); A.setOk('');
+        try {
+          await A.api('/login', { body: { email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value } });
+          var user = await A.me();
+          if (user) {
+            window.location.href = 'account';
+          } else {
+            A.setErr('Signed in, but your browser blocked the session cookie. Allow cookies for this site, then try again.');
+          }
+        } catch (err) {
+          A.setErr(err.message === 'invalid email or password' ? 'Invalid email or password' : err.message);
+        }
+      });
+
+      document.getElementById('registerForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        A.setErr(''); A.setOk('');
+        var p1 = document.getElementById('regPassword').value;
+        var p2 = document.getElementById('regPassword2').value;
+        if (p1 !== p2) { A.setErr('Passwords do not match'); return; }
+        if (p1.length > 64) { A.setErr('Password is too long (maximum 64 characters)'); return; }
+        if (p1.length < 8) { A.setErr('Password must be at least 8 characters'); return; }
+        try {
+          await A.api('/register', { body: { email: document.getElementById('regEmail').value, password: p1 } });
+          document.getElementById('loginForm').hidden = true;
+          document.getElementById('registerForm').hidden = true;
+          document.getElementById('verifyPending').hidden = false;
+          document.getElementById('cardTitle').textContent = 'Verify your email';
+          document.getElementById('cardSub').textContent = 'Click the link we sent to activate your account.';
+        } catch (err) {
+          A.setErr(err.message);
+        }
+      });
+
+      document.getElementById('resendLink').addEventListener('click', async function (e) {
+        e.preventDefault();
+        var email = document.getElementById('regEmail').value || document.getElementById('loginEmail').value;
+        if (!email) { A.setErr('Enter your email first.'); return; }
+        try {
+          await A.api('/resend-verification', { body: { email: email } });
+          A.setOk('If the email is registered and pending, a new link was sent.');
+        } catch (err) { A.setErr(err.message); }
+      });
+
+      A.me().then(function (user) { if (user) window.location.href = 'account'; });
+    })();
+  </script>
+</body>
+</html>
