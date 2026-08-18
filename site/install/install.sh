@@ -1,11 +1,11 @@
 #!/bin/sh
 #
-# Astra Code one-line installer (Linux / macOS).
+# Astra CLI one-line installer (Linux / macOS).
 #
 #   curl -fsSL https://astracode.topodrive.top/install/install.sh | sh
 #
 # Override the target directory with:
-#   ASTRA_INSTALL_DIR=/opt/astra-code ./install.sh
+#   ASTRA_INSTALL_DIR=/opt/astra ./install.sh
 set -eu
 
 INSTALL_DIR="${ASTRA_INSTALL_DIR:-$HOME/.local/bin}"
@@ -42,7 +42,7 @@ if [ -z "$TAG" ]; then
 fi
 echo "Latest release: $TAG"
 
-asset="astra-code-${TAG}-${target_arch}-${target_os}.tar.gz"
+asset="astra-${TAG}-${target_arch}-${target_os}.tar.gz"
 BASE_URL="https://github.com/$REPO/releases/download/$TAG"
 
 tmpdir="$(mktemp -d)"
@@ -53,7 +53,7 @@ curl -fsSL "$BASE_URL/$asset" -o "$tmpdir/$asset"
 
 tar -xzf "$tmpdir/$asset" -C "$tmpdir"
 mkdir -p "$INSTALL_DIR"
-install -m 0755 "$tmpdir/astra-code" "$INSTALL_DIR/astra-code"
+install -m 0755 "$tmpdir/astra" "$INSTALL_DIR/astra"
 
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
@@ -61,13 +61,13 @@ case ":$PATH:" in
     for rc in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
       [ -f "$rc" ] || continue
       grep -Fq "$INSTALL_DIR" "$rc" 2>/dev/null && continue
-      printf "\n# added by astra-code installer\nexport PATH=\"%s:\$PATH\"\n" "$INSTALL_DIR" >> "$rc"
+      printf "\n# added by astra installer\nexport PATH=\"%s:\$PATH\"\n" "$INSTALL_DIR" >> "$rc"
     done
     echo "Added $INSTALL_DIR to your shell config (new terminals will pick it up)."
     ;;
 esac
 
-# Make `astra-code` available in the current shell too.
+# Make `astra` available in the current shell too.
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
   *)
@@ -76,5 +76,5 @@ case ":$PATH:" in
     ;;
 esac
 
-"$INSTALL_DIR/astra-code" version
-echo "Astra Code installed: $INSTALL_DIR/astra-code"
+"$INSTALL_DIR/astra" version
+echo "Astra installed: $INSTALL_DIR/astra"

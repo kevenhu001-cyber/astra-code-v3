@@ -10,21 +10,33 @@ const CLAUDE_MANAGED_SETTINGS_PATH: &str =
 #[cfg(target_os = "linux")]
 const CLAUDE_MANAGED_SETTINGS_PATH: &str = "/etc/claude-code/managed-settings.json";
 
-/// Canonical grok application path: `$GROK_HOME/bin/grok` (Unix) or `grok.exe` (Windows).
-pub fn grok_application() -> PathBuf {
-    grok_application_in(&grok_home())
+/// Canonical Astra application path: `$ASTRA_HOME/bin/astra` (Unix) or `astra.exe` (Windows).
+pub fn astra_application() -> PathBuf {
+    astra_application_in(&astra_home())
 }
 
-/// [`grok_application`] under an explicit home instead of `$GROK_HOME`.
-pub fn grok_application_in(home: &std::path::Path) -> PathBuf {
-    let name = if cfg!(windows) { "grok.exe" } else { "grok" };
+/// [`astra_application`] under an explicit home instead of `$ASTRA_HOME`.
+pub fn astra_application_in(home: &std::path::Path) -> PathBuf {
+    let name = if cfg!(windows) { "astra.exe" } else { "astra" };
     home.join("bin").join(name)
 }
 
-/// System-wide config directory: `/etc/grok/` on Unix, `None` on Windows.
+// Backward-compat alias — kept because the wider workspace has many
+// `xai_grok_config::paths::grok_application` call sites.
+#[deprecated(note = "use `astra_application` instead")]
+pub fn grok_application() -> PathBuf {
+    astra_application()
+}
+
+#[deprecated(note = "use `astra_application_in` instead")]
+pub fn grok_application_in(home: &std::path::Path) -> PathBuf {
+    astra_application_in(home)
+}
+
+/// System-wide config directory: `/etc/astra/` on Unix, `None` on Windows.
 pub fn system_config_dir() -> Option<PathBuf> {
     if cfg!(unix) {
-        Some(PathBuf::from("/etc/grok"))
+        Some(PathBuf::from("/etc/astra"))
     } else {
         None
     }

@@ -1,12 +1,12 @@
-//! Config file loading for Grok.
+//! Config file loading for the Astra CLI.
 //!
 //! Merge order (lowest → highest priority):
-//! 1. `/etc/grok/managed_config.toml`
-//! 2. `$GROK_HOME/managed_config.toml`
-//! 3. `$GROK_HOME/config.toml`
-//! 4. `$GROK_HOME/requirements.toml` (cloud cache; Ed25519-signed at rest once a
+//! 1. `/etc/astra/managed_config.toml`
+//! 2. `$ASTRA_HOME/managed_config.toml`
+//! 3. `$ASTRA_HOME/config.toml`
+//! 4. `$ASTRA_HOME/requirements.toml` (cloud cache; Ed25519-signed at rest once a
 //!    key is embedded — see [`signed_policy`] — below the OS-protected layers)
-//! 5. `/etc/grok/requirements.toml`
+//! 5. `/etc/astra/requirements.toml`
 //! 6. macOS MDM managed preferences (`ai.x.grok`, admin-forced) — macOS only
 //!
 //! Each layer applies its own [`[[version_overrides]]`](version_overrides)
@@ -46,7 +46,8 @@ pub use config_layers::{
     load_dismissed_ids_from_home, load_effective_config_disk_only,
 };
 pub use env_overlay::{
-    GROK_CONFIG_ENV, GROK_CONFIG_PATH_ENV, OverlaySource, ResolvedOverlay, resolved_env_overlay,
+    ASTRA_CONFIG_ENV, ASTRA_CONFIG_PATH_ENV, GROK_CONFIG_ENV, GROK_CONFIG_PATH_ENV, OverlaySource,
+    ResolvedOverlay, resolved_env_overlay,
 };
 #[cfg(unix)]
 pub use global_hook_sources::{
@@ -69,10 +70,11 @@ pub use managed_cache::{
     mark_managed_config_synced, mark_managed_config_synced_at, normalize_identity,
 };
 pub use paths::{
-    claude_managed_settings_path, claude_managed_settings_probe_path, create_dir_all_owner_only,
-    decode_cwd_from_dirname, default_grok_home, encode_cwd_dirname, ensure_sessions_cwd_dir,
+    astra_application, astra_application_in, claude_managed_settings_path,
+    claude_managed_settings_probe_path, create_dir_all_owner_only, decode_cwd_from_dirname,
+    default_astra_home, default_grok_home, encode_cwd_dirname, ensure_sessions_cwd_dir,
     ensure_sessions_cwd_dir_in, grok_application, grok_application_in, grok_home, sessions_cwd_dir,
-    sessions_cwd_dir_in, set_dir_owner_only, system_config_dir, user_grok_home,
+    sessions_cwd_dir_in, set_dir_owner_only, system_config_dir, user_astra_home, user_grok_home,
 };
 pub use validation::{
     RequirementsError, RequirementsLayer, RequirementsSource, load_merged_requirements,

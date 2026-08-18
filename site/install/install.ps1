@@ -1,13 +1,13 @@
 #
-# Astra Code one-line installer (Windows PowerShell 5.1+).
+# Astra CLI one-line installer (Windows PowerShell 5.1+).
 #
 #   irm https://astracode.topodrive.top/install/install.ps1 | iex
 #
 # Override the target directory with:
-#   $env:ASTRA_INSTALL_DIR = "D:\astra-code"
+#   $env:ASTRA_INSTALL_DIR = "D:\astra"
 $ErrorActionPreference = "Stop"
 
-$InstallDir = if ($env:ASTRA_INSTALL_DIR) { $env:ASTRA_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Programs\astra-code" }
+$InstallDir = if ($env:ASTRA_INSTALL_DIR) { $env:ASTRA_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Programs\astra" }
 $Repo = if ($env:ASTRA_REPO) { $env:ASTRA_REPO } else { "kevenhu001-cyber/astra-code-v3" }
 
 $arch = $env:PROCESSOR_ARCHITECTURE
@@ -27,30 +27,30 @@ $tag = $releaseInfo.tag_name
 if (-not $tag) { throw "Failed to fetch latest release version" }
 Write-Host "Latest release: $tag"
 
-$asset = "astra-code-$tag-$targetArch-pc-windows-msvc.zip"
+$asset = "astra-$tag-$targetArch-pc-windows-msvc.zip"
 $baseUrl = "https://github.com/$Repo/releases/download/$tag"
-$tmp = Join-Path $env:TEMP ("astra-code-install-" + [guid]::NewGuid().ToString("N"))
+$tmp = Join-Path $env:TEMP ("astra-install-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tmp | Out-Null
 
 try {
   Write-Host "Downloading $asset ..."
-  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$asset" -OutFile (Join-Path $tmp "astra-code.zip")
+  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$asset" -OutFile (Join-Path $tmp "astra.zip")
 
-  # Extract zip — contents may be nested under astra-code/ subdirectory
+  # Extract zip — contents may be nested under astra/ subdirectory
   $extractDir = Join-Path $tmp "extract"
-  Expand-Archive -Path (Join-Path $tmp "astra-code.zip") -DestinationPath $extractDir -Force
+  Expand-Archive -Path (Join-Path $tmp "astra.zip") -DestinationPath $extractDir -Force
 
-  # Find the .exe — may be named xai-grok-pager.exe or astra-code.exe
-  $exe = Get-ChildItem -Path $extractDir -Filter "*.exe" -Recurse | Where-Object { $_.Name -match "xai-grok-pager|astra-code" } | Select-Object -First 1
+  # Find the .exe — accept the underlying pager binary or the renamed wrapper
+  $exe = Get-ChildItem -Path $extractDir -Filter "*.exe" -Recurse | Where-Object { $_.Name -match "xai-grok-pager|^astra(\.exe|$)" } | Select-Object -First 1
   if (-not $exe) {
     throw "Executable not found in the archive"
   }
 
-  # Install: copy exe to InstallDir as astra-code.exe
+  # Install: copy exe to InstallDir as astra.exe
   New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-  Copy-Item $exe.FullName (Join-Path $InstallDir "astra-code.exe") -Force
+  Copy-Item $exe.FullName (Join-Path $InstallDir "astra.exe") -Force
 
-  $astra = Join-Path $InstallDir "astra-code.exe"
+  $astra = Join-Path $InstallDir "astra.exe"
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
   $parts = if ($userPath) { $userPath -split ";" } else { @() }
   $pathUpdated = $false
@@ -71,11 +71,11 @@ try {
     Write-Host ""
     Write-Host "VS Code: quit VS Code completely and reopen it, then open a new terminal."
     Write-Host "Other apps: restart them so they pick up the new PATH."
-    Write-Host "This terminal already works: 'astra-code version' below."
+    Write-Host "This terminal already works: 'astra version' below."
   }
 
   & $astra version
-  Write-Host "Astra Code installed: $InstallDir\astra-code.exe"
+  Write-Host "Astra installed: $InstallDir\astra.exe"
 } finally {
   Remove-Item -Recurse -Force $tmp
 }

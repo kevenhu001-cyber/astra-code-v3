@@ -94,27 +94,27 @@ jobs:
         run: |
           set -euo pipefail
           REF_NAME="${GITHUB_REF_NAME:-dev}"
-          ARTIFACT="astra-code-${REF_NAME}-${{ matrix.target }}"
+          ARTIFACT="astra-${REF_NAME}-${{ matrix.target }}"
           if [ "${{ matrix.archive }}" = "tar.gz" ]; then
-            cp "${{ matrix.binary }}" astra-code
-            tar -czf "${ARTIFACT}.tar.gz" astra-code
+            cp "${{ matrix.binary }}" astra
+            tar -czf "${ARTIFACT}.tar.gz" astra
             sha256sum "${ARTIFACT}.tar.gz" > "${ARTIFACT}.tar.gz.sha256"
           else
-            mkdir astra-code
-            cp "${{ matrix.binary }}" astra-code/
+            mkdir astra
+            cp "${{ matrix.binary }}" astra/
             # Windows runners' Git bash has no `zip`; use PowerShell instead.
-            pwsh -NoProfile -Command "Compress-Archive -Path astra-code -DestinationPath '${ARTIFACT}.zip' -Force"
+            pwsh -NoProfile -Command "Compress-Archive -Path astra -DestinationPath '${ARTIFACT}.zip' -Force"
             sha256sum "${ARTIFACT}.zip" > "${ARTIFACT}.zip.sha256"
           fi
 
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: astra-code-${{ matrix.target }}
+          name: astra-${{ matrix.target }}
           path: |
-            target/${{ matrix.target }}/release/astra-code-*.tar.gz
-            target/${{ matrix.target }}/release/astra-code-*.zip
-            target/${{ matrix.target }}/release/astra-code-*.sha256
+            target/${{ matrix.target }}/release/astra-*.tar.gz
+            target/${{ matrix.target }}/release/astra-*.zip
+            target/${{ matrix.target }}/release/astra-*.sha256
           if-no-files-found: error
 
   # astra-auth: the official site + account/auth API server (Rust port of the

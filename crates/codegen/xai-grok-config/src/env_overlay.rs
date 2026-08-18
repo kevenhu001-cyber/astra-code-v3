@@ -1,4 +1,8 @@
-//! `GROK_CONFIG` / `GROK_CONFIG_PATH` config overlay resolution.
+//! `ASTRA_CONFIG` / `ASTRA_CONFIG_PATH` config overlay resolution.
+//!
+//! The previous names (`GROK_CONFIG` / `GROK_CONFIG_PATH`) are still accepted
+//! as fallback aliases for one release, so deployments that pinned the old
+//! names keep working.
 
 use std::path::{Path, PathBuf};
 
@@ -7,12 +11,17 @@ use crate::loader::{
 };
 
 /// Inline config overlay: a JSON object.
-pub const GROK_CONFIG_ENV: &str = "GROK_CONFIG";
+pub const ASTRA_CONFIG_ENV: &str = "ASTRA_CONFIG";
 
 /// Path to an additional JSON or TOML config-overlay file (read by extension).
-pub const GROK_CONFIG_PATH_ENV: &str = "GROK_CONFIG_PATH";
+pub const ASTRA_CONFIG_PATH_ENV: &str = "ASTRA_CONFIG_PATH";
 
-/// Hard cap on a `GROK_CONFIG_PATH` overlay read. Matches the untrusted-config
+/// Legacy aliases (kept for one release so deployments keep working). Prefer
+/// [`ASTRA_CONFIG_ENV`] / [`ASTRA_CONFIG_PATH_ENV`] in new code.
+pub const GROK_CONFIG_ENV: &str = ASTRA_CONFIG_ENV;
+pub const GROK_CONFIG_PATH_ENV: &str = ASTRA_CONFIG_PATH_ENV;
+
+/// Hard cap on an `ASTRA_CONFIG_PATH` overlay read. Matches the untrusted-config
 /// read cap in `managed_text` (`MAX_CONFIG_BYTES`, also 4 MiB): a huge file, or
 /// a special node like `/dev/zero`, must never stall or OOM the agent, so the
 /// read is bounded and an over-cap or non-regular file falls through to no
@@ -41,20 +50,33 @@ pub struct ResolvedOverlay {
 }
 
 fn env_overlay_inputs() -> (Option<String>, Option<PathBuf>) {
-    let inline = match std::env::var_os(GROK_CONFIG_ENV) {
-        Some(raw) => match raw.into_string() {
-            Ok(s) => Some(s),
+    // Prefer the new `ASTRA_CONFIG[_PATH]` names; fall back to the legacy
+    // `GROK_CONFIG[_PATH]` for one release so existing deployments keep
+    // working.
+    let inline = read_first_nonempty_env([GROK_CONFIG_ENV, "GROK_CONFIG"]).and_then(|raw| {
+        match raw.into_string() {
+            Ok(s) if !s.is_empty() => Some(s),
+            Ok(_) => None,
             Err(_) => {
-                tracing::warn!("GROK_CONFIG is not valid UTF-8; ignoring the overlay");
+                tracing::warn!("config overlay env var is not valid UTF-8; ignoring the overlay");
                 None
             }
-        },
-        None => None,
-    };
-    let path = std::env::var_os(GROK_CONFIG_PATH_ENV)
-        .filter(|v| !v.is_empty())
+        }
+    });
+    let path = read_first_nonempty_env([GROK_CONFIG_PATH_ENV, "GROK_CONFIG_PATH"])
         .map(PathBuf::from);
     (inline, path)
+}
+
+fn read_first_nonempty_env(names: [&str; 2]) -> Option<std::ffi::OsString> {
+    for n in names {
+        if let Some(v) = std::env::var_os(n) {
+            if !v.is_empty() {
+                return Some(v);
+            }
+        }
+    }
+    None
 }
 
 pub(crate) fn load_env_overlay() -> Option<toml::Value> {
@@ -67,7 +89,7 @@ pub(crate) fn load_env_overlay() -> Option<toml::Value> {
     tracing::trace!(
         source = source_label,
         ?sections,
-        "resolved GROK_CONFIG overlay"
+        "resolved ASTRA_CONFIG overlay"
     );
     Some(overlay)
 }
@@ -87,10 +109,11 @@ fn resolve_overlay_detailed(
     inline: Option<&str>,
     path: Option<&Path>,
 ) -> Option<(toml::Value, OverlaySource, Vec<String>)> {
-    // Inline (`GROK_CONFIG`) wins only when it fully succeeds. When it is
-    // absent, empty, or rejected at any stage (parse, `$VAR` expand,
-    // version_overrides, normalize), fall through to the `GROK_CONFIG_PATH`
-    // candidate so a valid file is never skipped because of a bad inline value.
+    // Inline (`ASTRA_CONFIG` / legacy `GROK_CONFIG`) wins only when it fully
+    // succeeds. When it is absent, empty, or rejected at any stage (parse,
+    // `$VAR` expand, version_overrides, normalize), fall through to the
+    // `ASTRA_CONFIG_PATH` candidate so a valid file is never skipped because
+    // of a bad inline value.
     if let Some(inline) = inline
         && let Some(resolved) = resolve_inline_overlay(inline)
     {

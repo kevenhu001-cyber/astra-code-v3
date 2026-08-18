@@ -16,51 +16,59 @@ const fn rgb(r: u8, g: u8, b: u8) -> Color {
 // Astra palette — black/white canvas with a single pixel-orange accent.
 //
 // Backgrounds and text use a custom grayscale ramp anchored at:
-//   • bg  = #141414 (20)
-//   • fg  = #f3f3f3 (243)
+//   • bg  = #000000 (pure black terminal canvas)
+//   • fg  = #FFFFFF (pure white primary text)
 //
-// Accent colors are the original TokyoNight Night hex values.
+// Accent colors use the requested `#FF6A00` as the primary orange, with a
+// dimmer `#CC5500` for muted accents / secondary highlights.
 #[allow(dead_code)]
 mod palette {
     use super::*;
 
     // ── Backgrounds ─────────────────────────────────────────────────────
-    pub const BG: Color = rgb(10, 10, 10); //  #0a0a0a — Night (terminal bg)
-    pub const BG_DARK: Color = rgb(12, 12, 12); //  #0c0c0c — darkest
-    pub const BG_STORM_DARK: Color = rgb(17, 17, 17); //  #111111 — dark bg
-    pub const BG_STORM: Color = rgb(20, 20, 20); //  #141414 — main bg
-    pub const BG_HIGHLIGHT: Color = rgb(36, 36, 36); //  #242424 — highlight bg
+    pub const BG: Color = rgb(0, 0, 0); //         #000000 — pure black canvas
+    pub const BG_DARK: Color = rgb(0, 0, 0); //     #000000 — darkest (sunken surfaces)
+    pub const BG_STORM_DARK: Color = rgb(10, 10, 10); // #0A0A0A — dark bg
+    pub const BG_STORM: Color = rgb(0, 0, 0); //    #000000 — main bg
+    pub const BG_HIGHLIGHT: Color = rgb(26, 26, 26); // #1A1A1A — one step off black
 
-    // ── Text / grays ────────────────────────────────────────────────────
-    pub const FG: Color = rgb(225, 225, 225); // #e1e1e1 — primary text
-    pub const FG_DARK: Color = rgb(200, 200, 200); // #c8c8c8 — secondary text
-    pub const FG_GUTTER: Color = rgb(65, 65, 65); //  #414141 — dim
-    pub const COMMENT: Color = rgb(108, 108, 108); //  #6c6c6c — muted
-    pub const DARK3: Color = rgb(90, 90, 90); //  #5a5a5a — medium gray
-    pub const DARK5: Color = rgb(120, 120, 120); // #787878 — bright gray
+    // ── Text / grays (black/white axis) ────────────────────────────────
+    pub const FG: Color = rgb(255, 255, 255); //   #FFFFFF — primary text
+    pub const FG_DARK: Color = rgb(220, 220, 220); // #DCDCDC — secondary text
+    pub const FG_GUTTER: Color = rgb(110, 110, 110); // #6E6E6E — dim
+    pub const COMMENT: Color = rgb(140, 140, 140); // #8C8C8C — muted
+    pub const DARK3: Color = rgb(110, 110, 110); //  #6E6E6E — medium gray
+    pub const DARK5: Color = rgb(170, 170, 170); //  #AAAAAA — bright gray
 
-    // ── Accent colors (TokyoNight Night) ─────────────────────────────────
-    pub const BLUE: Color = rgb(122, 162, 247); // #7aa2f7
-    pub const BLUE0: Color = rgb(61, 89, 161); // #3d59a1
-    pub const BLUE1: Color = rgb(58, 149, 171); // #3A95AB
-    pub const CYAN: Color = rgb(125, 207, 255); // #7dcfff
-    pub const GREEN: Color = rgb(158, 206, 106); // #9ece6a
-    pub const GREEN1: Color = rgb(115, 218, 202); // #73daca
-    pub const MAGENTA: Color = rgb(187, 154, 247); // #bb9af7
-    pub const ORANGE: Color = rgb(255, 158, 100); // #ff9e64
-    pub const PURPLE: Color = rgb(157, 124, 216); // #9d7cd8
-    pub const RED: Color = rgb(247, 118, 142); // #f7768e
-    pub const RED1: Color = rgb(219, 75, 75); // #db4b4b
-    pub const TEAL: Color = rgb(26, 188, 156); // #1abc9c
-    pub const YELLOW: Color = rgb(224, 175, 104); // #e0af68
+    // ── Accent colors (Astra orange palette) ───────────────────────────
+    pub const ORANGE: Color = rgb(255, 106, 0); //  #FF6A00 — primary accent
+    pub const ORANGE_DIM: Color = rgb(204, 85, 0); // #CC5500 — muted accent / secondary highlight
 
-    pub const RED_DARK: Color = rgb(64, 24, 4); // Astra orange diff surface
-    pub const GREEN_DARK: Color = rgb(64, 24, 4); // Astra orange diff surface
+    // Legacy aliases kept so existing field references compile. They all
+    // resolve to a black/white/orange shade now.
+    pub const BLUE: Color = ORANGE;
+    pub const BLUE0: Color = ORANGE_DIM;
+    pub const BLUE1: Color = ORANGE_DIM;
+    pub const CYAN: Color = ORANGE;
+    pub const GREEN: Color = ORANGE;
+    pub const GREEN1: Color = ORANGE;
+    pub const MAGENTA: Color = ORANGE;
+    pub const PURPLE: Color = ORANGE;
+    pub const RED: Color = ORANGE;
+    pub const RED1: Color = ORANGE_DIM;
+    pub const TEAL: Color = ORANGE;
+    pub const YELLOW: Color = ORANGE;
+
+    pub const RED_DARK: Color = rgb(64, 24, 4); //  Astra orange-tinted diff surface
+    pub const GREEN_DARK: Color = rgb(64, 24, 4); // Astra orange-tinted diff surface
 }
 use palette::*;
 
 impl Theme {
-    /// GrokNight theme — neutral gray base with TokyoNight accents.
+    /// Astra Night theme — pure black canvas with the user-requested `#FF6A00`
+/// orange accent. Backgrounds are flat black with subtle highlight tiers;
+/// all text is white or a white-tinted gray. Accent / selection / focus /
+/// borders / md headings / diff / scrollbar all use the orange ramp.
     ///
     /// Colors are defined in RGB. Call [`Theme::quantized`] to downgrade
     /// them to the terminal's supported color level before rendering.
@@ -68,12 +76,12 @@ impl Theme {
         Self {
             bg_base: BG_STORM,
             bg_light: BG_HIGHLIGHT,
-            bg_dark: rgb(28, 28, 28), // lighter than bg_base for visible code blocks
+            bg_dark: rgb(10, 10, 10), // slightly lighter than bg_base for visible code blocks
             bg_highlight: BG_HIGHLIGHT,
-            bg_hover: rgb(44, 44, 44),
+            bg_hover: rgb(36, 36, 36),
             bg_terminal: BG,
 
-            accent_user: FG_DARK,
+            accent_user: ORANGE, // selection accent → bright orange
             accent_assistant: ORANGE,
             accent_thinking: ORANGE,
             accent_tool: ORANGE,
@@ -86,7 +94,7 @@ impl Theme {
             text_primary: FG,
             text_secondary: FG_DARK,
 
-            gray_dim: rgb(88, 88, 88), // #585858 — slightly brighter than FG_GUTTER
+            gray_dim: rgb(140, 140, 140), // #8C8C8C — between gutter and comment
             gray: COMMENT,
             gray_bright: DARK5,
 
@@ -99,19 +107,19 @@ impl Theme {
 
             accent_plan: ORANGE,
 
-            accent_verify: ORANGE,
+            accent_verify: ORANGE_DIM,
 
             accent_remember: ORANGE,
 
-            selection_border: rgb(60, 60, 65),
-            prompt_border: rgb(50, 50, 55), // #323237 — dimmer prompt chrome
-            prompt_border_active: rgb(80, 80, 88), // #505058 — brighter when focused
-            hover_border: rgb(30, 30, 34),
+            selection_border: ORANGE_DIM,
+            prompt_border: rgb(70, 70, 70), // dimmer prompt chrome
+            prompt_border_active: ORANGE, // brighter when focused
+            hover_border: rgb(40, 40, 40),
 
             accent_model: ORANGE,
 
             scrollbar_bg: BG_STORM_DARK,
-            scrollbar_fg: BG_HIGHLIGHT,
+            scrollbar_fg: ORANGE_DIM,
 
             diff_delete_bg: RED_DARK,
             diff_delete_fg: ORANGE,
@@ -120,7 +128,7 @@ impl Theme {
             diff_equal_fg: FG_DARK,
             diff_gutter_fg: FG_DARK,
 
-            bg_visual: rgb(54, 54, 54),
+            bg_visual: rgb(40, 40, 40),
 
             paste_bg: BG_STORM_DARK,
             paste_fg: FG_DARK,
@@ -157,8 +165,10 @@ mod tests {
     #[ignore = "known broken: expected accent values drift from runtime theme"]
     fn test_groknight_theme() {
         let theme = Theme::groknight();
-        assert!(matches!(theme.bg_base, Color::Rgb(20, 20, 20)));
-        assert!(matches!(theme.accent_user, Color::Rgb(225, 225, 225)));
-        assert!(matches!(theme.text_primary, Color::Rgb(225, 225, 225)));
+        // Astra black/white/orange defaults.
+        assert!(matches!(theme.bg_base, Color::Rgb(0, 0, 0)));
+        assert!(matches!(theme.text_primary, Color::Rgb(255, 255, 255)));
+        // Primary accent is the user-requested #FF6A00.
+        assert!(matches!(theme.accent_user, Color::Rgb(255, 106, 0)));
     }
 }
