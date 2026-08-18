@@ -231,6 +231,13 @@ mod tests {
     fn test_base_template_renders() {
         let prompt = render_base(&default_renderer(), &default_placeholders());
         assert!(!prompt.contains("released by xAI"));
+        // The user-guide section now points at the semantic `<grok_home>`
+        // path rather than the hard-coded `~/.grok/...`, so the prompt stays
+        // correct under any future on-disk layout change.
+        assert!(
+            prompt.contains("<grok_home>/docs/user-guide/"),
+            "prompt should reference the grok_home path semantically"
+        );
         assert!(prompt.contains("user_query"));
     }
 

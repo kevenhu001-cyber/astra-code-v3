@@ -2,6 +2,7 @@
 
 use super::test_support::*;
 use super::*;
+use crate::ToolChoice;
 use assert_matches::assert_matches;
 
 fn make_test_tool() -> ToolSpec {

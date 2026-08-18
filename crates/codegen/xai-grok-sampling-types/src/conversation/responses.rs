@@ -99,14 +99,13 @@ impl From<&ConversationRequest> for rs::CreateResponse {
         let input = build_responses_input(req);
         let tools = build_responses_tools(req);
 
-        let tool_choice = req.tool_choice.as_ref().map(|tc| match tc {
-            ConversationToolChoice::Auto => rs::ToolChoiceParam::Mode(rs::ToolChoiceOptions::Auto),
-            ConversationToolChoice::None => rs::ToolChoiceParam::Mode(rs::ToolChoiceOptions::None),
-            ConversationToolChoice::Required => {
-                rs::ToolChoiceParam::Mode(rs::ToolChoiceOptions::Required)
-            }
-            ConversationToolChoice::Function(name) => {
-                rs::ToolChoiceParam::Function(rs::ToolChoiceFunction { name: name.clone() })
+        let tool_choice = req.tool_choice.as_ref().map(|tc| {
+            match crate::tool_normalize::normalize_tool_choice_for(
+                crate::ApiBackend::Responses,
+                tc.clone(),
+            ) {
+                crate::tool_normalize::BackendToolChoice::Responses(c) => c,
+                _ => unreachable!("backend must match"),
             }
         });
 
@@ -320,30 +319,14 @@ fn content_parts_to_easy_input_content(parts: &[ContentPart]) -> rs::EasyInputCo
 ///
 /// No hosted tool is emitted here. Both ride the raw-JSON [`extra_tool_entries`] channel instead.
 fn build_responses_tools(req: &ConversationRequest) -> Vec<rs::Tool> {
-    let tools: Vec<rs::Tool> = req
-        .tools
-        .iter()
-        .filter(|t| {
-            let collides = req.hosted_tools.iter().any(|h| h.wire_name() == t.name);
-            if collides {
-                tracing::warn!(
-                    tool = %t.name,
-                    "dropping function tool that collides with a backend-hosted tool"
-                );
-            }
-            !collides
-        })
-        .map(|t| {
-            rs::Tool::Function(rs::FunctionTool {
-                name: t.name.clone(),
-                description: t.description.clone(),
-                parameters: Some(t.parameters.clone()),
-                strict: None,
-            })
-        })
-        .collect();
-
-    tools
+    match crate::tool_normalize::normalize_tool_definitions_for(
+        crate::ApiBackend::Responses,
+        &req.tools,
+        &req.hosted_tools,
+    ) {
+        crate::tool_normalize::BackendTools::Responses(v) => v.into_owned(),
+        _ => unreachable!("backend must match"),
+    }
 }
 
 /// Every hosted tool as a raw JSON entry, which the sampler client splices into the serialized
