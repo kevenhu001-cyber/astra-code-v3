@@ -28,12 +28,12 @@ pub fn render_menu(
         .fg(theme.text_primary)
         .add_modifier(Modifier::BOLD);
     let label_selected_style = Style::default()
-        .fg(theme.text_primary)
+        .fg(theme.accent_user)
         .bg(theme.bg_highlight)
         .add_modifier(Modifier::BOLD);
     let key_style = Style::default().fg(theme.gray_bright);
     let key_selected_style = Style::default()
-        .fg(theme.gray_bright)
+        .fg(theme.accent_user)
         .bg(theme.bg_highlight);
 
     // Width: label + gap + key. Keep a 4-col gap between label and key for

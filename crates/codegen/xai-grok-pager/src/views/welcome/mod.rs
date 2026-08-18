@@ -2,8 +2,9 @@
 //!
 //! Layout (top to bottom):
 //! - Top margin row (always preserved)
+//! - ASTRA pixel-block logo (5 rows tall, painted in brand orange)
 //! - Top bar: repo_root:branch (left), version (right)
-//! - Vertically centered content: logo → gap → menu → gap → prompt
+//! - Vertically centered content: menu → gap → prompt
 //! - Bottom margin
 
 use ratatui::buffer::Buffer;
@@ -19,6 +20,7 @@ use crate::app::consent::ConsentState;
 use crate::startup::StartupWarning;
 use crate::theme::Theme;
 use crate::views::prompt_widget::{PromptFlag, PromptInfo, PromptWidget};
+mod astra_logo;
 mod consent;
 mod hero_box;
 pub(crate) mod logo;
@@ -45,6 +47,18 @@ pub use workspace_mode::{
 /// quit is `Ctrl+D` (canonical: [`TerminalName::is_vscode_family`]).
 fn welcome_in_vscode_family() -> bool {
     crate::terminal::terminal_context().brand.is_vscode_family()
+}
+
+/// Paint the brand ASTRA pixel-block logo into `area`. No-op when `area` is
+/// narrower than the logo's [`astra_logo::LOGO_WIDTH`] — falls back silently
+/// so a too-narrow terminal still renders cleanly. Spans are already
+/// styled with the brand orange by [`astra_logo::astra_logo_lines`].
+fn render_astra_logo(area: Rect, buf: &mut Buffer) {
+    if area.width < astra_logo::LOGO_WIDTH || area.height < astra_logo::LOGO_HEIGHT {
+        return;
+    }
+    let lines = astra_logo::astra_logo_lines();
+    Paragraph::new(lines).render(area, buf);
 }
 
 /// Build the quit hint spans used in Authenticating sub-screens.
@@ -428,11 +442,11 @@ impl WelcomeLayout {
 
 /// Controls what the version badge renders.
 pub(super) enum VersionBadgeMode<'a> {
-    /// Full badge: team | tier | api_key | **Grok Build** VERSION+channel (right-aligned).
+    /// Full badge: team | tier | api_key | **Astra** VERSION+channel (right-aligned).
     Full { subscription_tier: Option<&'a str> },
     /// Hero footer: team | api_key | channel (right-aligned, gray).
     HeroFooter,
-    /// Hero inline: **Grok Build**  VERSION (left-aligned).
+    /// Hero inline: **Astra**  VERSION (left-aligned).
     HeroInline,
 }
 
@@ -486,14 +500,12 @@ pub(super) fn render_version_badge(
     }
 
     let channel = xai_grok_update::channel_label();
+    let brand_style = Style::default()
+        .fg(theme.accent_user)
+        .add_modifier(Modifier::BOLD);
     match &mode {
         VersionBadgeMode::Full { .. } => {
-            spans.push(Span::styled(
-                "Grok Build  ",
-                Style::default()
-                    .fg(theme.text_primary)
-                    .add_modifier(Modifier::BOLD),
-            ));
+            spans.push(Span::styled("Astra  ", brand_style));
             spans.push(Span::styled(
                 format!("{}{}", xai_grok_version::VERSION, channel),
                 Style::default().fg(theme.gray),
@@ -508,12 +520,7 @@ pub(super) fn render_version_badge(
             }
         }
         VersionBadgeMode::HeroInline => {
-            spans.push(Span::styled(
-                "Grok Build  ",
-                Style::default()
-                    .fg(theme.text_primary)
-                    .add_modifier(Modifier::BOLD),
-            ));
+            spans.push(Span::styled("Astra  ", brand_style));
             spans.push(Span::styled(
                 xai_grok_version::VERSION,
                 Style::default().fg(theme.gray),
@@ -713,7 +720,11 @@ pub fn render_welcome(
 
     buf.set_style(area, Style::default().bg(theme.bg_base));
 
-    // Announcements only render inside the hero box. Top bar is always 1 row.
+    // Announcements only render inside the hero box. The layout is:
+    //   v_margin (1) | astra-logo (5 rows) | gap (1) | top_bar (1) | content | v_margin
+    // The logo is centered horizontally and painted with the brand-orange
+    // ASTRA pixel-block glyphs from [`astra_logo`]. It replaces the single
+    // `grok` / `astra` text that used to live at the top of the welcome screen.
     let [_, top_bar_area, content_area, _] = Layout::vertical([
         Constraint::Length(v_margin),
         Constraint::Length(1),
@@ -729,6 +740,17 @@ pub fn render_welcome(
         height: 1,
     };
     render_top_bar(top_bar_inner, buf, &theme, None);
+
+    // The brand ASTRA logo sits in the v_margin row directly above the top
+    // bar — only the first 5 columns of v_margin actually get used (logo is
+    // 29 wide × 5 tall, painted inline; the rest of v_margin stays blank).
+    let logo_area = Rect {
+        x: top_bar_area.x + h_margin,
+        y: top_bar_area.y.saturating_sub(astra_logo::LOGO_HEIGHT),
+        width: astra_logo::LOGO_WIDTH.min(top_bar_area.width.saturating_sub(h_margin * 2)),
+        height: astra_logo::LOGO_HEIGHT,
+    };
+    render_astra_logo(logo_area, buf);
 
     let mut result = match params.auth_state {
         AuthState::Pending { error } => {
@@ -786,7 +808,7 @@ pub fn render_welcome(
                 content_area,
                 buf,
                 Some((
-                    "Grok Build is not yet available for this account.",
+                    "Astra is not yet available for this account.",
                     theme.gray_bright,
                 )),
                 &menu,
@@ -945,7 +967,7 @@ fn render_welcome_blocked(
 
 /// Render the folder-trust question. Mirrors [`render_welcome_blocked`]'s
 /// stacked layout (logo + message + menu + version badge), but the message is a
-/// multi-line block showing the workspace path and the warning that Grok Build
+/// multi-line block showing the workspace path and the warning that Astra
 /// may run or modify contents in this directory (a security risk). The y/N
 /// answer is handled by the welcome input interceptor, so this only paints;
 /// `menu_rects` are returned for parity with the other welcome arms.
@@ -974,7 +996,7 @@ fn render_welcome_trust(
         // Two lines so the warning never clips at narrow / compact widths
         // (a single ~78-char line would truncate "...posing security risks").
         Line::from(Span::styled(
-            "Grok Build may run or modify contents in this directory,",
+            "Astra may run or modify contents in this directory,",
             Style::default().fg(theme.gray),
         ))
         .alignment(Alignment::Center),
@@ -2752,8 +2774,8 @@ mod tests {
                 "badge must not label the product: {rendered:?}"
             );
         }
-        assert!(full.contains("Grok Build"), "full badge: {full:?}");
-        assert!(inline.contains("Grok Build"), "inline badge: {inline:?}");
+        assert!(full.contains("Astra"), "full badge: {full:?}");
+        assert!(inline.contains("Astra"), "inline badge: {inline:?}");
         assert!(footer.contains("acme"), "footer keeps the team: {footer:?}");
         assert!(
             !footer.ends_with('\u{2502}'),
