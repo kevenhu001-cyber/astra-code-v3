@@ -388,8 +388,8 @@ fn clipboard_findings(
         ClipboardRecovery::UnverifiedSsh => findings.push(manual_finding(
             crate::diagnostics::CLIPBOARD_DELIVERY_UNVERIFIED_ID,
             FindingDisposition::Issue,
-            "Grok can't verify this clipboard route across the remote boundary",
-            "When you copy, Grok sends OSC 52 but can't confirm that the outer terminal accepted \
+            "Astra can't verify this clipboard route across the remote boundary",
+            "When you copy, Astra sends OSC 52 but can't confirm that the outer terminal accepted \
              it. Each copy is also saved to a backup file; the copy message shows the path. If \
              paste fails, run `grok wrap ssh <host>` on your local computer or use `/minimal`. \
              For repeated SSH sessions, run `grok doctor fix ssh-wrap` on your local computer.",
@@ -397,8 +397,8 @@ fn clipboard_findings(
         ClipboardRecovery::UnverifiedContainer => findings.push(manual_finding(
             crate::diagnostics::CLIPBOARD_DELIVERY_UNVERIFIED_ID,
             FindingDisposition::Issue,
-            "Grok can't verify this clipboard route across the container boundary",
-            "When you copy, Grok sends OSC 52 but can't confirm that the outer terminal accepted \
+            "Astra can't verify this clipboard route across the container boundary",
+            "When you copy, Astra sends OSC 52 but can't confirm that the outer terminal accepted \
              it. Each copy is also saved to a backup file; the copy message shows the path. If \
              paste fails, start the container command with local `grok wrap <command>`, or use \
              `/minimal`.",
@@ -406,7 +406,7 @@ fn clipboard_findings(
         ClipboardRecovery::UnverifiedOther => findings.push(manual_finding(
             crate::diagnostics::CLIPBOARD_DELIVERY_UNVERIFIED_ID,
             FindingDisposition::Issue,
-            "Grok can't verify this clipboard route",
+            "Astra can't verify this clipboard route",
             "Each copy is also saved to a backup file; the copy message shows the path. For a \
              remote or container command, use local `grok wrap <command>`. You can also use \
              `/minimal` to select text in the terminal.",
@@ -415,7 +415,7 @@ fn clipboard_findings(
             crate::diagnostics::CLIPBOARD_DELIVERY_UNAVAILABLE_ID,
             FindingDisposition::Issue,
             "This clipboard route can't reach the target clipboard",
-            "When you copy, Grok saves the text to the backup file shown in the copy message. To \
+            "When you copy, Astra saves the text to the backup file shown in the copy message. To \
              copy directly, run `grok wrap ssh <host>` on your local computer. For repeated SSH \
              sessions, run `grok doctor fix ssh-wrap` there. You can also use `/copy <file>` or \
              `/minimal`.",
@@ -424,7 +424,7 @@ fn clipboard_findings(
             crate::diagnostics::CLIPBOARD_DELIVERY_UNAVAILABLE_ID,
             FindingDisposition::Issue,
             "This clipboard route can't reach the target clipboard",
-            "When you copy, Grok saves the text to the backup file shown in the copy message. \
+            "When you copy, Astra saves the text to the backup file shown in the copy message. \
              Start the container command with local `grok wrap <command>`, use `/copy <file>`, or \
              use `/minimal`.",
         )),
@@ -432,7 +432,7 @@ fn clipboard_findings(
             crate::diagnostics::CLIPBOARD_DELIVERY_UNAVAILABLE_ID,
             FindingDisposition::Issue,
             "This clipboard route can't reach the target clipboard",
-            "When you copy, Grok saves the text to the backup file shown in the copy message. Use \
+            "When you copy, Astra saves the text to the backup file shown in the copy message. Use \
              `/copy <file>` or `/minimal`, then check the native clipboard tool listed above.",
         )),
     }
@@ -463,7 +463,7 @@ fn clipboard_findings(
             FindingDisposition::Recommendation,
             "iTerm2 may block OSC 52 clipboard access",
             "In iTerm2, open Settings → General → Selection and turn on “Applications in \
-             terminal may access clipboard.” Grok can't read this setting, so check it there if \
+             terminal may access clipboard.” Astra can't read this setting, so check it there if \
              copies don't paste.",
         ));
     }
@@ -495,7 +495,7 @@ fn newline_finding(facts: &DiagnosticFacts) -> Option<DiagnosticFinding> {
         NewlineFact::NoKittyKeyboardProtocol => (
             "Shift+Enter can't insert a newline because the keyboard protocol is unavailable",
             "Use Alt+Enter to insert a newline. If your terminal supports the Kitty keyboard \
-             protocol, enable it and restart Grok."
+             protocol, enable it and restart Astra."
                 .to_owned(),
         ),
     };

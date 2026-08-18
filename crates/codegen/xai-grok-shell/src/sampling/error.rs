@@ -35,7 +35,7 @@ pub const FREE_USAGE_EXHAUSTED_ERROR_CODE: &str = "subscription:free-usage-exhau
 
 /// User-facing free-usage exhaustion copy (paywall). Deliberately promises no
 /// reset duration — the quota window is backend-config-driven.
-pub const FREE_USAGE_USER_MESSAGE: &str = "You\u{2019}ve reached your free Grok Build usage limit for now. Get SuperGrok for much higher limits, or try again later: https://grok.com/supergrok?referrer=grok-build";
+pub const FREE_USAGE_USER_MESSAGE: &str = "You\u{2019}ve reached your free Astra usage limit for now. Get SuperGrok for much higher limits, or try again later: https://grok.com/supergrok?referrer=grok-build";
 
 /// Whether flattened server detail is free-usage-quota exhaustion (paywall),
 /// not transient throttling. Sniffs the well-known code embedded by
@@ -87,7 +87,7 @@ fn strip_sampling_api_error_prefix(detail: &str) -> &str {
     detail.trim()
 }
 
-/// IC sometimes reuses OAuth free-tier upsell copy on 429s ("upgrade to a Grok
+/// IC sometimes reuses OAuth free-tier upsell copy on 429s ("upgrade to a Astra
 /// subscription" / grok.com/supergrok). That is wrong for API-key / team auth:
 /// higher limits come from credits and spend-based rate-limit tiers, not a
 /// personal SuperGrok plan.
@@ -131,7 +131,7 @@ pub(crate) fn map_sampling_err_to_acp(err: SamplingError) -> acp::Error {
             // explanation visible to the user without triggering the client's
             // re-auth flow on -32000.
             StatusCode::FORBIDDEN => {
-                let message = if message.contains("requires a Grok subscription")
+                let message = if message.contains("requires a Astra subscription")
                     && crate::agent::auth_method::has_xai_api_key_env()
                 {
                     format!(
@@ -437,7 +437,7 @@ mod tests {
     #[test]
     fn format_rate_limited_api_key_rewrites_consumer_subscription_upsell() {
         let body = "Some resource has been exhausted: You are sending requests too quickly. \
-             Please slow down, or upgrade to a Grok subscription for higher limits: \
+             Please slow down, or upgrade to a Astra subscription for higher limits: \
              https://grok.com/supergrok";
         let wire = format!("API error (status 429 Too Many Requests): {body}");
         // OAuth keeps the IC body (personal plan upgrade is correct).
@@ -693,7 +693,7 @@ mod tests {
         with_api_key_env(Some("xai-test"), || {
             let err = SamplingError::Api {
                 status: StatusCode::FORBIDDEN,
-                message: "The model 'grok-build' requires a Grok subscription.".into(),
+                message: "The model 'grok-build' requires a Astra subscription.".into(),
                 model_metadata: None,
                 retry_after_secs: None,
                 should_retry: None,
@@ -719,7 +719,7 @@ mod tests {
         with_api_key_env(None, || {
             let err = SamplingError::Api {
                 status: StatusCode::FORBIDDEN,
-                message: "The model 'grok-build' requires a Grok subscription.".into(),
+                message: "The model 'grok-build' requires a Astra subscription.".into(),
                 model_metadata: None,
                 retry_after_secs: None,
                 should_retry: None,

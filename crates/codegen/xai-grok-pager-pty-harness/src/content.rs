@@ -144,7 +144,7 @@ impl ContentController {
         self.server.url()
     }
 
-    /// Isolated `$HOME` directory that the pager should use (keeps its ~/.grok
+    /// Isolated `$HOME` directory that the pager should use (keeps its ~/.astra
     /// cache/state out of the real home during tests).
     pub fn home(&self) -> &Path {
         self.sandbox.home()

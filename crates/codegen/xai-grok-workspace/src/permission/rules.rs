@@ -138,7 +138,7 @@ impl std::error::Error for RuleParseError {}
 ///   - `"Edit"` → `{ Allow, Edit, None }` (matches all edit operations)
 ///
 /// Bare-name MCP rules in the `mcp__…` spelling used by `.claude/settings.json`
-/// map onto `ToolFilter::Mcp` patterns over Grok's qualified `<server>__<tool>`
+/// map onto `ToolFilter::Mcp` patterns over Astra's qualified `<server>__<tool>`
 /// names (no `mcp__` prefix):
 ///   - `"mcp__*"` → `{ Mcp, None }` (every MCP tool)
 ///   - `"mcp__github"` → `{ Mcp, "github__*" }` (every tool on that server)
@@ -237,7 +237,7 @@ pub fn parse_permission_rule(
         }
 
         // `mcp__<server>[__<tool>]` rule (the `.claude/settings.json`
-        // spelling). Grok qualifies MCP tools as `<server>__<tool>` with no
+        // spelling). Astra qualifies MCP tools as `<server>__<tool>` with no
         // `mcp__` prefix, so strip it and rewrite into a glob over the
         // qualified name; the literal rule string would otherwise fall through
         // to `ToolFilter::Any` and match nothing. A degenerate bare `mcp__`
@@ -249,7 +249,7 @@ pub fn parse_permission_rule(
                 // Matches every MCP tool, so a tool-wide rule (no pattern).
                 None
             } else if rest.contains("__") {
-                // Already `<server>__<tool>` (or `<server>__*`): the Grok
+                // Already `<server>__<tool>` (or `<server>__*`): the Astra
                 // qualified name verbatim. Server names may contain single
                 // underscores, but `__` only ever separates server from tool.
                 Some(rest.to_string())
@@ -356,7 +356,7 @@ mod tests {
     use super::*;
 
     /// `mcp__…` rule spellings (the `.claude/settings.json` form) map onto
-    /// `ToolFilter::Mcp` globs over Grok's qualified `<server>__<tool>` names.
+    /// `ToolFilter::Mcp` globs over Astra's qualified `<server>__<tool>` names.
     #[test]
     fn parse_claude_mcp_rule_forms() {
         for (rule_str, expected_pattern) in [

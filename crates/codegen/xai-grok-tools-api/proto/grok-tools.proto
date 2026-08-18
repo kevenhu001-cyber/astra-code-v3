@@ -6,7 +6,7 @@ package xai.grok.tools.v1;
 // MAIN SERVICE
 // ============================================================================
 
-/// GrokToolsService provides a gRPC interface to the Grok tools runtime.
+/// GrokToolsService provides a gRPC interface to the Astra tools runtime.
 /// It supports tool execution, discovery, configuration, and lifecycle management.
 service GrokToolsService {
   // ========== TOOL EXECUTION ==========

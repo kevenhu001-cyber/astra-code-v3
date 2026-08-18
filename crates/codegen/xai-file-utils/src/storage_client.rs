@@ -568,7 +568,7 @@ impl StorageClient {
     /// surface these values, making it easy to attribute 400/403 errors to
     /// specific client versions and products.
     ///
-    /// Preferred way to construct the client from the Grok shell/pager:
+    /// Preferred way to construct the client from the Astra shell/pager:
     ///   `build_storage_client_for_proxy(..., client_identifier)`
     /// (see `xai-grok-shell/src/auth/credential_provider.rs`).
     ///

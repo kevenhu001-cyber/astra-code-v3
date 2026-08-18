@@ -2,7 +2,7 @@
 //!
 //! The canonical `sample → classify → retry` loop, used by **both** grok-build's
 //! full-replace pass ([`sample_full_replace_summary`](super::sample_full_replace_summary))
-//! and Grok chat's intra `Shared` summarizer
+//! and Astra chat's intra `Shared` summarizer
 //! ([`apply_intra_compaction`](crate::intra_compaction::apply_intra_compaction)).
 //! Centralising it here removes the two near-identical copies that previously
 //! lived in `code_compaction::compact` and `intra_compaction::compact`.

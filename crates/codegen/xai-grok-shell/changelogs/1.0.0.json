@@ -11,7 +11,7 @@
   },
   {
     "category": "features",
-    "description": "Grok skips the project-directory prompt when launched from home or other non-project directories",
+    "description": "Astra skips the project-directory prompt when launched from home or other non-project directories",
     "breaking_change": false
   },
   {
@@ -41,7 +41,7 @@
   },
   {
     "category": "fixes",
-    "description": "Sandboxed Grok starts on large directories with many deny-glob matches",
+    "description": "Sandboxed Astra starts on large directories with many deny-glob matches",
     "breaking_change": false
   },
   {
@@ -116,7 +116,7 @@
   },
   {
     "category": "fixes",
-    "description": "Grok retries more server errors during outages",
+    "description": "Astra retries more server errors during outages",
     "breaking_change": false
   },
   {

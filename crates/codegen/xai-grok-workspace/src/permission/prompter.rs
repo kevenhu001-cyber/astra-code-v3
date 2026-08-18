@@ -12,7 +12,7 @@ use xai_grok_mcp::servers::parse_mcp_qualified_name;
 use xai_grok_session_events::{Event, EventWriter, PermissionDecision};
 use xai_grok_tools::implementations::grok_build::web_fetch::domain_from_url;
 
-const REJECT_ONCE_LABEL: &str = "No, and tell Grok what to do differently";
+const REJECT_ONCE_LABEL: &str = "No, and tell Astra what to do differently";
 
 /// Stable option id for the edit prompt's "Yes, allow all edits during this
 /// session" choice. Distinct from the generic `"always-allow"` id (used by
@@ -40,7 +40,7 @@ pub const ALLOW_EDITS_SESSION_OPTION_ID: &str = "allow-edits-session";
 ///     1. Flips local YOLO state on the active agent
 ///     2. Drains any queued permission requests with `AllowOnce` responses
 ///     3. Persists `[ui] permission_mode = "always-approve"` to
-///        `~/.grok/config.toml` via the `Effect::PersistPermissionMode` effect
+///        `~/.astra/config.toml` via the `Effect::PersistPermissionMode` effect
 ///     4. Sends the existing `x.ai/yolo_mode_changed` ACP notification so
 ///        the agent's permission manager flips its `yolo_mode` flag
 ///
@@ -193,7 +193,7 @@ pub fn mcp_tool_action<'a>(tool_name: &'a str, server_prefix: Option<&str>) -> &
 /// split on `'_'`, title-case each word, join with spaces. Leaves
 /// non-underscore characters (camelCase, hyphens) intact, so
 /// `"list_issues"` → `"List Issues"`, `"grok_com_notion"` →
-/// `"Grok Com Notion"`, and `"getMyTaskList"` → `"GetMyTaskList"`.
+/// `"Astra Com Notion"`, and `"getMyTaskList"` → `"GetMyTaskList"`.
 pub fn mcp_titleize_segment(name: &str) -> String {
     name.split('_')
         .map(|word| {
@@ -1663,7 +1663,7 @@ mod tests {
     fn mcp_titleize_segment_handles_snake_camel_kebab() {
         // snake_case → words split + each title-cased
         assert_eq!(mcp_titleize_segment("list_issues"), "List Issues");
-        assert_eq!(mcp_titleize_segment("grok_com_notion"), "Grok Com Notion");
+        assert_eq!(mcp_titleize_segment("grok_com_notion"), "Astra Com Notion");
         // single word: just capitalize first letter
         assert_eq!(mcp_titleize_segment("linear"), "Linear");
         // camelCase preserved (no `_` to split on, only first letter touched)

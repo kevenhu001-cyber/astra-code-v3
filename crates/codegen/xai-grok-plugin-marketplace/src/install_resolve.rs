@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn slugify_lowercases_and_hyphenates_spaces() {
         assert_eq!(slugify("Local Dev"), "local-dev");
-        assert_eq!(slugify("xAI Official"), "xai-official");
+        assert_eq!(slugify("Astra Official"), "xai-official");
     }
 
     #[test]
@@ -404,7 +404,7 @@ mod tests {
     fn resolve_qualifier_matches_local_by_slug() {
         let sources = [
             git_source(
-                "xAI Official",
+                "Astra Official",
                 "https://github.com/xai-org/plugin-marketplace.git",
             ),
             local_source("Local Dev", "/tmp/plugins"),
@@ -416,7 +416,7 @@ mod tests {
     fn resolve_qualifier_matches_non_github_git_by_slug() {
         let sources = [
             git_source(
-                "xAI Official",
+                "Astra Official",
                 "https://github.com/xai-org/plugin-marketplace.git",
             ),
             git_source("Self Hosted", "https://git.example.com/org/repo.git"),
@@ -447,7 +447,7 @@ mod tests {
     fn resolve_qualifier_unknown_for_git_and_local() {
         let sources = [
             git_source(
-                "xAI Official",
+                "Astra Official",
                 "https://github.com/xai-org/plugin-marketplace.git",
             ),
             local_source("Local Dev", "/tmp/plugins"),
@@ -519,7 +519,7 @@ mod tests {
     fn resolve_qualifier_name_vs_other_source_owner_repo_is_ambiguous() {
         let sources = [
             git_source(
-                "xAI Official",
+                "Astra Official",
                 "https://github.com/xai-org/plugin-marketplace.git",
             ),
             git_source(
@@ -598,7 +598,7 @@ mod tests {
             ),
             (
                 git_source(
-                    "xAI Official",
+                    "Astra Official",
                     "https://github.com/xai-org/plugin-marketplace.git",
                 ),
                 entry("sentry"),

@@ -183,7 +183,7 @@ pub struct EndpointsConfig {
     /// Env: `GROK_TRACE_UPLOAD_ENDPOINT_URL`. Custom S3-compatible endpoint.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_upload_endpoint_url: Option<String>,
-    /// Env: `GROK_DEPLOYMENT_KEY`. Management API key for enterprise deployments.
+    /// Env: `ASTRA_DEPLOYMENT_KEY`. Management API key for enterprise deployments.
     /// Sent on telemetry and service requests for deployment-level attribution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deployment_key: Option<String>,
@@ -551,7 +551,8 @@ impl Default for EndpointsConfig {
             trace_upload_credentials_file: env_string("GROK_TRACE_UPLOAD_CREDENTIALS_FILE"),
             trace_upload_credentials: None,
             trace_upload_endpoint_url: env_string("GROK_TRACE_UPLOAD_ENDPOINT_URL"),
-            deployment_key: env_string("GROK_DEPLOYMENT_KEY"),
+            deployment_key: env_string("ASTRA_DEPLOYMENT_KEY")
+                .or_else(|| env_string("GROK_DEPLOYMENT_KEY")),
             managed_config_url: env_string("GROK_MANAGED_CONFIG_URL"),
             otel_exporter_otlp_endpoint: env_string("OTEL_EXPORTER_OTLP_ENDPOINT"),
             otel_exporter_otlp_traces_endpoint: env_string("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
@@ -657,7 +658,7 @@ pub struct RuntimeResolutionContext<'a> {
     pub storage_mode: Option<&'a str>,
 }
 /// First-party credential env vars scrubbed from a BYOK auth-provider helper's
-/// environment so it can't inherit the keys Grok uses for its own first-party
+/// environment so it can't inherit the keys Astra uses for its own first-party
 /// requests. Keep in sync with every first-party credential env read across the
 /// crate: `auth::manager` (`GROK_AUTH`/`GROK_AUTH_PATH`), `auth_method`
 /// (`XAI_API_KEY`/legacy), and the credential-bearing `env_string(...)` reads in
@@ -669,6 +670,7 @@ pub(crate) const FIRST_PARTY_CREDENTIAL_ENV_VARS: &[&str] = &[
     crate::agent::auth_method::LEGACY_XAI_API_KEY_ENV_VAR,
     "GROK_AUTH",
     "GROK_AUTH_PATH",
+    "ASTRA_DEPLOYMENT_KEY",
     "GROK_DEPLOYMENT_KEY",
     "GROK_EXTRA_AUTH_KEY",
     "GROK_TRACE_UPLOAD_CREDENTIALS_FILE",
@@ -914,7 +916,7 @@ impl PluginsConfig {
     /// read here: a malicious repo could pre-populate `enabledPlugins` to
     /// bypass the project-plugin auto-disable logic in `populate_plugin_lists`,
     /// enabling attacker-controlled hooks (e.g. SessionStart → RCE).
-    /// Native `.grok/config.toml` entries already present take precedence:
+    /// Native `.astra/config.toml` entries already present take precedence:
     /// a name is only added if it isn't already in the opposite list.
     pub(crate) fn merge_claude_enabled_plugins(&mut self, _cwd: Option<&std::path::Path>) {
         if crate::claude_import::is_claude_import_marked_with_log("merge_claude_enabled_plugins") {
@@ -1190,12 +1192,20 @@ impl SandboxSettingsConfig {
         if let Some(val) = requirement {
             return Resolved::new(val.to_owned(), ConfigSource::Requirement);
         }
-        resolve_string_flag(cli_arg, "GROK_SANDBOX", self.profile.as_deref(), None)
+        resolve_string_flag(
+            cli_arg,
+            "ASTRA_SANDBOX",
+            self.profile.as_deref(),
+            None,
+        )
+        .or_else(|| {
+            resolve_string_flag(cli_arg, "GROK_SANDBOX", self.profile.as_deref(), None)
+        })
             .unwrap_or_else(|| Resolved::new("off".to_owned(), ConfigSource::Default))
     }
     /// Resolve auto_allow_bash: requirement > env > config > default (false).
     pub(crate) fn resolve_auto_allow_bash(&self, requirement: Option<bool>) -> Resolved<bool> {
-        BoolFlag::env("GROK_SANDBOX_AUTO_ALLOW_BASH")
+        BoolFlag::env("ASTRA_SANDBOX_AUTO_ALLOW_BASH")
             .requirement(requirement)
             .config(self.auto_allow_bash)
             .resolve()
@@ -1238,8 +1248,8 @@ pub struct StorageConfig {
 }
 /// `[paths]` configuration: extra directories to scan for skills, rules, etc.
 ///
-/// These supplement the built-in scan locations (`.grok/skills/`,
-/// `.agents/skills/`, `~/.grok/skills/`). They're written by `/import-claude`
+/// These supplement the built-in scan locations (`.astra/skills/`,
+/// `.agents/skills/`, `~/.astra/skills/`). They're written by `/import-claude`
 /// to preserve previously-discovered Claude directories after the runtime
 /// `.claude/` cutoff (see `[claude_compat] imported`).
 ///
@@ -1651,7 +1661,7 @@ pub use xai_grok_shared::ui_config::{ContextualHints, UiConfig};
 ///
 /// ```toml
 /// [agent]
-/// # Use a named agent (looked up via discovery: .grok/agents/, ~/.grok/agents/, built-ins)
+/// # Use a named agent (looked up via discovery: .astra/agents/, ~/.astra/agents/, built-ins)
 /// name = "my-custom-agent"
 ///
 /// # OR: path to an agent definition file (.md with YAML frontmatter)
@@ -1674,7 +1684,7 @@ pub struct AgentSelectionConfig {
     pub name: Option<String>,
     /// Path to an agent definition file (.md with YAML frontmatter).
     /// When set, the agent is loaded from this file.
-    /// Supports environment variable expansion (e.g., `$HOME/.grok/agents/my-agent.md`).
+    /// Supports environment variable expansion (e.g., `$HOME/.astra/agents/my-agent.md`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub definition: Option<PathBuf>,
     /// Global system-prompt identity label. Per-model override wins.
@@ -2398,7 +2408,9 @@ impl Config {
     }
     fn apply_env_overrides(&mut self) {
         self.telemetry.apply_env_overrides();
-        if let Some(mode) = env_telemetry_mode("GROK_TELEMETRY_ENABLED") {
+        if let Some(mode) = env_telemetry_mode("ASTRA_TELEMETRY_ENABLED")
+            .or_else(|| env_telemetry_mode("GROK_TELEMETRY_ENABLED"))
+        {
             self.features.telemetry = Some(mode);
         }
         self.grok_com_config.force_login_team_uuid = crate::auth::resolve_force_login_team(
@@ -2432,7 +2444,9 @@ impl Config {
         if let Some(mode) = self.requirements.telemetry.pinned() {
             return Resolved::new(mode, ConfigSource::Requirement);
         }
-        if let Some(mode) = env_telemetry_mode("GROK_TELEMETRY_ENABLED") {
+        if let Some(mode) = env_telemetry_mode("ASTRA_TELEMETRY_ENABLED")
+            .or_else(|| env_telemetry_mode("GROK_TELEMETRY_ENABLED"))
+        {
             return Resolved::new(mode, ConfigSource::Env);
         }
         if let Some(mode) = self.features.telemetry {
@@ -2510,7 +2524,7 @@ impl Config {
             "in_requirement_pin": req.pinned(),
             "in_requirement_src": req.source().map(|s| s.to_string()),
             "in_env_trace_upload": std::env::var("GROK_TELEMETRY_TRACE_UPLOAD").ok(),
-            "in_env_telemetry_enabled": std::env::var("GROK_TELEMETRY_ENABLED").ok(),
+            "in_env_telemetry_enabled": std::env::var("ASTRA_TELEMETRY_ENABLED").ok(),
             "in_cfg_telemetry_trace_upload": self.telemetry.trace_upload,
             "in_cfg_features_telemetry": self.features.telemetry.map(|m| m.to_string()),
             "in_remote_trace_upload_enabled": self
@@ -2741,7 +2755,7 @@ impl Config {
             .default(true)
             .resolve()
     }
-    /// Background workflows (`workflow` tool, `.grok/workflows/*.rhai`,
+    /// Background workflows (`workflow` tool, `.astra/workflows/*.rhai`,
     /// `/deep-research`, host-owned `/goal` driver). Default ON: deployments
     /// that never receive remote settings still get workflows; `Some(false)`
     /// remote / config / env remains a kill-switch.
@@ -3232,7 +3246,7 @@ impl SyncBoolFlag {
 pub(crate) fn is_telemetry_disabled_sync() -> bool {
     !SyncBoolFlag::new(telemetry_enabled_from_toml)
         .disable_env("DISABLE_TELEMETRY")
-        .enable_env(grok_telemetry_env_enabled)
+        .enable_env(astra_telemetry_env_enabled)
         .resolve()
 }
 /// Like [`is_telemetry_disabled_sync`] but only `true` when telemetry is
@@ -3241,7 +3255,7 @@ pub(crate) fn is_telemetry_disabled_sync() -> bool {
 pub(crate) fn is_telemetry_explicitly_disabled_sync() -> bool {
     !SyncBoolFlag::new(telemetry_enabled_from_toml)
         .disable_env("DISABLE_TELEMETRY")
-        .enable_env(grok_telemetry_env_enabled)
+        .enable_env(astra_telemetry_env_enabled)
         .default(true)
         .resolve()
 }
@@ -3271,12 +3285,14 @@ fn error_reporting_enabled_from_toml(root: &toml::Value) -> Option<bool> {
         .get("error_reporting")?
         .as_bool()
 }
-/// `GROK_TELEMETRY_ENABLED` resolved through `TelemetryMode::parse` so the
+/// `ASTRA_TELEMETRY_ENABLED` resolved through `TelemetryMode::parse` so the
 /// extended string forms (e.g. `"session_metrics"`) are accepted.
-fn grok_telemetry_env_enabled() -> Option<bool> {
-    env_telemetry_mode("GROK_TELEMETRY_ENABLED").map(|m| !m.is_disabled())
+fn astra_telemetry_env_enabled() -> Option<bool> {
+    env_telemetry_mode("ASTRA_TELEMETRY_ENABLED")
+        .or_else(|| env_telemetry_mode("GROK_TELEMETRY_ENABLED"))
+        .map(|m| !m.is_disabled())
 }
-/// Load `~/.grok/requirements.toml` standalone so the admin pin can beat
+/// Load `~/.astra/requirements.toml` standalone so the admin pin can beat
 /// env vars. The merged config layer can't express that — last-merge-wins
 /// loses provenance.
 pub(crate) fn read_requirements_toml() -> Option<toml::Value> {
@@ -4583,7 +4599,7 @@ pub struct Features {
     /// Default: true (index any git repo). Patterns can explicitly match non-git directories.
     #[serde(default)]
     pub codebase_indexing: CodebaseIndexingSetting,
-    /// Show a blocking warning when Grok starts outside a Git repository.
+    /// Show a blocking warning when Astra starts outside a Git repository.
     /// Default: false. Used as the local fallback when the `non_git_warning` remote settings
     /// flag in `grok_build_settings` is absent. When the remote flag is present it takes
     /// precedence — `Some(false)` from remote settings overrides `true` here.
@@ -4672,17 +4688,17 @@ pub struct Features {
     ///
     /// Practical consequence: setting
     /// `[features] mcp_push_server_status = false` in
-    /// `~/.grok/config.toml` will NOT disable the pager's
+    /// `~/.astra/config.toml` will NOT disable the pager's
     /// subscription on a freshly-launched process. To disable the
     /// pager subscription, set `GROK_MCP_PUSH_SERVER_STATUS=0` in
     /// the env before launch.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mcp_push_server_status: Option<bool>,
     /// Whether the leader's `ConfigFileWatcher` adds the two narrow
-    /// non-recursive watches for `<cwd>/` and `<cwd>/.grok/`.
+    /// non-recursive watches for `<cwd>/` and `<cwd>/.astra/`.
     ///
     /// When `true` (default), edits to `<cwd>/.mcp.json`,
-    /// `<cwd>/.grok/config.toml`, or `<cwd>/.claude.json` flow
+    /// `<cwd>/.astra/config.toml`, or `<cwd>/.claude.json` flow
     /// through the watcher → reloader → `ConfigUpdate::
     /// ProjectMcpServersChanged { cwd }` → `app.rs` ACP-injection
     /// pipeline and the affected sessions reload their MCP servers

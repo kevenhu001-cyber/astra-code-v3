@@ -1,10 +1,10 @@
 {
     "name": "@xai-official/grok",
     "version": "0.1.220-alpha.4",
-    "description": "Bring Grok into your terminal",
+    "description": "Bring Astra into your terminal",
     "license": "Apache-2.0",
     "bin": {
-        "grok": "bin/grok"
+        "astra": "bin/astra"
     },
     "files": [
         "bin/"

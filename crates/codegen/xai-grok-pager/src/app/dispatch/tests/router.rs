@@ -1403,7 +1403,7 @@ fn tick_propagates_available_commands_to_bootstrap() {
     app.active_view = crate::app::app_view::ActiveView::Agent(id);
     let skill_meta = serde_json::json!({
         "scope": "user",
-        "path": "/home/user/.grok/skills/pick-best/SKILL.md",
+        "path": "/home/user/.astra/skills/pick-best/SKILL.md",
     });
     app.agents.get_mut(&id).unwrap().session.available_commands = vec![
         acp::AvailableCommand::new("compact".to_string(), "Builtin".to_string()),
@@ -2432,7 +2432,7 @@ fn build_rows_fallback_anchor_is_frozen_when_last_active_at_is_none() {
 /// turn boundary with no agent response after it → "Idle". (The RUNNING
 /// case follows live turn activity — see the `extract_response_type_*`
 /// tests.)
-#[serial_test::serial(GROK_AGENT_DASHBOARD)]
+#[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
 #[test]
 fn peek_label_reflects_last_response_type() {
     use crate::scrollback::block::RenderBlock;
@@ -2511,7 +2511,7 @@ fn mouse_event(
 /// conversation immediately (was: selects only, required
 /// double-click to attach). The user explicitly reported the
 /// previous click-to-select behaviour as unresponsive.
-#[serial_test::serial(GROK_AGENT_DASHBOARD)]
+#[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
 #[test]
 fn mouse_left_click_attaches_immediately() {
     use crossterm::event::{Event, MouseButton, MouseEventKind};
@@ -2541,7 +2541,7 @@ fn mouse_left_click_attaches_immediately() {
 /// to distinguish single (select) from double (attach) click;
 /// the new design makes every click attach so the user's mental
 /// model "click = open" always holds.
-#[serial_test::serial(GROK_AGENT_DASHBOARD)]
+#[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
 #[test]
 fn mouse_repeated_click_keeps_attaching() {
     use crossterm::event::{Event, MouseButton, MouseEventKind};
@@ -2576,7 +2576,7 @@ fn mouse_repeated_click_keeps_attaching() {
 /// Clicks after the previous 500ms-double-click
 /// window also attach (the previous test asserted single-click
 /// behaviour for >500ms-apart clicks; now every click attaches).
-#[serial_test::serial(GROK_AGENT_DASHBOARD)]
+#[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
 #[test]
 fn mouse_click_after_long_pause_still_attaches() {
     use crossterm::event::{Event, MouseButton, MouseEventKind};
@@ -2607,7 +2607,7 @@ fn mouse_click_after_long_pause_still_attaches() {
     }
 }
 /// Click on the peek close-button rect closes the peek.
-#[serial_test::serial(GROK_AGENT_DASHBOARD)]
+#[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
 #[test]
 fn mouse_click_on_peek_close_rect_clears_peek() {
     use crossterm::event::{Event, MouseButton, MouseEventKind};

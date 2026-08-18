@@ -340,7 +340,7 @@ pub(crate) const RUNNER_ALWAYS_SET_ENV: &[&str] = &[
 /// * the runner's always-set env vars (see [`RUNNER_ALWAYS_SET_ENV`]),
 /// * the per-hook `extra_env` map (set by the plugin adapter for plugin
 ///   hooks),
-/// * the Grok process's own environment (which is inherited by the child),
+/// * the Astra process's own environment (which is inherited by the child),
 /// * local shell assignments inside the command itself (e.g. an
 ///   `INPUT=$(cat)` earlier in the string defines `INPUT` for the rest of
 ///   the command).
@@ -1145,10 +1145,10 @@ mod tests {
             resolve_command_path(&spec(
                 HandlerType::Command,
                 Some("bin/check.sh"),
-                "/project/.grok/hooks"
+                "/project/.astra/hooks"
             )),
             Some(std::path::PathBuf::from(
-                "/project/.grok/hooks/bin/check.sh"
+                "/project/.astra/hooks/bin/check.sh"
             ))
         );
         assert_eq!(
@@ -1571,8 +1571,8 @@ mod tests {
     #[cfg(unix)]
     async fn test_tilde_expansion_runs_via_shell() {
         let tmp = tempfile::tempdir().unwrap();
-        // Create the script at <tmp>/.grok-test-hooks-gb856/tilde-test.sh
-        let hook_dir = tmp.path().join(".grok-test-hooks-gb856");
+        // Create the script at <tmp>/.astra-test-hooks-gb856/tilde-test.sh
+        let hook_dir = tmp.path().join(".astra-test-hooks-gb856");
         std::fs::create_dir_all(&hook_dir).unwrap();
         let script = hook_dir.join("tilde-test.sh");
         std::fs::write(&script, "#!/bin/sh\nexit 0\n").unwrap();
@@ -1583,7 +1583,7 @@ mod tests {
             std::fs::set_permissions(&script, perms).unwrap();
         }
 
-        // Inject HOME via extra_env so `sh -c "~/.grok-test-hooks-gb856/..."`
+        // Inject HOME via extra_env so `sh -c "~/.astra-test-hooks-gb856/..."`
         // expands `~` to the temp dir. This avoids depending on the system
         // HOME, which is absent in hermetic sandboxed test runners.
         let mut extra_env = std::collections::HashMap::new();
@@ -1600,9 +1600,9 @@ mod tests {
             matcher: None,
             enabled: true,
             command: Some(std::path::PathBuf::from(
-                "~/.grok-test-hooks-gb856/tilde-test.sh",
+                "~/.astra-test-hooks-gb856/tilde-test.sh",
             )),
-            command_raw: Some("~/.grok-test-hooks-gb856/tilde-test.sh".to_string()),
+            command_raw: Some("~/.astra-test-hooks-gb856/tilde-test.sh".to_string()),
             url: None,
             url_raw: None,
             timeout_ms: 5000,

@@ -7,7 +7,7 @@
 //! 4. `$ASTRA_HOME/requirements.toml` (cloud cache; Ed25519-signed at rest once a
 //!    key is embedded — see [`signed_policy`] — below the OS-protected layers)
 //! 5. `/etc/astra/requirements.toml`
-//! 6. macOS MDM managed preferences (`ai.x.grok`, admin-forced) — macOS only
+//! 6. macOS MDM managed preferences (`ai.x.astra`, admin-forced) — macOS only
 //!
 //! Each layer applies its own [`[[version_overrides]]`](version_overrides)
 //! before merge. Requirements layers (#4–#6) may opt into fail-closed startup;

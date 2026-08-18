@@ -26,7 +26,7 @@ pub enum DeferredSessionStartup {
         parent_cwd: Option<PathBuf>,
         new_session_id: Option<String>,
     },
-    /// Fresh plain Grok session whose first prompt resumes a foreign tool session.
+    /// Fresh plain Astra session whose first prompt resumes a foreign tool session.
     ForeignResume {
         tool: xai_grok_foreign_sessions::ForeignSessionTool,
         native_id: String,
@@ -615,14 +615,15 @@ pub fn probe_advertised_tool_ids() -> Option<Vec<String>> {
 }
 #[cfg(feature = "local-workspace")]
 fn local_workspace_ack_path() -> Option<std::path::PathBuf> {
-    let home = std::env::var("GROK_HOME")
+    let home = std::env::var("ASTRA_HOME")
+        .or_else(|_| std::env::var("GROK_HOME"))
         .ok()
         .filter(|s| !s.trim().is_empty())
         .map(std::path::PathBuf::from)
         .or_else(|| {
             dirs::home_dir()
                 .or_else(|| std::env::var_os("HOME").map(Into::into))
-                .map(|h| h.join(".grok"))
+                .map(|h| h.join(".astra"))
         })?;
     Some(home.join("local_workspace_ack"))
 }
@@ -1374,7 +1375,7 @@ mod tests {
         assert!(git2::Repository::discover(&dir).is_err());
         assert!(parent_session_is_worktree("any-sid", &dir));
     }
-    #[serial_test::serial(GROK_HOME)]
+    #[serial_test::serial(ASTRA_HOME)]
     #[test]
     fn parent_session_is_worktree_summary_session_kind() {
         let mut fx = crate::test_util::GrokHomeFixture::new();
@@ -1387,7 +1388,7 @@ mod tests {
         );
         assert!(parent_session_is_worktree("sid-kind", &repo.path));
     }
-    #[serial_test::serial(GROK_HOME)]
+    #[serial_test::serial(ASTRA_HOME)]
     #[test]
     fn parent_session_is_worktree_summary_source_workspace_dir() {
         let mut fx = crate::test_util::GrokHomeFixture::new();
@@ -1406,7 +1407,7 @@ mod tests {
         );
         assert!(!parent_session_is_worktree("sid-src-empty", &repo.path));
     }
-    #[serial_test::serial(GROK_HOME)]
+    #[serial_test::serial(ASTRA_HOME)]
     #[test]
     fn parent_session_is_worktree_summary_worktree_label() {
         let mut fx = crate::test_util::GrokHomeFixture::new();
@@ -1453,14 +1454,14 @@ mod tests {
     #[test]
     fn intent_default_is_new_auto() {
         assert_eq!(
-            parse(&["grok"]).session_startup_intent().unwrap(),
+            parse(&["astra"]).session_startup_intent().unwrap(),
             SessionStartupIntent::NewAuto
         );
     }
     #[test]
     fn intent_resume_id() {
         assert_eq!(
-            parse(&["grok", "--resume", "abc"])
+            parse(&["astra", "--resume", "abc"])
                 .session_startup_intent()
                 .unwrap(),
             SessionStartupIntent::Resume {
@@ -1472,7 +1473,7 @@ mod tests {
     #[test]
     fn intent_resume_empty_is_most_recent() {
         assert_eq!(
-            parse(&["grok", "--resume"])
+            parse(&["astra", "--resume"])
                 .session_startup_intent()
                 .unwrap(),
             SessionStartupIntent::Resume {
@@ -1484,7 +1485,7 @@ mod tests {
     #[test]
     fn intent_continue() {
         assert_eq!(
-            parse(&["grok", "-c"]).session_startup_intent().unwrap(),
+            parse(&["astra", "-c"]).session_startup_intent().unwrap(),
             SessionStartupIntent::Resume {
                 session_id: None,
                 most_recent_for_cwd: true,
@@ -1494,7 +1495,7 @@ mod tests {
     #[test]
     fn intent_session_id_alone_is_new_with_id() {
         assert_eq!(
-            parse(&["grok", "--session-id", "my-id"])
+            parse(&["astra", "--session-id", "my-id"])
                 .session_startup_intent()
                 .unwrap(),
             SessionStartupIntent::NewWithId {
@@ -1504,7 +1505,7 @@ mod tests {
     }
     #[test]
     fn intent_session_id_with_resume_without_fork_errors() {
-        let err = parse(&["grok", "-r", "a", "-s", "b"])
+        let err = parse(&["astra", "-r", "a", "-s", "b"])
             .session_startup_intent()
             .unwrap_err();
         assert_eq!(err, StartupFlagError::SessionIdRequiresFork);
@@ -1512,7 +1513,7 @@ mod tests {
     #[test]
     fn intent_fork_with_resume() {
         assert_eq!(
-            parse(&["grok", "-r", "old", "--fork-session"])
+            parse(&["astra", "-r", "old", "--fork-session"])
                 .session_startup_intent()
                 .unwrap(),
             SessionStartupIntent::ForkFrom {
@@ -1525,7 +1526,7 @@ mod tests {
     #[test]
     fn intent_fork_with_resume_and_new_id() {
         assert_eq!(
-            parse(&["grok", "-r", "old", "--fork-session", "-s", "new"])
+            parse(&["astra", "-r", "old", "--fork-session", "-s", "new"])
                 .session_startup_intent()
                 .unwrap(),
             SessionStartupIntent::ForkFrom {
@@ -1537,21 +1538,21 @@ mod tests {
     }
     #[test]
     fn intent_fork_alone_errors() {
-        let err = parse(&["grok", "--fork-session"])
+        let err = parse(&["astra", "--fork-session"])
             .session_startup_intent()
             .unwrap_err();
         assert_eq!(err, StartupFlagError::ForkRequiresResumeOrContinue);
     }
     #[test]
     fn intent_fork_with_worktree_errors() {
-        let err = parse(&["grok", "-r", "a", "--fork-session", "-w"])
+        let err = parse(&["astra", "-r", "a", "--fork-session", "-w"])
             .session_startup_intent()
             .unwrap_err();
         assert_eq!(err, StartupFlagError::ForkWithWorktree);
     }
     #[test]
     fn intent_from_flags_matches_pager_args() {
-        let args = parse(&["grok", "-r", "old", "--fork-session", "-s", "new"]);
+        let args = parse(&["astra", "-r", "old", "--fork-session", "-s", "new"]);
         let from_flags = session_startup_intent_from_flags(SessionStartupFlags {
             session_id: Some("new"),
             resume_session_id: Some("old"),
@@ -1655,33 +1656,33 @@ mod tests {
     }
     #[test]
     fn materialize_ctx_chat_mode_from_args() {
-        assert!(!MaterializeCtx::from_pager_args(&parse(&["grok"])).chat_mode);
+        assert!(!MaterializeCtx::from_pager_args(&parse(&["astra"])).chat_mode);
     }
     /// hardcoded `false` here once disabled it everywhere.
     #[test]
     fn remote_restore_follows_compiled_restore_stack() {
         assert_eq!(
-            MaterializeCtx::from_pager_args(&parse(&["grok"])).allow_remote_restore,
+            MaterializeCtx::from_pager_args(&parse(&["astra"])).allow_remote_restore,
             false
         );
     }
     #[test]
     fn from_pager_args_does_not_probe_tty_for_progress() {
         assert!(
-            !MaterializeCtx::from_pager_args(&parse(&["grok"])).restore_progress_on_stdout,
+            !MaterializeCtx::from_pager_args(&parse(&["astra"])).restore_progress_on_stdout,
             "stdout vs stderr is decided at the composition root, not from_pager_args"
         );
     }
     #[test]
     fn materialize_ctx_restore_code_follows_cli_flag() {
-        assert!(!MaterializeCtx::from_pager_args(&parse(&["grok"])).restore_code);
-        assert!(!MaterializeCtx::from_pager_args(&parse(&["grok", "-r", "abc"])).restore_code);
+        assert!(!MaterializeCtx::from_pager_args(&parse(&["astra"])).restore_code);
+        assert!(!MaterializeCtx::from_pager_args(&parse(&["astra", "-r", "abc"])).restore_code);
         assert!(
-            MaterializeCtx::from_pager_args(&parse(&["grok", "-r", "abc", "--restore-code"]))
+            MaterializeCtx::from_pager_args(&parse(&["astra", "-r", "abc", "--restore-code"]))
                 .restore_code
         );
         let wt = MaterializeCtx::from_pager_args(&parse(&[
-            "grok",
+            "astra",
             "-r",
             "abc",
             "--restore-code",
@@ -2038,11 +2039,11 @@ mod tests {
     }
     /// The chat passthrough does not bypass the cwd-collision refusal that
     /// `app/mod.rs` runs on the materialized id.
-    #[serial_test::serial(GROK_HOME)]
+    #[serial_test::serial(ASTRA_HOME)]
     #[tokio::test]
     async fn chat_resume_passthrough_keeps_cwd_collision_refusal() {
         let home = tempfile::tempdir().expect("home tempdir");
-        unsafe { std::env::set_var("GROK_HOME", home.path()) };
+        unsafe { std::env::set_var("ASTRA_HOME", home.path()) };
         let cwd = tempfile::tempdir().expect("cwd tempdir");
         let cwd_str = cwd.path().to_string_lossy().to_string();
         let id = "aaaaaaaa-1111-2222-3333-444444444444";
@@ -2107,7 +2108,7 @@ mod tests {
         }
         /// Also covers letter-case insensitivity: the query case differs from
         /// the stored title.
-        #[serial_test::serial(GROK_HOME)]
+        #[serial_test::serial(ASTRA_HOME)]
         #[tokio::test]
         async fn title_fallback_resumes_single_match_case_insensitively() {
             let mut fx = GrokHomeFixture::new();
@@ -2140,7 +2141,7 @@ mod tests {
         /// Id resolution stays authoritative: when the arg is an on-disk
         /// session id, the title fallback is never consulted even though
         /// another session carries that exact title.
-        #[serial_test::serial(GROK_HOME)]
+        #[serial_test::serial(ASTRA_HOME)]
         #[tokio::test]
         async fn id_hit_beats_title_fallback() {
             let mut fx = GrokHomeFixture::new();
@@ -2168,7 +2169,7 @@ mod tests {
         /// Provenance for the worktree failure hint: only the defer arm (a
         /// local id/title miss under `--worktree`) flags the target; a
         /// resolved local id — even a legacy non-UUID one — never does.
-        #[serial_test::serial(GROK_HOME)]
+        #[serial_test::serial(ASTRA_HOME)]
         #[tokio::test]
         async fn worktree_defer_flags_local_miss_and_local_hit_does_not() {
             let mut fx = GrokHomeFixture::new();
@@ -2405,13 +2406,13 @@ mod tests {
     }
     #[cfg(feature = "local-workspace")]
     #[serial_test::serial(GROK_CHAT_LOCAL_WORKSPACE_ACK)]
-    #[serial_test::serial(GROK_HOME)]
+    #[serial_test::serial(ASTRA_HOME)]
     #[test]
     fn local_workspace_non_tty_requires_ack() {
         let _ack = xai_grok_test_support::EnvGuard::unset(GROK_CHAT_LOCAL_WORKSPACE_ACK_ENV);
         let home = tempfile::tempdir().unwrap();
         let _home =
-            xai_grok_test_support::EnvGuard::set("GROK_HOME", home.path().to_str().unwrap());
+            xai_grok_test_support::EnvGuard::set("ASTRA_HOME", home.path().to_str().unwrap());
         let cfg = LocalWorkspaceConfig {
             mode: LocalWorkspaceMode::Attach,
             cwd: Some(std::path::PathBuf::from("/tmp/repo")),

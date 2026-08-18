@@ -1,6 +1,6 @@
 //! Opt-in, content-redacted **external OTEL** telemetry stream.
 //!
-//! Enterprise customers point the Grok CLI at *their own* OpenTelemetry
+//! Enterprise customers point the Astra CLI at *their own* OpenTelemetry
 //! collector (standard `OTEL_*` env vars + the `GROK_EXTERNAL_OTEL` master
 //! switch) and receive a curated, ZDR-safe schema: ~6 counters and ~17
 //! log-record events fanned out from the same typed call sites that emit the

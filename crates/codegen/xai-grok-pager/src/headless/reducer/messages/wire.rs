@@ -20,7 +20,7 @@ pub(super) fn serialize_finite_cost<S: serde::Serializer>(
     serializer.serialize_f64(if value.is_finite() { *value } else { 0.0 })
 }
 
-/// Map a Grok permission mode to the Messages `permissionMode` enum, clamping Grok-only values to `default`.
+/// Map a Astra permission mode to the Messages `permissionMode` enum, clamping Astra-only values to `default`.
 pub(super) fn messages_permission_mode(mode: Option<&str>) -> &'static str {
     match mode {
         Some("acceptEdits") => "acceptEdits",
@@ -76,7 +76,7 @@ pub(super) struct MessageUsage {
     pub(super) server_tool_use: Option<ServerToolUse>,
 }
 
-/// The `usage.server_tool_use` sub-object (Grok counts backend `web_search` only).
+/// The `usage.server_tool_use` sub-object (Astra counts backend `web_search` only).
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub(super) struct ServerToolUse {
     pub(super) web_search_requests: u64,

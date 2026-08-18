@@ -2,7 +2,7 @@
 // Assemble the six per-platform npm packages prior to `npm publish`.
 //
 // For each supported (platform, arch) target this:
-//   1. Brotli-compresses the built binary into `../grok-<platform>/bin/<bin>.br`
+//   1. Brotli-compresses the built binary into `../astra-<platform>/bin/<bin>.br`
 //   2. Stamps the sub-package's version to match the meta package
 //
 // Each per-platform package is its own npm publish target. The meta package
@@ -10,7 +10,7 @@
 // the same version; npm installs only the one matching the host's
 // `os` + `cpu` filters.
 //
-// Why brotli? npm's tarball ceiling is ~200 MB and the raw grok binary is
+// Why brotli? npm's tarball ceiling is ~200 MB and the raw astra binary is
 // 100–150 MB per platform. Brotli at max quality cuts that to 30–40 MB,
 // leaves plenty of headroom for binary growth, and is decoded by Node's
 // built-in zlib.brotliDecompressSync (no native deps required).
@@ -38,7 +38,7 @@ const VERSION = meta.version;
 function ensureDir(p) { fs.mkdirSync(path.dirname(p), { recursive: true }); }
 
 async function packPlatform({ platform, arch, envVar, defaultSource, binName }) {
-    const pkgDir = path.join(npmRoot, `grok-${platform}-${arch}`);
+    const pkgDir = path.join(npmRoot, `astra-${platform}-${arch}`);
     const pkgJsonPath = path.join(pkgDir, 'package.json');
 
     if (!fs.existsSync(pkgJsonPath)) {
@@ -73,7 +73,7 @@ async function packPlatform({ platform, arch, envVar, defaultSource, binName }) 
     });
     fs.writeFileSync(outBr, compressed);
     console.log(
-        `[assemble] grok-${platform}-${arch}@${VERSION}: ` +
+        `[assemble] astra-${platform}-${arch}@${VERSION}: ` +
         `${(raw.length / 1048576).toFixed(1)} MB -> ${(compressed.length / 1048576).toFixed(1)} MB ` +
         `(${path.relative(npmRoot, outBr)})`
     );
@@ -83,38 +83,38 @@ async function packPlatform({ platform, arch, envVar, defaultSource, binName }) 
 async function main() {
     const targets = [
         {
-            platform: 'darwin', arch: 'arm64', binName: 'grok',
-            envVar: 'GROK_DARWIN_ARM64',
-            defaultSource: path.join(xaiRoot, 'target', 'release', 'xai-grok-pager'),
+            platform: 'darwin', arch: 'arm64', binName: 'astra',
+            envVar: 'ASTRA_DARWIN_ARM64',
+            defaultSource: path.join(xaiRoot, 'target', 'release', 'astra'),
         },
         {
-            platform: 'darwin', arch: 'x64', binName: 'grok',
-            envVar: 'GROK_DARWIN_X64',
-            defaultSource: path.join(xaiRoot, 'target', 'x86_64-apple-darwin', 'release', 'xai-grok-pager'),
+            platform: 'darwin', arch: 'x64', binName: 'astra',
+            envVar: 'ASTRA_DARWIN_X64',
+            defaultSource: path.join(xaiRoot, 'target', 'x86_64-apple-darwin', 'release', 'astra'),
         },
         {
-            platform: 'linux', arch: 'x64', binName: 'grok',
-            envVar: 'GROK_LINUX_X64',
+            platform: 'linux', arch: 'x64', binName: 'astra',
+            envVar: 'ASTRA_LINUX_X64',
             defaultSource: path.join(xaiRoot, 'target',
                 'explorer_cross_x86_64-unknown-linux-gnu',
-                'x86_64-unknown-linux-gnu', 'release', 'xai-grok-pager'),
+                'x86_64-unknown-linux-gnu', 'release', 'astra'),
         },
         {
-            platform: 'linux', arch: 'arm64', binName: 'grok',
-            envVar: 'GROK_LINUX_ARM64',
+            platform: 'linux', arch: 'arm64', binName: 'astra',
+            envVar: 'ASTRA_LINUX_ARM64',
             defaultSource: path.join(xaiRoot, 'target',
                 'explorer_cross_aarch64-unknown-linux-gnu',
-                'aarch64-unknown-linux-gnu', 'release', 'xai-grok-pager'),
+                'aarch64-unknown-linux-gnu', 'release', 'astra'),
         },
         {
-            platform: 'win32', arch: 'x64', binName: 'grok.exe',
-            envVar: 'GROK_WIN32_X64',
-            defaultSource: path.join(xaiRoot, 'target', 'x86_64-pc-windows-msvc', 'release', 'xai-grok-pager.exe'),
+            platform: 'win32', arch: 'x64', binName: 'astra.exe',
+            envVar: 'ASTRA_WIN32_X64',
+            defaultSource: path.join(xaiRoot, 'target', 'x86_64-pc-windows-msvc', 'release', 'astra.exe'),
         },
         {
-            platform: 'win32', arch: 'arm64', binName: 'grok.exe',
-            envVar: 'GROK_WIN32_ARM64',
-            defaultSource: path.join(xaiRoot, 'target', 'aarch64-pc-windows-msvc', 'release', 'xai-grok-pager.exe'),
+            platform: 'win32', arch: 'arm64', binName: 'astra.exe',
+            envVar: 'ASTRA_WIN32_ARM64',
+            defaultSource: path.join(xaiRoot, 'target', 'aarch64-pc-windows-msvc', 'release', 'astra.exe'),
         },
     ];
 

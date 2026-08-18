@@ -135,9 +135,9 @@ pub(crate) fn embedding_session_credentials(
 /// Every call site **must** pass the correct `client_identifier` so that
 /// the API proxy (and telemetry / metrics backends) can properly attribute requests:
 ///
-/// - `"grok-shell"`   — classic Grok CLI / TUI (xai-grok-shell)
-/// - `"grok-pager"`   — new Grok Pager / TUI (xai-grok-pager)
-/// - `"grok-desktop"` — Grok Desktop app
+/// - `"grok-shell"`   — classic Astra CLI / TUI (xai-grok-shell)
+/// - `"grok-pager"`   — new Astra Pager / TUI (xai-grok-pager)
+/// - `"grok-desktop"` — Astra Desktop app
 /// - `"grok-extension"` — VS Code / browser extension
 ///
 /// The factory forwards both:

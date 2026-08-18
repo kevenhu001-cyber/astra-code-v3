@@ -215,7 +215,7 @@ impl TestSandboxBuilder {
     pub fn build(self) -> TestSandbox {
         let root = TempDir::new().expect("create test sandbox root");
         let home = root.path().join("home");
-        let grok_home = home.join(".grok");
+        let grok_home = home.join(".astra");
         let workspace = root.path().join("workspace");
         let temp = root.path().join("tmp");
         for path in [&home, &grok_home, &workspace, &temp] {
@@ -248,7 +248,7 @@ impl TestSandbox {
     fn init_git_workspace(&self) {
         run_git(self, &["init"]);
         run_git(self, &["config", "user.email", "test@test.invalid"]);
-        run_git(self, &["config", "user.name", "Grok Test"]);
+        run_git(self, &["config", "user.name", "Astra Test"]);
         std::fs::write(self.workspace.join("README.md"), "test file\n")
             .expect("write sandbox git fixture");
         run_git(self, &["add", "-A"]);
@@ -325,7 +325,7 @@ fn baseline_env_from_parent(
     for (key, value) in [
         ("HOME", home),
         ("USERPROFILE", home),
-        ("GROK_HOME", grok_home),
+        ("ASTRA_HOME", grok_home),
         ("TMPDIR", temp),
         ("TMP", temp),
         ("TEMP", temp),
@@ -333,7 +333,7 @@ fn baseline_env_from_parent(
         env.insert(key.into(), value.as_os_str().to_owned());
     }
     for (key, value) in [
-        ("GROK_TELEMETRY_ENABLED", "false"),
+        ("ASTRA_TELEMETRY_ENABLED", "false"),
         ("GROK_TELEMETRY_TRACE_UPLOAD", "false"),
         ("GROK_FEEDBACK_ENABLED", "false"),
         ("GROK_TRACE_UPLOAD", "false"),
@@ -471,7 +471,7 @@ fn diagnostic_value_is_sensitive(key: &OsStr) -> bool {
         || is_endpoint_key(&key)
         || matches!(
             key.to_ascii_uppercase().as_str(),
-            "HOME" | "USERPROFILE" | "GROK_HOME" | "TMPDIR" | "TMP" | "TEMP" | "GIT_CONFIG_GLOBAL"
+            "HOME" | "USERPROFILE" | "ASTRA_HOME" | "TMPDIR" | "TMP" | "TEMP" | "GIT_CONFIG_GLOBAL"
         )
 }
 
@@ -524,7 +524,7 @@ mod tests {
         }
         assert_ne!(sandbox.home(), sandbox.workspace());
         assert_ne!(sandbox.home(), sandbox.temp_dir());
-        assert_eq!(sandbox.grok_home(), sandbox.home().join(".grok"));
+        assert_eq!(sandbox.grok_home(), sandbox.home().join(".astra"));
     }
 
     #[test]
@@ -564,7 +564,7 @@ mod tests {
         let root = tempfile::tempdir().expect("create baseline fixture");
         baseline_env_from_parent(
             &root.path().join("home"),
-            &root.path().join("home/.grok"),
+            &root.path().join("home/.astra"),
             &root.path().join("tmp"),
             parent_cwd,
             &parent_env,
@@ -628,7 +628,7 @@ mod tests {
         );
         let sandbox = TestSandbox {
             home: root.path().join("home"),
-            grok_home: root.path().join("home/.grok"),
+            grok_home: root.path().join("home/.astra"),
             workspace: root.path().join("workspace"),
             temp: root.path().join("tmp"),
             root,
@@ -695,7 +695,7 @@ mod tests {
             .build();
         assert_eq!(env_value(&sandbox, "HOME"), Some(sandbox.home().into()));
         assert_eq!(
-            env_value(&sandbox, "GROK_HOME"),
+            env_value(&sandbox, "ASTRA_HOME"),
             Some(sandbox.grok_home().into())
         );
         assert_eq!(
@@ -831,7 +831,7 @@ mod tests {
             ("DB_PASSWORD_FILE", "/secret/password-file"),
             ("AWS_CREDENTIALS", "credentials-do-not-print"),
             ("SESSION_COOKIE", "cookie-do-not-print"),
-            ("GROK_DEPLOYMENT_KEY", "deployment-key-do-not-print"),
+            ("ASTRA_DEPLOYMENT_KEY", "deployment-key-do-not-print"),
             ("GROK_EXTRA_AUTH_KEY", "alpha-test-key-do-not-print"),
             ("AWS_ACCESS_KEY_ID", "aws-access-key-do-not-print"),
             ("PRIVATE_KEY", "private-key-do-not-print"),
@@ -847,7 +847,7 @@ mod tests {
             "DB_PASSWORD_FILE",
             "AWS_CREDENTIALS",
             "SESSION_COOKIE",
-            "GROK_DEPLOYMENT_KEY",
+            "ASTRA_DEPLOYMENT_KEY",
             "GROK_EXTRA_AUTH_KEY",
             "AWS_ACCESS_KEY_ID",
             "PRIVATE_KEY",

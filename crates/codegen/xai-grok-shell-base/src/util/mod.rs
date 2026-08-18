@@ -247,7 +247,7 @@ pub fn is_grok_process(pid: u32) -> bool {
     {
         let cmdline_path = format!("/proc/{pid}/cmdline");
         match std::fs::read(&cmdline_path) {
-            Ok(data) => String::from_utf8_lossy(&data).contains("grok"),
+            Ok(data) => String::from_utf8_lossy(&data).contains("astra"),
             Err(_) => false,
         }
     }
@@ -279,7 +279,7 @@ pub fn is_grok_process(pid: u32) -> bool {
         }
         String::from_utf16_lossy(&buf[..size as usize])
             .to_ascii_lowercase()
-            .contains("grok")
+            .contains("astra")
     }
     #[cfg(all(not(target_os = "linux"), not(windows)))]
     {
@@ -314,7 +314,7 @@ pub fn is_grok_process_strict(pid: u32) -> bool {
                     .filter(|line| !line.is_empty())
                     .and_then(|line| std::path::Path::new(line).file_name())
                     .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.to_ascii_lowercase().contains("grok"))
+                    .is_some_and(|name| name.to_ascii_lowercase().contains("astra"))
             }
             _ => false,
         }

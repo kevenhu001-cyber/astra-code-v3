@@ -1,8 +1,8 @@
-//! GrokDay theme — white/black canvas with a single pixel-orange accent.
+//! Astra Day theme — white/black canvas with a single pixel-orange accent.
 //!
-//! Light counterpart to GrokNight. Backgrounds are near-white with a single
+//! Light counterpart to Astra Night. Backgrounds are near-white with a single
 //! pure-black fg, and accent colors use the same `#FF6A00` family as
-//! GrokNight so dark/light polarity is the only difference between the two.
+//! Astra Night so dark/light polarity is the only difference between the two.
 
 use ratatui::style::{Color, Modifier};
 
@@ -87,11 +87,11 @@ impl Theme {
 
             fuzzy_accent: BLUE,
 
-            accent_plan: rgb(168, 120, 10), // #A8780A — deep golden
+            accent_plan: ORANGE_DIM, // deep orange (readable on light bg)
 
-            accent_verify: rgb(120, 80, 160), // deep violet (readable on light bg)
+            accent_verify: ORANGE_DIM, // orange-tinted verify accent
 
-            accent_remember: rgb(76, 175, 80), // #4CAF50 — Material Design green (readable on light bg)
+            accent_remember: ORANGE, // orange remember accent
 
             selection_border: rgb(185, 185, 190),
             prompt_border: rgb(200, 200, 205), // #C8C8CD — dimmer prompt chrome

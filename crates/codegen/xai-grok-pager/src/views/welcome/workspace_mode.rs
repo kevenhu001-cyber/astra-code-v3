@@ -820,7 +820,7 @@ mod apply_tests {
         // Isolate ack file from developer machine.
         let home = tempfile::tempdir().unwrap();
         let _home =
-            xai_grok_test_support::EnvGuard::set("GROK_HOME", home.path().to_str().unwrap());
+            xai_grok_test_support::EnvGuard::set("ASTRA_HOME", home.path().to_str().unwrap());
         set_active_local_workspace(None).unwrap();
         let tmp = tempfile::tempdir().unwrap();
         let out = prepare_welcome_workspace_for_new_session(

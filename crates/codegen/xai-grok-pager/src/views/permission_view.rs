@@ -1829,7 +1829,7 @@ fn char_wrap(s: &str, width: usize) -> Vec<String> {
 /// RejectOnce renders as a freeform input row (matching question view style)
 /// using the same 1-based shortcut number as its prefix:
 /// ```text
-///  3 [ ] Tell Grok what to do differently
+///  3 [ ] Tell Astra what to do differently
 ///  3 [x] ❯ my followup message preview...
 /// ```
 ///

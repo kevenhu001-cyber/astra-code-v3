@@ -1,11 +1,9 @@
 <div align="center">
 
 <h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://media.x.ai/v1/website/spacexai-symbol-white-transparent-0c31957f.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://media.x.ai/v1/website/spacexai-symbol-black-transparent-6435cf42.png">
-    <img alt="Astra logo" src="https://media.x.ai/v1/website/spacexai-symbol-black-transparent-6435cf42.png" width="96">
-  </picture>
+  <svg viewBox="0 0 29 5" width="174" height="30" role="img" aria-label="ASTRA" style="max-width: 100%">
+    <path fill="#f97316" d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/>
+  </svg>
   <br>
   Astra (<code>astra</code>)
 </h1>
@@ -23,8 +21,6 @@ Protocol (ACP).
 [Development](#development) ·
 [Contributing](#contributing) ·
 [License](#license)
-
-![Astra TUI](https://media.x.ai/v1/website/universe-tui-screenshot-6f7a0837.png)
 
 **Learn more about Astra at [astra CLI](https://example.invalid/cli)**
 

@@ -159,7 +159,7 @@ struct SubagentMetaSlice {
     #[serde(default)]
     worktree_path: Option<String>,
 }
-/// Grok home for the replay path. In production this is just `grok_home()`; the
+/// Astra home for the replay path. In production this is just `grok_home()`; the
 /// whole test override below is `#[cfg(test)]`, so no thread-local or dead
 /// always-false branch ships in release.
 #[cfg(not(test))]
@@ -168,17 +168,17 @@ fn effective_grok_home() -> std::path::PathBuf {
 }
 #[cfg(test)]
 thread_local! {
-    static REPLAY_GROK_HOME: std::cell::RefCell<Option<std::path::PathBuf>> =
+    static REPLAY_ASTRA_HOME: std::cell::RefCell<Option<std::path::PathBuf>> =
         const { std::cell::RefCell::new(None) };
 }
 /// Override grok home for disk-replay unit tests (thread-local).
 #[cfg(test)]
 pub(crate) fn set_replay_grok_home_for_tests(home: Option<std::path::PathBuf>) {
-    REPLAY_GROK_HOME.with(|h| *h.borrow_mut() = home);
+    REPLAY_ASTRA_HOME.with(|h| *h.borrow_mut() = home);
 }
 #[cfg(test)]
 fn effective_grok_home() -> std::path::PathBuf {
-    if let Some(home) = REPLAY_GROK_HOME.with(|h| h.borrow().clone()) {
+    if let Some(home) = REPLAY_ASTRA_HOME.with(|h| h.borrow().clone()) {
         return home;
     }
     xai_grok_shell::util::grok_home::grok_home()

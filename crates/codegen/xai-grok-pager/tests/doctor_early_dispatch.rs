@@ -21,7 +21,7 @@ fn doctor_json_bypasses_unrelated_startup_state() {
     let home = temp.path().join("home");
     let grok_home = temp.path().join("grok-home");
     std::fs::create_dir_all(&home).expect("create HOME");
-    std::fs::create_dir_all(&grok_home).expect("create GROK_HOME");
+    std::fs::create_dir_all(&grok_home).expect("create ASTRA_HOME");
 
     let version_path = grok_home.join("version.json");
     std::fs::write(
@@ -53,7 +53,7 @@ fn doctor_json_bypasses_unrelated_startup_state() {
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("stdout is one JSON document");
     assert_eq!(json["schemaVersion"], "1");
-    assert!(!String::from_utf8_lossy(&output.stdout).contains("Grok Doctor"));
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("Astra Doctor"));
 
     let after = directory_entries(&grok_home);
     assert_eq!(after, before, "doctor must not create startup artifacts");
@@ -518,7 +518,7 @@ fn doctor_fix_safety_boundaries_are_process_isolated() {
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("Grok found an existing SSH alias or function")
+        stderr.contains("Astra found an existing SSH alias or function")
             && stderr.contains(&conflict.display().to_string()),
         "{stderr}"
     );
@@ -648,7 +648,7 @@ fn base_pager_command(
     command
         .env_clear()
         .env("HOME", home)
-        .env("GROK_HOME", grok_home)
+        .env("ASTRA_HOME", grok_home)
         .env("SHELL", shell)
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("TERM", "xterm-256color")

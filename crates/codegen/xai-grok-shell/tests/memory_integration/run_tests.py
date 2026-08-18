@@ -3,7 +3,7 @@
 """
 Memory System Integration Tests — Full Suite.
 
-Launches grok agent stdio in isolated environments ($HOME override)
+Launches astra agent stdio in isolated environments ($HOME override)
 with pre-populated memory files. Tests the entire memory lifecycle:
 indexing, search, embeddings, flush, session-end, compaction, pruning.
 
@@ -21,7 +21,7 @@ Usage:
     python3 crates/codegen/xai-grok-shell/tests/memory_integration/run_tests.py test_fts_search_quality
 
     # Skip build (use pre-built binary):
-    GROK_BINARY=/path/to/xai-grok-pager python3 run_tests.py --fast
+    ASTRA_BINARY=/path/to/astra python3 run_tests.py --fast
 """
 
 import json
@@ -67,7 +67,7 @@ def section(t):
 
 
 class AcpClient:
-    """Talks ACP (JSON-RPC over NDJSON) to a grok agent stdio subprocess."""
+    """Talks ACP (JSON-RPC over NDJSON) to an astra agent stdio subprocess."""
 
     def __init__(self, proc, cwd=None):
         self.proc = proc
@@ -163,38 +163,38 @@ class AcpClient:
 
 
 class IsolatedEnv:
-    """Creates a fully isolated grok environment with custom $HOME.
+    """Creates a fully isolated astra environment with custom $HOME.
 
     The agent subprocess gets a fake $HOME with:
-      ~/.grok/auth.json   (copied from real home)
-      ~/.grok/memory/     (pre-populated by tests)
-      ~/.grok/logs/       (memory.log appears here)
+      ~/.astra/auth.json   (copied from real home)
+      ~/.astra/memory/     (pre-populated by tests)
+      ~/.astra/logs/       (memory.log appears here)
 
     And a workspace directory used as cwd when spawning the agent.
     """
 
     def __init__(self, workspace_name="test-project"):
-        self.root = tempfile.mkdtemp(prefix="grok-memtest-")
+        self.root = tempfile.mkdtemp(prefix="astra-memtest-")
         self.fake_home = os.path.join(self.root, "home")
         self.workspace = os.path.join(self.root, "workspace", workspace_name)
         os.makedirs(self.fake_home)
         os.makedirs(self.workspace)
 
-        # Create .grok dirs in fake home
-        self.grok_home = os.path.join(self.fake_home, ".grok")
-        self.memory_dir = os.path.join(self.grok_home, "memory")
-        self.logs_dir = os.path.join(self.grok_home, "logs")
+        # Create .astra dirs in fake home
+        self.astra_home = os.path.join(self.fake_home, ".astra")
+        self.memory_dir = os.path.join(self.astra_home, "memory")
+        self.logs_dir = os.path.join(self.astra_home, "logs")
         os.makedirs(self.memory_dir)
         os.makedirs(self.logs_dir)
 
         # Copy auth from real home
-        real_auth = os.path.expanduser("~/.grok/auth.json")
+        real_auth = os.path.expanduser("~/.astra/auth.json")
         if os.path.isfile(real_auth):
-            shutil.copy2(real_auth, os.path.join(self.grok_home, "auth.json"))
+            shutil.copy2(real_auth, os.path.join(self.astra_home, "auth.json"))
 
     def write_config(self, toml_str):
-        """Write global ~/.grok/config.toml (where the agent reads config)."""
-        with open(os.path.join(self.grok_home, "config.toml"), "w") as f:
+        """Write global ~/.astra/config.toml (where the agent reads config)."""
+        with open(os.path.join(self.astra_home, "config.toml"), "w") as f:
             f.write(toml_str)
 
     def write_global_memory(self, content):
@@ -266,9 +266,9 @@ class IsolatedEnv:
         return sorted(files)
 
     def spawn_agent(self, extra_env=None):
-        binary = os.environ.get("GROK_BINARY", "grok")
+        binary = os.environ.get("ASTRA_BINARY") or os.environ.get("GROK_BINARY") or "astra"
         if not shutil.which(binary) and not os.path.isfile(binary):
-            print(f"{R}grok binary not found: {binary}{N}")
+            print(f"{R}astra binary not found: {binary}{N}")
             sys.exit(1)
         env = os.environ.copy()
         env["HOME"] = self.fake_home
@@ -671,7 +671,7 @@ def test_fts_special_characters():
 * Use C++ for performance-critical code
 * Configure with --enable-feature=fast_path
 * Email: dev@example.com
-* Path: /usr/local/bin/grok
+* Path: /usr/local/bin/astra
 * Version >= 2.0.0
 """)
         client = env.spawn_agent()
@@ -1344,10 +1344,10 @@ def test_multiple_workspace_isolation():
         beta_workspace = os.path.join(env1.root, "workspace", "project-beta")
         os.makedirs(beta_workspace, exist_ok=True)
 
-        # Config is already in global ~/.grok/config.toml from env1.write_config
+        # Config is already in global ~/.astra/config.toml from env1.write_config
 
         # Start agent in workspace beta (reuse env1's fake home)
-        binary = os.environ.get("GROK_BINARY", "grok")
+        binary = os.environ.get("ASTRA_BINARY", "astra")
         env_vars = os.environ.copy()
         env_vars["HOME"] = env1.fake_home
         env_vars["GROK_MEMORY"] = "1"
@@ -2575,13 +2575,13 @@ def find_repo_root():
 
 
 def build_binary():
-    """Build xai-grok-pager with --features dev --release. Returns binary path."""
+    """Build astra with --features dev --release. Returns binary path."""
     repo = find_repo_root()
     if not repo:
         print(f"{R}Could not find repo root (no Cargo.toml + crates/ above cwd){N}")
         sys.exit(1)
 
-    binary = os.path.join(repo, "target", "release", "xai-grok-pager")
+    binary = os.path.join(repo, "target", "release", "astra")
 
     # Find rg for GROK_SHELL_BUNDLE_RG_PATH
     rg = shutil.which("rg")
@@ -2611,12 +2611,12 @@ def main():
     print(f"{'=' * 60}{N}\n")
 
     # Build or locate binary
-    if "GROK_BINARY" in os.environ:
-        binary = os.environ["GROK_BINARY"]
+    if "ASTRA_BINARY" in os.environ:
+        binary = os.environ["ASTRA_BINARY"]
         print(f"Binary: {binary} (from $GROK_BINARY, skipping build)")
     else:
         binary = build_binary()
-        os.environ["GROK_BINARY"] = binary
+        os.environ["ASTRA_BINARY"] = binary
 
     if not os.path.isfile(binary):
         print(f"{R}Binary not found: {binary}{N}")

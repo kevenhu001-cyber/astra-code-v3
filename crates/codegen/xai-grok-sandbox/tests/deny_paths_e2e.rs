@@ -1,4 +1,4 @@
-//! E2E path-deny and Grok hook write-deny (subprocess; arm64-tagged).
+//! E2E path-deny and Astra hook write-deny (subprocess; arm64-tagged).
 //! Soft-skips when enforcement is unavailable; only
 //! `SANDBOX_E2E_REQUIRE_ENFORCEMENT` hard-requires a usable backend.
 
@@ -10,7 +10,7 @@ use std::process::Command;
 
 const SCENARIO_ENV: &str = "SANDBOX_E2E_SCENARIO";
 const WORKSPACE_ENV: &str = "SANDBOX_E2E_WORKSPACE";
-const GROK_HOME_ENV: &str = "SANDBOX_E2E_GROK_HOME";
+const ASTRA_HOME_ENV: &str = "SANDBOX_E2E_ASTRA_HOME";
 const HOME_ENV: &str = "SANDBOX_E2E_HOME";
 const PROFILE_ENV: &str = "SANDBOX_E2E_PROFILE";
 const TARGETS_ENV: &str = "SANDBOX_E2E_TARGETS";
@@ -22,9 +22,9 @@ const REQUIRE_ENV: &str = "SANDBOX_E2E_REQUIRE_ENFORCEMENT";
 fn apply_fixture_env(cmd: &mut Command, home: &Path, grok_home: &Path, workspace: &Path) {
     cmd.env(WORKSPACE_ENV, workspace.as_os_str())
         .env(HOME_ENV, home.as_os_str())
-        .env(GROK_HOME_ENV, grok_home.as_os_str())
+        .env(ASTRA_HOME_ENV, grok_home.as_os_str())
         .env("HOME", home.as_os_str())
-        .env("GROK_HOME", grok_home.as_os_str());
+        .env("ASTRA_HOME", grok_home.as_os_str());
 }
 
 /// Re-invoke this test binary as a subprocess driving `profile` over `targets`
@@ -259,13 +259,13 @@ fn subprocess_entry() {
     let workspace = dunce::canonicalize(&workspace).expect("canonicalize workspace");
     let workspace = workspace.as_path();
 
-    // Isolate HOME/GROK_HOME before any config OnceLock init.
+    // Isolate HOME/ASTRA_HOME before any config OnceLock init.
     let home = PathBuf::from(std::env::var(HOME_ENV).expect(HOME_ENV));
-    let grok_home = PathBuf::from(std::env::var(GROK_HOME_ENV).expect(GROK_HOME_ENV));
+    let grok_home = PathBuf::from(std::env::var(ASTRA_HOME_ENV).expect(ASTRA_HOME_ENV));
     // SAFETY: isolated subprocess; set before sandbox/config first use.
     unsafe {
         std::env::set_var("HOME", &home);
-        std::env::set_var("GROK_HOME", &grok_home);
+        std::env::set_var("ASTRA_HOME", &grok_home);
     }
 
     match scenario.as_str() {
@@ -464,9 +464,9 @@ fn subprocess_hook_write_deny_marker_spoof(_grok_home: &Path) {
     }
 }
 
-/// Workspace-profile Grok-owned hook write-deny probes (existing sources + first-run).
+/// Workspace-profile Astra-owned hook write-deny probes (existing sources + first-run).
 fn subprocess_hook_write_deny(workspace: &Path, first_run: bool) {
-    let home = PathBuf::from(std::env::var(GROK_HOME_ENV).expect(GROK_HOME_ENV));
+    let home = PathBuf::from(std::env::var(ASTRA_HOME_ENV).expect(ASTRA_HOME_ENV));
 
     let profile = xai_grok_sandbox::ProfileName::Workspace;
     subprocess_profile_and_bwrap_reexec(&profile, workspace);
@@ -504,7 +504,7 @@ fn subprocess_hook_write_deny(workspace: &Path, first_run: bool) {
             "hooks nested file (first-run)",
             &hooks_dir.join("planted.json"),
         );
-        eprintln!("OK: first-run Grok hook slots denied");
+        eprintln!("OK: first-run Astra hook slots denied");
     } else {
         // Existing hook content stays readable.
         let keep = hooks_dir.join("keep.json");
@@ -653,7 +653,7 @@ fn subprocess_hook_write_deny(workspace: &Path, first_run: bool) {
         }
     }
 
-    // Parent grants remain creatable: Grok runtime sibling, workspace, temp.
+    // Parent grants remain creatable: Astra runtime sibling, workspace, temp.
     assert_write_ok(
         "grok runtime sibling",
         &home.join(format!("leader-{}.lock", std::process::id())),
@@ -669,7 +669,7 @@ fn subprocess_hook_write_deny(workspace: &Path, first_run: bool) {
 
 // ── Parent test cases ───────────────────────────────────────────────────
 
-/// Create isolated HOME + GROK_HOME fixture dirs for a scenario.
+/// Create isolated HOME + ASTRA_HOME fixture dirs for a scenario.
 fn fixture_homes(
     tag: &str,
 ) -> (
@@ -683,8 +683,8 @@ fn fixture_homes(
     let home = unique_temp_dir(&format!("{tag}-home"));
     let grok = unique_temp_dir(&format!("{tag}-grok"));
     let workspace = unique_temp_dir(&format!("{tag}-ws"));
-    // Empty global sandbox config under fixture GROK_HOME so generic tests do
-    // not inherit the developer/runner's ~/.grok/sandbox.toml.
+    // Empty global sandbox config under fixture ASTRA_HOME so generic tests do
+    // not inherit the developer/runner's ~/.astra/sandbox.toml.
     fs::write(grok.join("sandbox.toml"), "").expect("empty global sandbox.toml");
     (
         home.clone(),
@@ -720,14 +720,14 @@ fn run_deny_case(
         .map(|p| format!("\"{p}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    fs::create_dir_all(tmp.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(tmp.join(".astra")).expect("mkdir .grok");
     fs::write(
-        tmp.join(".grok").join("sandbox.toml"),
+        tmp.join(".astra").join("sandbox.toml"),
         format!("[profiles.{profile}]\nextends = \"workspace\"\ndeny = [{deny_list}]\n"),
     )
     .expect("write sandbox.toml");
 
-    // Ensure Grok fixed slots exist so workspace-based custom profiles can
+    // Ensure Astra fixed slots exist so workspace-based custom profiles can
     // resolve hook write-deny without depending on the real user tree.
     fs::create_dir_all(grok.join("hooks")).expect("mkdir fixture hooks");
     fs::write(grok.join("hooks-paths"), b"").expect("write fixture hooks-paths");
@@ -851,9 +851,9 @@ fn hardlinked_hooks_paths_refuses_startup() {
     );
 }
 
-/// Workspace profile: Grok-owned direct hook sources are write-denied but readable;
+/// Workspace profile: Astra-owned direct hook sources are write-denied but readable;
 /// create / overwrite / unlink / rename / mkdir fail; absolute hooks-paths
-/// targets are denied; parent rename is blocked; Grok/CWD/temp siblings stay writable.
+/// targets are denied; parent rename is blocked; Astra/CWD/temp siblings stay writable.
 #[test]
 fn workspace_protects_direct_hook_sources() {
     if skip_if_enforcement_unavailable() {
@@ -960,7 +960,7 @@ fn symlinked_hooks_json_refuses_startup() {
     );
 }
 
-/// First-run: missing fixed slots are created as real Grok state before apply,
+/// First-run: missing fixed slots are created as real Astra state before apply,
 /// then write-denied. Parent asserts post-exit host tree is valid (no vendor stubs).
 #[test]
 fn workspace_protects_direct_hook_sources_first_run() {
@@ -982,7 +982,7 @@ fn workspace_protects_direct_hook_sources_first_run() {
         "missing pass marker\nstderr: {stderr}"
     );
     for needle in [
-        "OK: first-run Grok hook slots denied",
+        "OK: first-run Astra hook slots denied",
         "OK: hooks-paths (first-run) write denied",
         "OK: hooks nested (first-run) mkdir denied",
         "OK: hooks nested file (first-run) write denied",
@@ -996,7 +996,7 @@ fn workspace_protects_direct_hook_sources_first_run() {
         );
     }
 
-    // Post-exit host: Grok slots exist and are valid; no vendor artifacts.
+    // Post-exit host: Astra slots exist and are valid; no vendor artifacts.
     assert!(
         grok.join("hooks").is_dir(),
         "post-exit: hooks dir must exist as a real directory"

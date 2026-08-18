@@ -24,7 +24,7 @@
 //! - [`ResourceSnapshot`] — RSS/threads/fds sampling for soak tests
 /// Multiply a harness timeout by `GROK_TEST_TIMEOUT_SCALE` (positive integer,
 /// default 1). CI lanes on shared runner pools raise it so pool load slows
-/// tests instead of failing them (see the Grok Build merge CI workflow).
+/// tests instead of failing them (see the Astra merge CI workflow).
 pub fn scaled(base: std::time::Duration) -> std::time::Duration {
     let scale = std::env::var("GROK_TEST_TIMEOUT_SCALE")
         .ok()

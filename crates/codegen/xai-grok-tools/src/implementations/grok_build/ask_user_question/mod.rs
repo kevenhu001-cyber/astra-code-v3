@@ -165,7 +165,7 @@ pub struct QuestionOption {
     )]
     pub preview: Option<String>,
 
-    /// Opaque id; hidden from the model. Grok callers leave it `None`.
+    /// Opaque id; hidden from the model. Astra callers leave it `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(skip)]
     pub id: Option<String>,

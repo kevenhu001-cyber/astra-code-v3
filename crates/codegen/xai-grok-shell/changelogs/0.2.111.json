@@ -66,7 +66,7 @@
   },
   {
     "category": "fixes",
-    "description": "Grok now automatically stops a turn that keeps repeating the exact same tool call many times in a row.",
+    "description": "Astra now automatically stops a turn that keeps repeating the exact same tool call many times in a row.",
     "breaking_change": false
   },
   {
@@ -81,7 +81,7 @@
   },
   {
     "category": "fixes",
-    "description": "When the auto-permission classifier times out or fails, Grok now shows a normal permission prompt instead of silently denying.",
+    "description": "When the auto-permission classifier times out or fails, Astra now shows a normal permission prompt instead of silently denying.",
     "breaking_change": false
   },
   {

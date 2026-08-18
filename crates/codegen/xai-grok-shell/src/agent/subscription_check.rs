@@ -16,7 +16,7 @@ use crate::auth::manager::RefreshReason;
 use crate::auth::token_type::TokenType;
 use std::sync::Arc;
 use std::time::Duration;
-/// Whether a `/user?include=subscription` tier qualifies for Grok Build
+/// Whether a `/user?include=subscription` tier qualifies for Astra
 /// access. Any active subscription qualifies -- the proxy only returns a
 /// tier when an active subscription exists (`None` otherwise), and the
 /// access gate in remote settings controls which tiers are actually

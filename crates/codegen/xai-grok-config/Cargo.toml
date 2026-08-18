@@ -3,7 +3,7 @@ license = "Apache-2.0"
 name = "xai-grok-config"
 version = "0.1.0"
 edition.workspace = true
-description = "Shared config loading for Grok — grok_home, effective config (requirements > user > managed), TOML merge"
+description = "Shared config loading for Astra — grok_home, effective config (requirements > user > managed), TOML merge"
 
 [dependencies]
 base64 = { workspace = true }
@@ -25,7 +25,7 @@ xai-grok-home = { workspace = true }
 xai-tty-utils = { workspace = true }
 xai-grok-version = { workspace = true }
 
-# core-foundation: read macOS MDM managed preferences (`ai.x.grok`) for the
+# core-foundation: read macOS MDM managed preferences (`ai.x.astra`) for the
 # admin-deployed requirements layer.
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = { workspace = true }

@@ -1,17 +1,17 @@
 #
-# Grok CLI installer (enterprise channel) for PowerShell — https://x.ai/cli/enterprise-install.ps1
+# Astra CLI installer (enterprise channel) for PowerShell — https://x.ai/cli/enterprise-install.ps1
 #
 # Standalone installer for the enterprise channel. Intentionally a full copy of
 # the install logic so changes to the stable installer cannot break enterprise.
 #
-# Auth: GROK_DEPLOYMENT_KEY env var (takes precedence) or ~/.grok/auth.json from `grok login`.
-# Env: GROK_BIN_DIR, GROK_PROXY_URL
+# Auth: ASTRA_DEPLOYMENT_KEY env var (takes precedence) or ~/.astra/auth.json from `astra login`.
+# Env: ASTRA_BIN_DIR, ASTRA_PROXY_URL
 #
 # Usage:
 #   irm https://x.ai/cli/enterprise-install.ps1 | iex                                       # latest enterprise
 #   & ([scriptblock]::Create((irm https://x.ai/cli/enterprise-install.ps1))) -Version 0.1.42 # specific version
-#   $env:GROK_VERSION="0.1.42"; irm https://x.ai/cli/enterprise-install.ps1 | iex           # specific version (alt)
-#   $env:GROK_DEPLOYMENT_KEY="<key>"; irm https://x.ai/cli/enterprise-install.ps1 | iex
+#   $env:ASTRA_VERSION="0.1.42"; irm https://x.ai/cli/enterprise-install.ps1 | iex           # specific version (alt)
+#   $env:ASTRA_DEPLOYMENT_KEY="<key>"; irm https://x.ai/cli/enterprise-install.ps1 | iex
 #
 
 param(
@@ -28,8 +28,8 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 # Accept version from environment variable (useful with irm | iex).
-if (-not $Version -and $env:GROK_VERSION) {
-    $Version = $env:GROK_VERSION
+if (-not $Version -and $env:ASTRA_VERSION) {
+    $Version = $env:ASTRA_VERSION
 }
 
 # This script is Windows-only. PS 5.1 has no Platform property and only runs on Windows.
@@ -38,7 +38,7 @@ if ($PSVersionTable.Platform -and $PSVersionTable.Platform -ne 'Win32NT') {
     exit 1
 }
 
-$GrokDir = Join-Path $env:USERPROFILE '.grok'
+$AstraDir = Join-Path $env:USERPROFILE '.astra'
 
 # --- Helpers ---
 
@@ -93,8 +93,8 @@ function Download-File([string]$Url, [string]$OutFile) {
     }
 }
 
-function Read-GrokToken([string]$Scope) {
-    $authFile = Join-Path $GrokDir 'auth.json'
+function Read-AstraToken([string]$Scope) {
+    $authFile = Join-Path $AstraDir 'auth.json'
     if (-not (Test-Path $authFile)) { return $null }
     try {
         $auth = Get-Content -Raw $authFile | ConvertFrom-Json
@@ -117,18 +117,19 @@ $OidcScope = 'https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828'
 $LegacyScope = 'https://accounts.x.ai/sign-in'
 $AuthSource = ''
 
-if ($env:GROK_DEPLOYMENT_KEY) {
+$deployKey = if ($env:ASTRA_DEPLOYMENT_KEY) { $env:ASTRA_DEPLOYMENT_KEY } else { $env:GROK_DEPLOYMENT_KEY }
+if ($deployKey) {
     $AuthSource = 'deployment key'
     Write-Host 'Auth: using deployment key.' -ForegroundColor DarkGray
 } else {
-    $oidcToken = Read-GrokToken $OidcScope
-    $legacyToken = Read-GrokToken $LegacyScope
+    $oidcToken = Read-AstraToken $OidcScope
+    $legacyToken = Read-AstraToken $LegacyScope
     if ($oidcToken) {
         $AuthSource = 'auth.json (oidc)'
-        Write-Host 'Auth: using OIDC token from ~/.grok/auth.json.' -ForegroundColor DarkGray
+        Write-Host 'Auth: using OIDC token from ~/.astra/auth.json.' -ForegroundColor DarkGray
     } elseif ($legacyToken) {
         $AuthSource = 'auth.json (legacy)'
-        Write-Host 'Auth: using legacy token from ~/.grok/auth.json.' -ForegroundColor DarkGray
+        Write-Host 'Auth: using legacy token from ~/.astra/auth.json.' -ForegroundColor DarkGray
     }
 }
 
@@ -152,8 +153,8 @@ $platform = "windows-$arch"
 
 $BaseUrlPrimary = 'https://x.ai/cli'
 $BaseUrlFallback = 'https://storage.googleapis.com/grok-build-public-artifacts/cli'
-$DownloadDir = Join-Path $GrokDir 'downloads'
-$BinDir = if ($env:GROK_BIN_DIR) { $env:GROK_BIN_DIR } else { Join-Path $GrokDir 'bin' }
+$DownloadDir = Join-Path $AstraDir 'downloads'
+$BinDir = if ($env:ASTRA_BIN_DIR) { $env:ASTRA_BIN_DIR } else { Join-Path $AstraDir 'bin' }
 
 New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
@@ -183,15 +184,15 @@ if ($Version) {
 }
 
 if ($AuthSource) {
-    Write-Host "Installing Grok $resolvedVersion ($platform, $AuthSource)..." -ForegroundColor Cyan
+    Write-Host "Installing Astra $resolvedVersion ($platform, $AuthSource)..." -ForegroundColor Cyan
 } else {
-    Write-Host "Installing Grok $resolvedVersion ($platform)..." -ForegroundColor Cyan
+    Write-Host "Installing Astra $resolvedVersion ($platform)..." -ForegroundColor Cyan
 }
 
 # --- Download binary ---
 
-$binaryPath = Join-Path $DownloadDir "grok-$platform.exe"
-$artifactBase = "$BaseUrl/grok-$resolvedVersion-$platform"
+$binaryPath = Join-Path $DownloadDir "astra-.exe"
+$artifactBase = "$BaseUrl/astra--$platform"
 
 $downloaded = $false
 foreach ($url in @("$artifactBase.exe", $artifactBase)) {
@@ -212,7 +213,7 @@ if (-not $downloaded) {
 
 # --- Install binary (locked-file safe) ---
 
-foreach ($binName in @('grok.exe', 'agent.exe')) {
+foreach ($binName in @('astra.exe', 'agent.exe')) {
     $dest = Join-Path $BinDir $binName
     $old = "$dest.old"
 
@@ -232,20 +233,20 @@ foreach ($binName in @('grok.exe', 'agent.exe')) {
     }
 }
 
-Write-Host "  Installed to $BinDir\grok.exe and $BinDir\agent.exe." -ForegroundColor DarkGray
+Write-Host "  Installed to $BinDir\astra.exe and $BinDir\agent.exe." -ForegroundColor DarkGray
 
 # --- Generate completions (best-effort) ---
 
-$completionsDir = Join-Path (Join-Path $GrokDir 'completions') 'powershell'
+$completionsDir = Join-Path (Join-Path $AstraDir 'completions') 'powershell'
 try {
     New-Item -ItemType Directory -Path $completionsDir -Force | Out-Null
-    & (Join-Path $BinDir 'grok.exe') completions powershell 2>$null |
-        Set-Content (Join-Path $completionsDir 'grok.ps1') -ErrorAction SilentlyContinue
+    & (Join-Path $BinDir 'astra.exe') completions powershell 2>$null |
+        Set-Content (Join-Path $completionsDir 'astra.ps1') -ErrorAction SilentlyContinue
 } catch {}
 
 # --- Persist installer config ---
 
-$ConfigFile = Join-Path $GrokDir 'config.toml'
+$ConfigFile = Join-Path $AstraDir 'config.toml'
 $cliLines = @('installer = "internal"', 'channel = "enterprise"')
 
 if (-not (Test-Path $ConfigFile)) {
@@ -280,11 +281,11 @@ if (-not (Test-Path $ConfigFile)) {
 
 # --- Fetch deployment config (deployment key only) ---
 
-if ($env:GROK_DEPLOYMENT_KEY) {
-    $ProxyUrl = if ($env:GROK_PROXY_URL) { $env:GROK_PROXY_URL } else { 'https://cli-chat-proxy.grok.com/v1' }
+if ($deployKey) {
+    $ProxyUrl = if ($env:ASTRA_PROXY_URL) { $env:ASTRA_PROXY_URL } elseif ($env:GROK_PROXY_URL) { $env:GROK_PROXY_URL } else { 'https://cli-chat-proxy.grok.com/v1' }
     Write-Host '  Fetching deployment config...' -ForegroundColor DarkGray
     try {
-        $headers = @{ 'Authorization' = "Bearer $($env:GROK_DEPLOYMENT_KEY)" }
+        $headers = @{ 'Authorization' = "Bearer $deployKey" }
         $deployResponse = Invoke-RestMethod -Uri "$ProxyUrl/deployment/config" -Headers $headers -UseBasicParsing
     } catch {
         Write-Host "  Warning: failed to fetch deployment config from $ProxyUrl/deployment/config" -ForegroundColor Yellow
@@ -295,8 +296,8 @@ if ($env:GROK_DEPLOYMENT_KEY) {
         $managedConfig = $deployResponse.managed_config
         $requirements = $deployResponse.requirements
 
-        $managedConfigPath = Join-Path $GrokDir 'managed_config.toml'
-        $requirementsPath = Join-Path $GrokDir 'requirements.toml'
+        $managedConfigPath = Join-Path $AstraDir 'managed_config.toml'
+        $requirementsPath = Join-Path $AstraDir 'requirements.toml'
 
         if ($managedConfig -and $managedConfig -ne 'null') {
             [System.IO.File]::WriteAllText($managedConfigPath, $managedConfig, [System.Text.Encoding]::UTF8)
@@ -314,9 +315,9 @@ if ($env:GROK_DEPLOYMENT_KEY) {
     }
 }
 
-Write-Host "Grok $resolvedVersion installed to $BinDir\grok.exe" -ForegroundColor Green
+Write-Host "Astra $resolvedVersion installed to $BinDir\astra.exe" -ForegroundColor Green
 
-# --- Ensure grok is on PATH ---
+# --- Ensure astra is on PATH ---
 
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 $pathEntries = if ($userPath) { $userPath -split ';' | Where-Object { $_ -ne '' } } else { @() }
@@ -324,11 +325,11 @@ if ($pathEntries -notcontains $BinDir) {
     $newPath = (@($BinDir) + $pathEntries) -join ';'
     [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
     Write-Host "  Added $BinDir to your User PATH." -ForegroundColor DarkGray
-    # Update current session so grok works immediately.
+    # Update current session so astra works immediately.
     if ($env:Path -notlike "*$BinDir*") {
         $env:Path = "$BinDir;$env:Path"
     }
 }
 
 Write-Host ''
-Write-Host "Run 'grok' or 'agent' to get started!" -ForegroundColor Cyan
+Write-Host "Run 'astra' or 'agent' to get started!" -ForegroundColor Cyan

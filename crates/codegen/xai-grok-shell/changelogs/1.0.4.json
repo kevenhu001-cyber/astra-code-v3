@@ -41,7 +41,7 @@
   },
   {
     "category": "fixes",
-    "description": "**Keystrokes typed while Grok is starting** are now preserved in the composer instead of being lost.",
+    "description": "**Keystrokes typed while Astra is starting** are now preserved in the composer instead of being lost.",
     "breaking_change": false
   },
   {

@@ -450,7 +450,7 @@ pub fn resolve_deployment_id(deployment_key: Option<&str>) -> Option<String> {
         .or_else(|| Some(crate::agent::config::deployment_id_from_key(key)))
 }
 
-/// Resolve deployment key from `GROK_DEPLOYMENT_KEY` env var, then config files.
+/// Resolve deployment key from `ASTRA_DEPLOYMENT_KEY` env var, then config files.
 pub fn resolve_deployment_key() -> Option<String> {
     let config_val = crate::config::load_effective_config()
         .map_err(|e| tracing::warn!("failed to load config files for deployment key: {e}"))
@@ -463,10 +463,18 @@ pub fn resolve_deployment_key() -> Option<String> {
         });
     crate::agent::config::resolve_string_flag(
         None,
-        "GROK_DEPLOYMENT_KEY",
+        "ASTRA_DEPLOYMENT_KEY",
         config_val.as_deref(),
         None,
     )
+    .or_else(|| {
+        crate::agent::config::resolve_string_flag(
+            None,
+            "GROK_DEPLOYMENT_KEY",
+            config_val.as_deref(),
+            None,
+        )
+    })
     .map(|r| r.value)
 }
 
@@ -506,7 +514,7 @@ fn managed_config_enabled_from_layers(layers: &crate::config::ConfigLayers) -> O
         .as_bool()
 }
 
-/// Fetch managed config + requirements and write to `~/.grok/`, trying the
+/// Fetch managed config + requirements and write to `~/.astra/`, trying the
 /// deployment key first, then a signed-in team. `Ok(false)` when neither applies.
 pub async fn sync() -> Result<bool, ManagedConfigError> {
     Ok(sync_with_budget(SyncBudget::Standard, None).await?.wrote)
@@ -1079,7 +1087,7 @@ fn managed_policy_gate_decision(
 /// and exit codes stay out of the library.
 #[derive(Debug)]
 pub enum SetupOutcome {
-    /// Config was written to `~/.grok`.
+    /// Config was written to `~/.astra`.
     Installed,
     /// The principal is valid but the server has no config for it.
     NothingConfigured,

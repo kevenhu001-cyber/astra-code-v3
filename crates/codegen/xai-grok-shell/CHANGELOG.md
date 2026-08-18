@@ -5,7 +5,7 @@
 ## Features
 
 - **GROK_CONFIG** and **GROK_CONFIG_PATH** environment variables now let launchers override selected config settings without editing config.toml.
-- **Worktrees** under ~/.grok/worktrees are now automatically reclaimed when safe, with strong safeguards that never delete a user's last copy.
+- **Worktrees** under ~/.astra/worktrees are now automatically reclaimed when safe, with strong safeguards that never delete a user's last copy.
 - **Hook policy blocks** now correctly report "Turn blocked by a hook" instead of "Turn cancelled by user."
 - **Image and video generation** now limits how many calls the model can request in one step to avoid overload.
 - **Arabic and Persian text** can now be reordered correctly in the terminal UI. Turn on in /settings.
@@ -30,7 +30,7 @@
 - **New StopCancelled hook event** now reports when a turn ends without completing (interrupt, permission reject, max turns, etc.).
 - **Recurring /loop tasks** now show a one-line expiry notice in the transcript when they auto-expire after 7 days.
 - **Web search** can now be restricted to allowed or excluded domains via [toolset.web_search] in config.toml.
-- **Session search index** can now be disabled via GROK_SESSION_SEARCH or [features] session_search for hosts sharing $GROK_HOME.
+- **Session search index** can now be disabled via GROK_SESSION_SEARCH or [features] session_search for hosts sharing $ASTRA_HOME.
 - **Drag to select and copy** values on the /session-info tab; c and y shortcuts also work.
 - **Double-click now selects a word** by default and triple-click selects the whole paragraph.
 - **New follow-up behavior setting** lets queued messages send immediately as interjections instead of waiting for the turn to finish.
@@ -44,7 +44,7 @@
 - **Sessions poisoned by rejected images** are now healed permanently so future turns succeed without retrying the bad image.
 - **Auto permission mode** now correctly honors your explicit "always allow" grants and narrow allow rules from settings.
 - **Subagent lifecycle events** are now preserved even when delivered out of order, ensuring all subagents appear correctly in the UI.
-- **Keystrokes typed while Grok is starting** are now preserved in the composer instead of being lost.
+- **Keystrokes typed while Astra is starting** are now preserved in the composer instead of being lost.
 - **Background tasks killed from the UI** now correctly wake the model when needed instead of staying parked after a single-task stop.
 - **[stop]** / Ctrl+C inside a fullscreen subagent overlay now cancels the visible child session.
 - **Hook failures** now show the first line of stderr output instead of only the exit code.
@@ -70,7 +70,7 @@
 
 ## Performance
 
-- **Subagent spawning** is dramatically faster when you have many sessions in ~/.grok.
+- **Subagent spawning** is dramatically faster when you have many sessions in ~/.astra.
 - **TUI rendering** now automatically matches high-refresh displays (120 Hz+) for smoother scrolling and painting.
 
 
@@ -102,7 +102,7 @@
 ## Features
 
 - **Subagent spawning** is now bounded; wide fan-outs queue instead of exhausting file descriptors.
-- New `grok du` command shows disk usage of ~/.grok including worktrees and sessions.
+- New `grok du` command shows disk usage of ~/.astra including worktrees and sessions.
 - **Tools** now report whether they only read data, enabling safer restricted agents and subagents.
 - **Sandbox workspace** sessions can now limit which bundled skills are advertised via caller config.
 - **Renaming a session** from the dashboard now starts with the current title prefilled for easy editing.
@@ -154,7 +154,7 @@
 
 - Dashboard rows show a short summary of what the agent did in the previous turn
 - Extensions modal groups items alphabetically with collapsible Skills sections
-- Grok skips the project-directory prompt when launched from home or other non-project directories
+- Astra skips the project-directory prompt when launched from home or other non-project directories
 - `/feedback` opens a dedicated report box instead of prompt mode
 - Auto theme detection works over SSH and inside tmux
 - Markdown tables reflow inside cells on narrow panes instead of clipping
@@ -163,7 +163,7 @@
 ## Bug Fixes
 
 - MCP tools that return images no longer drop or corrupt large screenshots
-- Sandboxed Grok starts on large directories with many deny-glob matches
+- Sandboxed Astra starts on large directories with many deny-glob matches
 - Rapid send-now presses no longer lose earlier queued messages
 - Esc and stop prevent background tasks from restarting the model after cancel
 - Login no longer skips when an invalid API key is in the environment
@@ -178,7 +178,7 @@
 - Mode indicator (plan/agent/ask) stays in sync after resume and mode changes
 - `/delete` returns to the dashboard when you delete a session opened from it
 - Enter in the slash command menu runs the highlighted command
-- Grok retries more server errors during outages
+- Astra retries more server errors during outages
 - Session-only slash commands show a message when used from the dashboard
 - Queued prompts stay visible while waiting on subagents, and slash/image rows can be reordered
 - Auto recaps no longer appear mid-turn or while busy
@@ -307,7 +307,7 @@
 
 ## Bug Fixes
 
-- **Grok** no longer crashes on startup when the host machine has no free threads.
+- **Astra** no longer crashes on startup when the host machine has no free threads.
 
 
 # 0.2.113 — 2026-07-28
@@ -322,7 +322,7 @@
 ## Bug Fixes
 
 - **Terminal command output** is no longer lost or duplicated when the gateway is unreachable.
-- **Invalid MCP server entries** in config.toml no longer prevent Grok from starting; problems are shown in `grok inspect`.
+- **Invalid MCP server entries** in config.toml no longer prevent Astra from starting; problems are shown in `grok inspect`.
 - **SessionEnd hooks** now run on exit in non-leader TUI and headless sessions.
 - **Paste chips** now display with the correct background in inline prompts and question inputs.
 - **Pasted content chips** now behave consistently when editing answers in the question view.
@@ -353,7 +353,7 @@
 
 ## Features
 
-- **New /tutorial slash command** opens an opt-in nine-topic onboarding tour of Grok.
+- **New /tutorial slash command** opens an opt-in nine-topic onboarding tour of Astra.
 - **New tool_overrides option** lets you set date cutoffs and domain allowlists for the agent's built-in search tools.
 - **New toolOverrides option** lets you set date cutoffs and domain allowlists for the agent's built-in search tools.
 - **New config options** let you add query parameters or environment-backed headers to custom model providers and control which variables reach shell tools.
@@ -365,7 +365,7 @@
 - **Image edit** can now use a remotely configured model slug instead of the hardcoded default.
 - **`grok doctor fix`** can now repair common tmux clipboard and passthrough problems.
 - **Per-provider auth helpers** now work on Windows and can run from a configurable working directory.
-- **/resume** now shows only native Grok sessions by default and shows a hint when external sessions are hidden.
+- **/resume** now shows only native Astra sessions by default and shows a hint when external sessions are hidden.
 - **`grok --resume`** can now resume a session by its title as well as by ID.
 - **Workflows overlay** now shows live per-agent progress and automatically follows the active phase.
 - **Workflow runs** that failed can now be resumed; scratch file limits were also increased.
@@ -407,7 +407,7 @@
 
 - **Plugin subagents** now inherit the parent session’s connected MCP servers (default `mcpInheritance: all`), so `search_tool` / `use_tool` work the same as for local agents. Plugin agents still cannot declare their own MCP servers, hooks, or elevated permission modes.
 - **`!cmd` commands** now allow up to one hour before timing out.
-- **npm package** now installs the native binary under `$GROK_HOME/bin` (honoring the same override as the Rust CLI).
+- **npm package** now installs the native binary under `$ASTRA_HOME/bin` (honoring the same override as the Rust CLI).
 - **Startup warnings** now point to `/doctor` for details and fixes.
 - **Dashboard hover and clicks** no longer miss the gaps between items in wide mode.
 - **Shift/Alt+Enter** now inserts a newline while editing a queued prompt.
@@ -415,10 +415,10 @@
 - Forking a session that used compaction no longer causes later rewinds to fail with missing checkpoint errors.
 - When a permission prompt appears while viewing scrollback, focus now correctly moves to the prompt so you can answer.
 - Pressing Esc once now cancels the current agent turn (except in fullscreen vim scrollback mode).
-- Grok now automatically stops a turn that keeps repeating the exact same tool call many times in a row.
+- Astra now automatically stops a turn that keeps repeating the exact same tool call many times in a row.
 - Configs using either spelling of the workspace teleport disable flag now load and save correctly.
 - Background subagent completion messages no longer leak into unrelated sessions when multiple sessions are active.
-- When the auto-permission classifier times out or fails, Grok now shows a normal permission prompt instead of silently denying.
+- When the auto-permission classifier times out or fails, Astra now shows a normal permission prompt instead of silently denying.
 - **Managed MCP tools** no longer time out prematurely on slow operations like Notion updates.
 
 ## Performance
@@ -515,14 +515,14 @@
 
 - **/btw** now works inside `grok --minimal`, showing answers in the live area and committing them to scrollback on Esc.
 - **New Appearance setting** "Snap prompt to top on send" lets you keep the viewport where it is instead of jumping to the new prompt.
-- **Default model** is now Grok 4.5 with high/medium/low reasoning effort and improved compaction settings.
+- **Default model** is now Astra 4.5 with high/medium/low reasoning effort and improved compaction settings.
 - **New `/summarize` slash command** is now available as an alias for `/recap` to request an on-demand session summary.
 
 ## Bug Fixes
 
 - **Local shell tools** now see the same environment variables, aliases, and functions as your login shell.
 - **Syntax highlighting** in diffs and the file viewer no longer miscolors strings or comments that span multiple lines.
-- **Global rules** from ~/.grok/rules and compatible vendor homes are now discovered correctly.
+- **Global rules** from ~/.astra/rules and compatible vendor homes are now discovered correctly.
 - **Background tasks** that finish after you press Ctrl+C no longer automatically resume the model.
 - **Ctrl+\** out of the dashboard now returns you to the agent you came from.
 - **MCP OAuth logins** now succeed against servers that require the RFC 9207 issuer parameter in the callback.
@@ -580,7 +580,7 @@
 
 - **New /jump slash command** lets you quickly jump to any previous turn in the conversation.
 - **New /timeline sidebar** shows a clickable tick rail for fast navigation between conversation turns.
-- **grok login** now requests Grok Projects scopes so workspace listing works after consent.
+- **grok login** now requests Astra Projects scopes so workspace listing works after consent.
 - **Permission mode** can now be set fleet-wide via remote config when no local setting exists.
 - **Edit tool output** has a setting to show a compact one-line summary instead of always-expanded diffs.
 - **Tab completion** in !bash mode now works like a normal terminal (prefix fill, dropdown, directory drill-down).
@@ -650,7 +650,7 @@
 - **Multiline mode** now correctly sends the top queued message on empty Enter when a turn is running.
 - **Queued commands** no longer disappear or delay when pressing Enter twice quickly during a running turn.
 - **Minimal mode** text is now readable on dark terminals with proper contrast and highlighted user prompts.
-- **Grok no longer crashes** when printing resume hints after the terminal pane has closed.
+- **Astra no longer crashes** when printing resume hints after the terminal pane has closed.
 - **Long-running turns** with multiple waits now show updated status markers in the transcript instead of appearing stuck.
 - **Claude and Cursor hooks** are now correctly disabled at session start when disabled in config.
 
@@ -678,7 +678,7 @@
 - **/terminal-setup** now shows your terminal's color support level and which themes are available.
 - **grok setup --json** prints your team's managed configuration without installing it.
 - Messages you type while the model waits on tasks now stay queued; pressing Enter twice sends them immediately by cancelling the current turn.
-- **How-to Guides** modal now shows a tip linking to Ask Grok above the footer shortcuts.
+- **How-to Guides** modal now shows a tip linking to Ask Astra above the footer shortcuts.
 - **Subagent** `task` and `spawn_subagent` tools now accept an optional `model` parameter in the CLI.
 - **Keyboard Shortcuts** modal now lists the paste key binding for images under the Input section.
 
@@ -739,7 +739,7 @@
 - **Dashboard shortcuts** now advertise ? instead of Ctrl+. on terminals that cannot deliver the latter.
 - **Double-clicking** scrollback while Text selection is fold/nav now shows a tip offering Ctrl+Y to enable Word select.
 - **`grok worktree ls`** now works as a short alias for `grok worktree list`.
-- **MCP tool output truncation** can now be set per-repo in `.grok/config.toml`.
+- **MCP tool output truncation** can now be set per-repo in `.astra/config.toml`.
 - **Auto-send of queued follow-ups** during task waits can now be enabled fleet-wide via remote settings.
 - **Welcome screen** now offers one-click resume of a recent Claude Code session via ctrl+u.
 
@@ -780,7 +780,7 @@
 - **IME text input in Otty** no longer attaches unrelated clipboard images on every character.
 - **Rewind** now fully removes the selected turn from both scrollback and the model's conversation history.
 - **Queued prompts** now abort long blocking waits instead of waiting for the full timeout.
-- **File links and media** now work for worktree sessions under ~/.grok/worktrees/.
+- **File links and media** now work for worktree sessions under ~/.astra/worktrees/.
 - **Collapsed Read/Edit tool rows** now show only the filename instead of long absolute paths.
 - **Clipboard copies on Wayland** now succeed even when the terminal loses focus mid-copy.
 - **User messages queued** behind an auto-wake turn are no longer lost when the user presses Ctrl+C.
@@ -918,7 +918,7 @@
 - **Try Again** on the free-usage paywall now correctly resubmits after rate-limit retries.
 - **Cursor** now respects your terminal's default blink style instead of always blinking.
 - **Skill commands** in scrollback now highlight only the command name, not the arguments.
-- **Plan files** now default to .grok/plan.md to match Grok conventions.
+- **Plan files** now default to .astra/plan.md to match Astra conventions.
 - **LaTeX math** renders correctly for display equations and complex subscripts.
 - **Queue hint** in the terminal no longer shows incorrect bold text on part of the message.
 
@@ -1109,7 +1109,7 @@
 
 - **Contextual hints** now show shortcuts like plan mode or clipboard paste when relevant.
 - **Graceful shutdowns** now allow interrupted turns to resume with a configurable pause budget.
-- **Grok.com chat sessions** now integrate fully with the gateway bridge for model catalog and resume.
+- **Astra.com chat sessions** now integrate fully with the gateway bridge for model catalog and resume.
 
 ## Bug Fixes
 
@@ -1536,7 +1536,7 @@
 - **ER diagrams** now render as entity boxes with attributes and relationships in the TUI.
 - New "Respect manual folds" setting keeps hand-expanded blocks stable while content streams in.
 - **Ctrl+X** now stops running turns or closes sessions from inside the agent detail view.
-- **Grok** can now export usage metrics and events to your own OpenTelemetry collector when enabled.
+- **Astra** can now export usage metrics and events to your own OpenTelemetry collector when enabled.
 - **WezTerm users** now receive guidance when Shift+Enter fails because kitty keyboard protocol is disabled.
 - **Long-running sessions** now tell the model when the local calendar date changes past midnight.
 - **Agent Dashboard** now works without leader mode and shows local idle sessions from disk.
@@ -1593,7 +1593,7 @@
 - **Dashboard empty state** is now a single hint line; dispatch and peek placeholders appear only when unfocused.
 - **Fixed memory leaks** that could cause the CLI to use tens of gigabytes during long sessions with many tool calls.
 - **Login on SSH or headless machines** now tells you when the browser cannot be opened automatically and shows the URL to visit manually.
-- **Fixed git clone failures** on Windows when the CLI tries to clone marketplace plugins into ~/.grok.
+- **Fixed git clone failures** on Windows when the CLI tries to clone marketplace plugins into ~/.astra.
 
 ## Performance
 
@@ -1736,7 +1736,7 @@
 
 ## Features
 
-- **`grok --debug`** now produces per-session log files under ~/.grok/debug/ even with a leader process.
+- **`grok --debug`** now produces per-session log files under ~/.astra/debug/ even with a leader process.
 
 ## Bug Fixes
 
@@ -2081,7 +2081,7 @@
 
 - **New /login** slash command lets you re-authenticate from within a session without quitting.
 - **Compaction summaries** now include the full transcript path so the model can reference prior details.
-- **Cursor skills and rules** are now discovered alongside Grok and Claude directories.
+- **Cursor skills and rules** are now discovered alongside Astra and Claude directories.
 
 ## Bug Fixes
 

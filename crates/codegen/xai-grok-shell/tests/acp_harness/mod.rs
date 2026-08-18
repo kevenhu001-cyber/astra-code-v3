@@ -202,11 +202,11 @@ pub async fn prompt_turn(
 fn set_test_env(grok_home: &std::path::Path, server_url: &str) {
     // SAFETY: the only live threads are the mock's HTTP workers, which never read env.
     unsafe {
-        std::env::set_var("GROK_HOME", grok_home);
+        std::env::set_var("ASTRA_HOME", grok_home);
         std::env::set_var("GROK_CLI_CHAT_PROXY_BASE_URL", server_url);
         std::env::set_var("GROK_XAI_API_BASE_URL", server_url);
         std::env::set_var("XAI_API_KEY", "test-key-for-ci");
-        std::env::set_var("GROK_TELEMETRY_ENABLED", "false");
+        std::env::set_var("ASTRA_TELEMETRY_ENABLED", "false");
         std::env::set_var("GROK_FEEDBACK_ENABLED", "false");
         std::env::set_var("GROK_TRACE_UPLOAD", "false");
         // Turn summaries fire a post-turn side-call to the same mock endpoint
@@ -215,7 +215,7 @@ fn set_test_env(grok_home: &std::path::Path, server_url: &str) {
     }
 }
 
-/// Runs `body` against a mock inference server with `GROK_HOME` isolated to a
+/// Runs `body` against a mock inference server with `ASTRA_HOME` isolated to a
 /// temp dir. `body` gets the cwd and the mock, and opens its own connection,
 /// since each test wants a different `acp::Client`. One `#[test]` per binary:
 /// the env is global.

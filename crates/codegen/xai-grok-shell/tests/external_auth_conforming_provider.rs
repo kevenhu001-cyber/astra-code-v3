@@ -95,12 +95,12 @@ async fn a_provider_that_declines_the_headless_run_can_still_sign_the_user_in() 
     // environment is spawned. `grok_home()` memoizes, so this must stay the
     // only test in the binary.
     unsafe {
-        std::env::set_var("GROK_HOME", home.path());
+        std::env::set_var("ASTRA_HOME", home.path());
         std::env::set_var("GROK_CLI_CHAT_PROXY_BASE_URL", &dead);
         std::env::set_var("GROK_XAI_API_BASE_URL", &dead);
         std::env::remove_var("XAI_API_KEY");
         std::env::remove_var("GROK_CODE_XAI_API_KEY");
-        std::env::set_var("GROK_TELEMETRY_ENABLED", "false");
+        std::env::set_var("ASTRA_TELEMETRY_ENABLED", "false");
         std::env::set_var("GROK_FEEDBACK_ENABLED", "false");
         std::env::set_var("GROK_TRACE_UPLOAD", "false");
     }

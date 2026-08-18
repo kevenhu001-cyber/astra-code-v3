@@ -1062,7 +1062,7 @@ fn configured_report_reaches_pass_state_only_for_exact_managed_alias() {
 fn shell_aliases_expand_to_exact_argv_and_bypass_is_explicit() {
     let temp = tempfile::tempdir().unwrap();
     let capture = temp.path().join("capture");
-    let grok = temp.path().join("grok");
+    let grok = temp.path().join("astra");
     std::fs::write(
         &grok,
         format!(
@@ -1213,7 +1213,7 @@ fn shell_aliases_expand_to_exact_argv_and_bypass_is_explicit() {
 }
 
 /// An accumulating remedy is additive, so a user's own `terminal-features`
-/// lines are not a conflict: tmux applies Grok's managed block last and the
+/// lines are not a conflict: tmux applies Astra's managed block last and the
 /// features merge. A direct-assignment remedy would refuse to touch the file.
 #[test]
 fn tmux_truecolor_fix_appends_alongside_existing_terminal_features() {

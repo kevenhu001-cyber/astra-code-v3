@@ -1,7 +1,7 @@
 [
   {
     "category": "fixes",
-    "description": "**Grok** no longer crashes on startup when the host machine has no free threads.",
+    "description": "**Astra** no longer crashes on startup when the host machine has no free threads.",
     "breaking_change": false
   },
   {

@@ -1,4 +1,4 @@
-//! Feedback request heuristics for Grok Code sessions.
+//! Feedback request heuristics for Astra Code sessions.
 //!
 //! This module implements the feedback request decision logic based on session signals.
 //! It uses tiered probability sampling to request feedback at appropriate moments
@@ -247,7 +247,7 @@ impl FeedbackHeuristics {
             tier1_feedback_mode: FeedbackMode::Thumbs,
             tier1_dismissible: true,
             tier1_prompt:
-                "You've been using Grok Code productively! Would you mind sharing quick feedback?"
+                "You've been using Astra Code productively! Would you mind sharing quick feedback?"
                     .to_string(),
 
             // Tier 2: Complex session with friction
@@ -712,7 +712,7 @@ impl FeedbackRequest {
             Some(p) if !p.is_empty() => p.to_string(),
             _ => match tier {
                 FeedbackTier::Tier1 => {
-                    "You've been using Grok Code productively! Would you mind sharing quick feedback?".to_string()
+                    "You've been using Astra Code productively! Would you mind sharing quick feedback?".to_string()
                 }
                 FeedbackTier::Tier2 => {
                     "You've worked through a complex session. Your feedback would help us improve.".to_string()

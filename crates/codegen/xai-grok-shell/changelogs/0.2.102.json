@@ -16,7 +16,7 @@
   },
   {
     "category": "features",
-    "description": "**grok login** now requests Grok Projects scopes so workspace listing works after consent.",
+    "description": "**grok login** now requests Astra Projects scopes so workspace listing works after consent.",
     "breaking_change": false
   },
   {

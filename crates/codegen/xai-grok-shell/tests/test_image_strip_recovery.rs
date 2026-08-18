@@ -165,7 +165,7 @@ fn poisoned_image_session_recovers_within_the_failing_turn() {
 
 /// Session `chat_history.jsonl`; cwd encoding is internal, so we scan.
 fn session_chat_jsonl() -> std::path::PathBuf {
-    let sessions = std::path::PathBuf::from(std::env::var("GROK_HOME").expect("GROK_HOME set"))
+    let sessions = std::path::PathBuf::from(std::env::var("ASTRA_HOME").expect("ASTRA_HOME set"))
         .join("sessions");
     std::fs::read_dir(&sessions)
         .expect("read sessions dir")

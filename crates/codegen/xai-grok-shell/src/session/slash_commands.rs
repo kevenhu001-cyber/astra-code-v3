@@ -786,7 +786,7 @@ pub(crate) struct ListCommandsRequest {
     pub session_id: Option<acp::SessionId>,
     #[serde(default)]
     pub cwd: Option<String>,
-    /// Product lane: `"chat"` filters to Grok Chat / Grok Computer first-party
+    /// Product lane: `"chat"` filters to Astra Chat / Astra Computer first-party
     /// skills only. Omitted or any other value keeps the full Build catalog.
     #[serde(default)]
     pub kind: Option<String>,
@@ -1313,7 +1313,7 @@ impl BuiltinAction {
 /// How to rewrite the user's prompt when a slash command resolves to a skill.
 ///
 /// - `RewriteToRun` (default): replace `/foo args` with `"run /foo args"`,
-///   matching today's Grok Build flow that calls our dedicated `skill` tool.
+///   matching today's Astra flow that calls our dedicated `skill` tool.
 /// - `Passthrough`: leave the prompt verbatim. Some templates use this —
 ///   the model is trained to spot a leading `/<name>`, look it up in the
 ///   `<agent_skills>` listing, and call the Read tool on `fullPath`.

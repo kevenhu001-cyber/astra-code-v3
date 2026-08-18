@@ -213,7 +213,7 @@ pub(crate) fn apply_write_deny_paths_to_capability_set(
         let _ = caps.remove_exact_file_caps_for_paths(&rule_paths);
         tracing::info!(
             count = entries.len(),
-            "Applied Seatbelt write-deny for Grok-owned direct hook sources"
+            "Applied Seatbelt write-deny for Astra-owned direct hook sources"
         );
     }
     #[cfg(target_os = "linux")]
@@ -360,7 +360,7 @@ mod tests {
                 .unwrap()
                 .as_nanos()
         ));
-        let grok = tmp.join("grok");
+        let grok = tmp.join("astra");
         let sessions = grok.join("sessions");
         let leaf = sessions.join("extra-hooks");
         std::fs::create_dir_all(&leaf).unwrap();
@@ -371,11 +371,11 @@ mod tests {
         let pin = ancestors_within_writable_roots(&leaf, &roots);
         assert!(
             pin.iter().any(|p| p == &sessions),
-            "must pin sessions under GROK_HOME: {pin:?}"
+            "must pin sessions under ASTRA_HOME: {pin:?}"
         );
         assert!(
             pin.iter().any(|p| p == &grok),
-            "must pin GROK_HOME grant root: {pin:?}"
+            "must pin ASTRA_HOME grant root: {pin:?}"
         );
         assert!(
             !pin.iter().any(|p| p == &tmp),

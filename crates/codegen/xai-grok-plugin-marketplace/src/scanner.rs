@@ -2,7 +2,7 @@
 //!
 //! Supports two modes:
 //! 1. **Indexed:** if a catalog index file exists (see `index::load_index` for
-//!    the lookup order — `.grok-plugin/marketplace.json` is preferred), use it.
+//!    the lookup order — `.astra-plugin/marketplace.json` is preferred), use it.
 //! 2. **Filesystem fallback:** walk `plugins/*/` and resolve manifests directly.
 
 use std::path::Path;
@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn url_sourced_entry_carries_keywords() {
         let dir = tempfile::tempdir().unwrap();
-        let grok_dir = dir.path().join(".grok-plugin");
+        let grok_dir = dir.path().join(".astra-plugin");
         std::fs::create_dir_all(&grok_dir).unwrap();
         std::fs::write(
             grok_dir.join("marketplace.json"),
@@ -353,7 +353,7 @@ mod tests {
     #[test]
     fn url_sourced_entry_with_path_sets_remote_subdir() {
         let dir = tempfile::tempdir().unwrap();
-        let grok_dir = dir.path().join(".grok-plugin");
+        let grok_dir = dir.path().join(".astra-plugin");
         std::fs::create_dir_all(&grok_dir).unwrap();
         std::fs::write(
             grok_dir.join("marketplace.json"),
@@ -441,7 +441,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         make_plugin(dir.path(), "grok-plugin", "1.0.0");
 
-        let grok_dir = dir.path().join(".grok-plugin");
+        let grok_dir = dir.path().join(".astra-plugin");
         std::fs::create_dir_all(&grok_dir).unwrap();
         std::fs::write(
             grok_dir.join("marketplace.json"),
@@ -449,10 +449,10 @@ mod tests {
                 "name": "grok-marketplace",
                 "plugins": [{
                     "name": "grok-plugin",
-                    "description": "From the .grok-plugin index",
+                    "description": "From the .astra-plugin index",
                     "category": "design",
                     "source": { "type": "local", "path": "./plugins/grok-plugin" },
-                    "tags": ["grok"]
+                    "tags": ["astra"]
                 }]
             }"#,
         )
@@ -462,7 +462,7 @@ mod tests {
         assert_eq!(plugins.len(), 1);
         assert_eq!(plugins[0].name, "grok-plugin");
         assert_eq!(plugins[0].category.as_deref(), Some("design"));
-        assert_eq!(plugins[0].tags, vec!["grok"]);
+        assert_eq!(plugins[0].tags, vec!["astra"]);
         assert!(plugins[0].keywords.is_empty());
     }
 
@@ -513,7 +513,7 @@ mod tests {
     }
 
     fn write_grok_file(dir: &Path, file: &str, content: &str) {
-        let grok_dir = dir.join(".grok-plugin");
+        let grok_dir = dir.join(".astra-plugin");
         std::fs::create_dir_all(&grok_dir).unwrap();
         std::fs::write(grok_dir.join(file), content).unwrap();
     }

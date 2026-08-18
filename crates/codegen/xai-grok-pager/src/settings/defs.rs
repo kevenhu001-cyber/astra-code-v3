@@ -46,13 +46,13 @@ const THEME_CHOICES: &[EnumChoice] = &[
         description: "Follow system dark/light appearance.",
     },
     EnumChoice {
-        canonical: "groknight",
-        display: "Grok Night",
+        canonical: "astranight",
+        display: "Astra Night",
         description: "Neutral dark with magenta accent.",
     },
     EnumChoice {
-        canonical: "grokday",
-        display: "Grok Day",
+        canonical: "astraday",
+        display: "Astra Day",
         description: "Light theme for bright environments.",
     },
     EnumChoice {
@@ -372,7 +372,7 @@ const VOICE_CAPTURE_MODE_CHOICES: &[EnumChoice] = &[
 
 // Voice STT language choices for the settings modal.
 //
-// Concrete codes must match `xai_grok_voice::STT_LANGUAGES` (official Grok STT
+// Concrete codes must match `xai_grok_voice::STT_LANGUAGES` (official Astra STT
 // catalog — https://docs.x.ai/developers/model-capabilities/audio/speech-to-text).
 // `auto` is client-only; the voice crate resolves it to a concrete code before
 // the STT handshake. Order: English (default), System, then remaining languages
@@ -515,13 +515,13 @@ const VOICE_STT_LANGUAGE_CHOICES: &[EnumChoice] = &[
 /// the user can pair any theme with any system-appearance bucket.
 const CONCRETE_THEME_CHOICES: &[EnumChoice] = &[
     EnumChoice {
-        canonical: "groknight",
-        display: "Grok Night",
+        canonical: "astranight",
+        display: "Astra Night",
         description: "Neutral dark with magenta accent.",
     },
     EnumChoice {
-        canonical: "grokday",
-        display: "Grok Day",
+        canonical: "astraday",
+        display: "Astra Day",
         description: "Light theme for bright environments.",
     },
     EnumChoice {
@@ -780,8 +780,8 @@ pub fn default_settings() -> Vec<SettingMeta> {
                 "light",
             ],
             kind: SettingKind::Enum {
-                // `Option<String>` — `None` resolved to "groknight".
-                default: "groknight",
+                // `Option<String>` — `None` resolved to "astranight".
+                default: "astranight",
                 choices: THEME_CHOICES,
                 supports_preview: true,
             },
@@ -796,8 +796,8 @@ pub fn default_settings() -> Vec<SettingMeta> {
             description: "Theme to use when the system is in dark mode (only with theme=auto).",
             keywords: &["auto", "dark", "theme", "system", "appearance", "night"],
             kind: SettingKind::Enum {
-                // `Option<String>` — `None` falls back to "groknight".
-                default: "groknight",
+                // `Option<String>` — `None` falls back to "astranight".
+                default: "astranight",
                 choices: CONCRETE_THEME_CHOICES,
                 supports_preview: true,
             },
@@ -812,8 +812,8 @@ pub fn default_settings() -> Vec<SettingMeta> {
             description: "Theme to use when the system is in light mode (only with theme=auto).",
             keywords: &["auto", "light", "theme", "system", "appearance", "day"],
             kind: SettingKind::Enum {
-                // `Option<String>` — `None` falls back to "grokday".
-                default: "grokday",
+                // `Option<String>` — `None` falls back to "astraday".
+                default: "astraday",
                 choices: CONCRETE_THEME_CHOICES,
                 supports_preview: true,
             },
@@ -931,7 +931,7 @@ pub fn default_settings() -> Vec<SettingMeta> {
             owner: SettingOwner::Shell,
             label: "Default model",
             description: "Model used for new sessions. Changing this also switches the active session. Pick `(no override)` to clear.",
-            keywords: &["model", "default", "agent", "llm", "grok", "switch"],
+            keywords: &["model", "default", "agent", "llm", "astra", "switch"],
             kind: SettingKind::DynamicEnum {
                 default: "",
                 source: DynamicEnumSource::ActiveModelCatalog,
@@ -1298,7 +1298,7 @@ pub fn default_settings() -> Vec<SettingMeta> {
             category: SettingCategory::Privacy,
             owner: SettingOwner::Shell,
             label: "Coding data, retention, and training",
-            description: "Opt-in to provide SpaceXAI the ability to retain and train on \
+            description: "Opt-in to provide Astra the ability to retain and train on \
                           coding data, e.g., prompts, traces, & metrics, for training and \
                           debugging purposes. We may still collect simple user metrics, \
                           e.g. how many times you use the product or a feature.",
@@ -1565,14 +1565,14 @@ pub fn default_settings() -> Vec<SettingMeta> {
         },
         // SHELL-owned, persisted to `[ui].voice_stt_language`. Live-applied to
         // the next voice capture (no restart). Default English; System (`auto`)
-        // follows the process locale when it maps to a Grok STT language.
+        // follows the process locale when it maps to a Astra STT language.
         // Catalog = official STT languages (see xai_grok_voice::STT_LANGUAGES).
         SettingMeta {
             key: "voice_stt_language",
             category: SettingCategory::Editor,
             owner: SettingOwner::Shell,
             label: "Voice language",
-            description: "Speech-to-text language for voice dictation (Grok STT). \
+            description: "Speech-to-text language for voice dictation (Astra STT). \
                           English by default; System uses your locale when supported. \
                           Sets formatting language for numbers and currencies.",
             keywords: &["voice", "language", "locale", "dictation", "stt", "speech"],

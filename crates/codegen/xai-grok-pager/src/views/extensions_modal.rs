@@ -2266,8 +2266,8 @@ pub fn derive_source_label(source_dir: &str) -> (String, bool) {
 fn classify_hook_source(source_dir: &str) -> HookSourceMeta {
     let grok = xai_grok_config::grok_home();
     let source_path = std::path::Path::new(source_dir);
-    // Plugin / installed-plugin dirs, under the user grok home (GROK_HOME-aware)
-    // or a project-scoped `{cwd}/.grok/<subdir>/`. Returns the first path
+    // Plugin / installed-plugin dirs, under the user grok home (ASTRA_HOME-aware)
+    // or a project-scoped `{cwd}/.astra/<subdir>/`. Returns the first path
     // component after the subdir (the plugin's install directory name).
     let plugin_name = |subdir: &str| -> Option<String> {
         let first_comp = |p: &std::path::Path| {
@@ -2276,13 +2276,13 @@ fn classify_hook_source(source_dir: &str) -> HookSourceMeta {
                 .map(|c| c.as_os_str().to_string_lossy().into_owned())
                 .filter(|s| !s.is_empty())
         };
-        // User grok home (GROK_HOME-aware).
+        // User grok home (ASTRA_HOME-aware).
         if let Ok(rest) = source_path.strip_prefix(grok.join(subdir))
             && let Some(name) = first_comp(rest)
         {
             return Some(name);
         }
-        // Project-scoped `.grok/<subdir>/<name>` anywhere in the path.
+        // Project-scoped `.astra/<subdir>/<name>` anywhere in the path.
         // Component-based so it works regardless of path separator.
         let comps: Vec<_> = source_path
             .components()
@@ -2290,7 +2290,7 @@ fn classify_hook_source(source_dir: &str) -> HookSourceMeta {
             .collect();
         comps
             .windows(3)
-            .find(|w| w[0] == ".grok" && w[1] == subdir && !w[2].is_empty())
+            .find(|w| w[0] == ".astra" && w[1] == subdir && !w[2].is_empty())
             .map(|w| w[2].clone())
     };
     if let Some(name) = plugin_name("plugins").or_else(|| plugin_name("installed-plugins")) {
@@ -2299,7 +2299,7 @@ fn classify_hook_source(source_dir: &str) -> HookSourceMeta {
             kind: HookSourceKind::Plugin,
         };
     }
-    // Global hooks under $GROK_HOME/hooks
+    // Global hooks under $ASTRA_HOME/hooks
     let global_hooks = grok.join("hooks");
     let global_str = global_hooks.display().to_string();
     if source_dir == global_str || source_dir.starts_with(&format!("{global_str}/")) {
@@ -2316,7 +2316,7 @@ fn classify_hook_source(source_dir: &str) -> HookSourceMeta {
         };
     }
     // Project hooks
-    if source_dir.ends_with("/.grok/hooks") || source_dir.contains("/.grok/hooks/") {
+    if source_dir.ends_with("/.astra/hooks") || source_dir.contains("/.astra/hooks/") {
         return HookSourceMeta {
             label: "Project hooks".into(),
             kind: HookSourceKind::Project,
@@ -2442,8 +2442,8 @@ fn skill_source_str(skill: &SkillInfo) -> String {
             }
             xai_grok_tools::types::config_source::ConfigSource::Project { path } => {
                 let s = path.display().to_string();
-                if s.contains("/.grok/") {
-                    ".grok/skills".into()
+                if s.contains("/.astra/") {
+                    ".astra/skills".into()
                 } else if s.contains("/.claude/") {
                     ".claude/skills".into()
                 } else {
@@ -4140,15 +4140,15 @@ mod tests {
 
     #[test]
     fn derive_source_label_detects_project_scoped_plugins() {
-        // Regression: project-scoped `{cwd}/.grok/plugins/<name>/` must label as
+        // Regression: project-scoped `{cwd}/.astra/plugins/<name>/` must label as
         // a (non-removable) plugin, not a removable "Custom" source. The user
-        // grok-home branch is GROK_HOME-aware; this covers the project fallback.
-        let (label, is_custom) = derive_source_label("/repo/work/.grok/plugins/my-plugin/hooks");
+        // grok-home branch is ASTRA_HOME-aware; this covers the project fallback.
+        let (label, is_custom) = derive_source_label("/repo/work/.astra/plugins/my-plugin/hooks");
         assert_eq!(label, "Plugin: my-plugin");
         assert!(!is_custom);
 
         let (label, is_custom) =
-            derive_source_label("/repo/work/.grok/installed-plugins/vendor-abc123/skills");
+            derive_source_label("/repo/work/.astra/installed-plugins/vendor-abc123/skills");
         assert_eq!(label, "Plugin: vendor-abc123");
         assert!(!is_custom);
     }
@@ -6512,12 +6512,12 @@ mod tests {
             ),
             (
                 PluginOrigin::MarketplaceInstall {
-                    source_name: Some("xAI Official".into()),
+                    source_name: Some("Astra Official".into()),
                     git_url: Some("https://example.com/r.git".into()),
                 },
                 5,
-                "grok-mp:xAI Official",
-                "xAI Official",
+                "grok-mp:Astra Official",
+                "Astra Official",
             ),
             (
                 PluginOrigin::MarketplaceInstall {
@@ -6574,10 +6574,10 @@ mod tests {
         assert_eq!(plugin_group(&config).key, "origin:config");
 
         let mut mp = make_plugin("mp-tool");
-        mp.marketplace_source = Some("xAI Official".into());
+        mp.marketplace_source = Some("Astra Official".into());
         let group = plugin_group(&mp);
-        assert_eq!(group.key, "grok-mp:xAI Official");
-        assert_eq!(group.label, "xAI Official");
+        assert_eq!(group.key, "grok-mp:Astra Official");
+        assert_eq!(group.label, "Astra Official");
 
         let mut direct = make_plugin("direct-tool");
         direct.marketplace_source = Some("git: owner/repo".into());
@@ -6592,8 +6592,8 @@ mod tests {
         );
         assert_eq!(plugin_group(&unknown).key, "origin:user");
 
-        unknown.marketplace_source = Some("xAI Official".into());
-        assert_eq!(plugin_group(&unknown).key, "grok-mp:xAI Official");
+        unknown.marketplace_source = Some("Astra Official".into());
+        assert_eq!(plugin_group(&unknown).key, "grok-mp:Astra Official");
     }
 
     #[test]
@@ -6720,14 +6720,14 @@ mod tests {
         let mut direct = make_plugin("direct-tool");
         direct.marketplace_source = Some("git: owner/repo".into());
         let mut mp = make_plugin("official-tool");
-        mp.marketplace_source = Some("xAI Official".into());
+        mp.marketplace_source = Some("Astra Official".into());
         let plain = make_plugin("plain-tool");
 
         let mut state = plugins_modal_state(vec![direct, mp, plain]);
         let buf = render_plugins_into_buffer(&mut state, 100, 40);
 
         assert_eq!(buffer_count(&buf, "User (1 plugin)"), 1);
-        assert_eq!(buffer_count(&buf, "xAI Official (1 plugin)"), 1);
+        assert_eq!(buffer_count(&buf, "Astra Official (1 plugin)"), 1);
         assert_eq!(buffer_count(&buf, "Direct installs (1 plugin)"), 1);
     }
 
@@ -7044,7 +7044,7 @@ mod tests {
         let sources = vec![
             mp("zeta-mp", "https://example.com/zeta", Some("boom"), &[]),
             mp(
-                "xAI Official",
+                "Astra Official",
                 xai_grok_plugin_marketplace::OFFICIAL_SOURCE_GIT_URL,
                 None,
                 &["zeta", "alpha"],
@@ -7056,7 +7056,7 @@ mod tests {
             .iter()
             .map(|v| sources[v.source_index].source_name.as_str())
             .collect();
-        assert_eq!(names, ["xAI Official", "alpha-mp", "zeta-mp"]);
+        assert_eq!(names, ["Astra Official", "alpha-mp", "zeta-mp"]);
         let plugin_names: Vec<_> = view[0]
             .plugin_indices
             .iter()
@@ -7071,7 +7071,7 @@ mod tests {
         project_z.scope = xai_grok_tools::implementations::skills::types::SkillScope::Local;
         project_z.config_source = Some(
             xai_grok_tools::types::config_source::ConfigSource::Project {
-                path: std::path::PathBuf::from("/repo/.grok/skills/zzz"),
+                path: std::path::PathBuf::from("/repo/.astra/skills/zzz"),
             },
         );
         project_z.display_name = Some("zeta-proj".into());
@@ -7080,7 +7080,7 @@ mod tests {
         project_a.scope = xai_grok_tools::implementations::skills::types::SkillScope::Repo;
         project_a.config_source = Some(
             xai_grok_tools::types::config_source::ConfigSource::Project {
-                path: std::path::PathBuf::from("/repo/.grok/skills/aaa"),
+                path: std::path::PathBuf::from("/repo/.astra/skills/aaa"),
             },
         );
         project_a.display_name = Some("alpha-proj".into());
@@ -7178,7 +7178,7 @@ mod tests {
         let hooks = vec![
             make_hook("c", "/zzz/custom", false),
             h_stop,
-            make_hook("a", "/repo/.grok/hooks", false),
+            make_hook("a", "/repo/.astra/hooks", false),
             h_pre,
             h_notify,
             make_hook("b", "/aaa/custom", false),
@@ -7189,7 +7189,7 @@ mod tests {
         assert_eq!(
             dirs,
             [
-                "/repo/.grok/hooks",
+                "/repo/.astra/hooks",
                 "/aaa/custom",
                 "/tmp/hooks-src",
                 "/zzz/custom"

@@ -57,7 +57,7 @@ pub fn osc52_sink_active() -> bool {
 
 /// Kill switch: never emit OSC 52 clipboard sequences.
 ///
-/// Set `GROK_CLIPBOARD_NO_OSC52` (any value) before starting Grok. Presence
+/// Set `GROK_CLIPBOARD_NO_OSC52` (any value) before starting Astra. Presence
 /// forces the OSC 52 leg off for the whole process — including Linux "always
 /// emit", tmux, SSH, container, and `GROK_OSC52_SINK` paths. Use this when the
 /// host terminal paints OSC 52 payloads as visible garbage (e.g. OpenText
@@ -520,7 +520,7 @@ impl CopyDelivery {
 /// Default path for the always-written copy backup file.
 ///
 /// Override with [`GROK_COPY_FILE_ENV`] (supports `~`). Otherwise
-/// `~/.grok/last-copy.txt` (grok's per-user home — short, stable, and
+/// `~/.astra/last-copy.txt` (grok's per-user home — short, stable, and
 /// readable in a toast, unlike macOS's `/var/folders/...` temp dir).
 ///
 /// `None` when no grok home resolves and the env var is unset: rather than
@@ -540,7 +540,7 @@ pub fn default_copy_fallback_path() -> Option<std::path::PathBuf> {
 
 /// Render a backup-file path for user-facing messages using the codebase-wide
 /// abbreviation convention ([`crate::util::abbreviate_path`]): a grok-home
-/// prefix collapses to `~/.grok` (or `$GROK_HOME` when overridden), and a
+/// prefix collapses to `~/.astra` (or `$ASTRA_HOME` when overridden), and a
 /// plain home prefix collapses to `~` — so toasts stay short.
 pub fn display_copy_path(path: &std::path::Path) -> String {
     crate::util::abbreviate_path(&path.to_string_lossy()).into_owned()
@@ -597,7 +597,7 @@ fn write_owner_only(path: &std::path::Path, text: &str) -> std::io::Result<()> {
 ///
 /// On Unix a missing parent directory is created `0700` (a custom
 /// `GROK_COPY_FILE` may point at a not-yet-created private directory;
-/// `~/.grok` normally already exists).
+/// `~/.astra` normally already exists).
 pub fn write_copy_fallback(text: &str) -> std::io::Result<std::path::PathBuf> {
     let Some(path) = default_copy_fallback_path() else {
         return Err(std::io::Error::new(
@@ -2275,7 +2275,7 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&custom).expect("read"), "payload");
     }
 
-    /// Without `GROK_COPY_FILE`, the default is `~/.grok/last-copy.txt`
+    /// Without `GROK_COPY_FILE`, the default is `~/.astra/last-copy.txt`
     /// (grok home) — short and toast-friendly, unlike macOS's temp dir.
     #[test]
     #[serial_test::serial(grok_copy_file)]
@@ -2284,7 +2284,7 @@ mod tests {
             std::env::remove_var(GROK_COPY_FILE_ENV);
         }
         let path = default_copy_fallback_path();
-        // Test envs always resolve a home (or set GROK_HOME).
+        // Test envs always resolve a home (or set ASTRA_HOME).
         let expected = xai_grok_config::user_grok_home()
             .expect("home resolves in tests")
             .join("last-copy.txt");
@@ -2293,14 +2293,17 @@ mod tests {
 
     /// Toast paths collapse the home prefix to `~` (grok-home paths go
     /// through the shared `abbreviate_path` convention, covered further by
-    /// the `GROK_HOME`-override integration test in `xai-grok-pager`).
+    /// the `ASTRA_HOME`-override integration test in `xai-grok-pager`).
     #[test]
     fn display_copy_path_abbreviates_home() {
-        if std::env::var_os("GROK_HOME").is_none() {
+        if std::env::var_os("ASTRA_HOME")
+            .or_else(|| std::env::var_os("GROK_HOME"))
+            .is_none()
+        {
             let home = dirs::home_dir().expect("home resolves in tests");
             assert_eq!(
-                display_copy_path(&home.join(".grok").join("last-copy.txt")),
-                "~/.grok/last-copy.txt"
+                display_copy_path(&home.join(".astra").join("last-copy.txt")),
+                "~/.astra/last-copy.txt"
             );
         }
         // Non-home paths pass through untouched — including multi-byte

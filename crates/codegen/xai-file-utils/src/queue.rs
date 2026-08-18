@@ -309,7 +309,7 @@ struct UploadQueueItem {
     enqueued_at: Instant,
     /// Optional completion signal for callers that need to block until done.
     completion_tx: Option<oneshot::Sender<anyhow::Result<UploadCompletion>>>,
-    /// Grok client version string, stamped on the `gcs_queue_upload` tracing span.
+    /// Astra client version string, stamped on the `gcs_queue_upload` tracing span.
     /// Copied from `UploadQueue::client_version` at enqueue time.
     client_version: Option<String>,
     /// When true, the upload worker compresses the file with zstd before uploading.
@@ -463,7 +463,7 @@ pub struct UploadQueue {
     resolver: Arc<dyn TraceExportSource>,
     stats: Arc<UploadQueueStats>,
     max_queue_bytes: u64,
-    /// Grok client version string stamped on every `gcs_queue_upload` tracing span.
+    /// Astra client version string stamped on every `gcs_queue_upload` tracing span.
     /// Enables per-version breakdown of upload failures in analytics dashboards.
     pub client_version: Option<String>,
     drain_state: Arc<Mutex<Option<DrainState>>>,

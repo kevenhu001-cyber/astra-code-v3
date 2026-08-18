@@ -1,5 +1,5 @@
-//! Grok-owned direct global hook paths shared by shell discovery and sandbox
-//! write-deny: `$GROK_HOME/hooks`, `hooks-paths`, and absolute registry targets.
+//! Astra-owned direct global hook paths shared by shell discovery and sandbox
+//! write-deny: `$ASTRA_HOME/hooks`, `hooks-paths`, and absolute registry targets.
 //! Relative registry lines, project hooks, and vendor compat are out of scope.
 
 use std::io;
@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GlobalHookSourceKind {
-    /// `$GROK_HOME/hooks/` (discovered + protected).
+    /// `$ASTRA_HOME/hooks/` (discovered + protected).
     HookDirectory,
-    /// `$GROK_HOME/hooks-paths` (protected; never loaded as hook JSON).
+    /// `$ASTRA_HOME/hooks-paths` (protected; never loaded as hook JSON).
     RegistryFile,
     /// Absolute registry target (must exist before sandbox apply).
     ConfiguredSource,
@@ -50,7 +50,7 @@ pub enum GlobalHookSourceError {
         #[source]
         source: io::Error,
     },
-    #[error("symlinked GROK_HOME is not allowed under sandbox write-deny: {path}")]
+    #[error("symlinked ASTRA_HOME is not allowed under sandbox write-deny: {path}")]
     SymlinkedGrokHome { path: PathBuf },
     #[error("hook source path contains a symlink component (retargetable): {path}")]
     SymlinkedSource { path: PathBuf },
@@ -58,17 +58,17 @@ pub enum GlobalHookSourceError {
     HardLinkedHookFile { path: PathBuf, nlink: u64 },
     #[error("hook JSON path is not a regular file: {path}")]
     InvalidHookJsonFile { path: PathBuf },
-    #[error("Grok hooks directory has wrong type (expected real directory): {path}")]
+    #[error("Astra hooks directory has wrong type (expected real directory): {path}")]
     InvalidHooksDir { path: PathBuf },
-    #[error("Grok hooks-paths registry has wrong type (expected real file): {path}")]
+    #[error("Astra hooks-paths registry has wrong type (expected real file): {path}")]
     InvalidRegistryFile { path: PathBuf },
-    #[error("cannot create Grok hooks directory {path}: {source}")]
+    #[error("cannot create Astra hooks directory {path}: {source}")]
     CreateHooksDir {
         path: PathBuf,
         #[source]
         source: io::Error,
     },
-    #[error("cannot create Grok hooks-paths registry {path}: {source}")]
+    #[error("cannot create Astra hooks-paths registry {path}: {source}")]
     CreateRegistryFile {
         path: PathBuf,
         #[source]
@@ -271,7 +271,7 @@ fn require_real_file(path: &Path) -> Result<(), GlobalHookSourceError> {
     Ok(())
 }
 
-/// Ensure real `$GROK_HOME/hooks` dir + `hooks-paths` file (create if missing).
+/// Ensure real `$ASTRA_HOME/hooks` dir + `hooks-paths` file (create if missing).
 /// Race-resistant create (`create_dir` / `create_new`+`O_NOFOLLOW`); never
 /// truncates an existing registry; rejects symlinks/wrong types.
 pub fn ensure_grok_hook_slots(grok_home: &Path) -> Result<(), GlobalHookSourceError> {
@@ -386,7 +386,7 @@ fn open_registry_create_new(path: &Path) -> io::Result<std::fs::File> {
     }
 }
 
-/// Resolve Grok-owned direct global hook sources (`reject_symlinks` for sandbox).
+/// Resolve Astra-owned direct global hook sources (`reject_symlinks` for sandbox).
 pub fn resolve_global_hook_sources(
     grok_home: Option<&Path>,
     reject_symlinks: bool,

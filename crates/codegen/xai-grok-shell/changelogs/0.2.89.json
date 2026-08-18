@@ -31,7 +31,7 @@
   },
   {
     "category": "fixes",
-    "description": "**Plan files** now default to .grok/plan.md to match Grok conventions.",
+    "description": "**Plan files** now default to .astra/plan.md to match Astra conventions.",
     "breaking_change": false
   },
   {

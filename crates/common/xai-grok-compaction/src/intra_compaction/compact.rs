@@ -292,7 +292,7 @@ where
     //     the compaction. FullReplace drops the working tail, so append the
     //     harness-supplied `<system-reminder>` (verbatim ids) to the summary so
     //     the model can keep polling/cancelling them. Empty/None → no change.
-    //     Shared with Grok chat inter-compaction via `append_reminder_block` so
+    //     Shared with Astra chat inter-compaction via `append_reminder_block` so
     //     both inject the reminder into the summary text identically, before the
     //     reduction guard below counts it.
     let summary_text = crate::append_reminder_block(summary_text, active_reminder);
@@ -734,7 +734,7 @@ where
 }
 
 /// Map an [`IntraCompactionError`] to a stable, low-cardinality `status`
-/// metric label. Keep these in sync with the doc string on Grok chat's
+/// metric label. Keep these in sync with the doc string on Astra chat's
 /// `IntraCompactionCount` metric.
 pub fn error_status_label(err: &IntraCompactionError) -> &'static str {
     match err {
@@ -793,7 +793,7 @@ where
 /// summarizer).
 ///
 /// Structured variants map directly. The `Other` fallback string-matches
-/// the literal error messages produced by the Grok chat sampler —
+/// the literal error messages produced by the Astra chat sampler —
 /// keep these in sync if either side changes (the
 /// `compaction_sample_error_to_intra*` tests below guard the mapping).
 fn compaction_sample_error_to_intra(err: CompactionSampleError) -> IntraCompactionError {
@@ -922,7 +922,7 @@ mod tests {
 
     #[test]
     fn compaction_sample_error_to_intra_maps_empty_response() {
-        // The literal message emitted by the Grok chat sampler when the
+        // The literal message emitted by the Astra chat sampler when the
         // response channel produces no content.
         let intra = compaction_sample_error_to_intra(CompactionSampleError::Other(
             anyhow::anyhow!("Compaction scheduler returned no response channel content"),
@@ -1608,7 +1608,7 @@ mod tests {
     }
 
     /// `Arc<MockItem>` also satisfies the builder bound via the blanket impl
-    /// — guards the forwarding that Grok chat (`Arc<GrokTurn>`) relies on.
+    /// — guards the forwarding that Astra chat (`Arc<GrokTurn>`) relies on.
     #[test]
     fn arc_blanket_impl_forwards_builder_methods() {
         let item = Arc::new(MockItem::user("hello"));

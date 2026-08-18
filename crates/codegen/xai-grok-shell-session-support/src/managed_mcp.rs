@@ -1,4 +1,4 @@
-//! Managed MCP gateway catalog and tool calls via the Grok API.
+//! Managed MCP gateway catalog and tool calls via the Astra API.
 //!
 //! Catalog: `GET /v1/mcp/tools/list` → `managed_gateway:*` rows.
 //! Call: `POST /v1/mcp/tools/call`.
@@ -270,7 +270,7 @@ async fn gateway_error_message(status: reqwest::StatusCode, response: reqwest::R
     }
 }
 
-/// Fetch the managed MCP gateway tool catalog from the Grok API
+/// Fetch the managed MCP gateway tool catalog from the Astra API
 /// (`GET /v1/mcp/tools/list`).
 ///
 /// `Ok(catalog)` means the server answered and the catalog contents are

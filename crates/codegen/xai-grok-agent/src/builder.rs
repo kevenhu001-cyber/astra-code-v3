@@ -15,8 +15,8 @@ use xai_grok_tools::computer::types::{AsyncFileSystem, TerminalBackend};
 use xai_grok_tools::notification::ToolNotificationHandle;
 use xai_grok_tools::registry::types::SessionContext;
 use xai_grok_tools::types::tool::ToolKind;
-/// The Grok [`ToolKind`] a vendor-compat `tools:` allowlist entry resolves to, so
-/// a plugin's upstream allowlist still binds. Backed by the shared vendor-to-Grok
+/// The Astra [`ToolKind`] a vendor-compat `tools:` allowlist entry resolves to, so
+/// a plugin's upstream allowlist still binds. Backed by the shared vendor-to-Astra
 /// tool registry in `xai-grok-tools` (also used by the hook matcher).
 fn claude_tool_kind(name: &str) -> Option<ToolKind> {
     xai_grok_tools::types::kind_for(name)
@@ -44,7 +44,7 @@ pub struct AgentBuilder {
     /// Model-facing working directory for the system prompt `<user_info>` block.
     ///
     /// In forked sessions, the real `working_directory` is an overlay/worktree
-    /// path (e.g., `~/.grok/worktrees/project/fork-...-overlay`) that must stay
+    /// path (e.g., `~/.astra/worktrees/project/fork-...-overlay`) that must stay
     /// hidden from the model. When set, `PromptContext.working_directory` uses
     /// this value instead of `self.working_directory`, so the system prompt
     /// shows the original project path. Tool execution (`ToolContext.cwd`,
@@ -594,7 +594,7 @@ impl AgentBuilder {
         self
     }
     /// Set the skills config (custom paths, ignore globs) from config.toml.
-    /// Without this, only auto-discovered skills (cwd/.grok/skills, ~/.grok/skills)
+    /// Without this, only auto-discovered skills (cwd/.astra/skills, ~/.astra/skills)
     /// are included — custom paths added via `x.ai/skills/add` would be ignored.
     pub fn with_skills_config(mut self, config: crate::prompt::skills::SkillsConfig) -> Self {
         self.skills_config = config;
@@ -1500,7 +1500,7 @@ mod tests {
             "If the user does not explicitly request a model, omit `${{ params.task.model }}` to inherit the parent model."
         ));
         assert!(!desc.contains("Available model slugs:"));
-        assert!(!desc.contains(concat!("grok", " models")));
+        assert!(!desc.contains(concat!("astra", " models")));
     }
     #[test]
     fn build_task_description_handles_empty_model_catalog() {
@@ -1512,7 +1512,7 @@ mod tests {
         let desc = build_task_description(&subagents, &[]);
         assert!(desc.contains("No explicit model slugs are currently available."));
         assert!(desc.contains("Omit `${{ params.task.model }}` to inherit the parent model."));
-        assert!(!desc.contains(concat!("grok", " models")));
+        assert!(!desc.contains(concat!("astra", " models")));
     }
     #[test]
     fn task_model_guidance_resolves_model_param_override() {
@@ -1586,7 +1586,7 @@ mod tests {
         use xai_grok_tools::notification::ToolNotificationHandle;
         let tmp = tempfile::tempdir().unwrap();
         let write_skill = |dir: &str, content: &str| {
-            let d = tmp.path().join(".grok/skills").join(dir);
+            let d = tmp.path().join(".astra/skills").join(dir);
             std::fs::create_dir_all(&d).unwrap();
             std::fs::write(d.join("SKILL.md"), content).unwrap();
         };
@@ -2074,7 +2074,7 @@ mod tests {
             Some(vec!["worker".into()])
         );
     }
-    /// Compat allowlist names (`Read`, `Bash`, `Grep`) map to their Grok
+    /// Compat allowlist names (`Read`, `Bash`, `Grep`) map to their Astra
     /// equivalents by `ToolKind` — a real restricted toolset, not zero tools.
     #[tokio::test]
     async fn claude_tool_names_map_to_grok_equivalents() {

@@ -5,7 +5,7 @@
     unreachable_code,
     dead_code
 )]
-//! Backend environment presets for the Grok CLI crate family: endpoint URL
+//! Backend environment presets for the Astra CLI crate family: endpoint URL
 //! defaults, environment selection, and env-var test support.
 //!
 //! Public builds expose production endpoints. Values resolve as a `GROK_*`

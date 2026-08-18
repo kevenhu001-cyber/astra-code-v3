@@ -18,7 +18,7 @@ fn home() -> &'static std::path::Path {
     static HOME: OnceLock<(tempfile::TempDir, EnvGuard)> = OnceLock::new();
     HOME.get_or_init(|| {
         let dir = tempfile::TempDir::new().unwrap();
-        let guard = EnvGuard::set("GROK_HOME", dir.path());
+        let guard = EnvGuard::set("ASTRA_HOME", dir.path());
         (dir, guard)
     })
     .0

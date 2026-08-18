@@ -1,7 +1,7 @@
 //! Startup enforcement of the version policy. The hard `required_*` bounds gate
 //! startup; `minimum`/`maximum` are updater-only. Every knob fails open.
 
-use crate::version::get_installed_grok_version;
+use crate::version::get_installed_astra_version;
 use semver::Version;
 use tracing::warn;
 use xai_grok_shell::util::config::VersionPolicy;
@@ -16,8 +16,8 @@ enum RequiredRangeDecision {
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum VersionPolicyError {
     #[error(
-        "Cannot install Grok {target}: the minimum allowed version is {minimum}. \
-         Run `grok update` to install the latest allowed version."
+        "Cannot install Astra {target}: the minimum allowed version is {minimum}. \
+         Run `astra update` to install the latest allowed version."
     )]
     TargetBelowFloor { target: String, minimum: String },
 }
@@ -79,13 +79,13 @@ fn required_range_message(decision: &RequiredRangeDecision) -> Option<String> {
     match decision {
         RequiredRangeDecision::InRange => None,
         RequiredRangeDecision::Below { current, minimum } => Some(format!(
-            "This version of Grok ({current}) is older than the minimum required \
+            "This version of Astra ({current}) is older than the minimum required \
              by your organization ({minimum}).\n\n\
              Update to an approved version through your organization's approved \
-             method (for example, run `grok update`)."
+             method (for example, run `astra update`)."
         )),
         RequiredRangeDecision::Above { current, maximum } => Some(format!(
-            "This version of Grok ({current}) is newer than the maximum allowed \
+            "This version of Astra ({current}) is newer than the maximum allowed \
              by your organization ({maximum}).\n\n\
              Install an approved version through your organization's approved \
              method (for example, run `grok update --version {maximum}`)."
@@ -97,7 +97,7 @@ fn required_range_message(decision: &RequiredRangeDecision) -> Option<String> {
 /// Recovery subcommands return before this, so they stay usable.
 pub fn enforce_version_policy_or_exit() {
     let policy = VersionPolicy::resolve();
-    let current = get_installed_grok_version();
+    let current = get_installed_astra_version();
     let decision = evaluate_required_range(&current, &policy);
     if let Some(message) = required_range_message(&decision) {
         warn!(?decision, "required version range: refusing to start");

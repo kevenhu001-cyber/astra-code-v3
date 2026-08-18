@@ -48,7 +48,7 @@ vendored); grepping only for `LICENSE` will miss them.
 
 Normal Cargo dependencies (tokio, serde, …) are **not** under `third_party/`.
 They resolve via `Cargo.lock` / crates.io. Full attribution and license texts
-for the Grok CLI dependency closure are maintained in
+for the Astra CLI dependency closure are maintained in
 [`THIRD-PARTY-NOTICES`](../THIRD-PARTY-NOTICES).
 
 This directory is only for **in-tree vendored** sources.

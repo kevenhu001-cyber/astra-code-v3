@@ -94,7 +94,7 @@ impl ModelState {
     ///
     /// Honors an explicit `acceptsImages` bool, else an `inputModalities` array
     /// containing `"image"`. DEFAULTS TO `true` when neither key is present:
-    /// correct today (all current Grok models accept images, so nothing is
+    /// correct today (all current Astra models accept images, so nothing is
     /// suppressed) and forward-compatible (suppresses non-vision models once the
     /// ACP server populates the key). Populating that key server-side is a
     /// separate change.

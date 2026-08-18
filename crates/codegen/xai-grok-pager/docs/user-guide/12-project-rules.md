@@ -1,20 +1,20 @@
 # Project Rules (AGENTS.md)
 
-Project rules let you configure Grok per project or directory. By placing an AGENTS.md file in your repository, you can set coding conventions, build instructions, style guides, and any other instructions that Grok should follow when working in that codebase.
+Project rules let you configure Astra per project or directory. By placing an AGENTS.md file in your repository, you can set coding conventions, build instructions, style guides, and any other instructions that Astra should follow when working in that codebase.
 
 ---
 
 ## What Are Project Rules?
 
-Project rules are Markdown files that Grok reads and adds to its context. Grok follows their content for every interaction in that tree.
+Project rules are Markdown files that Astra reads and adds to its context. Astra follows their content for every interaction in that tree.
 
-This is the primary mechanism for teaching Grok about your project's conventions, so you need not restate them each session.
+This is the primary mechanism for teaching Astra about your project's conventions, so you need not restate them each session.
 
 ---
 
 ## Supported File Names
 
-Grok checks for these filenames (in this order) within each directory:
+Astra checks for these filenames (in this order) within each directory:
 
 - `Agents.md`
 - `Claude.md`
@@ -23,23 +23,23 @@ Grok checks for these filenames (in this order) within each directory:
 - `AGENT.md`
 - `AGENTS.md`
 
-Grok loads every matching file in a directory, so a folder that contains both `AGENTS.md` and `CLAUDE.md` contributes both. On case-insensitive filesystems, names that resolve to the same file (such as `Agents.md` and `AGENTS.md`) are deduplicated and counted once. `Claude.md`, `CLAUDE.md`, and `CLAUDE.local.md` are supported for compatibility with Claude Code workflows. When Claude compatibility is enabled (the default), Grok also scans your home-level `~/.claude/` directory for these filenames and, at each directory level, checks `.claude/CLAUDE.md` and `.claude/CLAUDE.local.md` -- the locations Claude Code uses for project memory. With Cursor compatibility enabled, the home-level `~/.cursor/` directory is scanned the same way.
+Astra loads every matching file in a directory, so a folder that contains both `AGENTS.md` and `CLAUDE.md` contributes both. On case-insensitive filesystems, names that resolve to the same file (such as `Agents.md` and `AGENTS.md`) are deduplicated and counted once. `Claude.md`, `CLAUDE.md`, and `CLAUDE.local.md` are supported for compatibility with Claude Code workflows. When Claude compatibility is enabled (the default), Astra also scans your home-level `~/.claude/` directory for these filenames and, at each directory level, checks `.claude/CLAUDE.md` and `.claude/CLAUDE.local.md` -- the locations Claude Code uses for project memory. With Cursor compatibility enabled, the home-level `~/.cursor/` directory is scanned the same way.
 
 ### Rules Directories
 
-In addition to AGENTS.md files, Grok scans for `*.md` files in rules directories at each level (`<dir>`) from the repo root to the current working directory:
+In addition to AGENTS.md files, Astra scans for `*.md` files in rules directories at each level (`<dir>`) from the repo root to the current working directory:
 
 | Location | Notes |
 |----------|-------|
-| `<dir>/.grok/rules/` | Always scanned |
+| `<dir>/.astra/rules/` | Always scanned |
 | `<dir>/.claude/rules/` | Claude compatibility (configurable) |
 | `<dir>/.cursor/rules/` | Cursor compatibility (configurable) |
 
-Grok also scans home-level rules, regardless of where it starts. These roots are already vendor-specific, so rules live directly under `rules/`:
+Astra also scans home-level rules, regardless of where it starts. These roots are already vendor-specific, so rules live directly under `rules/`:
 
 | Location | Notes |
 |----------|-------|
-| `$GROK_HOME/rules/` (default `~/.grok/rules/`) | Always scanned; applies to all projects |
+| `$ASTRA_HOME/rules/` (default `~/.astra/rules/`) | Always scanned; applies to all projects |
 | `~/.claude/rules/` | Controlled by `compat.claude.rules` |
 | `~/.cursor/rules/` | Controlled by `compat.cursor.rules` |
 
@@ -49,9 +49,9 @@ Home rules load first, in the table order, followed by project files from repo r
 
 ## How Discovery Works
 
-Grok scans for project rules in this order:
+Astra scans for project rules in this order:
 
-1. **Home rules**: `$GROK_HOME`, then enabled `~/.claude/` and `~/.cursor/` sources
+1. **Home rules**: `$ASTRA_HOME`, then enabled `~/.claude/` and `~/.cursor/` sources
 2. **Repo rules**: If inside a git repo, every directory from the repo root down to the current working directory (inclusive)
 3. **CWD-only**: If not inside a git repo, only the current working directory
 
@@ -68,16 +68,16 @@ Given this project structure:
       AGENTS.md          # "Use CSS modules for styling."
 ```
 
-When Grok runs in `~/projects/my-app/src/components/`, it loads all three files. The instructions accumulate, so Grok sees all of them.
+When Astra runs in `~/projects/my-app/src/components/`, it loads all three files. The instructions accumulate, so Astra sees all of them.
 
 ### Deeper Files Take Precedence
 
-Grok orders the files from the repo root to the current working directory, so files in deeper directories appear later in its context and take precedence when instructions conflict. In the example above, if the root says "Use styled-components" but `components/AGENTS.md` says "Use CSS modules", the CSS modules instruction wins because it appears later.
+Astra orders the files from the repo root to the current working directory, so files in deeper directories appear later in its context and take precedence when instructions conflict. In the example above, if the root says "Use styled-components" but `components/AGENTS.md` says "Use CSS modules", the CSS modules instruction wins because it appears later.
 
 ### Auto-Loading Behavior
 
-- Grok loads the files from the repo root to the current working directory automatically at session start.
-- When Grok reads, lists, or edits files in directories outside that initial set, it detects any project instruction files there, notes their paths, and reads them when they apply to the task.
+- Astra loads the files from the repo root to the current working directory automatically at session start.
+- When Astra reads, lists, or edits files in directories outside that initial set, it detects any project instruction files there, notes their paths, and reads them when they apply to the task.
 
 ---
 
@@ -163,18 +163,18 @@ my-monorepo/
 To add rules for a single session without editing files, pass `--rules` (alias `--append-system-prompt`):
 
 ```bash
-grok --rules "Always use TypeScript. Prefer functional components."
+astra --rules "Always use TypeScript. Prefer functional components."
 ```
 
-Grok appends this text to the session's system prompt. Use it for session-specific customization.
+Astra appends this text to the session's system prompt. Use it for session-specific customization.
 
-To replace the system prompt entirely, pass `--system-prompt-override` (alias `--system-prompt`). Grok uses the text verbatim and skips both the default system prompt and `--rules`. (Text passed with `--rules`, by contrast, is wrapped in a `<human_rules>` block and appended to the default prompt.)
+To replace the system prompt entirely, pass `--system-prompt-override` (alias `--system-prompt`). Astra uses the text verbatim and skips both the default system prompt and `--rules`. (Text passed with `--rules`, by contrast, is wrapped in a `<human_rules>` block and appended to the default prompt.)
 
 ---
 
 ## File Size
 
-Grok loads each project instruction file in full; there is no character cap and no truncation. Even so, keep instructions concise and focused. Shorter, specific rules are easier for Grok to follow than long ones, and every file you load consumes context.
+Astra loads each project instruction file in full; there is no character cap and no truncation. Even so, keep instructions concise and focused. Shorter, specific rules are easier for Astra to follow than long ones, and every file you load consumes context.
 
 ---
 
@@ -187,22 +187,22 @@ Files ignored by `.gitignore` are skipped during discovery. To keep personal ove
 CLAUDE.local.md
 ```
 
-As top-level instruction files, Grok discovers only the recognized filenames listed under [Supported File Names](#supported-file-names) — not custom names such as `AGENTS.local.md` or `notes.md`. (Inside a rules directory such as `.grok/rules/`, every `*.md` file is loaded regardless of name.)
+As top-level instruction files, Astra discovers only the recognized filenames listed under [Supported File Names](#supported-file-names) — not custom names such as `AGENTS.local.md` or `notes.md`. (Inside a rules directory such as `.astra/rules/`, every `*.md` file is loaded regardless of name.)
 
 ---
 
-## The .grok/ Project Directory
+## The .astra/ Project Directory
 
-Beyond AGENTS.md files, the `.grok/` directory in your project root can contain additional project-level configuration:
+Beyond AGENTS.md files, the `.astra/` directory in your project root can contain additional project-level configuration:
 
 | Path | Purpose |
 |------|---------|
-| `.grok/config.toml` | Project-scoped MCP servers, plugins, and permission rules (other settings load only from `~/.grok/config.toml`) |
-| `.grok/skills/` | Project-scoped skill definitions |
-| `.grok/plugins/` | Project-scoped plugins |
-| `.grok/agents/` | Project-scoped agent definitions |
-| `.grok/hooks/` | Project-scoped lifecycle hooks |
-| `.grok/lsp.json` | LSP server configuration |
+| `.astra/config.toml` | Project-scoped MCP servers, plugins, and permission rules (other settings load only from `~/.astra/config.toml`) |
+| `.astra/skills/` | Project-scoped skill definitions |
+| `.astra/plugins/` | Project-scoped plugins |
+| `.astra/agents/` | Project-scoped agent definitions |
+| `.astra/hooks/` | Project-scoped lifecycle hooks |
+| `.astra/lsp.json` | LSP server configuration |
 
 These are all optional. See the respective guides for details on each.
 
@@ -210,13 +210,13 @@ These are all optional. See the respective guides for details on each.
 
 ## Inspecting Loaded Rules
 
-Use `grok inspect` to see all loaded project instructions:
+Use `astra inspect` to see all loaded project instructions:
 
 ```bash
-grok inspect
+astra inspect
 ```
 
-This shows each project instruction file it finds, with its path and approximate token count. Use it to confirm Grok picks up your rules.
+This shows each project instruction file it finds, with its path and approximate token count. Use it to confirm Astra picks up your rules.
 
 ---
 
@@ -230,7 +230,7 @@ This shows each project instruction file it finds, with its path and approximate
 
 4. **Use subdirectory scoping for large repos.** Different parts of a monorepo may have different conventions. Use per-directory AGENTS.md to scope rules appropriately.
 
-5. **Version control your rules.** Commit AGENTS.md to the repository so the whole team benefits. User-specific overrides belong in `~/.grok/` (global rules).
+5. **Version control your rules.** Commit AGENTS.md to the repository so the whole team benefits. User-specific overrides belong in `~/.astra/` (global rules).
 
 6. **Do not duplicate documentation.** AGENTS.md should contain actionable instructions, not a copy of your project's README. Link to external docs if needed.
 

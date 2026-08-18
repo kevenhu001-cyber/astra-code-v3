@@ -4,7 +4,7 @@
 //! after a hinted miss. `HintedOnly` (post-fix) returns on that miss.
 //!
 //! Default fixture: 180 encoded cwds × 20 sessions = 3,600 summaries (same
-//! order as a fat local `~/.grok/sessions`). Override with env:
+//! order as a fat local `~/.astra/sessions`). Override with env:
 //!
 //! ```text
 //! cargo bench -p xai-grok-shell --bench child_replay_lookup

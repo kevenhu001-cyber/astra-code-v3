@@ -56,14 +56,14 @@ pub(crate) fn discover_hook_source_paths(
     let include_claude = include_claude_hooks(compat);
     let include_cursor = include_cursor_hooks(compat);
 
-    // Soft hooks-paths I/O keeps fixed slots; hard resolve omits Grok globals.
+    // Soft hooks-paths I/O keeps fixed slots; hard resolve omits Astra globals.
     let mut global: Vec<PathBuf> =
         match resolve_global_hook_sources(grok.as_deref(), /* reject_symlinks */ false) {
             Ok(resolved) => {
                 if let Some(e) = &resolved.configured_error {
                     tracing::warn!(
                         error = %e,
-                        "hooks-paths unreadable; retaining fixed Grok hook discovery sources only"
+                        "hooks-paths unreadable; retaining fixed Astra hook discovery sources only"
                     );
                 }
                 resolved
@@ -74,7 +74,7 @@ pub(crate) fn discover_hook_source_paths(
             Err(e) => {
                 tracing::warn!(
                     error = %e,
-                    "global hook source resolve hard-failed; omitting Grok global sources"
+                    "global hook source resolve hard-failed; omitting Astra global sources"
                 );
                 Vec::new()
             }
@@ -96,7 +96,7 @@ pub(crate) fn discover_hook_source_paths(
             project.push(root.join(".claude").join("settings.json"));
             project.push(root.join(".claude").join("settings.local.json"));
         }
-        project.push(root.join(".grok").join("hooks"));
+        project.push(root.join(".astra").join("hooks"));
         if include_cursor {
             project.push(root.join(".cursor").join("hooks.json"));
         }

@@ -1,4 +1,4 @@
-//! GrokNight theme — neutral gray base with TokyoNight accent colors.
+//! Astra Night theme — neutral black/white base with a pixel-orange accent.
 //!
 //! The canonical palette is defined in RGB (`Color::Rgb`). At startup the
 //! theme is run through [`Theme::quantized`] which downgrades every color

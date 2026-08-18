@@ -1,6 +1,6 @@
 //! `x.ai/billing` extension handler.
 //!
-//! Fetches the authenticated user's Grok Build billing configuration
+//! Fetches the authenticated user's Astra billing configuration
 //! (credit limit, usage, on-demand cap, billing period, history) from
 //! the backend. Used by the pager/desktop to display credits and usage.
 
@@ -57,7 +57,7 @@ pub struct BillingPeriodUsage {
     pub total_used: Option<Cent>,
 }
 
-/// Current billing configuration for Grok Build coding credits.
+/// Current billing configuration for Astra coding credits.
 ///
 /// Carries both the newer credits-config fields (`credit_usage_percent`,
 /// `current_period`) and the deprecated `GrokBuildBillingConfig` fields
@@ -162,7 +162,7 @@ pub async fn handle(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
 
 /// Structured context for unified-log entries from a successful billing fetch.
 ///
-/// Keeps history to a count + the most recent period so `~/.grok/logs/unified.jsonl`
+/// Keeps history to a count + the most recent period so `~/.astra/logs/unified.jsonl`
 /// stays useful without dumping unbounded period arrays.
 fn billing_unified_log_ctx(billing: &BillingConfigResponse) -> serde_json::Value {
     let history_len = billing

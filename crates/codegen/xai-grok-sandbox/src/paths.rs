@@ -4,9 +4,9 @@
 
 use std::path::{Path, PathBuf};
 
-// ── Grok state directory ────────────────────────────────────────────────────
+// ── Astra state directory ────────────────────────────────────────────────────
 
-/// Grok state directory — always writable (`$GROK_HOME` or `~/.grok`).
+/// Astra state directory — always writable (`$ASTRA_HOME` or `~/.astra`).
 pub(crate) fn grok_home() -> PathBuf {
     xai_grok_config::grok_home()
 }
@@ -82,7 +82,7 @@ pub(crate) fn essential_writable_paths(workspace: &Path) -> Vec<PathBuf> {
     paths
 }
 
-/// Writable directory paths for the read-only profile (minimal: just ~/.grok + temp).
+/// Writable directory paths for the read-only profile (minimal: just ~/.astra + temp).
 /// Device files are handled separately via `allow_file` in `to_capability_set_with_config`.
 pub(crate) fn essential_writable_paths_minimal() -> Vec<PathBuf> {
     let mut paths = vec![grok_home()];

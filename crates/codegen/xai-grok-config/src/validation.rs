@@ -40,7 +40,7 @@ pub enum RequirementsSource {
 
 impl RequirementsSource {
     /// Display/provenance label — a file path string, or the synthetic MDM source
-    /// id (`ai.x.grok:…`). For diagnostics and matching only; the MDM layer has no
+    /// id (`ai.x.astra:…`). For diagnostics and matching only; the MDM layer has no
     /// file, so this is a label (`Cow<str>`), never a `Path` to open.
     pub fn label(&self) -> std::borrow::Cow<'_, str> {
         match self {
@@ -56,7 +56,7 @@ pub struct RequirementsLayer {
     pub value: toml::Value,
     pub source: RequirementsSource,
     /// `true` = root-owned system layer. Security decisions must trust this flag,
-    /// not re-derive from the source (`GROK_HOME`-influenced, could carry `..`).
+    /// not re-derive from the source (`ASTRA_HOME`-influenced, could carry `..`).
     pub is_system: bool,
 }
 
@@ -113,7 +113,7 @@ pub(crate) fn load_requirements() -> Option<toml::Value> {
 }
 
 /// User requirements layer from `<home>/requirements.toml`, or `None` with no
-/// resolvable user home (rather than reading a cwd-relative `.grok`).
+/// resolvable user home (rather than reading a cwd-relative `.astra`).
 fn load_user_requirements(home: Option<&Path>) -> Option<toml::Value> {
     load_requirements_layer(&home?.join("requirements.toml"))
 }
@@ -230,7 +230,7 @@ pub fn validate_requirements() -> Result<(), RequirementsError> {
 }
 
 /// Validate the user requirements layer if a user home resolves; otherwise a
-/// no-op (no cwd-relative `.grok/requirements.toml` is read or enforced).
+/// no-op (no cwd-relative `.astra/requirements.toml` is read or enforced).
 fn validate_user_requirements(home: Option<&Path>) -> Result<(), RequirementsError> {
     match home {
         Some(g) => validate_requirements_layer(&g.join("requirements.toml")),

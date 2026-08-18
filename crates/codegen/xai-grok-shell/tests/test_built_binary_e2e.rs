@@ -367,7 +367,7 @@ async fn test_headless_free_usage_exhausted_prints_paywall_message() {
     assert_no_crashes(&result.stderr);
     let combined = format!("{}\n{}", result.stdout, result.stderr);
     assert!(
-        combined.contains("reached your free Grok Build usage limit"),
+        combined.contains("reached your free Astra usage limit"),
         "expected the free-usage paywall message\nstdout:\n{}\nstderr tail:\n{}",
         result.stdout,
         stderr_tail(&result.stderr, 1000)
@@ -1577,7 +1577,7 @@ async fn test_stdio_agent_exits_on_stdin_eof() {
 
 // ── Config test harness ─────────────────────────────────────────────────────
 
-/// Isolated headless run with a custom `~/.grok/`. Clean env (no leaked
+/// Isolated headless run with a custom `~/.astra/`. Clean env (no leaked
 /// host credentials). Write config files into `grok_dir()` before `run()`.
 struct ConfigTestHarness {
     sandbox: TestSandbox,

@@ -2989,7 +2989,7 @@ fn login_env_var_excluded(key: &str) -> bool {
             | "WAYLAND_DISPLAY"
             | "GPG_TTY"
     ) || key.to_ascii_lowercase().ends_with("_proxy")
-        || key.starts_with("GROK_SANDBOX")
+        || key.starts_with("ASTRA_SANDBOX")
 }
 
 #[cfg(unix)]
@@ -3163,7 +3163,7 @@ fn apply_child_env(
     let active_policy = policy.filter(|p| !p.is_noop());
     // 1. Base env: cleared and rebuilt from the policy only when one is active.
     crate::util::shell_env_policy::install_policy_base_env(cmd, active_policy);
-    // 2. Login-shell capture (filtered). 3. Grok control vars. 4. Request env
+    // 2. Login-shell capture (filtered). 3. Astra control vars. 4. Request env
     // (filtered). 5. Pager vars. 6. Login PATH last. 7. Agent marker wins.
     layer_login_env_vars(cmd, login_env, active_policy);
     cmd.envs(shell_state::shell_env_overrides());

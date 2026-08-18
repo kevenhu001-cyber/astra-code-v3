@@ -2197,7 +2197,7 @@ fn welcome_esc_drops_in_flight_fetch_response() {
     );
 }
 /// Build-mode sibling of the chat Esc test, pinning Esc-during-load: with the
-/// fast foreign lane landed (hidden by the Grok default → CTA) and the native
+/// fast foreign lane landed (hidden by the Astra default → CTA) and the native
 /// fetch still in flight, Esc must really dismiss the picker — drop the
 /// loading flag (a lingering flag holds `show_picker` in a spinner limbo that
 /// ignores input) and stale the fetch so its late response cannot resurrect

@@ -15128,7 +15128,7 @@
         {
           "name": "BTRFS_SNAPSHOT_SUBDIRS",
           "kind": "const",
-          "signature": "pub const BTRFS_SNAPSHOT_SUBDIRS: \u0026[\u0026str] = \u0026[\"worktrees\", \".grok-snapshots\"];",
+          "signature": "pub const BTRFS_SNAPSHOT_SUBDIRS: \u0026[\u0026str] = \u0026[\"worktrees\", \".astra-snapshots\"];",
           "line": 436
         },
         {
@@ -17338,7 +17338,7 @@
         {
           "name": "NAME",
           "kind": "const",
-          "signature": "const NAME: \u0026str = \"Grok Snapshot\";",
+          "signature": "const NAME: \u0026str = \"Astra Snapshot\";",
           "line": 355
         },
         {
@@ -30343,7 +30343,7 @@
         {
           "name": "PROJECT_AGENT_SUBDIRS",
           "kind": "const",
-          "signature": "const PROJECT_AGENT_SUBDIRS: \u0026[\u0026str] = \u0026[\".grok/agents\", \".claude/agents\"];",
+          "signature": "const PROJECT_AGENT_SUBDIRS: \u0026[\u0026str] = \u0026[\".astra/agents\", \".claude/agents\"];",
           "line": 18
         },
         {
@@ -40224,7 +40224,7 @@
         {
           "name": "MANAGED_PREFERENCES_DOMAIN",
           "kind": "const",
-          "signature": "const MANAGED_PREFERENCES_DOMAIN: \u0026str = \"ai.x.grok\";",
+          "signature": "const MANAGED_PREFERENCES_DOMAIN: \u0026str = \"ai.x.astra\";",
           "line": 9
         },
         {
@@ -40236,7 +40236,7 @@
         {
           "name": "MDM_REQUIREMENTS_SOURCE",
           "kind": "const",
-          "signature": "pub const MDM_REQUIREMENTS_SOURCE: \u0026str = \"ai.x.grok:requirements_toml_base64\";",
+          "signature": "pub const MDM_REQUIREMENTS_SOURCE: \u0026str = \"ai.x.astra:requirements_toml_base64\";",
           "line": 14
         },
         {
@@ -57558,7 +57558,7 @@
         {
           "name": "MCP_OAUTH_CLIENT_NAME",
           "kind": "const",
-          "signature": "const MCP_OAUTH_CLIENT_NAME: \u0026str = \"Grok\";",
+          "signature": "const MCP_OAUTH_CLIENT_NAME: \u0026str = \"Astra\";",
           "line": 25
         },
         {
@@ -72322,7 +72322,7 @@
         {
           "name": "BANNER_TITLE",
           "kind": "const",
-          "signature": "const BANNER_TITLE: \u0026str = \"Help improve Grok\";",
+          "signature": "const BANNER_TITLE: \u0026str = \"Help improve Astra\";",
           "line": 30
         },
         {
@@ -72662,7 +72662,7 @@
         {
           "name": "BANNER_TITLE",
           "kind": "const",
-          "signature": "const BANNER_TITLE: \u0026str = \"Help improve Grok\";",
+          "signature": "const BANNER_TITLE: \u0026str = \"Help improve Astra\";",
           "line": 35
         },
         {
@@ -72692,7 +72692,7 @@
         {
           "name": "DESCRIPTION_PREFIX",
           "kind": "const",
-          "signature": "const DESCRIPTION_PREFIX: \u0026str = \"Opt-in to provide SpaceXAI\";",
+          "signature": "const DESCRIPTION_PREFIX: \u0026str = \"Opt-in to provide Astra\";",
           "line": 45
         },
         {
@@ -117531,7 +117531,7 @@
         {
           "name": "FEEDBACK_QUESTION_LABEL",
           "kind": "const",
-          "signature": "pub(crate) const FEEDBACK_QUESTION_LABEL: \u0026str = \"How can we improve Grok Build?\";",
+          "signature": "pub(crate) const FEEDBACK_QUESTION_LABEL: \u0026str = \"How can we improve Astra?\";",
           "line": 24
         },
         {
@@ -141609,7 +141609,7 @@
         {
           "name": "TMUX_SCANNER_CAVEAT",
           "kind": "const",
-          "signature": "const TMUX_SCANNER_CAVEAT: \u0026str = \"Grok checks this file for direct global assignments of this option. Review sourced...",
+          "signature": "const TMUX_SCANNER_CAVEAT: \u0026str = \"Astra checks this file for direct global assignments of this option. Review sourced...",
           "line": 27
         },
         {
@@ -145104,7 +145104,7 @@
         {
           "name": "LIVE_TUI_PROBE_CTA",
           "kind": "const",
-          "signature": "const LIVE_TUI_PROBE_CTA: \u0026str = \"Some checks only run in Grok. Start Grok and run /doctor.\";",
+          "signature": "const LIVE_TUI_PROBE_CTA: \u0026str = \"Some checks only run in Astra. Start Astra and run /doctor.\";",
           "line": 8
         },
         {
@@ -201467,7 +201467,7 @@
         {
           "name": "TEXT",
           "kind": "const",
-          "signature": "const TEXT: \u0026str = \"Tip · Ask Grok about the docs\";",
+          "signature": "const TEXT: \u0026str = \"Tip · Ask Astra about the docs\";",
           "line": 1213
         },
         {
@@ -204135,13 +204135,13 @@
         {
           "name": "PRIVACY_BANNER_TITLE",
           "kind": "const",
-          "signature": "const PRIVACY_BANNER_TITLE: \u0026str = \"Help improve Grok\";",
+          "signature": "const PRIVACY_BANNER_TITLE: \u0026str = \"Help improve Astra\";",
           "line": 13
         },
         {
           "name": "PRIVACY_BANNER_DESC",
           "kind": "const",
-          "signature": "const PRIVACY_BANNER_DESC: \u0026str = \"Off by default. Opt-in to allow SpaceXAI to retain coding \\",
+          "signature": "const PRIVACY_BANNER_DESC: \u0026str = \"Off by default. Opt-in to allow Astra to retain coding \\",
           "line": 15
         },
         {
@@ -209869,7 +209869,7 @@
         {
           "name": "SHORT",
           "kind": "const",
-          "signature": "const SHORT: \u0026str = \"Tip · Ask Grok to change a setting\";",
+          "signature": "const SHORT: \u0026str = \"Tip · Ask Astra to change a setting\";",
           "line": 441
         },
         {
@@ -216674,7 +216674,7 @@
         {
           "name": "HERO_SUBTITLE",
           "kind": "const",
-          "signature": "const HERO_SUBTITLE: \u0026str = \"Thanks for trying Grok Build, give feedback with /feedback!\";",
+          "signature": "const HERO_SUBTITLE: \u0026str = \"Thanks for trying Astra, give feedback with /feedback!\";",
           "line": 31
         },
         {
@@ -223058,7 +223058,7 @@
         {
           "name": "FEEDBACK_LABEL_SENTINEL",
           "kind": "const",
-          "signature": "const FEEDBACK_LABEL_SENTINEL: \u0026str = \"How can we improve Grok Build?\";",
+          "signature": "const FEEDBACK_LABEL_SENTINEL: \u0026str = \"How can we improve Astra?\";",
           "line": 6
         },
         {
@@ -223746,7 +223746,7 @@
         {
           "name": "FEEDBACK_LABEL_SENTINEL",
           "kind": "const",
-          "signature": "const FEEDBACK_LABEL_SENTINEL: \u0026str = \"How can we improve Grok Build?\";",
+          "signature": "const FEEDBACK_LABEL_SENTINEL: \u0026str = \"How can we improve Astra?\";",
           "line": 5
         },
         {
@@ -223864,7 +223864,7 @@
         {
           "name": "WELCOME_BANNER",
           "kind": "const",
-          "signature": "const WELCOME_BANNER: \u0026str = \"Grok Build\";",
+          "signature": "const WELCOME_BANNER: \u0026str = \"Astra\";",
           "line": 19
         }
       ],
@@ -232760,7 +232760,7 @@
         {
           "name": "OFFICIAL_SOURCE_NAME",
           "kind": "const",
-          "signature": "pub const OFFICIAL_SOURCE_NAME: \u0026str = \"xAI Official\";",
+          "signature": "pub const OFFICIAL_SOURCE_NAME: \u0026str = \"Astra Official\";",
           "line": 27
         },
         {
@@ -297983,7 +297983,7 @@
         {
           "name": "FREE_USAGE_USER_MESSAGE",
           "kind": "const",
-          "signature": "pub const FREE_USAGE_USER_MESSAGE: \u0026str = \"You\\u{2019}ve reached your free Grok Build usage limit for now. Get SuperG...",
+          "signature": "pub const FREE_USAGE_USER_MESSAGE: \u0026str = \"You\\u{2019}ve reached your free Astra usage limit for now. Get SuperG...",
           "line": 38
         },
         {
@@ -411873,7 +411873,7 @@
         {
           "name": "RULES_DIRS",
           "kind": "const",
-          "signature": "pub(crate) const RULES_DIRS: \u0026[\u0026str] = \u0026[\".grok/rules\", \".claude/rules\", \".cursor/rules\"];",
+          "signature": "pub(crate) const RULES_DIRS: \u0026[\u0026str] = \u0026[\".astra/rules\", \".claude/rules\", \".cursor/rules\"];",
           "line": 38
         },
         {
@@ -414534,7 +414534,7 @@
         {
           "name": "PLAN_FILE_RELATIVE_PATH",
           "kind": "const",
-          "signature": "pub const PLAN_FILE_RELATIVE_PATH: \u0026str = \".grok/plan.md\";",
+          "signature": "pub const PLAN_FILE_RELATIVE_PATH: \u0026str = \".astra/plan.md\";",
           "line": 416
         },
         {
@@ -432654,7 +432654,7 @@
         {
           "name": "REPOS_MANIFEST_RELATIVE_PATH",
           "kind": "const",
-          "signature": "pub const REPOS_MANIFEST_RELATIVE_PATH: \u0026str = \".grok/repos.json\";",
+          "signature": "pub const REPOS_MANIFEST_RELATIVE_PATH: \u0026str = \".astra/repos.json\";",
           "line": 17
         },
         {
@@ -437108,7 +437108,7 @@
         {
           "name": "AUTHOR_NAME",
           "kind": "const",
-          "signature": "const AUTHOR_NAME: \u0026str = \"Grok\";",
+          "signature": "const AUTHOR_NAME: \u0026str = \"Astra\";",
           "line": 11
         },
         {
@@ -450198,7 +450198,7 @@
         {
           "name": "REJECT_ONCE_LABEL",
           "kind": "const",
-          "signature": "const REJECT_ONCE_LABEL: \u0026str = \"No, and tell Grok what to do differently\";",
+          "signature": "const REJECT_ONCE_LABEL: \u0026str = \"No, and tell Astra what to do differently\";",
           "line": 15
         },
         {

@@ -24,7 +24,7 @@ use crate::types::resources::SharedResources;
 use crate::types::template_renderer::TemplateRenderer;
 use crate::types::tool::{ToolKind, ToolNamespace};
 
-/// Grok-tools-specific metadata trait.
+/// Astra-tools-specific metadata trait.
 ///
 /// Each tool struct implements this alongside `xai_tool_runtime::Tool`.
 /// Only `kind()`, `namespace()`, and `description_template()` are required;

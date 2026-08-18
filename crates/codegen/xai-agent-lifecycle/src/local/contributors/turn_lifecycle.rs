@@ -5,7 +5,7 @@ use crate::send::contributors::turn_lifecycle::{
     TurnStartInput,
 };
 
-/// `?Send` twin of [`TurnLifecycleContributor`] for single-threaded hosts like grok build's TUI
+/// `?Send` twin of [`TurnLifecycleContributor`] for single-threaded hosts like Astra's TUI
 /// agent, whose session state is `Rc`/`RefCell`-based and can never satisfy the `Send` bounds the
 /// send flavor bakes into its boxed hook futures.
 #[async_trait(?Send)]

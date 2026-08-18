@@ -126,14 +126,14 @@ impl Drop for EnvVarGuard {
         }
     }
 }
-/// Shared GROK_HOME boundary fixture for the resume-by-title startup and
+/// Shared ASTRA_HOME boundary fixture for the resume-by-title startup and
 /// pre-sandbox tests.
 ///
 /// `grok_home()` is OnceLock-cached process-wide, so summaries land under the
-/// *resolved* home (possibly the real `~/.grok` when another test pinned the
+/// *resolved* home (possibly the real `~/.astra` when another test pinned the
 /// cache first); cwd-encoded dirnames are tempdir-unique, and cleanup runs on
 /// drop so it survives assertion panics. Callers must hold
-/// `#[serial_test::serial(GROK_HOME)]`.
+/// `#[serial_test::serial(ASTRA_HOME)]`.
 pub struct GrokHomeFixture {
     _home: tempfile::TempDir,
     cwd: tempfile::TempDir,
@@ -154,7 +154,7 @@ impl Default for GrokHomeFixture {
 impl GrokHomeFixture {
     pub fn new() -> Self {
         let home = tempfile::tempdir().expect("home tempdir");
-        unsafe { std::env::set_var("GROK_HOME", home.path()) };
+        unsafe { std::env::set_var("ASTRA_HOME", home.path()) };
         let cwd = tempfile::tempdir().expect("cwd tempdir");
         Self {
             _home: home,

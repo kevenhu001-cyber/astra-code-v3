@@ -4,10 +4,10 @@
 > additive changes may occur without notice, renames/removals will bump the
 > version and be called out in the changelog.
 
-Grok CLI can export usage **metrics** and **events** to your organization's
+Astra CLI can export usage **metrics** and **events** to your organization's
 own OpenTelemetry collector, so platform teams can monitor adoption, token
 consumption, tool-permission decisions, and errors across the fleet — without
-any data flowing through SpaceXAI.
+any data flowing through Astra.
 
 ## Related settings
 
@@ -15,10 +15,10 @@ These knobs are independent of each other (and of this guide's external OTEL str
 
 | Setting | How to set it |
 |---------|---------------|
-| Telemetry master switch | `[features] telemetry` / `GROK_TELEMETRY_ENABLED` |
+| Telemetry master switch | `[features] telemetry` / `ASTRA_TELEMETRY_ENABLED` |
 | Coding data, retention, and training | Settings — `/privacy` opens the row |
-| Trace upload | `[telemetry] trace_upload` / `GROK_TELEMETRY_TRACE_UPLOAD` |
-| External OpenTelemetry | `GROK_EXTERNAL_OTEL` / `[telemetry] otel_*` (this guide) |
+| Trace upload | `[telemetry] trace_upload` / `ASTRA_TELEMETRY_TRACE_UPLOAD` |
+| External OpenTelemetry | `ASTRA_EXTERNAL_OTEL` / `[telemetry] otel_*` (this guide) |
 
 See also [Authentication](02-authentication.md#related-settings) and
 [Configuration](05-configuration.md#telemetry).
@@ -32,26 +32,26 @@ The external stream is:
 - **Content-free by default**: no prompts, no code, no file paths (extension
   only), no tool arguments, no bash commands, and MCP/skill/plugin names
   collapsed to categories. Optional content gates re-enable some of these.
-- **Structurally separate** from SpaceXAI-internal telemetry: its exporters carry
-  only the headers you configure, never SpaceXAI credentials.
-- **Independent of SpaceXAI data-retention opt-outs**: it works even when
+- **Structurally separate** from Astra-internal telemetry: its exporters carry
+  only the headers you configure, never Astra credentials.
+- **Independent of Astra data-retention opt-outs**: it works even when
   `telemetry` is disabled and for ZDR (zero-data-retention) teams. Those
-  settings govern SpaceXAI-side retention; the external stream is governed solely
+  settings govern Astra-side retention; the external stream is governed solely
   by your own OTEL configuration.
 
 ## Quick start
 
 ```bash
-export GROK_EXTERNAL_OTEL=1                  # master switch
+export ASTRA_EXTERNAL_OTEL=1                  # master switch
 export OTEL_METRICS_EXPORTER=otlp
 export OTEL_LOGS_EXPORTER=otlp
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf  # or grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://collector.corp.example:4318
 export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <collector-token>"
-grok
+astra
 ```
 
-`GROK_EXTERNAL_OTEL=1` alone enables **nothing** — you must also select at
+`ASTRA_EXTERNAL_OTEL=1` alone enables **nothing** — you must also select at
 least one exporter. Conversely, the `OTEL_*` vars alone enable nothing
 without the master switch.
 
@@ -59,7 +59,7 @@ without the master switch.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `GROK_EXTERNAL_OTEL` | `0` | Master switch. Distinct from `GROK_TELEMETRY_ENABLED`, which controls SpaceXAI-internal product analytics — the two govern opposite-pointing data flows. |
+| `ASTRA_EXTERNAL_OTEL` | `0` | Master switch. Distinct from `ASTRA_TELEMETRY_ENABLED`, which controls Astra-internal product analytics — the two govern opposite-pointing data flows. |
 | `OTEL_METRICS_EXPORTER` | `none` | `otlp` \| `console` \| `none`. |
 | `OTEL_LOGS_EXPORTER` | `none` | `otlp` \| `console` \| `none`. Gates the event stream. |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | `http/protobuf` \| `grpc`. Base protocol for both signals. |
@@ -83,7 +83,7 @@ from a fixed, audited attribute set.
 
 > **Migration note:** older releases could share `OTEL_EXPORTER_OTLP_*` with
 > the product's own analytics pipeline. That behavior is deprecated: when
-> `GROK_EXTERNAL_OTEL` is set, product analytics ignores those vars, and the
+> `ASTRA_EXTERNAL_OTEL` is set, product analytics ignores those vars, and the
 > CLI refuses to activate the external stream in any configuration where
 > product analytics already consumed them — your collector only receives the
 > external stream you opted into.
@@ -110,7 +110,7 @@ otel_log_tool_details = false
 ```
 
 The config keys are `otel_*` under `[telemetry]`; the **env vars keep their
-standard OTEL names** (`GROK_EXTERNAL_OTEL`, `OTEL_*`) for ecosystem
+standard OTEL names** (`ASTRA_EXTERNAL_OTEL`, `OTEL_*`) for ecosystem
 interop, so the two layers use deliberately different namespaces. The
 `otel_protocol` config key maps to `OTEL_EXPORTER_OTLP_PROTOCOL`. Env vars
 win over config file paths for CA and client identity.
@@ -124,21 +124,21 @@ The external stream exports **logs and metrics only** (no customer-facing
 traces exporter).
 
 Managed deployments can additionally enable org-wide telemetry by distributing
-the `[telemetry]` `otel_*` keys through `grok setup` managed config /
+the `[telemetry]` `otel_*` keys through `astra setup` managed config /
 requirements pins, or force-disable it fleet-wide with the same local config
 layers (`external_otel_disabled`, content-gate locks).
 
 ## Startup suppression (why nothing arrives for the first few seconds)
 
-Because xAI can force-disable this stream fleet-wide, the CLI holds emission
+Because Astra can force-disable this stream fleet-wide, the CLI holds emission
 closed at startup until it knows whether that switch is set — it fetches the
 fleet policy from `/v1/settings` and only then starts exporting. In a healthy
 setup that is well under a second and invisible.
 
-**The wait is bounded**, so a deployment that cannot reach xAI still exports:
+**The wait is bounded**, so a deployment that cannot reach Astra still exports:
 
 - If no fleet policy can apply at all — `[features] remote_fetch = false`, or
-  `[endpoints] cli_chat_proxy_base_url` points somewhere other than xAI — the
+  `[endpoints] cli_chat_proxy_base_url` points somewhere other than Astra — the
   stream starts immediately, governed by your local configuration.
 - If the policy fetch fails or never completes (firewalled host, offline
   laptop), emission starts anyway once the attempt is exhausted, and in all
@@ -149,7 +149,7 @@ A fleet policy that arrives afterwards still applies; it can only ever
 something your local configuration did not.
 
 If your collector receives nothing at all, check the debug log
-(`grok --debug`) for `external otel:` lines — they record whether the stream
+(`astra --debug`) for `external otel:` lines — they record whether the stream
 resolved its configuration, and whether it is exporting or suppressed.
 
 ## Resource attributes
@@ -192,7 +192,7 @@ and `session_create` phases appear in the log timeline and the summary
 strings, not in this metric. `stuck_in` on a timeout names the step that had
 not finished. That is often not the step that took the longest, because a step
 that runs without pausing finishes before the timeout is recorded. The error
-message Grok prints names the longest step instead, so the two can name
+message Astra prints names the longest step instead, so the two can name
 different steps for the same timeout. Use `phase_duration` to compare them.
 `auth_mode` is `personal`, `team`, `deployment`, or `unknown`:
 startup cost differs by kind, so split by it before comparing.

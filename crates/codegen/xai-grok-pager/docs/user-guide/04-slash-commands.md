@@ -22,18 +22,18 @@ Open the session picker to reload a previous session from disk.
 
 Open the [Agent Dashboard](23-dashboard.md): live roster of top-level sessions in this pager (peek, reply, dispatch, pin, rename, stop, attach). Aliases: `/agents-dashboard`, `/sessions`.
 
-Not `/config-agents` (alias `/agents`), which manages agent *definitions* and personas. Hidden in minimal mode; disable with `GROK_AGENT_DASHBOARD=0` or `[dashboard].enabled = false`.
+Not `/config-agents` (alias `/agents`), which manages agent *definitions* and personas. Hidden in minimal mode; disable with `ASTRA_AGENT_DASHBOARD=0` or `[dashboard].enabled = false`.
 
 ### `/compact [context]`
 
-Compress conversation history to reclaim context-window space. Pass a note to tell Grok what to keep:
+Compress conversation history to reclaim context-window space. Pass a note to tell Astra what to keep:
 
 ```
 /compact
 /compact keep the auth implementation details
 ```
 
-Grok also auto-compacts once the context window hits 85% (tune it with `[session] auto_compact_threshold_percent`).
+Astra also auto-compacts once the context window hits 85% (tune it with `[session] auto_compact_threshold_percent`).
 
 ### `/context`
 
@@ -53,7 +53,7 @@ Roll the conversation back to an earlier turn and discard everything after it. `
 
 ### `/edit-prompt`
 
-In minimal mode, open an external editor for an empty composer. Grok resolves `$VISUAL`, then `$EDITOR`, then `vi`; command values may include quoted arguments. Saving replaces the draft without sending it, and saving an empty file clears it. The command is hidden outside minimal mode.
+In minimal mode, open an external editor for an empty composer. Astra resolves `$VISUAL`, then `$EDITOR`, then `vi`; command values may include quoted arguments. Saving replaces the draft without sending it, and saving an empty file clears it. The command is hidden outside minimal mode.
 
 ```
 /edit-prompt
@@ -72,7 +72,7 @@ Copy the most recent response to the clipboard. Pass a number to copy the Nth-la
 /copy 2 ~/exports/last-reply.md
 ```
 
-Every copy is also written to a backup file — `~/.grok/last-copy.txt` by default, or `GROK_COPY_FILE` if set. Confirmed copies toast briefly (e.g. `Copied!`). Unverified OSC 52 deliveries and clipboard-unreachable fallbacks name the backup path so you can recover the text.
+Every copy is also written to a backup file — `~/.astra/last-copy.txt` by default, or `ASTRA_COPY_FILE` if set. Confirmed copies toast briefly (e.g. `Copied!`). Unverified OSC 52 deliveries and clipboard-unreachable fallbacks name the backup path so you can recover the text.
 
 ### `/export`
 
@@ -113,7 +113,7 @@ Switch models. Accepts a model ID or display name (case-insensitive), and for re
 
 ```
 /model grok-build
-/model Grok Build
+/model Astra
 /model Reasoning X high
 ```
 
@@ -156,9 +156,9 @@ Toggle vim-style scrollback keys (`j`/`k`, `h`/`l`, `g`/`G`, `y`/`Y`, and so on)
 
 ### `/minimal` and `/fullscreen`
 
-Reopen the current session in the other render mode. `/minimal` (offered while you're in fullscreen) switches to the experimental scrollback-native mode; `/fullscreen` (offered while you're in minimal; alias `/full`) switches back to standard fullscreen mode. Both relaunch the pager on the same conversation for this session only — they don't touch `config.toml`, and the relaunch banner reminds you how to switch back. The `--minimal` / `--fullscreen` CLI flags are session-scoped the same way. To make plain `grok` open in a given mode by default, use `/settings` → **Default screen mode** or set `[ui] screen_mode`.
+Reopen the current session in the other render mode. `/minimal` (offered while you're in fullscreen) switches to the experimental scrollback-native mode; `/fullscreen` (offered while you're in minimal; alias `/full`) switches back to standard fullscreen mode. Both relaunch the pager on the same conversation for this session only — they don't touch `config.toml`, and the relaunch banner reminds you how to switch back. The `--minimal` / `--fullscreen` CLI flags are session-scoped the same way. To make plain `astra` open in a given mode by default, use `/settings` → **Default screen mode** or set `[ui] screen_mode`.
 
-A handful of commands only work in one of the two modes, because the surface they drive doesn't exist in the other: `/find`, `/jump`, `/timeline`, `/theme`, `/tutorial`, `/workflows`, and `/dashboard` are fullscreen-only, while `/expand` and `/edit-prompt` are minimal-only. Those are hidden from the command menu and the palette in the mode they can't run in. If you type one out anyway, Grok says why — and points you at whichever is actually useful. When the other mode is the only way to get it, that's the mode switch: `/theme isn't available in minimal mode (minimal renders with your terminal's own palette). Run /fullscreen to switch this session.` When this mode already does the job another way, it names that instead: `/expand isn't available in fullscreen mode — press Tab to focus the scrollback, then → on the block.` Everything else works in both. Note that `--no-alt-screen` still counts as fullscreen here, so it keeps the fullscreen-only commands.
+A handful of commands only work in one of the two modes, because the surface they drive doesn't exist in the other: `/find`, `/jump`, `/timeline`, `/theme`, `/tutorial`, `/workflows`, and `/dashboard` are fullscreen-only, while `/expand` and `/edit-prompt` are minimal-only. Those are hidden from the command menu and the palette in the mode they can't run in. If you type one out anyway, Astra says why — and points you at whichever is actually useful. When the other mode is the only way to get it, that's the mode switch: `/theme isn't available in minimal mode (minimal renders with your terminal's own palette). Run /fullscreen to switch this session.` When this mode already does the job another way, it names that instead: `/expand isn't available in fullscreen mode — press Tab to focus the scrollback, then → on the block.` Everything else works in both. Note that `--no-alt-screen` still counts as fullscreen here, so it keeps the fullscreen-only commands.
 
 ### `/plan`
 
@@ -176,7 +176,7 @@ Open a preview of the current saved plan. Aliases: `/show-plan`, `/plan-view`.
 
 ## Memory
 
-`/flush`, `/dream`, and `/memory` require memory enabled through `GROK_MEMORY=1`, `[memory] enabled = true`, or managed remote settings; `/memory` also needs a configured memory backend. `/remember` is always available.
+`/flush`, `/dream`, and `/memory` require memory enabled through `ASTRA_MEMORY=1`, `[memory] enabled = true`, or managed remote settings; `/memory` also needs a configured memory backend. `/remember` is always available.
 
 ### `/memory`
 
@@ -255,7 +255,7 @@ Generate a video from a text (or image) description. It plans shots, generates s
 
 ### `/loop [interval] <prompt>`
 
-Run a prompt on a recurring interval. Give the interval as `30m`, `1 hour`, or `every 2 days`; leave it out and Grok will ask.
+Run a prompt on a recurring interval. Give the interval as `30m`, `1 hour`, or `every 2 days`; leave it out and Astra will ask.
 
 ```
 /loop 30m check deploy status
@@ -270,7 +270,7 @@ Intervals are `Ns` (seconds, minimum 60), `Nm` (minutes), `Nh` (hours), or `Nd` 
 
 ### `/goal`
 
-Set, manage, or check an autonomous goal. Grok works across rounds and only marks the goal complete after an independent evidence review confirms the claim; if that review can't reproduce the result or has no usable evidence, the goal stays active or pauses with concrete gaps.
+Set, manage, or check an autonomous goal. Astra works across rounds and only marks the goal complete after an independent evidence review confirms the claim; if that review can't reproduce the result or has no usable evidence, the goal stays active or pauses with concrete gaps.
 
 ```
 /goal Migrate the auth module to the new API
@@ -306,7 +306,7 @@ Launch a saved workflow, or manage a running one by the session-unique display n
 /workflow save review-changes
 ```
 
-Project workflows live in `.grok/workflows/*.rhai`; user workflows live in `~/.grok/workflows/*.rhai`. A same-process pause/resume continues the original immutable script, args, and `agent_budget` cap from committed host-call results — to iterate, edit the returned script copy and launch it as a new run.
+Project workflows live in `.astra/workflows/*.rhai`; user workflows live in `~/.astra/workflows/*.rhai`. A same-process pause/resume continues the original immutable script, args, and `agent_budget` cap from committed host-call results — to iterate, edit the returned script copy and launch it as a new run.
 
 A budget-limited run is different: it only resumes through a model/tool resume request that supplies an `agent_budget` above the admitted agent count. A bare `/workflow resume <name>` can't raise the cap, so it rejects budget-limited runs. Runs interrupted by a process restart aren't resumed at all, because external effects have no stable cross-process identity. And resume is not exactly-once: an external effect whose result wasn't committed before a same-process pause can run again.
 
@@ -441,7 +441,7 @@ Toggle message timestamps on or off.
 
 ## Skills as Slash Commands
 
-Any enabled skill with `user-invocable: true` in its SKILL.md frontmatter shows up as a slash command. (Turn a skill off via `/skills` and it stops being advertised.) So a skill at `~/.grok/skills/commit/SKILL.md` runs as:
+Any enabled skill with `user-invocable: true` in its SKILL.md frontmatter shows up as a slash command. (Turn a skill off via `/skills` and it stops being advertised.) So a skill at `~/.astra/skills/commit/SKILL.md` runs as:
 
 ```
 /commit fix typo in README

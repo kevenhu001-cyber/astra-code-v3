@@ -11,7 +11,7 @@
   },
   {
     "category": "fixes",
-    "description": "**Invalid MCP server entries** in config.toml no longer prevent Grok from starting; problems are shown in `grok inspect`.",
+    "description": "**Invalid MCP server entries** in config.toml no longer prevent Astra from starting; problems are shown in `grok inspect`.",
     "breaking_change": false
   },
   {

@@ -1565,7 +1565,7 @@ fn editor_render_fixture(buffer: &str, cursor_byte: usize) -> SettingsModalState
     let registry = SettingsRegistry::from_entries(vec![synthetic_meta]);
     let snapshot = PagerLocalSnapshot {
         available_models: vec![(
-            "Grok Test".to_string(),
+            "Astra Test".to_string(),
             acp::ModelId::new(Arc::from("grok-test")),
         )],
         ..PagerLocalSnapshot::default()
@@ -1592,7 +1592,7 @@ fn editor_render_fixture(buffer: &str, cursor_byte: usize) -> SettingsModalState
 /// buffers that fit entirely within the visible window.
 #[test]
 fn render_editing_value_cursor_at_logical_position_when_buffer_fits() {
-    let mut s = editor_render_fixture("Grok Test", 4); // cursor between "Grok" and " Test"
+    let mut s = editor_render_fixture("Astra Test", 4); // cursor between "Astra" and " Test"
     let area = Rect {
         x: 0,
         y: 0,
@@ -2293,9 +2293,9 @@ fn int_editing_value_click_on_value_text_is_noop() {
 #[test]
 fn picking_enum_esc_dispatches_preview_revert_for_each_key() {
     let cases: &[(&str, &str)] = &[
-        ("theme", "groknight"),
-        ("auto_dark_theme", "groknight"),
-        ("auto_light_theme", "grokday"),
+        ("theme", "astranight"),
+        ("auto_dark_theme", "astranight"),
+        ("auto_light_theme", "astraday"),
     ];
     for &(key, original) in cases {
         let mut s = make_state();
@@ -2332,12 +2332,12 @@ fn picking_enum_esc_dispatches_preview_revert_for_each_key() {
 #[test]
 fn picking_enum_esc_returns_to_browse() {
     let mut s = make_state();
-    s.transition_to_picking_enum("theme", 0, SettingValue::Enum("groknight"), true);
+    s.transition_to_picking_enum("theme", 0, SettingValue::Enum("astranight"), true);
     let outcome = handle_settings_key(&mut s, &KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     match outcome {
         SettingsKeyOutcome::Action(Action::PreviewTheme(name)) => {
             assert_eq!(
-                name, "groknight",
+                name, "astranight",
                 "Esc revert must dispatch the original canonical"
             );
         }
@@ -2650,7 +2650,7 @@ fn browse_path_enter_commit_returns_to_browse() {
 #[test]
 fn deep_link_theme_commit_closes_with_set() {
     let mut s = make_state();
-    s.transition_to_picking_enum("theme", 0, SettingValue::Enum("groknight"), true);
+    s.transition_to_picking_enum("theme", 0, SettingValue::Enum("astranight"), true);
     s.close_on_picker_exit = true;
 
     let outcome = handle_settings_key(&mut s, &KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -2667,13 +2667,13 @@ fn deep_link_theme_commit_closes_with_set() {
 #[test]
 fn deep_link_picker_esc_reverts_preview_and_closes() {
     let mut s = make_state();
-    s.transition_to_picking_enum("theme", 0, SettingValue::Enum("groknight"), true);
+    s.transition_to_picking_enum("theme", 0, SettingValue::Enum("astranight"), true);
     s.close_on_picker_exit = true;
 
     let outcome = handle_settings_key(&mut s, &KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     match outcome {
         SettingsKeyOutcome::ActionThenClose(Action::PreviewTheme(name)) => {
-            assert_eq!(name, "groknight");
+            assert_eq!(name, "astranight");
         }
         other => panic!("expected ActionThenClose(PreviewTheme), got {other:?}"),
     }
@@ -3118,9 +3118,9 @@ fn fork_secondary_model_picker_opens_on_persisted_model() {
     assert_ne!(slug, xai_grok_shell::models::default_model());
     let snapshot = PagerLocalSnapshot {
         available_models: vec![
-            ("Grok 3".to_string(), acp::ModelId::new(Arc::from("grok-3"))),
+            ("Astra 3".to_string(), acp::ModelId::new(Arc::from("grok-3"))),
             (
-                "Grok 4.5 Fast".to_string(),
+                "Astra 4.5 Fast".to_string(),
                 acp::ModelId::new(Arc::from(slug)),
             ),
         ],
@@ -3135,7 +3135,7 @@ fn fork_secondary_model_picker_opens_on_persisted_model() {
     // Row value shows the display name, matching the default_model row.
     assert_eq!(
         s.value_for("fork_secondary_model"),
-        Some(SettingValue::String("Grok 4.5 Fast".to_string())),
+        Some(SettingValue::String("Astra 4.5 Fast".to_string())),
     );
 
     assert!(s.focus_key("fork_secondary_model"));
@@ -3148,14 +3148,14 @@ fn fork_secondary_model_picker_opens_on_persisted_model() {
             ..
         } => {
             assert_eq!(key, "fork_secondary_model");
-            // Choices: [(no override), Grok 3, Grok 4.5 Fast] → idx 2.
+            // Choices: [(no override), Astra 3, Astra 4.5 Fast] → idx 2.
             assert_eq!(
                 choices_idx, 2,
                 "picker must open on the persisted model, not the stale fallback",
             );
             assert_eq!(
                 original_value,
-                &SettingValue::String("Grok 4.5 Fast".to_string()),
+                &SettingValue::String("Astra 4.5 Fast".to_string()),
                 "original_value must carry the display name so Esc-revert round-trips",
             );
         }
@@ -3407,7 +3407,7 @@ fn picker_visual_smoke_debug() {
         category: SettingCategory::Privacy,
         owner: SettingOwner::Shared,
         label: "Coding data sharing",
-        description: "Controls whether SpaceXAI may retain and train on coding data.",
+        description: "Controls whether Astra may retain and train on coding data.",
         keywords: &["test"],
         kind: SettingKind::Enum {
             default: "opt-out",
@@ -3415,7 +3415,7 @@ fn picker_visual_smoke_debug() {
                 EnumChoice {
                     canonical: "opt-in",
                     display: "Opt in",
-                    description: "Allow SpaceXAI to retain and use coding session data for training and product improvement.",
+                    description: "Allow Astra to retain and use coding session data for training and product improvement.",
                 },
                 EnumChoice {
                     canonical: "opt-out",
@@ -3464,7 +3464,7 @@ fn picker_long_description_wraps_to_multiple_lines() {
         category: SettingCategory::Privacy,
         owner: SettingOwner::Shared,
         label: "Coding data sharing",
-        description: "Controls whether SpaceXAI may retain and train on coding data.",
+        description: "Controls whether Astra may retain and train on coding data.",
         keywords: &["test"],
         kind: SettingKind::Enum {
             default: "opt-out",
@@ -3472,7 +3472,7 @@ fn picker_long_description_wraps_to_multiple_lines() {
                 EnumChoice {
                     canonical: "opt-in",
                     display: "Opt in",
-                    description: "Allow SpaceXAI to retain and use coding session data for training and product improvement.",
+                    description: "Allow Astra to retain and use coding session data for training and product improvement.",
                 },
                 EnumChoice {
                     canonical: "opt-out",
@@ -3529,7 +3529,7 @@ fn picker_long_description_wraps_to_multiple_lines() {
         "choice 0 line 1 must contain the `·` separator, got: {r3:?}"
     );
     assert!(
-        r3.contains("Allow SpaceXAI"),
+        r3.contains("Allow Astra"),
         "choice 0 line 1 must start the description, got: {r3:?}"
     );
 
@@ -3571,7 +3571,7 @@ fn picker_long_description_wraps_to_multiple_lines() {
     );
     for word in [
         "Allow",
-        "SpaceXAI",
+        "Astra",
         "retain",
         "session",
         "training",
@@ -3734,7 +3734,7 @@ fn picker_multi_line_choice_hit_rect_spans_all_lines() {
         category: SettingCategory::Privacy,
         owner: SettingOwner::Shared,
         label: "Coding data sharing",
-        description: "Controls whether SpaceXAI may retain coding data.",
+        description: "Controls whether Astra may retain coding data.",
         keywords: &["test"],
         kind: SettingKind::Enum {
             default: "opt-in",
@@ -3742,7 +3742,7 @@ fn picker_multi_line_choice_hit_rect_spans_all_lines() {
                 EnumChoice {
                     canonical: "opt-in",
                     display: "Opt in",
-                    description: "Allow SpaceXAI to retain and use coding session data for training and product improvement.",
+                    description: "Allow Astra to retain and use coding session data for training and product improvement.",
                 },
                 EnumChoice {
                     canonical: "opt-out",
@@ -4267,11 +4267,11 @@ fn editing_value_chars_mutate_buffer_and_invalid_enter_is_noop() {
     assert!(
         s.editing_validation_error().is_some(),
         "validation_error must be Some for unknown model 'a' \
-         (catalog has 'Grok 4 Fast' only)",
+         (catalog has 'Astra 4 Fast' only)",
     );
 
     // Enter on a buffer that fails the KnownModel validator
-    // (catalog has 'Grok 4 Fast'; "a" doesn't match) is
+    // (catalog has 'Astra 4 Fast'; "a" doesn't match) is
     // Unchanged — commit refused.
     let outcome = handle_settings_key(&mut s, &KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     assert!(
@@ -4294,7 +4294,7 @@ fn string_editor_uses_canonical_edits_policy_and_live_validation() {
     assert!(matches!(outcome, SettingsKeyOutcome::Changed));
     assert_eq!(state.editing_buffer(), Some("alpha-"));
 
-    let mut state = editor_render_fixture("Grok Tes", "Grok Tes".len());
+    let mut state = editor_render_fixture("Astra Tes", "Astra Tes".len());
     assert!(state.editing_validation_error().is_some());
     let _ = handle_settings_key(
         &mut state,
@@ -4309,7 +4309,7 @@ fn string_editor_uses_canonical_edits_policy_and_live_validation() {
         &mut state,
         &KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE),
     );
-    assert_eq!(state.editing_buffer(), Some("Grok Test"));
+    assert_eq!(state.editing_buffer(), Some("Astra Test"));
     assert!(state.editing_validation_error().is_none());
 
     let cursor = state.editing_cursor_byte();
@@ -4318,7 +4318,7 @@ fn string_editor_uses_canonical_edits_policy_and_live_validation() {
         &KeyEvent::new(KeyCode::Char('\u{202e}'), KeyModifiers::NONE),
     );
     assert!(matches!(outcome, SettingsKeyOutcome::Changed));
-    assert_eq!(state.editing_buffer(), Some("Grok Test"));
+    assert_eq!(state.editing_buffer(), Some("Astra Test"));
     assert_eq!(state.editing_cursor_byte(), cursor);
 
     let outcome = handle_settings_key(
@@ -5188,7 +5188,7 @@ fn synthetic_enum_chevron_meta_constructs() {
 }
 
 // -- User-feedback follow-up: always reserve a blank line between
-//    the "Tip · Ask Grok…" docs footer and the keybindings hints.
+//    the "Tip · Ask Astra…" docs footer and the keybindings hints.
 //
 // Before this fix, when the hints wrapped to 2 lines (narrow modal
 // widths) the chrome's 2-row footer was fully consumed by hint
@@ -5618,15 +5618,15 @@ fn ctrl_u_clears_the_entire_filter_from_mid_query() {
 
 #[test]
 fn string_editor_paste_sanitizes_validates_and_consumes_rejected_text() {
-    let mut state = editor_render_fixture("Grok Tst", "Grok T".len());
+    let mut state = editor_render_fixture("Astra Tst", "Astra T".len());
     let outcome = handle_settings_paste(&mut state, "e\r\n");
     assert!(matches!(outcome, SettingsKeyOutcome::Changed));
-    assert_eq!(state.editing_buffer(), Some("Grok Test"));
+    assert_eq!(state.editing_buffer(), Some("Astra Test"));
     assert!(state.editing_validation_error().is_none());
 
     let outcome = handle_settings_paste(&mut state, "\u{202e}\r\n");
     assert!(matches!(outcome, SettingsKeyOutcome::Changed));
-    assert_eq!(state.editing_buffer(), Some("Grok Test"));
+    assert_eq!(state.editing_buffer(), Some("Astra Test"));
     assert!(state.editing_validation_error().is_none());
 }
 
@@ -6056,7 +6056,7 @@ fn docs_footer_tip_is_centered() {
     );
 
     // SHORT path: width that fits SHORT but not LONG.
-    // SHORT = "Tip · Ask Grok to change a setting" (34 cells);
+    // SHORT = "Tip · Ask Astra to change a setting" (34 cells);
     // LONG ≈ 73 cells. width=40 lands in the SHORT band.
     let (row_short, tip_start_short, trailing_short) = render(40);
     assert!(
@@ -6064,7 +6064,7 @@ fn docs_footer_tip_is_centered() {
         "width=40 must render SHORT path (contains `change a setting`): {row_short:?}",
     );
     assert!(
-        !row_short.contains("grokday"),
+        !row_short.contains("astraday"),
         "width=40 must NOT render LONG path (no `grokday`): {row_short:?}",
     );
     assert!(
@@ -6109,7 +6109,7 @@ fn tip_line_has_blank_row_above() {
     let mut tip_y: Option<u16> = None;
     for y in 0..area.height {
         let txt = buf_row_text(&buf, y, area.x, area.width);
-        if txt.contains("Tip") && txt.contains("Ask Grok") {
+        if txt.contains("Tip") && txt.contains("Ask Astra") {
             tip_y = Some(y);
             break;
         }
@@ -6417,12 +6417,12 @@ fn click_settings_breadcrumb_collapses_picker_to_browse() {
     // For preview-supporting enums (theme), the breadcrumb-
     // click revert dispatches `Action::PreviewTheme(original)`.
     // The original canonical for the default theme is
-    // `"groknight"`. Tightened from the previous `Action(_) |
+    // `"astranight"`. Tightened from the previous `Action(_) |
     // Changed` to lock in the revert contract.
     match outcome {
         SettingsKeyOutcome::Action(Action::PreviewTheme(orig)) => {
             assert_eq!(
-                orig, "groknight",
+                orig, "astranight",
                 "breadcrumb-click revert must carry the original canonical",
             );
         }
@@ -6471,7 +6471,7 @@ fn click_settings_breadcrumb_ignores_close_on_picker_exit() {
     );
     match outcome {
         SettingsKeyOutcome::Action(Action::PreviewTheme(orig)) => {
-            assert_eq!(orig, "groknight");
+            assert_eq!(orig, "astranight");
         }
         other => panic!("expected preview revert Action, got {other:?}"),
     }
@@ -6580,7 +6580,7 @@ fn d_key_in_picking_enum_dispatches_open_reset_confirm() {
             // captures `original_value = current value = groknight`,
             // so the revert dispatches with that canonical.
             assert_eq!(
-                orig, "groknight",
+                orig, "astranight",
                 "PreviewTheme revert must carry the original canonical",
             );
         }
@@ -6808,7 +6808,7 @@ fn consent_chooser_drops_tip_and_reset() {
     let mut consent = enter_picker_for("coding_data_sharing");
     let text = screen(&mut consent);
     assert!(
-        !text.contains("Ask Grok"),
+        !text.contains("Ask Astra"),
         "consent chooser must not render the docs tip:\n{text}"
     );
     assert!(
@@ -6837,7 +6837,7 @@ fn consent_chooser_drops_tip_and_reset() {
     let mut ordinary = enter_picker_for("theme");
     let text = screen(&mut ordinary);
     assert!(
-        text.contains("d reset") && text.contains("Ask Grok"),
+        text.contains("d reset") && text.contains("Ask Astra"),
         "ordinary pickers keep the tip and the reset hint:\n{text}"
     );
     assert!(

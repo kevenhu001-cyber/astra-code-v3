@@ -1,9 +1,9 @@
-//! Parse marketplace sources from `~/.grok/config.toml`.
+//! Parse marketplace sources from `~/.astra/config.toml`.
 //!
 //! Expected format:
 //! ```toml
 //! [[marketplace.sources]]
-//! name = "xAI Official"
+//! name = "Astra Official"
 //! git = "https://github.com/xai-org/xai-plugin-marketplace.git"
 //!
 //! [[marketplace.sources]]
@@ -182,7 +182,7 @@ fn extract_marketplace_entries(
     }
 }
 /// Loads additional marketplace sources from `settings.json` (`extraKnownMarketplaces`)
-/// and `known_marketplaces.json` files under `~/.grok/` and `~/.claude/`.
+/// and `known_marketplaces.json` files under `~/.astra/` and `~/.claude/`.
 pub fn load_extra_sources_from_settings(existing: &[MarketplaceSource]) -> Vec<MarketplaceSource> {
     let roots: Vec<PathBuf> = [
         xai_grok_config::user_grok_home(),
@@ -195,7 +195,7 @@ pub fn load_extra_sources_from_settings(existing: &[MarketplaceSource]) -> Vec<M
 }
 
 /// Like [`load_extra_sources_from_settings`] but reads from explicit `roots`
-/// instead of `~/.grok`/`~/.claude`. Each root is checked for
+/// instead of `~/.astra`/`~/.claude`. Each root is checked for
 /// `settings.local.json`, `settings.json` (`extraKnownMarketplaces` key), and
 /// `plugins/known_marketplaces.json`. Lets callers (e.g. first-run auto-register
 /// tests) stay isolated from the developer's real home dir.
@@ -295,7 +295,7 @@ mod tests {
         let config: toml::Value = toml::from_str(
             r#"
             [[marketplace.sources]]
-            name = "xAI Official"
+            name = "Astra Official"
             git = "https://github.com/xai-org/xai-plugin-marketplace.git"
             branch = "main"
             "#,
@@ -303,7 +303,7 @@ mod tests {
         .unwrap();
         let sources = load_sources(&config);
         assert_eq!(sources.len(), 1);
-        assert_eq!(sources[0].name, "xAI Official");
+        assert_eq!(sources[0].name, "Astra Official");
         assert!(
             matches!(&sources[0].kind, SourceKind::Git { url, branch } if url.contains("xai-org") && branch.as_deref() == Some("main"))
         );

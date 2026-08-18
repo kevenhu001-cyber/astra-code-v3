@@ -80,7 +80,7 @@ impl Default for TitleConfig {
                 TitleItem::Spinner,
                 TitleItem::Activity,
                 TitleItem::SessionName,
-                TitleItem::Grok,
+                TitleItem::Astra,
             ],
         }
     }
@@ -95,7 +95,7 @@ pub enum TitleItem {
     Cwd,
     Model,
     TurnTimer,
-    Grok,
+    Astra,
     ActionRequired,
 }
 
@@ -181,7 +181,7 @@ enabled = true
 items = [\"action-required\", \"spinner\", \"activity\", \"session-name\", \"grok\"]
 
 # [[ui.notifications.hooks]]
-# command = \"terminal-notifier -title 'Grok' -message '$GROK_MESSAGE'\"
+# command = \"terminal-notifier -title 'Astra' -message '$GROK_MESSAGE'\"
 # events = [\"turn_complete\", \"approval_required\"]
 # only_unfocused = true
 # timeout_secs = 10
@@ -210,7 +210,7 @@ mod tests {
             session_recap_threshold_secs: 90,
             title: TitleConfig {
                 enabled: false,
-                items: vec![TitleItem::Grok, TitleItem::Cwd],
+                items: vec![TitleItem::Astra, TitleItem::Cwd],
             },
             hooks: vec![NotificationHook {
                 command: "notify-send".into(),

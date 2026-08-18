@@ -2331,7 +2331,7 @@ async fn pop_checkout_auto_stash(
 /// which *detaches HEAD*. `--depth=1` is only added when the repo is already
 /// shallow. That is only acceptable in two situations:
 ///
-/// 1. `supplied_cwd` is a grok-managed worktree (`~/.grok/worktrees/...`).
+/// 1. `supplied_cwd` is a grok-managed worktree (`~/.astra/worktrees/...`).
 ///    These are disposable snapshots that exist precisely to carry a
 ///    detached session HEAD.
 /// 2. `supplied_cwd` is exactly the cwd the session was persisted with
@@ -2348,7 +2348,7 @@ pub fn restore_code_checkout_allowed(supplied_cwd: &Path, persisted_cwd: Option<
 }
 /// Pure core of [`restore_code_checkout_allowed`] with the worktrees root
 /// injected so the decision can be unit-tested without touching
-/// `~/.grok`.
+/// `~/.astra`.
 fn restore_code_checkout_allowed_in(
     supplied_cwd: &Path,
     persisted_cwd: Option<&str>,
@@ -2834,7 +2834,7 @@ const DEFAULT_EXCLUDES_MARKER: &str = "grok default excludes";
 /// env files. `git add -f` still overrides.
 const DEFAULT_EXCLUDES_BLOCK: &str = "\
 # grok default excludes (local-only; seeded by the workspace git_commit op)
-.grok/
+.astra/
 node_modules/
 .env
 .env.*

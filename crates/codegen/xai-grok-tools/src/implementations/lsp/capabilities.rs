@@ -1,7 +1,7 @@
 //! What a server told us it wants during `initialize`, and the document
 //! bookkeeping that follows from it.
 //!
-//! Grok used to log the initialize result and throw it away, which is how it
+//! Astra used to log the initialize result and throw it away, which is how it
 //! ended up sending Roslyn a change event the protocol says must carry a range.
 //! Everything the handshake tells us that changes what we send lives here.
 

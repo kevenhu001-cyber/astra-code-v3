@@ -1,5 +1,5 @@
-//! Tracing layer for `target: "sampling_log"` → `~/.grok/logs/sampling.jsonl`.
-//! Enable with `--log-sampling` or `GROK_LOG_SAMPLING=1`.
+//! Tracing layer for `target: "sampling_log"` → `~/.astra/logs/sampling.jsonl`.
+//! Enable with `--log-sampling` or `ASTRA_LOG_SAMPLING=1`.
 
 use std::sync::Mutex;
 
@@ -12,7 +12,7 @@ use xai_grok_config::grok_home;
 
 use crate::instrumentation::{NoOpLayer, TargetFilterLayer};
 
-const ENV_VAR: &str = "GROK_LOG_SAMPLING";
+const ENV_VAR: &str = "ASTRA_LOG_SAMPLING";
 const LOG_FILE: &str = "sampling.jsonl";
 const TARGET: &str = "sampling_log";
 
@@ -23,7 +23,10 @@ pub fn layer<S>() -> Box<dyn Layer<S> + Send + Sync>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync + 'static,
 {
-    if !std::env::var(ENV_VAR).is_ok_and(|v| matches!(v.as_str(), "1" | "true" | "on")) {
+    if !std::env::var(ENV_VAR)
+        .or_else(|_| std::env::var("GROK_LOG_SAMPLING"))
+        .is_ok_and(|v| matches!(v.as_str(), "1" | "true" | "on"))
+    {
         return Box::new(NoOpLayer::new());
     }
 

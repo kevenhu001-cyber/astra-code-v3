@@ -43,7 +43,7 @@ impl TelemetryMode {
 mod telemetry_mode_tests {
     use super::TelemetryMode;
     /// A parent process hands its resolved mode to spawned children via
-    /// `GROK_TELEMETRY_ENABLED={mode}` (Display), so every Display output
+    /// `ASTRA_TELEMETRY_ENABLED={mode}` (Display), so every Display output
     /// must parse back to the same mode.
     #[test]
     fn display_round_trips_through_parse() {

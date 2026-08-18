@@ -1508,7 +1508,7 @@ mod tests {
             created_at: "2026-06-15T00:00:00Z".into(),
             trigger: "auto".into(),
             prompt_variant: "detailed".into(),
-            model: "grok".into(),
+            model: "astra".into(),
             user_context: None,
             chat_history: vec![],
             tools: vec![],
@@ -1557,7 +1557,7 @@ mod tests {
             "created_at": "2026-06-01T00:00:00Z",
             "trigger": "manual",
             "prompt_variant": "detailed",
-            "model": "grok",
+            "model": "astra",
             "user_context": null,
             "chat_history": [],
             "summary": "ok",
@@ -1794,7 +1794,7 @@ mod tests {
     fn memory_flush_completed_with_path_roundtrips() {
         let update = SessionUpdate::MemoryFlushCompleted {
             result: "written".into(),
-            path: Some("/home/user/.grok/memory/ws/sessions/log.md".into()),
+            path: Some("/home/user/.astra/memory/ws/sessions/log.md".into()),
         };
         let json_str = serde_json::to_string(&update).unwrap();
         let parsed: SessionUpdate = serde_json::from_str(&json_str).unwrap();
@@ -1819,7 +1819,7 @@ mod tests {
     fn memory_dream_completed_roundtrips() {
         let update = SessionUpdate::MemoryDreamCompleted {
             result: "written (500 chars)".into(),
-            path: Some("/home/user/.grok/memory/ws/MEMORY.md".into()),
+            path: Some("/home/user/.astra/memory/ws/MEMORY.md".into()),
         };
         let json_str = serde_json::to_string(&update).unwrap();
         let parsed: SessionUpdate = serde_json::from_str(&json_str).unwrap();
@@ -1829,7 +1829,7 @@ mod tests {
     #[test]
     fn memory_session_saved_roundtrips() {
         let update = SessionUpdate::MemorySessionSaved {
-            path: "/home/user/.grok/memory/ws/sessions/2026-01-15-fix-auth-abc12345.md".into(),
+            path: "/home/user/.astra/memory/ws/sessions/2026-01-15-fix-auth-abc12345.md".into(),
         };
         let json_str = serde_json::to_string(&update).unwrap();
         let parsed: SessionUpdate = serde_json::from_str(&json_str).unwrap();
@@ -1854,13 +1854,13 @@ mod tests {
         let update = SessionUpdate::MemoryFiles {
             files: vec![
                 MemoryFileInfo {
-                    path: "/home/user/.grok/memory/MEMORY.md".into(),
+                    path: "/home/user/.astra/memory/MEMORY.md".into(),
                     source: "global".into(),
                     size_bytes: 1024,
                     modified_epoch_secs: Some(1_700_000_000),
                 },
                 MemoryFileInfo {
-                    path: "/project/.grok/memory/MEMORY.md".into(),
+                    path: "/project/.astra/memory/MEMORY.md".into(),
                     source: "workspace".into(),
                     size_bytes: 512,
                     modified_epoch_secs: None,

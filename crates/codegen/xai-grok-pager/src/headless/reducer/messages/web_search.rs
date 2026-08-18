@@ -1,6 +1,6 @@
 //! Backend `web_search` reconciliation for `streaming-messages-json`: folding a
 //! completed search inline (or the generic client split on failure), plus parsing
-//! Grok's `WebSearchCall` output into the wire hit array.
+//! Astra's `WebSearchCall` output into the wire hit array.
 
 use agent_client_protocol as acp;
 use serde_json::{Value, json};
@@ -77,7 +77,7 @@ impl MessagesReducer {
 }
 
 /// Parse a `web_search` `raw_output` into the query and `web_search_result` hit array.
-/// Grok nests query/sources under `action`, with a flat `{"query",...,"sources"}` fallback.
+/// Astra nests query/sources under `action`, with a flat `{"query",...,"sources"}` fallback.
 fn parse_web_search(raw_output: &Value) -> (String, Value) {
     let query = raw_output
         .pointer("/action/query")

@@ -1688,7 +1688,7 @@ pub(crate) fn set_terminal_title(title: &str) {
 fn terminal_title_string(title: &str) -> String {
     let sanitized: String = title.chars().filter(|c| !c.is_control()).collect();
     if sanitized.is_empty() {
-        "grok".into()
+        "astra".into()
     } else {
         let truncated: String = sanitized.chars().take(80 - 6).collect();
         format!("{} - grok", truncated)
@@ -1770,8 +1770,8 @@ mod tests {
             terminal_title_string("evil\x07\x1b]52;c;payload\x07title"),
             "evil]52;c;payloadtitle - grok"
         );
-        assert_eq!(terminal_title_string("\x07\x1b\x00"), "grok");
-        assert_eq!(terminal_title_string(""), "grok");
+        assert_eq!(terminal_title_string("\x07\x1b\x00"), "astra");
+        assert_eq!(terminal_title_string(""), "astra");
         assert_eq!(terminal_title_string("My chat"), "My chat - grok");
     }
     #[test]
@@ -2287,7 +2287,7 @@ mod tests {
     #[test]
     fn cli_command_name_is_grok() {
         use clap::CommandFactory;
-        assert_eq!(PagerArgs::command().get_name(), "grok");
+        assert_eq!(PagerArgs::command().get_name(), "astra");
     }
     #[test]
     fn cli_help_output_header() {
@@ -2297,7 +2297,7 @@ mod tests {
         assert_eq!(
             first_5,
             vec![
-                "Grok Build TUI",
+                "Astra TUI",
                 "",
                 "Usage: grok [OPTIONS] [PROMPT] [COMMAND]",
                 "",

@@ -12,7 +12,7 @@ pub struct TraceArgs {
     /// Save locally only, skip remote upload
     #[arg(long)]
     pub local: bool,
-    /// Output path (default: $GROK_HOME/trace-exports/<session-id>.tar.gz)
+    /// Output path (default: $ASTRA_HOME/trace-exports/<session-id>.tar.gz)
     #[arg(short, long)]
     pub output: Option<PathBuf>,
     /// Emit machine-readable JSON output
@@ -592,7 +592,7 @@ impl UploadAttempt<'_> {
         let _ = writeln!(log, "Trace upload debug log");
         let _ = writeln!(log, "======================");
         let _ = writeln!(log, "Timestamp:    {}", chrono::Utc::now().to_rfc3339());
-        let _ = writeln!(log, "Grok version: {}", xai_grok_version::full_version());
+        let _ = writeln!(log, "Astra version: {}", xai_grok_version::full_version());
         let _ = writeln!(
             log,
             "OS:           {} {}",

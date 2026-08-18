@@ -29,7 +29,7 @@ pub(crate) fn default_coding_data_retention_opt_out() -> bool {
 #[serde(rename_all = "snake_case")]
 pub enum AuthMode {
     /// Deprecated. Kept for deserializing old auth.json files.
-    #[serde(alias = "grok")]
+    #[serde(alias = "astra")]
     WebLogin,
     /// OIDC or OAuth2 interactive login via customer IdP
     #[serde(alias = "oidc")]

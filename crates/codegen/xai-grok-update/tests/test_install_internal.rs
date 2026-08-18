@@ -1,13 +1,13 @@
 //! End-to-end tests for `install_internal` — the GCS-bucket installer used
 //! when `installer = "internal"` is configured.
 //!
-//! Wires together a wiremock-mocked GCS bucket + an isolated `GROK_HOME`
+//! Wires together a wiremock-mocked GCS bucket + an isolated `ASTRA_HOME`
 //! tempdir so we can verify the full install pipeline:
-//!   fetch version → download grok binary → chmod → atomic symlink →
+//!   fetch version → download astra binary → chmod → atomic symlink →
 //!   cleanup_old_downloads → persist installer config.
 //!
-//! The function reads `grok_home()` (a process-wide `OnceLock`), so all
-//! tests in this binary share a single `GROK_HOME` and run serially via
+//! The function reads `astra_home()` (a process-wide `OnceLock`), so all
+//! tests in this binary share a single `ASTRA_HOME` and run serially via
 //! `#[serial]`.
 
 #![cfg(unix)]
@@ -65,9 +65,9 @@ async fn mount_gcs(version: &str, platform: &str) -> MockServer {
         .mount(&server)
         .await;
 
-    // Main grok binary download.
+    // Main astra binary download.
     Mock::given(method("GET"))
-        .and(path(format!("/grok-{version}-{platform}")))
+        .and(path(format!("/astra-{version}-{platform}")))
         .respond_with(ResponseTemplate::new(200).set_body_bytes(b"#!/bin/sh\nexit 0\n".to_vec()))
         .mount(&server)
         .await;
@@ -95,19 +95,19 @@ async fn install_internal_pinned_version_writes_binary_and_symlink() {
     let home = test_home();
     let downloaded = home
         .join("downloads")
-        .join(format!("grok-0.1.181-{platform}"));
+        .join(format!("astra-0.1.181-{platform}"));
     assert!(downloaded.exists(), "binary downloaded: {downloaded:?}");
     assert_eq!(std::fs::read(&downloaded).unwrap(), b"#!/bin/sh\nexit 0\n");
 
-    let symlink = home.join("bin").join("grok");
+    let symlink = home.join("bin").join("astra");
     assert!(symlink.is_symlink(), "grok symlink created");
     let target = std::fs::read_link(&symlink).unwrap();
     assert_eq!(
         target.file_name().unwrap(),
-        format!("grok-0.1.181-{platform}").as_str()
+        format!("astra-0.1.181-{platform}").as_str()
     );
 
-    // `grok` and `agent` move together — see `swap_managed_bin_links`.
+    // `astra` and `agent` move together — see `swap_managed_bin_links`.
     let agent_link = home.join("bin").join("agent");
     assert!(agent_link.is_symlink(), "agent symlink created");
     let agent_target = std::fs::read_link(&agent_link).unwrap();
@@ -131,12 +131,12 @@ async fn install_internal_updates_stale_agent_symlink_to_new_version() {
     let download_dir = home.join("downloads");
     std::fs::create_dir_all(&bin_dir).unwrap();
     std::fs::create_dir_all(&download_dir).unwrap();
-    let old_binary = download_dir.join(format!("grok-0.1.180-{platform}"));
+    let old_binary = download_dir.join(format!("astra-0.1.180-{platform}"));
     std::fs::write(&old_binary, b"#!/bin/sh\nexit 0\n").unwrap();
     let rel_old = std::path::Path::new("..")
         .join("downloads")
-        .join(format!("grok-0.1.180-{platform}"));
-    std::os::unix::fs::symlink(&rel_old, bin_dir.join("grok")).unwrap();
+        .join(format!("astra-0.1.180-{platform}"));
+    std::os::unix::fs::symlink(&rel_old, bin_dir.join("astra")).unwrap();
     std::os::unix::fs::symlink(&rel_old, bin_dir.join("agent")).unwrap();
 
     install_internal_from_base(Some("0.1.181"), &cfg, &server.uri())
@@ -147,13 +147,13 @@ async fn install_internal_updates_stale_agent_symlink_to_new_version() {
     let agent_target = std::fs::read_link(&agent_link).unwrap();
     assert_eq!(
         agent_target.file_name().unwrap(),
-        format!("grok-0.1.181-{platform}").as_str(),
+        format!("astra-0.1.181-{platform}").as_str(),
         "agent symlink must swap to the new version, not stay on old"
     );
 }
 
-/// Rollback regression: if `agent` swap fails after `grok` succeeded,
-/// `grok` must roll back to its prior target (all-or-nothing).
+/// Rollback regression: if `agent` swap fails after `astra` succeeded,
+/// `astra` must roll back to its prior target (all-or-nothing).
 #[tokio::test]
 #[serial]
 async fn install_internal_rolls_back_grok_when_agent_swap_fails() {
@@ -168,12 +168,12 @@ async fn install_internal_rolls_back_grok_when_agent_swap_fails() {
     let download_dir = home.join("downloads");
     std::fs::create_dir_all(&bin_dir).unwrap();
     std::fs::create_dir_all(&download_dir).unwrap();
-    let old_binary = download_dir.join(format!("grok-0.1.180-{platform}"));
+    let old_binary = download_dir.join(format!("astra-0.1.180-{platform}"));
     std::fs::write(&old_binary, b"#!/bin/sh\nexit 0\n").unwrap();
     let rel_old = std::path::Path::new("..")
         .join("downloads")
-        .join(format!("grok-0.1.180-{platform}"));
-    std::os::unix::fs::symlink(&rel_old, bin_dir.join("grok")).unwrap();
+        .join(format!("astra-0.1.180-{platform}"));
+    std::os::unix::fs::symlink(&rel_old, bin_dir.join("astra")).unwrap();
 
     // Sabotage the agent swap: non-empty directory → rename fails with EISDIR.
     let agent_dir = bin_dir.join("agent");
@@ -186,20 +186,20 @@ async fn install_internal_rolls_back_grok_when_agent_swap_fails() {
     drop(err);
 
     // grok must be rolled back to the prior version.
-    let grok_target = std::fs::read_link(bin_dir.join("grok")).unwrap();
+    let grok_target = std::fs::read_link(bin_dir.join("astra")).unwrap();
     assert_eq!(
         grok_target.file_name().unwrap(),
-        format!("grok-0.1.180-{platform}").as_str(),
+        format!("astra-0.1.180-{platform}").as_str(),
         "grok must be rolled back when agent swap fails"
     );
 }
 
-/// Absent-prior rollback regression: fresh install (no prior `grok` /
-/// `agent`), sabotaged `agent` swap must *remove* the just-created `grok`
+/// Absent-prior rollback regression: fresh install (no prior `astra` /
+/// `agent`), sabotaged `agent` swap must *remove* the just-created `astra`
 /// link so we don't leave it on the new binary while `agent` is absent.
 #[tokio::test]
 #[serial]
-async fn install_internal_rollback_removes_absent_prior_grok_link() {
+async fn install_internal_rollback_removes_absent_prior_astra_link() {
     let _ = test_home();
     reset_home();
     let platform = host_platform();
@@ -210,12 +210,12 @@ async fn install_internal_rollback_removes_absent_prior_grok_link() {
     let bin_dir = home.join("bin");
     std::fs::create_dir_all(&bin_dir).unwrap();
 
-    // No prior `grok`. Sabotage `agent` swap: non-empty directory → EISDIR.
+    // No prior `astra`. Sabotage `agent` swap: non-empty directory → EISDIR.
     let agent_dir = bin_dir.join("agent");
     std::fs::create_dir(&agent_dir).unwrap();
     std::fs::write(agent_dir.join("blocker"), b"x").unwrap();
     assert!(
-        !bin_dir.join("grok").exists() && !bin_dir.join("grok").is_symlink(),
+        !bin_dir.join("astra").exists() && !bin_dir.join("astra").is_symlink(),
         "precondition: grok must not exist before install",
     );
 
@@ -224,7 +224,7 @@ async fn install_internal_rollback_removes_absent_prior_grok_link() {
         .expect_err("agent swap must fail when target is a non-empty dir");
     drop(err);
 
-    let grok_path = bin_dir.join("grok");
+    let grok_path = bin_dir.join("astra");
     assert!(
         !grok_path.is_symlink() && !grok_path.exists(),
         "grok must be removed on rollback when there was no prior link",
@@ -248,7 +248,7 @@ async fn install_internal_chmods_binary_executable() {
     let home = test_home();
     let binary = home
         .join("downloads")
-        .join(format!("grok-0.1.181-{platform}"));
+        .join(format!("astra-0.1.181-{platform}"));
     let mode = std::fs::metadata(&binary).unwrap().permissions().mode();
     assert!(mode & 0o111 != 0, "binary must be executable, got {mode:o}");
 }
@@ -257,7 +257,7 @@ async fn install_internal_chmods_binary_executable() {
 #[serial]
 async fn install_internal_cleans_up_stale_pager_symlink() {
     // Old installations shipped a separate grok-pager binary. Verify the
-    // update removes the stale symlink from ~/.grok/bin/.
+    // update removes the stale symlink from ~/.astra/bin/.
     let _ = test_home();
     reset_home();
     let platform = host_platform();
@@ -322,7 +322,7 @@ async fn install_internal_resolves_version_via_channel_pointer_when_no_target() 
     let home = test_home();
     assert!(
         home.join("downloads")
-            .join(format!("grok-0.1.181-{platform}"))
+            .join(format!("astra-0.1.181-{platform}"))
             .exists(),
         "binary at version from /stable pointer"
     );
@@ -348,7 +348,7 @@ async fn install_internal_alpha_channel_resolves_max_of_alpha_and_stable() {
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path(format!("/grok-0.1.181-{platform}")))
+        .and(path(format!("/astra-0.1.181-{platform}")))
         .respond_with(ResponseTemplate::new(200).set_body_bytes(b"#!/bin/sh\nexit 0\n".to_vec()))
         .mount(&server)
         .await;
@@ -361,7 +361,7 @@ async fn install_internal_alpha_channel_resolves_max_of_alpha_and_stable() {
     let home = test_home();
     assert!(
         home.join("downloads")
-            .join(format!("grok-0.1.181-{platform}"))
+            .join(format!("astra-0.1.181-{platform}"))
             .exists()
     );
 }
@@ -385,7 +385,7 @@ async fn install_internal_fails_on_grok_binary_404() {
         .await;
     // Main binary returns 404 — must propagate as error.
     Mock::given(method("GET"))
-        .and(path(format!("/grok-0.1.181-{platform}")))
+        .and(path(format!("/astra-0.1.181-{platform}")))
         .respond_with(ResponseTemplate::new(404))
         .mount(&server)
         .await;
@@ -443,20 +443,20 @@ async fn install_internal_cleans_up_old_versions_keeping_n_minus_one() {
     let home = test_home();
     let downloads = home.join("downloads");
     assert!(
-        downloads.join(format!("grok-0.1.181-{platform}")).exists(),
+        downloads.join(format!("astra-0.1.181-{platform}")).exists(),
         "current"
     );
     assert!(
-        downloads.join(format!("grok-0.1.180-{platform}")).exists(),
+        downloads.join(format!("astra-0.1.180-{platform}")).exists(),
         "N-1 retained"
     );
     assert!(
-        !downloads.join(format!("grok-0.1.179-{platform}")).exists(),
+        !downloads.join(format!("astra-0.1.179-{platform}")).exists(),
         "oldest deleted"
     );
 
     // Symlink updated to latest.
-    let target = std::fs::read_link(home.join("bin").join("grok")).unwrap();
+    let target = std::fs::read_link(home.join("bin").join("astra")).unwrap();
     assert!(
         target
             .file_name()
@@ -484,7 +484,7 @@ async fn install_internal_idempotent_for_same_version() {
     let first = std::fs::read(
         test_home()
             .join("downloads")
-            .join(format!("grok-0.1.181-{platform}")),
+            .join(format!("astra-0.1.181-{platform}")),
     )
     .unwrap();
 
@@ -494,18 +494,18 @@ async fn install_internal_idempotent_for_same_version() {
     let second = std::fs::read(
         test_home()
             .join("downloads")
-            .join(format!("grok-0.1.181-{platform}")),
+            .join(format!("astra-0.1.181-{platform}")),
     )
     .unwrap();
 
     assert_eq!(first, second);
-    let target = std::fs::read_link(test_home().join("bin").join("grok")).unwrap();
+    let target = std::fs::read_link(test_home().join("bin").join("astra")).unwrap();
     assert!(target.to_string_lossy().contains("0.1.181"));
 }
 
 #[tokio::test]
 #[serial]
-async fn install_internal_creates_grok_home_subdirs_if_missing() {
+async fn install_internal_creates_astra_home_subdirs_if_missing() {
     let _ = test_home();
     reset_home();
     // Explicitly delete bin/ and downloads/ so install must create them.
@@ -559,7 +559,7 @@ async fn install_internal_from_bases_falls_back_to_secondary_when_primary_fails(
     assert!(
         test_home()
             .join("downloads")
-            .join(format!("grok-0.1.181-{platform}"))
+            .join(format!("astra-0.1.181-{platform}"))
             .exists(),
         "fallback should produce a downloaded binary"
     );
@@ -582,7 +582,7 @@ async fn install_internal_from_bases_does_not_fallback_on_smoke_failure() {
         .mount(&primary)
         .await;
     Mock::given(method("GET"))
-        .and(path(format!("/grok-0.1.181-{platform}")))
+        .and(path(format!("/astra-0.1.181-{platform}")))
         .respond_with(ResponseTemplate::new(200).set_body_bytes(b"#!/bin/sh\nexit 1\n".to_vec()))
         .mount(&primary)
         .await;
@@ -638,7 +638,7 @@ async fn install_internal_from_bases_uses_primary_when_it_works() {
     assert!(
         test_home()
             .join("downloads")
-            .join(format!("grok-0.1.181-{platform}"))
+            .join(format!("astra-0.1.181-{platform}"))
             .exists()
     );
 }

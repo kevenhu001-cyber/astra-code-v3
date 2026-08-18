@@ -121,7 +121,7 @@ fn not_found_hooks_paths_is_ok_empty_configured() {
 #[test]
 fn ensure_creates_hooks_dir_and_empty_registry() {
     let tmp = TempDir::new().unwrap();
-    let dir = tmp.path().join("grok");
+    let dir = tmp.path().join("astra");
     std::fs::create_dir_all(&dir).unwrap();
     ensure_grok_hook_slots(&dir).unwrap();
     let hooks = dir.join("hooks");
@@ -139,7 +139,7 @@ fn ensure_creates_hooks_dir_and_empty_registry() {
 #[cfg(unix)]
 fn ensure_rejects_preexisting_symlink_hooks_dir() {
     let tmp = TempDir::new().unwrap();
-    let dir = tmp.path().join("grok");
+    let dir = tmp.path().join("astra");
     std::fs::create_dir_all(&dir).unwrap();
     let real = tmp.path().join("real-hooks");
     std::fs::create_dir_all(&real).unwrap();
@@ -156,7 +156,7 @@ fn ensure_rejects_preexisting_symlink_hooks_dir() {
 #[cfg(unix)]
 fn ensure_rejects_preexisting_symlink_registry() {
     let tmp = TempDir::new().unwrap();
-    let dir = tmp.path().join("grok");
+    let dir = tmp.path().join("astra");
     std::fs::create_dir_all(&dir).unwrap();
     let target = tmp.path().join("evil-registry");
     std::fs::write(&target, b"attacker\n").unwrap();
@@ -178,7 +178,7 @@ fn ensure_rejects_preexisting_symlink_registry() {
 #[cfg(unix)]
 fn ensure_rejects_directory_named_hooks_paths() {
     let tmp = TempDir::new().unwrap();
-    let dir = tmp.path().join("grok");
+    let dir = tmp.path().join("astra");
     std::fs::create_dir_all(dir.join("hooks-paths")).unwrap();
     let err = ensure_grok_hook_slots(&dir).unwrap_err();
     assert!(matches!(
@@ -191,7 +191,7 @@ fn ensure_rejects_directory_named_hooks_paths() {
 #[cfg(unix)]
 fn ensure_rejects_file_named_hooks_dir() {
     let tmp = TempDir::new().unwrap();
-    let dir = tmp.path().join("grok");
+    let dir = tmp.path().join("astra");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("hooks"), b"not-a-dir").unwrap();
     let err = ensure_grok_hook_slots(&dir).unwrap_err();

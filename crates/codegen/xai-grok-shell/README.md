@@ -1,4 +1,4 @@
-# Grok
+# Astra
 
 A terminal-based AI coding assistant and agentic harness.
 
@@ -24,7 +24,7 @@ grok agent stdio
 
 - [Installation](#installation)
 - [Authentication](#authentication) — browser login, API key, OIDC, external auth providers
-- **Using Grok**
+- **Using Astra**
   - [Interactive TUI](#interactive-tui) — shortcuts, slash commands, file references
   - [Headless Mode](#headless-mode) — scripting, CI/CD, output formats
   - [Agent Mode](#agent-mode) — stdio, ACP integration
@@ -51,7 +51,7 @@ grok agent stdio
   - [File Locations](#file-locations)
   - [Environment Variables](#environment-variables)
   - [Troubleshooting](#troubleshooting)
-- [Building with Grok](#building-with-grok) — headless API, ACP SDK integration
+- [Building with Astra](#building-with-grok) — headless API, ACP SDK integration
 
 ---
 
@@ -83,13 +83,13 @@ grok update
 
 ### Browser Login (Default)
 
-On first launch, Grok opens your browser to authenticate with grok.com:
+On first launch, Astra opens your browser to authenticate with grok.com:
 
 ```bash
 grok
 ```
 
-Credentials are stored in `~/.grok/auth.json` and persist across sessions. Tokens expire after 7 days; Grok will prompt you to re-authenticate when needed.
+Credentials are stored in `~/.astra/auth.json` and persist across sessions. Tokens expire after 7 days; Astra will prompt you to re-authenticate when needed.
 
 ### Re-authenticate
 
@@ -122,7 +122,7 @@ Authenticate developers via your own Identity Provider (Okta, Azure AD, Auth0) i
 **2. Configure the CLI** (config file or env vars):
 
 ```toml
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [grok_com_config.oidc]
 issuer = "https://acme.okta.com"
 client_id = "0oa1b2c3d4e5f6g7h8i9"
@@ -139,7 +139,7 @@ Customers typically also override the API endpoint to point at their own proxy:
 export GROK_CLI_CHAT_PROXY_BASE_URL="https://grok-proxy.acme.com/v1"
 ```
 
-**3. Run `grok`.** The CLI discovers endpoints via `{issuer}/.well-known/openid-configuration`, opens the IdP login page, and stores tokens in `~/.grok/auth.json`. The OIDC token is sent as `Authorization: Bearer` to the configured proxy. Tokens auto-refresh silently via the stored `refresh_token`.
+**3. Run `grok`.** The CLI discovers endpoints via `{issuer}/.well-known/openid-configuration`, opens the IdP login page, and stores tokens in `~/.astra/auth.json`. The OIDC token is sent as `Authorization: Bearer` to the configured proxy. Tokens auto-refresh silently via the stored `refresh_token`.
 
 **Optional fields:**
 
@@ -152,13 +152,13 @@ export GROK_CLI_CHAT_PROXY_BASE_URL="https://grok-proxy.acme.com/v1"
 
 For environments where browser-based login isn't possible (sandboxed VMs, CI runners, air-gapped networks), delegate authentication to an external binary or script. This is the recommended approach for enterprise deployments where your company runs its own auth infrastructure (SSO, device code flows, certificate auth, etc.).
 
-Grok is provider-agnostic — it doesn't know or care how your binary authenticates. It just runs the command, reads a token from stdout, and stores it. Your binary is a black box that handles the entire auth flow.
+Astra is provider-agnostic — it doesn't know or care how your binary authenticates. It just runs the command, reads a token from stdout, and stores it. Your binary is a black box that handles the entire auth flow.
 
 #### How It Works
 
 ```
 ┌──────────────┐     sh -c     ┌────────────────────────┐
-│     Grok     │──────────────▶│  your auth binary      │
+│     Astra     │──────────────▶│  your auth binary      │
 │              │               │                        │
 │  reads       │◀── stdout ────│  prints token          │
 │  auth.json   │               │                        │
@@ -166,11 +166,11 @@ Grok is provider-agnostic — it doesn't know or care how your binary authentica
 └──────────────┘               └────────────────────────┘
 ```
 
-1. Grok runs your command via `sh -c "<command>"`
+1. Astra runs your command via `sh -c "<command>"`
 2. Your binary does whatever auth flow it needs (SSO login, device code, cert exchange, etc.)
 3. **stderr** → displayed directly to the user (use for login URLs, status messages, progress)
-4. **stdout** → captured by Grok and saved to `~/.grok/auth.json` as the access token
-5. exit 0 → success; exit non-zero → Grok falls through to interactive login
+4. **stdout** → captured by Astra and saved to `~/.astra/auth.json` as the access token
+5. exit 0 → success; exit non-zero → Astra falls through to interactive login
 
 #### The stdout / stderr Contract
 
@@ -178,10 +178,10 @@ This is the most important thing to get right:
 
 | Stream | What to print | Who sees it |
 |--------|---------------|-------------|
-| **stdout** | The token — nothing else | Grok (parsed and stored in `auth.json`) |
+| **stdout** | The token — nothing else | Astra (parsed and stored in `auth.json`) |
 | **stderr** | Login URLs, status messages, errors, progress | The user (displayed in their terminal) |
 
-**Do not print anything to stdout except the token.** No progress messages, no debug output, no "Login successful!" text. Grok reads stdout verbatim and tries to parse it as a token. Any extra text will break parsing.
+**Do not print anything to stdout except the token.** No progress messages, no debug output, no "Login successful!" text. Astra reads stdout verbatim and tries to parse it as a token. Any extra text will break parsing.
 
 #### stdout Token Format
 
@@ -197,7 +197,7 @@ eyJhbGciOiJSUzI1NiIs...
 {"access_token": "eyJhbGciOi...", "refresh_token": "ref-tok", "expires_in": 3600}
 ```
 
-Use JSON if your tokens expire and you want Grok to automatically re-run the binary before expiry. The `expires_in` field (seconds until expiry) tells Grok when to proactively refresh. Without it, Grok assumes tokens last 30 days.
+Use JSON if your tokens expire and you want Astra to automatically re-run the binary before expiry. The `expires_in` field (seconds until expiry) tells Astra when to proactively refresh. Without it, Astra assumes tokens last 30 days.
 
 #### Minimal Example
 
@@ -209,14 +209,14 @@ echo "Visit: https://sso.acme.com/device-login?code=ABCD-1234" >&2
 
 # ... do the auth flow, get a token ...
 
-# Print ONLY the token to stdout (Grok captures this)
+# Print ONLY the token to stdout (Astra captures this)
 echo "eyJhbGciOiJSUzI1NiIs..."
 ```
 
 #### Configuration
 
 ```toml
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [auth]
 auth_provider_command = "/usr/local/bin/my-auth-provider"
 auth_provider_label = "Acme Corp"   # optional — customizes the TUI login button
@@ -230,11 +230,11 @@ export GROK_AUTH_PROVIDER_LABEL="Acme Corp"   # optional
 export GROK_AUTH_TOKEN_TTL=3600               # optional
 ```
 
-If your binary outputs a bare token string (not JSON with `expires_in`), set `auth_token_ttl` to the token's expected lifetime in seconds. Without it, Grok cannot detect expiry proactively and will only refresh after a 401.
+If your binary outputs a bare token string (not JSON with `expires_in`), set `auth_token_ttl` to the token's expected lifetime in seconds. Without it, Astra cannot detect expiry proactively and will only refresh after a 401.
 
 The command runs through the platform shell — `sh -c` on macOS/Linux, `cmd /C` on Windows — so it can be a binary path, a script, or a pipeline.
 
-> **Windows:** write the path as a TOML *literal* string (single quotes) so backslashes survive: `auth_provider_command = 'C:\corp\grok-auth.exe'`. Inside a double-quoted TOML string `\t`, `\n`, `\r`, `\b` and `\f` are escape sequences, so `"C:\temp\auth.exe"` parses into a path containing a tab character and the provider fails to start — after which Grok falls back to browser login as if the setting were ignored.
+> **Windows:** write the path as a TOML *literal* string (single quotes) so backslashes survive: `auth_provider_command = 'C:\corp\grok-auth.exe'`. Inside a double-quoted TOML string `\t`, `\n`, `\r`, `\b` and `\f` are escape sequences, so `"C:\temp\auth.exe"` parses into a path containing a tab character and the provider fails to start — after which Astra falls back to browser login as if the setting were ignored.
 
 When `auth_provider_label` is set, the TUI welcome screen shows **"Login with Acme Corp"** instead of "Login with grok.com". In headless mode (`grok -p`), the label has no effect — stderr from your binary is printed directly to the terminal.
 
@@ -268,20 +268,20 @@ echo "{\"access_token\": \"$TOKEN\", \"expires_in\": 3600}"
 
 #### Example: Auth Binary with Refresh Support
 
-Grok runs your binary on two different contracts, and `GROK_AUTH_EXPIRED` is how it tells them apart:
+Astra runs your binary on two different contracts, and `GROK_AUTH_EXPIRED` is how it tells them apart:
 
 | | `GROK_AUTH_EXPIRED=1` | unset |
 |---|---|---|
-| **What it is** | A headless refresh over a credential Grok already holds — near-expiry rotation, or a token the server rejected | A sign-in: `grok login`, the sign-in screen, or the escalation after a headless run couldn't mint |
+| **What it is** | A headless refresh over a credential Astra already holds — near-expiry rotation, or a token the server rejected | A sign-in: `grok login`, the sign-in screen, or the escalation after a headless run couldn't mint |
 | **Is anyone watching?** | No. stdin is closed and nothing renders your prompts | Yes. A user is waiting, and your stderr reaches them |
-| **Budget** | A few seconds (7s), then Grok kills the process | 300s — enough for a browser round trip or a device code |
+| **Budget** | A few seconds (7s), then Astra kills the process | 300s — enough for a browser round trip or a device code |
 | **So your binary should** | Mint silently, or **exit non-zero**. Never block | Do the full SSO flow, and always mint fresh |
 
 ```bash
 #!/bin/sh
 if [ "$GROK_AUTH_EXPIRED" = "1" ]; then
     # Headless: silent refresh only. If that can't work — the SSO session
-    # lapsed, say — exit non-zero rather than block. Grok then shows the
+    # lapsed, say — exit non-zero rather than block. Astra then shows the
     # sign-in screen, which re-runs this binary with the variable unset.
     echo "Refreshing token..." >&2
     TOKEN=$(my-company-auth --refresh --silent) || exit 1
@@ -301,34 +301,34 @@ echo "{\"access_token\": \"$TOKEN\", \"expires_in\": 3600}"
 
 Exiting promptly on `GROK_AUTH_EXPIRED=1` is what makes the handover to the sign-in screen fast: a binary that blocks instead pays the whole refresh timeout on every start with an expired token.
 
-One case stays ambiguous, and only in **leader mode** (`--leader`, or `[cli] use_leader = true`; off by default): with no credential at all, the leader makes one extra attempt in the background just after startup, and that run has the variable unset, like a sign-in. A binary that mints without help (service account, keytab, mounted token) succeeds there and the session heals itself. One that must prompt just sits, up to the 300s sign-in ceiling — nothing waits on it, the sign-in screen is already up, and its stderr goes to `~/.grok/leader.log` rather than to the user.
+One case stays ambiguous, and only in **leader mode** (`--leader`, or `[cli] use_leader = true`; off by default): with no credential at all, the leader makes one extra attempt in the background just after startup, and that run has the variable unset, like a sign-in. A binary that mints without help (service account, keytab, mounted token) succeeds there and the session heals itself. One that must prompt just sits, up to the 300s sign-in ceiling — nothing waits on it, the sign-in screen is already up, and its stderr goes to `~/.astra/leader.log` rather than to the user.
 
-`GROK_AUTH_EXPIRED` is optional — if your binary ignores it, Grok still works. It just runs the same flow for both login and refresh, and a flow that prompts will be killed on the headless run before it can finish.
+`GROK_AUTH_EXPIRED` is optional — if your binary ignores it, Astra still works. It just runs the same flow for both login and refresh, and a flow that prompts will be killed on the headless run before it can finish.
 
 ### Automatic Credential Refresh
 
-Grok supports automatic credential refresh for external auth providers and OIDC. When Grok detects that your token is expired (either locally based on `expires_in`, or when the server returns a 401), it automatically re-runs your `auth_provider_command` to obtain new credentials before retrying the request.
+Astra supports automatic credential refresh for external auth providers and OIDC. When Astra detects that your token is expired (either locally based on `expires_in`, or when the server returns a 401), it automatically re-runs your `auth_provider_command` to obtain new credentials before retrying the request.
 
-This is transparent — you don't need to do anything. Grok handles it in the background during your session.
+This is transparent — you don't need to do anything. Astra handles it in the background during your session.
 
 **When does refresh happen?**
 
-- **Before expiry:** If your binary returned `expires_in` in its JSON output, or you set `auth_token_ttl` in config, Grok re-runs the binary ~5 minutes before the token expires, so you never see an auth error.
-- **On auth error:** If the server rejects a request with 401/403 (e.g. token was revoked or expired), Grok re-runs the binary and retries the request once.
-- **When the refresh run can't mint:** refreshes are headless (no stdin, short timeout), so a binary that needs you to complete an SSO flow cannot succeed there. Grok then stops treating the stored credential as usable and runs your binary in its interactive mode instead — at startup that is the same sign-in flow a machine with no credentials gets; mid-session the turn fails with a re-auth prompt and `/login` re-runs the binary.
-- **OIDC:** If you're using OIDC and have a `refresh_token`, Grok silently refreshes via your IdP without re-opening the browser.
+- **Before expiry:** If your binary returned `expires_in` in its JSON output, or you set `auth_token_ttl` in config, Astra re-runs the binary ~5 minutes before the token expires, so you never see an auth error.
+- **On auth error:** If the server rejects a request with 401/403 (e.g. token was revoked or expired), Astra re-runs the binary and retries the request once.
+- **When the refresh run can't mint:** refreshes are headless (no stdin, short timeout), so a binary that needs you to complete an SSO flow cannot succeed there. Astra then stops treating the stored credential as usable and runs your binary in its interactive mode instead — at startup that is the same sign-in flow a machine with no credentials gets; mid-session the turn fails with a re-auth prompt and `/login` re-runs the binary.
+- **OIDC:** If you're using OIDC and have a `refresh_token`, Astra silently refreshes via your IdP without re-opening the browser.
 
 **Tuning the refresh buffer:**
 
 ```bash
-# Grok refreshes tokens 5 minutes before expiry by default.
+# Astra refreshes tokens 5 minutes before expiry by default.
 # Set to 0 to only refresh on 401. Set higher for very short-lived tokens.
 export GROK_AUTH_EARLY_INVALIDATION_SECS=300
 ```
 
 **Keep in mind:**
-- When using `auth_provider_command`, you don't need to run `grok login` before starting — Grok runs your binary automatically on first launch. You _can_ run `grok login` to explicitly hydrate `auth.json` ahead of time if you prefer.
-- If both OIDC and `auth_provider_command` are configured: at **login** time, Grok tries OIDC silent refresh first (if a `refresh_token` exists), then the external binary, then browser-based login. During a **session**, whichever method is configured is used exclusively — if `auth_provider_command` is set it handles all mid-session refreshes; otherwise OIDC silent refresh is used.
+- When using `auth_provider_command`, you don't need to run `grok login` before starting — Astra runs your binary automatically on first launch. You _can_ run `grok login` to explicitly hydrate `auth.json` ahead of time if you prefer.
+- If both OIDC and `auth_provider_command` are configured: at **login** time, Astra tries OIDC silent refresh first (if a `refresh_token` exists), then the external binary, then browser-based login. During a **session**, whichever method is configured is used exclusively — if `auth_provider_command` is set it handles all mid-session refreshes; otherwise OIDC silent refresh is used.
 - Your binary's stderr output is displayed to the user but interactive stdin is not supported. This works well for browser-based SSO flows where the binary displays a URL and you complete authentication in the browser.
 
 #### Troubleshooting Auth
@@ -353,10 +353,10 @@ Common log messages:
 
 ### Per-Model Auth Providers
 
-`auth_provider_command` above replaces Grok's *session* auth: it mints the token sent to xAI's backend. If you instead want xAI models on normal xAI login while **other models** route through a gateway (LiteLLM, corporate proxy) whose bearer tokens rotate, use a named auth provider — the rotating-token analogue of a per-model `api_key`/`env_key`.
+`auth_provider_command` above replaces Astra's *session* auth: it mints the token sent to xAI's backend. If you instead want xAI models on normal xAI login while **other models** route through a gateway (LiteLLM, corporate proxy) whose bearer tokens rotate, use a named auth provider — the rotating-token analogue of a per-model `api_key`/`env_key`.
 
 ```toml
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [auth_provider.litellm]
 command = "/usr/local/bin/litellm-token"   # run via `sh -c`
 token_ttl_secs = 3600                      # optional: see below
@@ -374,12 +374,12 @@ auth_provider = "litellm"
 - Without `args`, the command runs via POSIX `sh -c`, so it can be a binary path, a script, or a pipeline. With `args = ["..."]`, the command runs directly with those arguments and no shell: `command` is a program name resolved via `PATH`, or a path. Use `args` to avoid shell quoting, and on Windows, where there is no `sh`.
 - stdout: a bare token, or JSON `{"access_token": "...", "expires_in": 3600}`.
 - stderr: logged when the command fails; exit 0 = success.
-- `GROK_AUTH_EXPIRED=1` is set whenever Grok re-mints over a token still cached in memory, whether from near-expiry rotation or a rejection. The first mint on a cold cache runs without it.
+- `GROK_AUTH_EXPIRED=1` is set whenever Astra re-mints over a token still cached in memory, whether from near-expiry rotation or a rejection. The first mint on a cold cache runs without it.
 
 **Token lifecycle:**
 
-- Tokens are cached in memory per provider and shared by every model referencing the provider; nothing is written to disk. The command is a credential helper: it owns durable storage and OAuth2 refresh (keychain, its own dotdir, etc.), exactly like `gcloud auth print-access-token` or a git credential helper. On an in-session re-mint the last credential is handed back via `GROK_AUTH_PROVIDER_ACCESS_TOKEN` (and, when present, `GROK_AUTH_PROVIDER_REFRESH_TOKEN` / `GROK_AUTH_PROVIDER_EXPIRES_AT`), so a refresh-grant command can refresh instead of re-authenticating. The command must be non-interactive and fast; do any interactive login out of band, and Grok re-runs the command on restart to re-mint.
-- Grok runs the command before a chat turn when the token is missing or within about a minute of expiring, and once more after the server rejects a token. A token rejected within 30 seconds of being fetched is not refetched again, so a broken helper surfaces one clear error instead of looping.
+- Tokens are cached in memory per provider and shared by every model referencing the provider; nothing is written to disk. The command is a credential helper: it owns durable storage and OAuth2 refresh (keychain, its own dotdir, etc.), exactly like `gcloud auth print-access-token` or a git credential helper. On an in-session re-mint the last credential is handed back via `GROK_AUTH_PROVIDER_ACCESS_TOKEN` (and, when present, `GROK_AUTH_PROVIDER_REFRESH_TOKEN` / `GROK_AUTH_PROVIDER_EXPIRES_AT`), so a refresh-grant command can refresh instead of re-authenticating. The command must be non-interactive and fast; do any interactive login out of band, and Astra re-runs the command on restart to re-mint.
+- Astra runs the command before a chat turn when the token is missing or within about a minute of expiring, and once more after the server rejects a token. A token rejected within 30 seconds of being fetched is not refetched again, so a broken helper surfaces one clear error instead of looping.
 - Token lifetime comes from `expires_in` in the command's JSON output, else `token_ttl_secs`, else the token's own JWT expiry claim. With none of these, tokens are only replaced after the server rejects one.
 - Commands run with a `timeout_secs` bound (default 30, clamped to 1..=600) and are killed on timeout. A turn waits on the run, so keep helpers fast and non-interactive.
 - Active sessions pick up edits or removal of a provider table at the next model switch or new session. Once picked up, an edit invalidates the cached token, so the edited command runs at the next use; removal drops the cached token.
@@ -387,7 +387,7 @@ auth_provider = "litellm"
 
 **Interaction with other credentials:** a literal `api_key`/`env_key` on the model wins over its `auth_provider`. Provider-backed models are BYOK: your xAI session token is never sent to their endpoints, and a failing provider command fails the request rather than falling back to the session token.
 
-**Security:** provider commands execute code, so they are honored only from trusted config layers (`~/.grok/config.toml`, managed config, requirements). A project's `.grok/config.toml` can never define one. Whatever layer sets a model's `base_url` decides where that model's minted token is sent, and `base_url` (unlike the provider table) is not stripped from remote or campaign patches, the same as for a static `env_key`. Keep provider tables and the model `base_url` in layers you trust. The command inherits Grok's environment (so it sees `PATH`, `HOME`, and any other secrets there), but Grok's own first-party credentials (`XAI_API_KEY`, `GROK_DEPLOYMENT_KEY`, and related keys) are removed so a BYOK helper never receives them; write helpers that read only what they need, and prefer the `GROK_AUTH_PROVIDER_*` handback for the prior credential.
+**Security:** provider commands execute code, so they are honored only from trusted config layers (`~/.astra/config.toml`, managed config, requirements). A project's `.astra/config.toml` can never define one. Whatever layer sets a model's `base_url` decides where that model's minted token is sent, and `base_url` (unlike the provider table) is not stripped from remote or campaign patches, the same as for a static `env_key`. Keep provider tables and the model `base_url` in layers you trust. The command inherits Astra's environment (so it sees `PATH`, `HOME`, and any other secrets there), but Astra's own first-party credentials (`XAI_API_KEY`, `GROK_DEPLOYMENT_KEY`, and related keys) are removed so a BYOK helper never receives them; write helpers that read only what they need, and prefer the `GROK_AUTH_PROVIDER_*` handback for the prior credential.
 
 ### Using auth.json for API Access
 
@@ -396,7 +396,7 @@ If you've authenticated with `grok login`, you can use the stored credentials to
 ```bash
 curl -s -N -X POST "https://cli-chat-proxy.grok.com/v1/chat/completions" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $(jq -r '."https://accounts.x.ai/sign-in".key' ~/.grok/auth.json)" \
+  -H "Authorization: Bearer $(jq -r '."https://accounts.x.ai/sign-in".key' ~/.astra/auth.json)" \
   -H "X-XAI-Token-Auth: xai-grok-cli" \
   -H "x-grok-model-override: grok-build" \
   -d '{
@@ -410,7 +410,7 @@ curl -s -N -X POST "https://cli-chat-proxy.grok.com/v1/chat/completions" \
 
 | Header                           | Required | Purpose                                                                                                                                                                                   |
 | -------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Authorization: Bearer <token>`  | Yes      | Session token from `~/.grok/auth.json` (set by `grok login`)                                                                                                                              |
+| `Authorization: Bearer <token>`  | Yes      | Session token from `~/.astra/auth.json` (set by `grok login`)                                                                                                                              |
 | `X-XAI-Token-Auth: xai-grok-cli` | Yes      | Tells the auth middleware to validate as a CLI session token                                                                                                                              |
 | `x-grok-model-override: <model>` | Yes\*    | The proxy uses this header (not the JSON body) to route to the correct backend. \*Can be omitted for `grok-build` which is on the default route, but always safe to include. |
 
@@ -552,7 +552,7 @@ The `!` modifier allows you to attach any file in the project regardless of igno
 
 ## Headless Mode
 
-Run Grok non-interactively from the command line. Use headless mode when you need to:
+Run Astra non-interactively from the command line. Use headless mode when you need to:
 
 - **Automate tasks** — CI/CD pipelines, pre-commit hooks, cron jobs
 - **Script workflows** — Batch process files, chain with other tools
@@ -778,7 +778,7 @@ grok -p "Review staged changes for obvious bugs. Reply OK if fine, or list issue
 
 ## Agent Mode
 
-Run Grok as an ACP (Agent Client Protocol) agent for integration with IDEs, editors, and custom tooling.
+Run Astra as an ACP (Agent Client Protocol) agent for integration with IDEs, editors, and custom tooling.
 
 ### stdio Transport
 
@@ -839,9 +839,9 @@ This runs entirely locally.
 
 ---
 
-## Building with Grok
+## Building with Astra
 
-Grok can be used as an OpenAI-compatible chat completion backend. Choose between two integration modes:
+Astra can be used as an OpenAI-compatible chat completion backend. Choose between two integration modes:
 
 | Mode         | Use Case                                                           |
 | ------------ | ------------------------------------------------------------------ |
@@ -869,7 +869,7 @@ class GrokChat:
         self.env = {**os.environ}
 
     def _build_cmd(self, prompt, model, stream):
-        return ["grok", "-p", prompt, "-m", model, "--cwd", self.cwd,
+        return ["astra", "-p", prompt, "-m", model, "--cwd", self.cwd,
                 "--output-format", "streaming-json" if stream else "json", "--always-approve"]
 
     async def create(self, messages, model="grok-build", stream=False):
@@ -958,7 +958,7 @@ class GrokChat {
     if (stream) return this.streamResponse(prompt, model);
 
     const { stdout } = await execa(
-      "grok",
+      "astra",
       this.buildArgs(prompt, model, false),
     );
     const data = JSON.parse(stdout || '{"text":""}');
@@ -973,7 +973,7 @@ class GrokChat {
   }
 
   async *streamResponse(prompt: string, model: string) {
-    const proc = execa("grok", this.buildArgs(prompt, model, true));
+    const proc = execa("astra", this.buildArgs(prompt, model, true));
     for await (const chunk of proc.stdout!) {
       for (const line of chunk.toString().split("\n").filter(Boolean)) {
         const event = JSON.parse(line);
@@ -1027,7 +1027,7 @@ class GrokACPChat:
 
     async def init(self):
         self.proc = await asyncio.create_subprocess_exec(
-            "grok", "agent", "stdio",
+            "astra", "agent", "stdio",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE
         )
@@ -1152,7 +1152,7 @@ class GrokACPChat {
   constructor(private cwd = ".") {}
 
   async init() {
-    this.proc = spawn("grok", ["agent", "stdio"]);
+    this.proc = spawn("astra", ["agent", "stdio"]);
     this.rl = readline.createInterface({ input: this.proc.stdout! });
 
     // Initialize
@@ -1276,7 +1276,7 @@ for await (const chunk of await client.create(
 
 ### ACP Protocol Reference
 
-Grok implements the [Agent Client Protocol (ACP)](https://agentclientprotocol.com), a standard for AI agent communication.
+Astra implements the [Agent Client Protocol (ACP)](https://agentclientprotocol.com), a standard for AI agent communication.
 
 #### Architecture
 
@@ -1325,7 +1325,7 @@ Grok implements the [Agent Client Protocol (ACP)](https://agentclientprotocol.co
 
 ## Configuration
 
-Grok reads configuration from `~/.grok/config.toml`. If the file doesn't exist, Grok uses sensible defaults. You only need to specify values you want to override.
+Astra reads configuration from `~/.astra/config.toml`. If the file doesn't exist, Astra uses sensible defaults. You only need to specify values you want to override.
 
 Each feature section below documents its own config. This section covers the general-purpose settings that don't have their own top-level section.
 
@@ -1382,21 +1382,21 @@ When building from source, defaults can also be baked into the binary at compile
 
 ### LSP Servers
 
-Grok can connect to Language Server Protocol (LSP) servers configured in JSON files. LSP integration gives Grok language-aware code intelligence while it works in your repository.
+Astra can connect to Language Server Protocol (LSP) servers configured in JSON files. LSP integration gives Astra language-aware code intelligence while it works in your repository.
 
 LSP support is used in two ways:
 
-- **Passive diagnostics** — after edits, Grok can surface language-server diagnostics such as errors and warnings.
-- **The `lsp` tool** — Grok can actively query the language server for `goToDefinition`, `findReferences`, `hover`, `goToImplementation`, `documentSymbol`, and `workspaceSymbol`.
+- **Passive diagnostics** — after edits, Astra can surface language-server diagnostics such as errors and warnings.
+- **The `lsp` tool** — Astra can actively query the language server for `goToDefinition`, `findReferences`, `hover`, `goToImplementation`, `documentSymbol`, and `workspaceSymbol`.
 
 Reference: [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
 
 #### Config locations
 
-Grok looks for server definitions in:
+Astra looks for server definitions in:
 
-- project config: `<repo>/.grok/lsp.json`
-- user config: `~/.grok/lsp.json`
+- project config: `<repo>/.astra/lsp.json`
+- user config: `~/.astra/lsp.json`
 
 If the same server name appears in both places, the project config wins.
 
@@ -1420,7 +1420,7 @@ Or enable it in config:
 lsp_tools = true
 ```
 
-If LSP tools are enabled but no usable server config is found, Grok emits a non-fatal warning in logs and continues without the `lsp` tool. If config exists but every server fails to start, the tool may still be present and will fail on first use with a startup error.
+If LSP tools are enabled but no usable server config is found, Astra emits a non-fatal warning in logs and continues without the `lsp` tool. If config exists but every server fails to start, the tool may still be present and will fail on first use with a startup error.
 
 #### Example `lsp.json`
 
@@ -1497,7 +1497,7 @@ verbose than `Warning` makes it stream every internal log line to the client.
 
 #### Installing language servers
 
-Grok does not bundle language server binaries. You must install the server yourself and make sure the configured `command` is runnable on your machine.
+Astra does not bundle language server binaries. You must install the server yourself and make sure the configured `command` is runnable on your machine.
 
 Examples:
 
@@ -1534,7 +1534,7 @@ default = "company-grok"
 [model.company-grok]
 model = "grok-build"
 base_url = "https://grok-proxy.acme.com/"
-name = "Grok Build Latest (Proxy)"
+name = "Astra Latest (Proxy)"
 context_window = 256000
 
 [features]
@@ -1551,15 +1551,15 @@ With this config, `grok` runs your auth binary, stores the token, and routes inf
 
 ## AGENTS.md
 
-Add project-specific instructions by creating an agent rules file (e.g., `AGENTS.md`). Grok reads these files and appends their contents to the system prompt.
+Add project-specific instructions by creating an agent rules file (e.g., `AGENTS.md`). Astra reads these files and appends their contents to the system prompt.
 
-Grok scans for agent rules in this order:
+Astra scans for agent rules in this order:
 
-1. `~/.grok/` (global rules)
+1. `~/.astra/` (global rules)
 2. If inside a git repo: every directory from the repo root → current working directory (inclusive)
 3. If **not** inside a git repo: only the current working directory
 
-Within each directory, Grok checks for these filenames:
+Within each directory, Astra checks for these filenames:
 
 - `Agents.md`, `Claude.md`, `AGENT.md`, `AGENTS.md`
 
@@ -1571,22 +1571,22 @@ Ordering matters: files found later (deeper directories) come last, so they effe
 
 ## Skills
 
-Skills are reusable prompt packages that extend Grok with specialized workflows, domain knowledge, and tool integrations. Use them to encode repeatable procedures that would otherwise require re-explaining each session.
+Skills are reusable prompt packages that extend Astra with specialized workflows, domain knowledge, and tool integrations. Use them to encode repeatable procedures that would otherwise require re-explaining each session.
 
 ### Skill Locations
 
-Grok discovers skills from these directories (in priority order):
+Astra discovers skills from these directories (in priority order):
 
 | Location                    | Scope | Priority |
 | --------------------------- | ----- | -------- |
-| `./.grok/skills/`           | Local | Highest  |
-| `<repo_root>/.grok/skills/` | Repo  | Medium   |
-| `~/.grok/skills/`           | User  | Lowest   |
+| `./.astra/skills/`           | Local | Highest  |
+| `<repo_root>/.astra/skills/` | Repo  | Medium   |
+| `~/.astra/skills/`           | User  | Lowest   |
 | `~/.claude/skills/`         | User  | Lowest   |
 
 Skills with the same name are deduplicated — higher priority locations override lower ones.
 
-Repo-scoped skills (Local and Repo) respect `.gitignore` and are filtered out if ignored. User-scoped skills (`~/.grok/skills/`) are outside the repo and never filtered.
+Repo-scoped skills (Local and Repo) respect `.gitignore` and are filtered out if ignored. User-scoped skills (`~/.astra/skills/`) are outside the repo and never filtered.
 
 ### Configuration
 
@@ -1603,7 +1603,7 @@ ignore = ["~/my-team-skills/wip"]     # paths to exclude
 Each skill lives in its own directory with a `SKILL.md` file:
 
 ```
-~/.grok/skills/
+~/.astra/skills/
 └── commit/
     └── SKILL.md
 ```
@@ -1633,7 +1633,7 @@ Review staged changes and create a commit with a clear, conventional message.
 | Field         | Description                                                                  |
 | ------------- | ---------------------------------------------------------------------------- |
 | `name`        | Skill identifier (lowercase, hyphens, max 64 chars)                          |
-| `description` | What the skill does and when to use it—this is how Grok decides to invoke it |
+| `description` | What the skill does and when to use it—this is how Astra decides to invoke it |
 
 ### Using Skills
 
@@ -1648,9 +1648,9 @@ Review staged changes and create a commit with a clear, conventional message.
 
 **Slash command shorthand:**
 
-Users can reference skills as `/skill-name` (e.g., `/commit`). When you see this pattern, Grok invokes the corresponding skill.
+Users can reference skills as `/skill-name` (e.g., `/commit`). When you see this pattern, Astra invokes the corresponding skill.
 
-> **Tip:** The `description` field is critical — it determines when Grok automatically invokes the skill. Be specific about trigger phrases and use cases.
+> **Tip:** The `description` field is critical — it determines when Astra automatically invokes the skill. Be specific about trigger phrases and use cases.
 
 ---
 
@@ -1658,7 +1658,7 @@ Users can reference skills as `/skill-name` (e.g., `/commit`). When you see this
 
 Agent profiles control the system prompt, toolset, and behavior of a session. A profile is a `.md` file with YAML frontmatter, or a named agent discovered from disk.
 
-Grok discovers agent definitions from `.grok/agents/` (project), `~/.grok/agents/` (user), and built-in agents. Priority (highest wins):
+Astra discovers agent definitions from `.astra/agents/` (project), `~/.astra/agents/` (user), and built-in agents. Priority (highest wins):
 
 1. `--agent-profile <PATH>` CLI flag
 2. `[agent]` section in `config.toml`
@@ -1666,7 +1666,7 @@ Grok discovers agent definitions from `.grok/agents/` (project), `~/.grok/agents
 4. Default `grok-build` agent
 
 ```toml
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [agent]
 name = "my-custom-agent"             # Discovered by name
 # definition = "/path/to/agent.md"   # OR: explicit path
@@ -1691,7 +1691,7 @@ export GROK_SUBAGENTS=0              # Environment variable
 ```
 
 ```toml
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [subagents]
 enabled = false
 ```
@@ -1723,33 +1723,33 @@ Roles define reusable capability/model defaults. Personas layer tone and behavio
 description = "Deep research agent"
 default_capability_mode = "read-only"
 model = "grok-build"
-prompt_file = ".grok/prompts/researcher.md"
+prompt_file = ".astra/prompts/researcher.md"
 
 [subagents.personas.concise]
 instructions = "Be extremely concise. No filler words."
-# instructions_file = ".grok/personas/concise.md"  # or load from file
+# instructions_file = ".astra/personas/concise.md"  # or load from file
 ```
 
-Both are also discovered from `.grok/roles/*.toml` and `.grok/personas/*.toml` files respectively. If a requested persona is not found, the spawn fails (fail-closed).
+Both are also discovered from `.astra/roles/*.toml` and `.astra/personas/*.toml` files respectively. If a requested persona is not found, the spawn fails (fail-closed).
 
 ---
 
 ## Plugins
 
-Plugins extend Grok with additional tools, skills, and MCP servers from external packages.
+Plugins extend Astra with additional tools, skills, and MCP servers from external packages.
 
 ### Plugin Locations
 
 | Location                    | Scope   |
 | --------------------------- | ------- |
-| `.grok/plugins/`            | Project |
-| `~/.grok/plugins/`          | User    |
+| `.astra/plugins/`            | Project |
+| `~/.astra/plugins/`          | User    |
 | `--plugin-dir <PATH>` (CLI) | Session |
 
 ### Configuration
 
 ```toml
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [plugins]
 paths = ["~/my-plugins/custom-tools"]       # additional plugin directories
 disabled = ["user/a1b2c3d4/noisy-plugin"]   # plugin IDs to skip
@@ -1763,7 +1763,7 @@ Manage plugins at runtime with `/plugins list`, `/plugins reload`, or `/plugins 
 
 Hooks run project scripts on tool and session lifecycle events (pre/post-tool-use, session start/end). Projects must be explicitly trusted before their hooks execute.
 
-Grok discovers hooks from `.grok/hooks/` in the project directory. Manage them with:
+Astra discovers hooks from `.astra/hooks/` in the project directory. Manage them with:
 
 ```
 /hooks-list              # show hooks loaded in this session
@@ -1824,7 +1824,7 @@ context_window = 256000               # Total context window in tokens (for auto
 
 **Credential resolution order:** `api_key` → `env_key` → cached `auth_provider` token (terminal: a cache miss resolves to no credential, never the session token) → session token → `XAI_API_KEY`. See [Per-Model Auth Providers](#per-model-auth-providers).
 
-The `context_window` parameter is used to calculate when auto-compact should trigger. If not specified, Grok falls back to built-in defaults for known models.
+The `context_window` parameter is used to calculate when auto-compact should trigger. If not specified, Astra falls back to built-in defaults for known models.
 
 ### Overriding Built-in Models
 
@@ -1832,16 +1832,16 @@ You can override specific fields of built-in models without redefining everythin
 
 ```toml
 # Override just the API key for a default model
-[model.grok-build]
+[model.astra-build]
 api_key = "my-api-key"
 
 # Override temperature and add a custom API key
-[model.grok-4.20-0309-reasoning]
+[model.astra-4.20-0309-reasoning]
 temperature = 0.5
 api_key = "sk-custom"
 ```
 
-**How it works:** When you override a built-in model, Grok starts with the default configuration (including the correct `base_url` from your `[endpoints]` setting), then applies only the fields you specify. Unspecified fields inherit from the default.
+**How it works:** When you override a built-in model, Astra starts with the default configuration (including the correct `base_url` from your `[endpoints]` setting), then applies only the fields you specify. Unspecified fields inherit from the default.
 
 **Priority order:**
 1. Your config (`[model.*]`) — highest priority
@@ -1852,14 +1852,14 @@ api_key = "sk-custom"
 
 > **Overriding with a custom model:** Setting `[models] web_search` alone is not
 > enough if the model isn't already in the catalog (built-in defaults or
-> `grok models` output). You also need a `[model.*]` entry so Grok knows
+> `grok models` output). You also need a `[model.*]` entry so Astra knows
 > how to reach it. Without both, web search is silently disabled.
 >
 > ```toml
 > [models]
 > web_search = "my-custom-model"       # 1. tell web search which model to use
 >
-> [model.my-custom-model]              # 2. tell Grok how to reach it
+> [model.my-custom-model]              # 2. tell Astra how to reach it
 > model = "my-custom-model"
 > api_backend = "responses"            # required — web search uses the Responses API
 > # base_url, api_key, env_key optional — defaults to cli-chat-proxy
@@ -1926,7 +1926,7 @@ default = "my-model"
 
 ### Custom Models Endpoint
 
-Point Grok at a custom OpenAI-compatible `/v1/models` endpoint instead of the default cli-chat-proxy. Useful when models are served behind a corporate gateway or self-hosted inference stack.
+Point Astra at a custom OpenAI-compatible `/v1/models` endpoint instead of the default cli-chat-proxy. Useful when models are served behind a corporate gateway or self-hosted inference stack.
 
 **Environment variables:**
 
@@ -1944,34 +1944,34 @@ export XAI_API_KEY="xai-..."
 grok
 ```
 
-Grok fetches the model list from `{GROK_MODELS_BASE_URL}/models` on startup and sends inference requests to `GROK_MODELS_BASE_URL`. This follows the standard OpenAI-compatible convention used by OpenAI, Anthropic, OpenRouter, Groq, Together.ai, and others.
+Astra fetches the model list from `{GROK_MODELS_BASE_URL}/models` on startup and sends inference requests to `GROK_MODELS_BASE_URL`. This follows the standard OpenAI-compatible convention used by OpenAI, Anthropic, OpenRouter, Groq, Together.ai, and others.
 
 If your model list endpoint differs from `{base_url}/models`, set `GROK_MODELS_LIST_URL` explicitly.
 
-**Combining with `[endpoints]` config:** You can also set endpoints in `~/.grok/config.toml`:
+**Combining with `[endpoints]` config:** You can also set endpoints in `~/.astra/config.toml`:
 
 ```toml
 [endpoints]
 models_base_url = "https://api.acme.com/v1"
 
 # Override just the API key for a specific model
-[model.grok-build]
+[model.astra-build]
 api_key = "my-api-key"
 ```
 
 When using `[endpoints]` with partial model overrides, the `base_url` is inherited from the endpoints config — you don't need to specify it in each `[model.*]` section.
 
-**Auth behavior:** When `models_base_url` is set, Grok uses API key auth (`Authorization: Bearer`) instead of session auth. `grok login` is not required — only the API key.
+**Auth behavior:** When `models_base_url` is set, Astra uses API key auth (`Authorization: Bearer`) instead of session auth. `grok login` is not required — only the API key.
 
 ---
 
 ## MCP Servers
 
-Extend Grok's capabilities with [Model Context Protocol](https://modelcontextprotocol.io) servers.
+Extend Astra's capabilities with [Model Context Protocol](https://modelcontextprotocol.io) servers.
 
 ### Configuration
 
-MCP servers are configured in `~/.grok/config.toml`:
+MCP servers are configured in `~/.astra/config.toml`:
 
 ```toml
 [mcp_servers.<name>]
@@ -1987,36 +1987,36 @@ tool_timeouts = { create_issue = 120, search = 30 }  # Per-tool timeout override
 
 ### Project-Scoped MCP Servers
 
-MCP servers can also be configured per-project in `.grok/config.toml`. Grok walks from the current directory up to the git repo root, loading `.grok/config.toml` at each level:
+MCP servers can also be configured per-project in `.astra/config.toml`. Astra walks from the current directory up to the git repo root, loading `.astra/config.toml` at each level:
 
 | Location                        | Scope             | Priority |
 | ------------------------------- | ----------------- | -------- |
-| `~/.grok/config.toml`           | All projects      | Lowest   |
-| `<repo-root>/.grok/config.toml` | This repository   | ↑        |
-| `<cwd>/.grok/config.toml`       | Current directory | Highest  |
+| `~/.astra/config.toml`           | All projects      | Lowest   |
+| `<repo-root>/.astra/config.toml` | This repository   | ↑        |
+| `<cwd>/.astra/config.toml`       | Current directory | Highest  |
 
 If a project defines a server with the same name as a global one, the project version **replaces** it entirely (fields are not merged — omitted fields get defaults, not the global values). Servers defined only in the global config are unaffected.
 
-**Example:** commit a `.grok/config.toml` in your repo to share MCP servers across the team:
+**Example:** commit a `.astra/config.toml` in your repo to share MCP servers across the team:
 
 ```
 my-project/
-├── .grok/
+├── .astra/
 │   └── config.toml
 ├── src/
 └── ...
 ```
 
 ```toml
-# .grok/config.toml
+# .astra/config.toml
 [mcp_servers.linear]
 command = "npx"
 args = ["-y", "mcp-remote", "https://mcp.linear.app/mcp"]
 ```
 
-If you also have a `linear` server in `~/.grok/config.toml`, the project version replaces it entirely.
+If you also have a `linear` server in `~/.astra/config.toml`, the project version replaces it entirely.
 
-> **Note:** Only `[mcp_servers]` is supported in project-scoped `.grok/config.toml`. Other config sections (models, etc.) are only read from `~/.grok/config.toml`.
+> **Note:** Only `[mcp_servers]` is supported in project-scoped `.astra/config.toml`. Other config sections (models, etc.) are only read from `~/.astra/config.toml`.
 
 ### Tool Naming
 
@@ -2086,14 +2086,14 @@ See the [MCP Server Registry](https://github.com/modelcontextprotocol/servers) f
 
 > **Experimental:** enable with `GROK_MEMORY=1`, `[memory] enabled = true`, or managed remote settings.
 
-Cross-session memory lets Grok remember facts, decisions, code patterns, and debugging workflows across separate sessions in the same project.
+Cross-session memory lets Astra remember facts, decisions, code patterns, and debugging workflows across separate sessions in the same project.
 
 ### How it works
 
-Memory is stored as Markdown files under `~/.grok/memory/`:
-- **Global** (`~/.grok/memory/MEMORY.md`) — facts that apply across all your projects
-- **Workspace** (`~/.grok/memory/<project-slug>-<hash8>/MEMORY.md`) — project-specific conventions and context
-- **Session logs** (`~/.grok/memory/<project-slug>-<hash8>/sessions/`) — per-session summaries
+Memory is stored as Markdown files under `~/.astra/memory/`:
+- **Global** (`~/.astra/memory/MEMORY.md`) — facts that apply across all your projects
+- **Workspace** (`~/.astra/memory/<project-slug>-<hash8>/MEMORY.md`) — project-specific conventions and context
+- **Session logs** (`~/.astra/memory/<project-slug>-<hash8>/sessions/`) — per-session summaries
 
 Workspace directories are suffixed with a short hash for uniqueness (e.g. `xai-a3f7b2c9/`). The hash is derived from the git remote URL so all clones and worktrees of the same repository share the same memory directory.
 
@@ -2107,14 +2107,14 @@ export GROK_MEMORY=1
 grok
 
 # Config file (persists permanently)
-# ~/.grok/config.toml
+# ~/.astra/config.toml
 [memory]
 enabled = true
 ```
 
 ### What gets saved automatically
 
-At the end of each session, Grok saves a **structured metadata summary** to the daily session log:
+At the end of each session, Astra saves a **structured metadata summary** to the daily session log:
 - Message counts (user / assistant / tool)
 - Topics — the first few real user prompts from the session
 - Tool-usage breakdown (e.g., `read_file: 4, search_replace: 3`)
@@ -2130,7 +2130,7 @@ This summary is searchable in future sessions but does **not** capture full cont
 
 ### Capturing rich knowledge with `/flush`
 
-For richer capture — decisions, patterns, debugging workflows, API discoveries — use `/flush` in the TUI. This triggers an LLM-generated summary of the current session's most important content and writes it to a dated session log under `~/.grok/memory/<project-slug>-<hash8>/sessions/`, where it is indexed and searchable in future sessions.
+For richer capture — decisions, patterns, debugging workflows, API discoveries — use `/flush` in the TUI. This triggers an LLM-generated summary of the current session's most important content and writes it to a dated session log under `~/.astra/memory/<project-slug>-<hash8>/sessions/`, where it is indexed and searchable in future sessions.
 
 Use `/flush` when you want to preserve important context before compaction or at any point during a productive session.
 
@@ -2152,7 +2152,7 @@ Omit `workspace` or `global` and it defaults to workspace scope.
 
 ### Searching memory
 
-Grok searches memory automatically on the first turn of each session and after compaction. The first-turn injection can be disabled or given its own score threshold under `[memory.initial_injection]`. You can also invoke `memory_search` and `memory_get` directly via the model prompt:
+Astra searches memory automatically on the first turn of each session and after compaction. The first-turn injection can be disabled or given its own score threshold under `[memory.initial_injection]`. You can also invoke `memory_search` and `memory_get` directly via the model prompt:
 
 ```
 Search memory for "auth middleware patterns"
@@ -2174,13 +2174,13 @@ grok memory stats
 
 ### Configuration reference
 
-Key options under `[memory]` in `~/.grok/config.toml`:
+Key options under `[memory]` in `~/.astra/config.toml`:
 
 | Key | Default | Description |
 |-----|---------|-------------|
 | `enabled` | `false` | Enable memory (can also be set via CLI flag or env var) |
 | `session.save_on_end` | `true` | Write the lightweight metadata summary on session end |
-| `watcher.enabled` | `true` | Watch `~/.grok/memory/` for external edits and reindex on search |
+| `watcher.enabled` | `true` | Watch `~/.astra/memory/` for external edits and reindex on search |
 | `search.max_results` | `6` | Default number of memory results to return |
 | `search.min_score` | `0.35` | Minimum relevance score threshold for explicit memory search and recovery paths |
 | `initial_injection.enabled` | `true` | Enable automatic first-turn memory injection |
@@ -2190,7 +2190,7 @@ Key options under `[memory]` in `~/.grok/config.toml`:
 
 ### Observability
 
-When first-turn memory injection runs, Grok emits the `grok-shell-memory_injection`
+When first-turn memory injection runs, Astra emits the `grok-shell-memory_injection`
 telemetry event. It includes:
 - whether the greeting fallback query path was used
 - result counts and top score
@@ -2200,7 +2200,7 @@ telemetry event. It includes:
 
 ## Sandbox
 
-Grok can restrict what the agent process and its spawned commands can access on
+Astra can restrict what the agent process and its spawned commands can access on
 your filesystem and network using OS-level kernel primitives (Landlock on Linux,
 Seatbelt on macOS). This is off by default.
 
@@ -2222,16 +2222,16 @@ grok --sandbox strict
 | Profile         | FS Read            | FS Write                  | Child Network | Use Case                 |
 | --------------- | ------------------ | ------------------------- | ------------- | ------------------------ |
 | `off` (default) | Unrestricted       | Unrestricted              | Unrestricted  | No sandbox               |
-| `workspace`     | Everywhere         | CWD + `/tmp` + `~/.grok/` | Allowed       | Normal development       |
-| `read-only`     | Everywhere         | `~/.grok/` only           | Blocked       | Exploration, code review |
-| `strict`        | CWD + system paths | CWD + `/tmp` + `~/.grok/` | Blocked       | Untrusted code           |
+| `workspace`     | Everywhere         | CWD + `/tmp` + `~/.astra/` | Allowed       | Normal development       |
+| `read-only`     | Everywhere         | `~/.astra/` only           | Blocked       | Exploration, code review |
+| `strict`        | CWD + system paths | CWD + `/tmp` + `~/.astra/` | Blocked       | Untrusted code           |
 
-Sensitive paths (`~/.ssh/`, `~/.aws/`, `~/.gnupg/`, `~/.grok/auth/`) are always
+Sensitive paths (`~/.ssh/`, `~/.aws/`, `~/.gnupg/`, `~/.astra/auth/`) are always
 write-protected regardless of profile.
 
 ### Custom Profiles
 
-Create `~/.grok/sandbox.toml` (global) or `.grok/sandbox.toml` (per-project):
+Create `~/.astra/sandbox.toml` (global) or `.astra/sandbox.toml` (per-project):
 
 ```toml
 [profiles.devbox]
@@ -2273,7 +2273,7 @@ model cannot convince the agent to relax restrictions at runtime.
 
 - **Platform support**: Sandbox enforcement uses Landlock on Linux (kernel ≥ 5.13)
   and Seatbelt on macOS. If the sandbox cannot be applied (e.g., unsupported
-  kernel, missing entitlements), Grok logs a warning and continues without
+  kernel, missing entitlements), Astra logs a warning and continues without
   enforcement.
 
 - **Network restrictions are partial**: Profiles with `restrict_network` block
@@ -2284,14 +2284,14 @@ model cannot convince the agent to relax restrictions at runtime.
 
 ### Event Logging
 
-Sandbox events (profile applied, violations) are logged to `~/.grok/sandbox-events.jsonl`
+Sandbox events (profile applied, violations) are logged to `~/.astra/sandbox-events.jsonl`
 for telemetry and debugging.
 
 ---
 
 ## Introspection
 
-Use `grok inspect` to see everything Grok discovers in the current directory:
+Use `grok inspect` to see everything Astra discovers in the current directory:
 
 ```bash
 grok inspect          # human-readable output
@@ -2301,7 +2301,7 @@ grok inspect --json   # machine-readable JSON
 The output shows all loaded configuration organized by type:
 
 - **Project Instructions** — AGENTS.md / CLAUDE.md files with token counts
-- **Skills** — from `.grok/skills/`, `~/.grok/skills/`, plugins, and config paths
+- **Skills** — from `.astra/skills/`, `~/.astra/skills/`, plugins, and config paths
 - **Agents** — built-in, user-defined, and plugin-provided subagents
 - **Plugins** — discovered plugins with what each provides (skills, agents, hooks, MCPs)
 - **MCP Servers** — from `config.toml`, plugins, `~/.claude.json`, and `.mcp.json`
@@ -2315,13 +2315,13 @@ Plugin-provided components appear in their respective sections with a `[plugin: 
 
 ## Claude Code Compatibility
 
-Grok automatically discovers configuration from Claude Code directories alongside native `.grok/` paths. No extra setup is needed.
+Astra automatically discovers configuration from Claude Code directories alongside native `.astra/` paths. No extra setup is needed.
 
 ### What is picked up
 
-| Component         | Claude Code location                                 | How Grok uses it                 |
+| Component         | Claude Code location                                 | How Astra uses it                 |
 | ----------------- | ---------------------------------------------------- | -------------------------------- |
-| **Skills**        | `.claude/skills/`, `~/.claude/skills/`               | Loaded as skills (same as `.grok/skills/`) |
+| **Skills**        | `.claude/skills/`, `~/.claude/skills/`               | Loaded as skills (same as `.astra/skills/`) |
 | **Agents**        | `.claude/agents/`, `~/.claude/agents/`               | Loaded as subagents              |
 | **Plugins**       | `.claude/plugins/`, `~/.claude/plugins/`             | Discovered with all components   |
 | **Installed plugins** | `~/.claude/plugins/installed_plugins.json`        | Each `installPath` is loaded     |
@@ -2332,13 +2332,13 @@ Grok automatically discovers configuration from Claude Code directories alongsid
 
 ### Plugin components
 
-Claude Code plugins can provide skills (`skills/`), commands (`commands/`), agents (`agents/`), hooks (`hooks/hooks.json`), MCP servers (`.mcp.json`), and LSP servers (`.lsp.json`). All component types are discovered and used by Grok at runtime.
+Claude Code plugins can provide skills (`skills/`), commands (`commands/`), agents (`agents/`), hooks (`hooks/hooks.json`), MCP servers (`.mcp.json`), and LSP servers (`.lsp.json`). All component types are discovered and used by Astra at runtime.
 
 ---
 
 ## Built-in Tools
 
-Grok includes these tools by default:
+Astra includes these tools by default:
 
 | Tool             | Description                                                    |
 | ---------------- | -------------------------------------------------------------- |
@@ -2381,20 +2381,20 @@ disallowedTools:
 
 Fetch a specific URL and return its content as markdown. **Disabled by default** — enable with `GROK_WEB_FETCH=1`. 
 
-When no custom `allowed_domains` is set, the tool permits a default allowlist of useful documentation sites (SpaceXAI, language docs, frameworks, cloud providers, databases, etc.). Domains not on the allowlist prompt the user for approval; `--always-approve` auto-approves all. Domain matching is case-insensitive, strips `www.` prefixes, and supports path-scoped entries (e.g. `x.ai/company`).
+When no custom `allowed_domains` is set, the tool permits a default allowlist of useful documentation sites (Astra, language docs, frameworks, cloud providers, databases, etc.). Domains not on the allowlist prompt the user for approval; `--always-approve` auto-approves all. Domain matching is case-insensitive, strips `www.` prefixes, and supports path-scoped entries (e.g. `x.ai/company`).
 
 ---
 
 ## Session Persistence
 
-Grok automatically persists conversations to disk. This works across all modes: TUI, headless, and agent stdio.
+Astra automatically persists conversations to disk. This works across all modes: TUI, headless, and agent stdio.
 
 ### Storage Layout
 
-Sessions are stored under `~/.grok/sessions/`, organized by URL-encoded working directory:
+Sessions are stored under `~/.astra/sessions/`, organized by URL-encoded working directory:
 
 ```
-~/.grok/sessions/<encoded-cwd>/<session-id>/
+~/.astra/sessions/<encoded-cwd>/<session-id>/
   summary.json            # metadata: title, timestamps, model, message count
   updates.jsonl           # ACP session update stream (conversation + tool calls)
   chat_history.jsonl      # raw chat messages sent to the model
@@ -2470,19 +2470,19 @@ The agent persists all session updates automatically. Clients can reconnect and 
 
 | Path                  | Description                                         |
 | --------------------- | --------------------------------------------------- |
-| `~/.grok/config.toml` | Configuration file                                  |
-| `~/.grok/sessions/`   | Persisted sessions (organized by working directory) |
-| `~/.grok/auth.json`   | Authentication credentials (auto-managed)           |
-| `~/.grok/memory/`     | Cross-session memory files and index                |
-| `~/.grok/skills/`     | User-scoped skill definitions                       |
-| `~/.grok/plugins/`    | User-scoped plugins                                 |
-| `~/.grok/agents/`     | User-scoped agent definitions                       |
-| `.grok/config.toml`   | Project-scoped config (MCP servers)                 |
-| `.grok/skills/`       | Project-scoped skill definitions                    |
-| `.grok/plugins/`      | Project-scoped plugins                              |
-| `.grok/agents/`       | Project-scoped agent definitions                    |
-| `.grok/hooks/`        | Project-scoped hooks                                |
-| `.grok/lsp.json`      | LSP server configuration                            |
+| `~/.astra/config.toml` | Configuration file                                  |
+| `~/.astra/sessions/`   | Persisted sessions (organized by working directory) |
+| `~/.astra/auth.json`   | Authentication credentials (auto-managed)           |
+| `~/.astra/memory/`     | Cross-session memory files and index                |
+| `~/.astra/skills/`     | User-scoped skill definitions                       |
+| `~/.astra/plugins/`    | User-scoped plugins                                 |
+| `~/.astra/agents/`     | User-scoped agent definitions                       |
+| `.astra/config.toml`   | Project-scoped config (MCP servers)                 |
+| `.astra/skills/`       | Project-scoped skill definitions                    |
+| `.astra/plugins/`      | Project-scoped plugins                              |
+| `.astra/agents/`       | Project-scoped agent definitions                    |
+| `.astra/hooks/`        | Project-scoped hooks                                |
+| `.astra/lsp.json`      | LSP server configuration                            |
 | `~/.claude/skills/`   | User-scoped skills (Claude Code compat)             |
 | `~/.claude/plugins/`  | User-scoped plugins (Claude Code compat)            |
 | `~/.claude.json`      | MCP servers (Claude Code compat)                    |
@@ -2503,7 +2503,7 @@ The agent persists all session updates automatically. Clients can reconnect and 
 | `GROK_AUTH_EARLY_INVALIDATION_SECS` | Seconds before `expires_at` to consider a token expired (default: `300`). See [Automatic Credential Refresh](#automatic-credential-refresh) |
 | `GROK_OIDC_ISSUER`              | OIDC issuer URL (alternative to config file). See [OIDC](#oidc-customer-sso)                             |
 | `GROK_OIDC_CLIENT_ID`           | OIDC client ID (alternative to config file). See [OIDC](#oidc-customer-sso)                              |
-| `GROK_HOME`                     | Override config directory (default: `~/.grok`)                                                           |
+| `ASTRA_HOME`                     | Override config directory (default: `~/.astra`)                                                           |
 | `GROK_SUBAGENTS`                | Enable (`1`) or disable (`0`) subagent/task tool support                                                 |
 | `GROK_MEMORY`                   | Enable (`1`) or disable (`0`) cross-session memory                                                       |
 | `GROK_AGENT`                    | Custom agent definition path or name (see [Agent Profiles](#agent-profiles))                             |
@@ -2513,7 +2513,7 @@ The agent persists all session updates automatically. Clients can reconnect and 
 | `GROK_FEEDBACK_ENABLED`         | Enable (`1`) or disable (`0`) feedback system independently from telemetry                               |
 | `GROK_DEPLOYMENT_KEY`           | Management API key for enterprise deployments                                                            |
 | `GROK_LOG_FILE`                 | Enable file logging by providing a file path (the value is used verbatim as the path)                    |
-| `GROK_DEBUG_LOG`                | Debug firehose (set by `--debug`): truthy routes per-session logs to `~/.grok/debug/<sessionId>.txt`, a path writes that one file |
+| `GROK_DEBUG_LOG`                | Debug firehose (set by `--debug`): truthy routes per-session logs to `~/.astra/debug/<sessionId>.txt`, a path writes that one file |
 | `RUST_LOG`                      | Log filter for stderr (headless `-p` defaults to `off`, other non-TUI modes to `error`; TUI captures stderr) and for the `GROK_LOG_FILE` log; the `--debug` firehose ignores it |
 
 ---
@@ -2535,17 +2535,17 @@ grok completions bash > ~/.local/share/bash-completion/completions/grok
 
 Reload your shell or run `source ~/.bashrc`.
 
-Alternative (Grok-managed location):
+Alternative (Astra-managed location):
 
 ```bash
-mkdir -p ~/.grok/completions/bash
-grok completions bash > ~/.grok/completions/bash/grok.bash
+mkdir -p ~/.astra/completions/bash
+grok completions bash > ~/.astra/completions/bash/grok.bash
 ```
 
 Add to `~/.bashrc`:
 
 ```bash
-[[ -r "$HOME/.grok/completions/bash/grok.bash" ]] && source "$HOME/.grok/completions/bash/grok.bash"
+[[ -r "$HOME/.astra/completions/bash/grok.bash" ]] && source "$HOME/.astra/completions/bash/grok.bash"
 ```
 
 ### Zsh
@@ -2565,17 +2565,17 @@ autoload -Uz compinit
 compinit
 ```
 
-Alternative (Grok-managed location):
+Alternative (Astra-managed location):
 
 ```bash
-mkdir -p ~/.grok/completions/zsh
-grok completions zsh > ~/.grok/completions/zsh/_grok
+mkdir -p ~/.astra/completions/zsh
+grok completions zsh > ~/.astra/completions/zsh/_grok
 ```
 
 Add to `~/.zshrc`:
 
 ```zsh
-fpath=("$HOME/.grok/completions/zsh" $fpath)
+fpath=("$HOME/.astra/completions/zsh" $fpath)
 autoload -Uz compinit
 compinit
 ```
@@ -2593,14 +2593,14 @@ Regenerate completions after upgrading `grok` — the script reflects the CLI of
 Write logs to a file for debugging. The TUI captures stderr, so `RUST_LOG` alone won't produce visible output in production — use `grok --debug` or `GROK_LOG_FILE` instead:
 
 ```bash
-# Per-session debug log (~/.grok/debug/<sessionId>.txt)
+# Per-session debug log (~/.astra/debug/<sessionId>.txt)
 grok --debug
 
 # Log to a custom path
 GROK_LOG_FILE=/tmp/grok-debug.log grok
 
 # Tail the most-recently-opened session's log in another terminal (Unix symlink)
-tail -f ~/.grok/debug/latest.txt
+tail -f ~/.astra/debug/latest.txt
 ```
 
 The `--debug` firehose uses a fixed filter (first-party crates at `debug`) and is not narrowed by `RUST_LOG`. A `GROK_LOG_FILE` log defaults to `debug` and honors `RUST_LOG`, so you can set module-level filters for targeted debugging:
@@ -2655,16 +2655,16 @@ Session files are plain JSON/JSONL and can be inspected directly:
 
 ```bash
 # Find sessions for the current directory
-ls ~/.grok/sessions/
+ls ~/.astra/sessions/
 
 # Read session metadata
-cat ~/.grok/sessions/<encoded-cwd>/<session-id>/summary.json | jq .
+cat ~/.astra/sessions/<encoded-cwd>/<session-id>/summary.json | jq .
 
 # View conversation history
-cat ~/.grok/sessions/<encoded-cwd>/<session-id>/updates.jsonl | head -20
+cat ~/.astra/sessions/<encoded-cwd>/<session-id>/updates.jsonl | head -20
 
 # Count turns in a session
-wc -l ~/.grok/sessions/<encoded-cwd>/<session-id>/chat_history.jsonl
+wc -l ~/.astra/sessions/<encoded-cwd>/<session-id>/chat_history.jsonl
 ```
 
 ### Context window full

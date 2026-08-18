@@ -4057,7 +4057,7 @@ fn resolve_doom_loop_recovery_clamps_tunables() {
 #[test]
 #[serial]
 fn resolve_trace_upload_disabled_when_telemetry_off_despite_remote_flag() {
-    unsafe { std::env::remove_var("GROK_TELEMETRY_ENABLED") };
+    unsafe { std::env::remove_var("ASTRA_TELEMETRY_ENABLED") };
     unsafe { std::env::remove_var("GROK_TELEMETRY_TRACE_UPLOAD") };
     let mut cfg = Config::default();
     cfg.features.telemetry = Some(TelemetryMode::Disabled);
@@ -4072,7 +4072,7 @@ fn resolve_trace_upload_disabled_when_telemetry_off_despite_remote_flag() {
 #[test]
 #[serial]
 fn resolve_trace_upload_explicit_config_wins_over_telemetry_off() {
-    unsafe { std::env::remove_var("GROK_TELEMETRY_ENABLED") };
+    unsafe { std::env::remove_var("ASTRA_TELEMETRY_ENABLED") };
     unsafe { std::env::remove_var("GROK_TELEMETRY_TRACE_UPLOAD") };
     let mut cfg = Config::default();
     cfg.features.telemetry = Some(TelemetryMode::Disabled);
@@ -4092,7 +4092,7 @@ fn resolve_trace_upload_explicit_config_wins_over_telemetry_off() {
 #[test]
 #[serial]
 fn trace_upload_decision_debug_reports_winning_source() {
-    unsafe { std::env::remove_var("GROK_TELEMETRY_ENABLED") };
+    unsafe { std::env::remove_var("ASTRA_TELEMETRY_ENABLED") };
     unsafe { std::env::remove_var("GROK_TELEMETRY_TRACE_UPLOAD") };
     let mut cfg = Config::default();
     cfg.features.telemetry = Some(TelemetryMode::Disabled);
@@ -4115,7 +4115,7 @@ fn trace_upload_decision_debug_reports_winning_source() {
 #[test]
 #[serial]
 fn resolve_trace_upload_honors_config_when_telemetry_on() {
-    unsafe { std::env::remove_var("GROK_TELEMETRY_ENABLED") };
+    unsafe { std::env::remove_var("ASTRA_TELEMETRY_ENABLED") };
     unsafe { std::env::remove_var("GROK_TELEMETRY_TRACE_UPLOAD") };
     let mut cfg = Config::default();
     cfg.features.telemetry = Some(TelemetryMode::Enabled);
@@ -6532,12 +6532,12 @@ telemetry = "garbage"
 #[test]
 #[serial]
 fn is_telemetry_explicitly_disabled_sync_env_signals() {
-    unsafe { std::env::set_var("GROK_TELEMETRY_ENABLED", "0") };
+    unsafe { std::env::set_var("ASTRA_TELEMETRY_ENABLED", "0") };
     unsafe { std::env::remove_var("DISABLE_TELEMETRY") };
     assert!(is_telemetry_explicitly_disabled_sync());
-    unsafe { std::env::set_var("GROK_TELEMETRY_ENABLED", "1") };
+    unsafe { std::env::set_var("ASTRA_TELEMETRY_ENABLED", "1") };
     assert!(!is_telemetry_explicitly_disabled_sync());
-    unsafe { std::env::remove_var("GROK_TELEMETRY_ENABLED") };
+    unsafe { std::env::remove_var("ASTRA_TELEMETRY_ENABLED") };
     unsafe { std::env::set_var("DISABLE_TELEMETRY", "1") };
     assert!(is_telemetry_explicitly_disabled_sync());
     unsafe { std::env::remove_var("DISABLE_TELEMETRY") };
@@ -6561,7 +6561,7 @@ default = "grok-4.5"
     let cfg = Config::new_from_toml_cfg(&value).unwrap();
     assert_eq!(cfg.models.default.as_deref(), Some("grok-4.5"));
 }
-/// Reproduce the enterprise managed config bug: [model.grok-build] sets
+/// Reproduce the enterprise managed config bug: [model.astra-build] sets
 /// context_window=500k for model="grok-4.5", but
 /// [models].default="grok-4.5" resolves to the bare
 /// prefetched entry (256k) because Layer 3 only overrides key
@@ -6576,7 +6576,7 @@ fn slug_propagation_enterprise_managed_config_key_mismatch() {
             [models]
             default = "grok-4.5"
 
-            [model.grok-build]
+            [model.astra-build]
             model = "grok-4.5"
             context_window = 500000
             base_url = "https://inference.example.com/v1"
@@ -6615,7 +6615,7 @@ fn slug_propagation_inherits_api_backend_but_not_agent_type() {
     let default_cw = DEFAULT_CONTEXT_WINDOW;
     let raw: toml::Value = toml::from_str(
         r#"
-            [model.grok-build]
+            [model.astra-build]
             model = "grok-4.5"
             context_window = 500000
             base_url = "https://test.example.com/v1"
@@ -6650,7 +6650,7 @@ fn slug_propagation_inherits_api_backend_but_not_agent_type() {
 fn slug_propagation_does_not_overwrite_explicit_context_window() {
     let raw: toml::Value = toml::from_str(
         r#"
-            [model.grok-build]
+            [model.astra-build]
             model = "grok-4.5"
             context_window = 500000
             base_url = "https://test.example.com/v1"
@@ -6966,7 +6966,7 @@ fn config_model_reasoning_efforts_parses_inline_tables_and_bare_strings() {
 fn resolve_model_list_config_reasoning_efforts_beats_remote() {
     let raw_config: toml::Value = toml::from_str(
         r#"
-            [model.grok-x]
+            [model.astra-x]
             reasoning_efforts = ["low"]
             "#,
     )

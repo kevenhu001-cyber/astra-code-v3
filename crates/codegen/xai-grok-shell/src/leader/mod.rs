@@ -12,7 +12,7 @@
 //! │  ┌─────────────────────────────────────────────────────────┐│
 //! │  │                      Agent (MvpAgent)                    ││
 //! │  │   - Shared state across all clients                      ││
-//! │  │   - Persists to ~/.grok/                                 ││
+//! │  │   - Persists to ~/.astra/                                 ││
 //! │  └─────────────────────────────────────────────────────────┘│
 //! │                           ▲                                  │
 //! │                           │ ACP                              │
@@ -23,7 +23,7 @@
 //! │  │   - Tracks session ownership for routing                 ││
 //! │  └────────────────────────┬────────────────────────────────┘│
 //! └───────────────────────────┼──────────────────────────────────┘
-//!                             │ IPC (Unix socket at ~/.grok/leader.sock)
+//!                             │ IPC (Unix socket at ~/.astra/leader.sock)
 //!         ┌───────────────────┼───────────────────┐
 //!         ▼                   ▼                   ▼
 //! ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
@@ -1631,7 +1631,7 @@ pub async fn connect_or_spawn(
 /// Resolve the binary to spawn as the leader subprocess.
 ///
 /// For a **managed install** — the running binary lives under `grok_home`
-/// (e.g. `~/.grok/...`) — prefer the managed `~/.grok/bin/grok` symlink. After an
+/// (e.g. `~/.astra/...`) — prefer the managed `~/.astra/bin/grok` symlink. After an
 /// auto-update or `grok update` atomically swaps that symlink, `current_exe()`
 /// still resolves (via `/proc/self/exe` on Linux) to the *old* versioned target,
 /// so spawning it would relaunch the stale binary. The symlink always points to
@@ -1642,7 +1642,7 @@ pub async fn connect_or_spawn(
 /// not under `grok_home`), keep `current_exe()` so the spawned leader matches the
 /// calling binary.
 ///
-/// Falls back to `~/.grok/bin/grok` only when `current_exe()` is unavailable.
+/// Falls back to `~/.astra/bin/grok` only when `current_exe()` is unavailable.
 fn resolve_exe_for_spawn() -> Result<std::path::PathBuf, ConnectionError> {
     resolve_binary_with_home(&crate::util::grok_home::grok_home())
 }
@@ -1651,7 +1651,7 @@ fn resolve_binary_with_home(grok_home: &Path) -> Result<std::path::PathBuf, Conn
 }
 /// Binary file name for the managed grok install (`grok` / `grok.exe`).
 fn managed_grok_bin_name() -> &'static str {
-    if cfg!(windows) { "grok.exe" } else { "grok" }
+    if cfg!(windows) { "grok.exe" } else { "astra" }
 }
 /// Core leader-binary resolution with the current-exe path injected, for testability.
 fn resolve_binary_impl(
@@ -1696,7 +1696,7 @@ fn spawn_leader_subprocess(env_urls: &LeaderEnvUrls) -> Result<u32, ConnectionEr
     for key in [
         "GROK_DEBUG_LOG",
         "GROK_HOOKS_LOG",
-        "GROK_LOG_SAMPLING",
+        "ASTRA_LOG_SAMPLING",
         "GROK_INSTRUMENTATION",
     ] {
         if let Some(v) = std::env::var_os(key) {
@@ -2566,7 +2566,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let bin_dir = temp.path().join("bin");
         std::fs::create_dir_all(&bin_dir).unwrap();
-        std::fs::write(bin_dir.join("grok"), "fake-binary").unwrap();
+        std::fs::write(bin_dir.join("astra"), "fake-binary").unwrap();
         let result = resolve_binary_with_home(temp.path()).unwrap();
         let current = std::env::current_exe().unwrap();
         assert_eq!(result, current);
@@ -2585,7 +2585,7 @@ mod tests {
         std::fs::create_dir_all(&bin_dir).unwrap();
         let target_v2 = bin_dir.join("grok-v2");
         std::fs::write(&target_v2, "new-binary").unwrap();
-        std::os::unix::fs::symlink(&target_v2, bin_dir.join("grok")).unwrap();
+        std::os::unix::fs::symlink(&target_v2, bin_dir.join("astra")).unwrap();
         let result = resolve_binary_with_home(temp.path()).unwrap();
         let current = std::env::current_exe().unwrap();
         assert_eq!(result, current);
@@ -2598,7 +2598,7 @@ mod tests {
         std::fs::create_dir_all(&bin_dir).unwrap();
         let new_target = bin_dir.join("grok-v2");
         std::fs::write(&new_target, "new-binary").unwrap();
-        let managed = bin_dir.join("grok");
+        let managed = bin_dir.join("astra");
         std::os::unix::fs::symlink(&new_target, &managed).unwrap();
         let stale_target = bin_dir.join("grok-v1");
         std::fs::write(&stale_target, "old-binary").unwrap();

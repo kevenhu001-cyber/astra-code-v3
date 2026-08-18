@@ -90,7 +90,7 @@ fn resolve_agent_profile_path(path: &std::path::Path) -> std::path::PathBuf {
 /// Print startup information for the serve command.
 fn print_serve_startup_info(bind_addr: SocketAddr, secret: &str) {
     eprintln!();
-    eprintln!("   Grok agent server starting...");
+    eprintln!("   Astra agent server starting...");
     eprintln!();
     eprintln!("   Address:  {}:{}", bind_addr.ip(), bind_addr.port());
     eprintln!("   Secret:   {}", secret);
@@ -101,7 +101,7 @@ fn print_serve_startup_info(bind_addr: SocketAddr, secret: &str) {
     );
     eprintln!();
 }
-/// Entrypoint tag for `grok -p`; keys the quiet stderr default in `init_tracing_simple`.
+/// Entrypoint tag for `astra -p`; keys the quiet stderr default in `init_tracing_simple`.
 const HEADLESS_ENTRYPOINT: &str = "headless";
 /// Initialize simple tracing for non-TUI agent modes.
 fn init_tracing_simple(app_entrypoint: &'static str) {
@@ -131,7 +131,7 @@ fn init_tracing_simple(app_entrypoint: &'static str) {
         .with(xai_grok_telemetry::hooks_log::layer())
         .with(xai_grok_telemetry::otel_layer::build_otel_layer(
             xai_grok_telemetry::otel_layer::OtelClientInfo {
-                client_name: "grok-pager",
+                client_name: "astra-pager",
                 client_version: xai_grok_version::VERSION,
                 service_version: env!("VERSION_WITH_COMMIT"),
                 app_entrypoint,
@@ -149,30 +149,30 @@ fn init_tracing_simple(app_entrypoint: &'static str) {
         ),
     );
 }
-/// `grok setup`: rendering + exit codes only; fetch logic lives in `xai_grok_shell::managed_config`.
+/// `astra setup`: rendering + exit codes only; fetch logic lives in `xai_grok_shell::managed_config`.
 /// `json` prints the served configuration instead of installing it.
 async fn run_setup_command(json: bool) {
     use xai_grok_shell::managed_config::{self, SetupOutcome};
     if !managed_config::has_principal() {
         eprintln!("No deployment key or team sign-in found.");
         eprintln!();
-        eprintln!("To install managed configuration, sign in with a team using `grok login`,");
+        eprintln!("To install managed configuration, sign in with a team using `astra login`,");
         eprintln!("or set a deployment key:");
         eprintln!();
         if cfg!(unix) {
-            eprintln!("  export GROK_DEPLOYMENT_KEY=<your-key>");
+            eprintln!("  export ASTRA_DEPLOYMENT_KEY=<your-key>");
         } else {
-            eprintln!("  $env:GROK_DEPLOYMENT_KEY=\"<your-key>\"");
+            eprintln!("  $env:ASTRA_DEPLOYMENT_KEY=\"<your-key>\"");
         }
-        eprintln!("  grok setup");
+        eprintln!("  astra setup");
         eprintln!();
-        eprintln!("Or add the key to ~/.grok/config.toml:");
+        eprintln!("Or add the key to ~/.astra/config.toml:");
         eprintln!();
         eprintln!("  [endpoints]");
         eprintln!("  deployment_key = \"<your-key>\"");
         eprintln!();
         eprintln!(
-            "If you don't have a deployment key, contact your organization's Grok administrator."
+            "If you don't have a deployment key, contact your organization's Astra administrator."
         );
         std::process::exit(1);
     }
@@ -204,7 +204,7 @@ async fn run_setup_command(json: bool) {
         }
         SetupOutcome::Skipped => {
             eprintln!(
-                "Managed configuration was not applied this run (another process held the apply lock, or the credential changed during the fetch). Run `grok setup` again."
+                "Managed configuration was not applied this run (another process held the apply lock, or the credential changed during the fetch). Run `astra setup` again."
             );
         }
         SetupOutcome::Failed(e) => {
@@ -273,7 +273,7 @@ async fn kill_leaders() -> Result<()> {
         };
         if !xai_grok_shell::util::is_grok_process(pid) {
             if let Some(ref lock) = d.lock_path {
-                eprintln!("  PID {pid} is not a grok process, removing stale lock");
+                eprintln!("  PID {pid} is not an Astra process, removing stale lock");
                 let _ = std::fs::remove_file(lock);
                 cleaned += 1;
             }
@@ -316,7 +316,7 @@ async fn connect_to_leader(
         .ok_or_else(|| anyhow::anyhow!("resolved leader target did not include a socket path"))?;
     let client = xai_grok_shell::leader::LeaderClient::connect(
         socket_path.to_path_buf(),
-        "grok-pager-leader-cli",
+        "astra-pager-leader-cli",
         ClientMode::Stdio,
         ClientCapabilities::default(),
     )
@@ -367,10 +367,11 @@ fn ensure_control_caps(reg: &LeaderRegistration) -> Result<&LeaderCapabilities> 
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Leader does not advertise capabilities (legacy version)"))
 }
-/// Env override for the `grok workspace` gate: any truthy value enables the
+/// Env override for the `astra workspace` gate: any truthy value enables the
 /// command locally, a falsy one disables it — bypassing the remote settings flag.
-const WORKSPACE_COMMAND_ENV: &str = "GROK_WORKSPACE_COMMAND";
-/// Resolution of the `grok workspace` gate. `Unknown` is kept separate from
+const WORKSPACE_COMMAND_ENV: &str = "ASTRA_WORKSPACE_COMMAND";
+const LEGACY_WORKSPACE_COMMAND_ENV: &str = "GROK_WORKSPACE_COMMAND";
+/// Resolution of the `astra workspace` gate. `Unknown` is kept separate from
 /// `Disabled` so we don't tell the user the flag is off when the settings were
 /// simply never read (both fail closed, but `Unknown` earns an honest message).
 #[derive(Debug, PartialEq, Eq)]
@@ -379,10 +380,11 @@ enum WorkspaceGate {
     Disabled,
     Unknown,
 }
-/// The `GROK_WORKSPACE_COMMAND` override, if set (`Some(true)`/`Some(false)`);
+/// The `ASTRA_WORKSPACE_COMMAND` override, if set (`Some(true)`/`Some(false)`);
 /// `None` defers to the remote settings flag.
 fn workspace_command_env_override() -> Option<bool> {
     std::env::var(WORKSPACE_COMMAND_ENV)
+        .or_else(|_| std::env::var(LEGACY_WORKSPACE_COMMAND_ENV))
         .ok()
         .map(|v| env_flag_enabled(&v))
 }
@@ -405,7 +407,7 @@ fn workspace_command_gate(
         None => WorkspaceGate::Unknown,
     }
 }
-/// Truthy parse for grok on/off env vars: everything enables except the common
+/// Truthy parse for Astra on/off env vars: everything enables except the common
 /// falsy spellings (`0`, `false`, `off`, `no`, empty).
 fn env_flag_enabled(value: &str) -> bool {
     !matches!(
@@ -426,7 +428,7 @@ async fn run_workspace_mgmt(args: WorkspaceMgmtArgs) -> Result<()> {
     ) && let Some(profile) = xai_grok_sandbox::requested_confinement_profile()
     {
         anyhow::bail!(
-            "`grok workspace` start/restart/resume is unavailable under sandbox profile '{profile}': \
+            "`astra workspace` start/restart/resume is unavailable under sandbox profile '{profile}': \
              those commands (re)activate shared-leader workspace exposure that this session cannot \
              prove is confined by that profile. Disable the profile at the source that selected it \
              (CLI, env, config, or a managed requirement)."
@@ -442,14 +444,14 @@ async fn run_workspace_mgmt(args: WorkspaceMgmtArgs) -> Result<()> {
         WorkspaceGate::Enabled => {}
         WorkspaceGate::Disabled => {
             anyhow::bail!(
-                "`grok workspace` is not enabled for this account \
+                "`astra workspace` is not enabled for this account \
              (gated by a server-side feature flag that is currently off)."
             )
         }
         WorkspaceGate::Unknown => {
             anyhow::bail!(
-                "Could not load your settings for `grok workspace`. Check your \
-             network connection (run `grok login` if you are signed out), then \
+                "Could not load your settings for `astra workspace`. Check your \
+             network connection (run `astra login` if you are signed out), then \
              try again."
             )
         }
@@ -497,7 +499,7 @@ async fn connect_workspace_control(
     let socket = socket_path_for_ws_url(ws_url);
     LeaderClient::connect(
         socket,
-        "grok-workspace-cli",
+        "astra-workspace-cli",
         ClientMode::Stdio,
         ClientCapabilities::default(),
     )
@@ -505,7 +507,7 @@ async fn connect_workspace_control(
     .map_err(|e| {
         anyhow::anyhow!(
             "no running leader for this environment ({e}). \
-             Start a grok session, or run `grok workspace start`."
+             Start an Astra session, or run `astra workspace start`."
         )
     })
 }
@@ -544,14 +546,14 @@ async fn workspace_start(
     );
     if !use_leader {
         anyhow::bail!(
-            "`grok workspace` requires leader mode (the workspace is shared via the leader).\n\
-             Enable it with `[cli] use_leader = true` in ~/.grok/config.toml, or pass --leader."
+            "`astra workspace` requires leader mode (the workspace is shared via the leader).\n\
+             Enable it with `[cli] use_leader = true` in ~/.astra/config.toml, or pass --leader."
         );
     }
     ensure_authenticated(
         &agent_config.grok_com_config,
         false,
-        Some("No cached credentials found. Run `grok login` first."),
+        Some("No cached credentials found. Run `astra login` first."),
     )
     .await?;
     let env_urls = LeaderEnvUrls::from(&agent_config.grok_com_config);
@@ -560,7 +562,7 @@ async fn workspace_start(
         ..Default::default()
     };
     let conn = connect_or_spawn(
-        "grok-workspace-cli",
+        "astra-workspace-cli",
         ClientMode::Stdio,
         &env_urls,
         capabilities,
@@ -1053,7 +1055,7 @@ async fn forward_stdio_line_to_leader(
 }
 /// Emitted by both leader guards (server mode and leader-connect) so the two sites
 /// can't drift.
-const PLUGIN_DIR_LEADER_WARNING: &str = "grok: --plugin-dir is ignored in leader mode; run with --no-leader to \
+const PLUGIN_DIR_LEADER_WARNING: &str = "astra: --plugin-dir is ignored in leader mode; run with --no-leader to \
      load per-process plugins";
 /// Run the `agent` subcommand, dispatching to the appropriate mode.
 async fn run_agent_command(
@@ -1104,7 +1106,7 @@ async fn run_agent_command(
     let is_leader = matches!(agent_args.mode, Some(AgentCmd::Leader(_)));
     if !is_stdio && !is_leader {
         eprintln!(
-            "Grok Build (pager) - v{}",
+            "Astra (pager) - v{}",
             xai_grok_version::display_version_with_commit(
                 env!("VERSION_WITH_COMMIT"),
                 xai_grok_update::channel_label(),
@@ -1138,7 +1140,7 @@ async fn run_agent_command(
         None,
     );
     if let Some(warning) = launch_yolo.blocked_warning {
-        eprintln!("grok: {warning}");
+        eprintln!("astra: {warning}");
     }
     agent_config.default_yolo_mode = launch_yolo.yolo;
     agent_config.default_auto_mode = xai_grok_shell::util::config::effective_auto_for_launch(
@@ -1539,17 +1541,17 @@ fn raise_fd_limit() {
 #[cfg(not(unix))]
 fn raise_fd_limit() {}
 /// Single audit point for the `Command::Dashboard` soft-subcommand.
-/// Sets `GROK_OPEN_DASHBOARD_AT_STARTUP=1` if the user asked for
-/// `grok dashboard`, and clears `args.command` so the regular
+/// Sets `ASTRA_OPEN_DASHBOARD_AT_STARTUP=1` if the user asked for
+/// `astra dashboard`, and clears `args.command` so the regular
 /// subcommand match doesn't try to handle it.
 ///
 /// The dashboard is independent of leader mode — it renders local
 /// sessions and, when a leader happens to be present, additionally shows
-/// the leader roster — so `grok dashboard` does NOT force leader mode and
+/// the leader roster — so `astra dashboard` does NOT force leader mode and
 /// is compatible with `--no-leader`.
 ///
 /// The only gate is the feature flag: a disabled dashboard
-/// (`[dashboard].enabled = false` / `GROK_AGENT_DASHBOARD=0`) is a CLI
+/// (`[dashboard].enabled = false` / `ASTRA_AGENT_DASHBOARD=0`) is a CLI
 /// error here, before the TUI starts, because the welcome view silently
 /// drops the equivalent runtime toast.
 fn flag_dashboard_at_startup_if_requested(args: &mut PagerArgs) -> Result<()> {
@@ -1559,21 +1561,22 @@ fn flag_dashboard_at_startup_if_requested(args: &mut PagerArgs) -> Result<()> {
     if !xai_grok_pager::views::dashboard::dashboard_enabled() {
         anyhow::bail!(
             "the Agent Dashboard is disabled. Enable it by removing \
-             `[dashboard] enabled = false` from ~/.grok/config.toml and \
-             unsetting GROK_AGENT_DASHBOARD=0."
+             `[dashboard] enabled = false` from ~/.astra/config.toml and \
+             unsetting ASTRA_AGENT_DASHBOARD=0."
         );
     }
     args.command = None;
-    unsafe { std::env::set_var("GROK_OPEN_DASHBOARD_AT_STARTUP", "1") };
+    unsafe { std::env::set_var("ASTRA_OPEN_DASHBOARD_AT_STARTUP", "1") };
     Ok(())
 }
 const RUNTIME_SHUTDOWN_GRACE: std::time::Duration = std::time::Duration::from_secs(2);
-const GROK_WORKER_THREADS_ENV: &str = "GROK_WORKER_THREADS";
+const WORKER_THREADS_ENV: &str = "ASTRA_WORKER_THREADS";
+const LEGACY_WORKER_THREADS_ENV: &str = "GROK_WORKER_THREADS";
 /// tokio defaults to one worker per logical CPU. On a host with hundreds of
 /// CPUs that can exhaust a cgroup thread budget at startup and abort under
 /// `panic = "abort"`. A terminal UI is I/O-bound, so cap at 8.
 const DEFAULT_MAX_WORKER_THREADS: NonZeroUsize = NonZeroUsize::new(8).unwrap();
-/// How `GROK_WORKER_THREADS` resolved.
+/// How `ASTRA_WORKER_THREADS` resolved.
 #[derive(Debug, PartialEq, Eq)]
 enum WorkerCount {
     Accepted(NonZeroUsize),
@@ -1601,17 +1604,19 @@ impl WorkerCount {
                 used,
                 cores,
             } => Some(format!(
-                "grok: clamped {GROK_WORKER_THREADS_ENV}={requested} to {used} (valid range is 1..={cores})"
+                "astra: clamped {WORKER_THREADS_ENV}={requested} to {used} (valid range is 1..={cores})"
             )),
             Self::Ignored { value, .. } => Some(format!(
-                "grok: ignoring {GROK_WORKER_THREADS_ENV}={value:?} (not a valid integer)"
+                "astra: ignoring {WORKER_THREADS_ENV}={value:?} (not a valid integer)"
             )),
         }
     }
 }
 fn cli_worker_threads() -> NonZeroUsize {
     let cores = std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN);
-    let resolved = match std::env::var(GROK_WORKER_THREADS_ENV) {
+    let resolved = match std::env::var(WORKER_THREADS_ENV)
+        .or_else(|_| std::env::var(LEGACY_WORKER_THREADS_ENV))
+    {
         Ok(value) => worker_threads_from(Some(&value), cores),
         Err(std::env::VarError::NotPresent) => worker_threads_from(None, cores),
         Err(std::env::VarError::NotUnicode(value)) => WorkerCount::Ignored {
@@ -1787,7 +1792,7 @@ fn install_heap_profile_hooks() {
 }
 fn version_text(channel_label: &str) -> String {
     format!(
-        "grok {}\n",
+        "astra {}\n",
         xai_grok_version::display_version_with_commit(
             xai_grok_version::full_version(),
             channel_label,
@@ -1846,16 +1851,16 @@ fn main() {
     xai_grok_pager::memory_trace::start(xai_grok_pager::memory_trace::default_dir());
     raise_fd_limit();
     if let Err(e) = xai_grok_config::validate_requirements() {
-        eprintln!("Couldn't start Grok: {e}");
+        eprintln!("Couldn't start Astra: {e}");
         eprintln!();
         eprintln!(
-            "Update Grok to a version the policy allows, or ask your administrator \
+            "Update Astra to a version the policy allows, or ask your administrator \
              to fix the managed requirements."
         );
         std::process::exit(2);
     }
     let _sentry_guard = xai_grok_telemetry::sentry::init(xai_grok_telemetry::sentry::Config {
-        client: "grok-pager",
+        client: "astra-pager",
         client_version: PAGER_CLIENT_VERSION,
         release: env!("VERSION_WITH_COMMIT"),
         disabled: xai_grok_shell::agent::config::is_error_reporting_disabled_sync(),
@@ -1865,7 +1870,7 @@ fn main() {
     if xai_grok_shell::util::config::load_crash_handler_enabled_sync() {
         let crash_dir = xai_grok_shell::util::grok_home::grok_home().join("crash");
         if let Some(report) = xai_crash_handler::check_previous_crash(&crash_dir) {
-            eprintln!("Grok crashed during your last session.");
+            eprintln!("Astra crashed during your last session.");
             eprintln!("  Signal:  {}", report.signal_name);
             eprintln!("  Version: {}", report.app_version);
             eprintln!("  Report:  {}", report.report_path.display());
@@ -1893,7 +1898,7 @@ fn main() {
     builder.worker_threads(workers.get()).enable_all();
     let runtime =
         xai_tty_utils::runtime::build_with_blocking_pool(&mut builder).unwrap_or_else(|e| {
-            eprintln!("grok: failed to start tokio runtime: {e}");
+            eprintln!("astra: failed to start tokio runtime: {e}");
             shutdown_and_flush_telemetry(1);
         });
     let result = run_and_shutdown(runtime, async_main(args), RUNTIME_SHUTDOWN_GRACE);
@@ -2002,7 +2007,7 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                     };
                     anyhow::bail!(
                         "top-level {flag} applies to the pager TUI, not the agent subcommand. \
-                         Use `grok-pager agent {flag}` instead."
+                         Use `astra agent {flag}` instead."
                     );
                 }
                 enforce_version_policy_or_exit();
@@ -2171,7 +2176,7 @@ async fn async_main(args: PagerArgs) -> Result<()> {
             None,
         );
         if let Some(warning) = launch_yolo.blocked_warning {
-            eprintln!("grok: {warning}");
+            eprintln!("astra: {warning}");
         }
         let json_schema = args
             .json_schema
@@ -2248,9 +2253,9 @@ async fn async_main(args: PagerArgs) -> Result<()> {
         Ok(true) => {
             let adopted = bg_update_wait.lock().await.take();
             if finish_update_on_exit(adopted, &update_config).await {
-                eprintln!("Update installed. Run `grok` to start.");
+                eprintln!("Update installed. Run `astra` to start.");
             } else {
-                eprintln!("Update did not complete. Run `grok update` to retry.");
+                eprintln!("Update did not complete. Run `astra update` to retry.");
             }
             Ok(())
         }
@@ -2261,11 +2266,11 @@ async fn async_main(args: PagerArgs) -> Result<()> {
 /// Complete the update after a quit-for-update (Ctrl+U) exit. Returns `true`
 /// when an update path completed without a reported failure.
 ///
-/// Prefers awaiting the parked waiter for the background `grok update` child
+/// Prefers awaiting the parked waiter for the background `astra update` child
 /// spawned at startup — the download is usually already done or in flight.
 /// Only when there is no waiter (spawn failed, or no download was needed
 /// because the target was already on disk) or the child failed does this
-/// fall back to a fresh blocking `grok update`, which itself resolves to
+/// fall back to a fresh blocking `astra update`, which itself resolves to
 /// "Already up to date" without downloading when the disk is current.
 async fn finish_update_on_exit(
     adopted: Option<tokio::task::JoinHandle<std::io::Result<std::process::ExitStatus>>>,
@@ -2341,7 +2346,8 @@ fn should_check_for_updates(no_auto_update_flag: bool) -> bool {
     if no_auto_update_flag {
         return false;
     }
-    !std::env::var_os("GROK_DISABLE_AUTOUPDATER")
+    !std::env::var_os("ASTRA_DISABLE_AUTOUPDATER")
+        .or_else(|| std::env::var_os("GROK_DISABLE_AUTOUPDATER"))
         .is_some_and(|v| env_flag_enabled(&v.to_string_lossy()))
 }
 /// Gate for the stdio agent's background auto-update: only the direct stdio
@@ -2354,18 +2360,18 @@ fn stdio_auto_update_enabled(
 ) -> bool {
     is_stdio && !use_leader && updates_enabled && managed_install
 }
-/// True when `exe` is the binary `<grok_home>/bin/grok` resolves to, the
+/// True when `exe` is the binary `<astra_home>/bin/astra` resolves to, the
 /// install that adopts a staged update on respawn. Both sides are
 /// canonicalized; any failure reports unmanaged and skips the update. The
-/// npm shim hardcodes `~/.grok`, so a custom `GROK_HOME` skips here too.
-fn is_managed_install(exe: Option<std::path::PathBuf>, grok_home: &std::path::Path) -> bool {
-    if grok_home.as_os_str().is_empty() {
+/// npm shim hardcodes `~/.astra`, so a custom `ASTRA_HOME` skips here too.
+fn is_managed_install(exe: Option<std::path::PathBuf>, astra_home: &std::path::Path) -> bool {
+    if astra_home.as_os_str().is_empty() {
         return false;
     }
     let Some(exe) = exe else {
         return false;
     };
-    let managed = xai_grok_config::grok_application_in(grok_home);
+    let managed = xai_grok_config::grok_application_in(astra_home);
     match (dunce::canonicalize(&exe), dunce::canonicalize(&managed)) {
         (Ok(exe), Ok(managed)) => exe == managed,
         _ => false,
@@ -2384,7 +2390,7 @@ fn get_channel_switch(alpha: bool, stable: bool, enterprise: bool) -> Option<&'s
         None
     }
 }
-/// Handle `grok-pager update [--check] [--json] [--force-reinstall] [--version X] [--alpha|--stable|--enterprise]`.
+/// Handle `astra update [--check] [--json] [--force-reinstall] [--version X] [--alpha|--stable|--enterprise]`.
 /// --trigger is the one representation; --auto is the compat alias from
 /// older parents. Unknown values fall back to user_command (a human is the
 /// only caller that can produce them).
@@ -2432,7 +2438,7 @@ async fn run_update_command(
         );
     }
     let telemetry_cfg = xai_grok_shell::config::load_agent_config_disk_only()
-        .map_err(|e| tracing::warn!("grok update: telemetry init skipped (agent config: {e})"))
+        .map_err(|e| tracing::warn!("astra update: telemetry init skipped (agent config: {e})"))
         .ok();
     if let Some(agent_cfg) = telemetry_cfg {
         let auth_manager = std::sync::Arc::new(xai_grok_shell::auth::AuthManager::new(
@@ -2457,7 +2463,7 @@ async fn run_update_command(
     result?;
     Ok(())
 }
-/// After a successful `grok update`, ask any running leader on this machine that
+/// After a successful `astra update`, ask any running leader on this machine that
 /// is older than `installed_version` to relaunch onto the new binary (bounded
 /// grace; running sessions close and reconnect via `session/load`).
 ///
@@ -2479,7 +2485,7 @@ async fn signal_leaders_to_relaunch(installed_version: &str) {
         }
         let client = match xai_grok_shell::leader::LeaderClient::connect(
             socket_path,
-            "grok-pager-update",
+            "astra-pager-update",
             ClientMode::Stdio,
             ClientCapabilities::default(),
         )
@@ -2589,7 +2595,7 @@ mod tests {
         );
         assert_eq!(
             resolve_worker_override("100000", cores).notice().unwrap(),
-            "grok: clamped GROK_WORKER_THREADS=100000 to 360 (valid range is 1..=360)"
+            "astra: clamped ASTRA_WORKER_THREADS=100000 to 360 (valid range is 1..=360)"
         );
     }
     #[test]
@@ -2602,7 +2608,7 @@ mod tests {
         }
         assert_eq!(
             resolve_worker_override("abc", cores).notice().unwrap(),
-            "grok: ignoring GROK_WORKER_THREADS=\"abc\" (not a valid integer)"
+            "astra: ignoring ASTRA_WORKER_THREADS=\"abc\" (not a valid integer)"
         );
     }
     #[test]
@@ -2616,20 +2622,20 @@ mod tests {
             let mut output = Vec::new();
             write_version(&mut output, label).unwrap();
             let output = String::from_utf8(output).unwrap();
-            assert!(output.starts_with("grok "));
+            assert!(output.starts_with("astra "));
             assert!(output.contains(env!("VERSION_WITH_COMMIT")));
             assert!(output.ends_with(expected_suffix), "{output:?}");
         }
     }
     #[test]
     fn version_flags_and_doctor_are_distinct_early_intents() {
-        let version = PagerArgs::try_parse_from(["grok", "--version"]).unwrap();
+        let version = PagerArgs::try_parse_from(["astra", "--version"]).unwrap();
         assert!(version.version);
         assert!(version.command.is_none());
-        let short = PagerArgs::try_parse_from(["grok", "-v"]).unwrap();
+        let short = PagerArgs::try_parse_from(["astra", "-v"]).unwrap();
         assert!(short.version);
         assert!(short.command.is_none());
-        let subcommand = PagerArgs::try_parse_from(["grok", "version"]).unwrap();
+        let subcommand = PagerArgs::try_parse_from(["astra", "version"]).unwrap();
         assert!(!subcommand.version);
         assert!(matches!(
             subcommand.command,
@@ -2642,7 +2648,7 @@ mod tests {
     impl TempHeapDump {
         fn new(label: &str) -> Self {
             let path = std::env::temp_dir().join(format!(
-                "grok-jemalloc-{label}-{}-{}.heap",
+                "astra-jemalloc-{label}-{}-{}.heap",
                 std::process::id(),
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -2747,7 +2753,7 @@ mod tests {
         if !require_opt_prof() {
             return;
         }
-        let path = Path::new(OsStr::from_bytes(b"/tmp/grok-jemalloc-\0.heap"));
+        let path = Path::new(OsStr::from_bytes(b"/tmp/astra-jemalloc-\0.heap"));
         let err = jemalloc_dump_to_path(path).expect_err("interior NUL must fail");
         assert!(
             err.to_ascii_lowercase().contains("nul"),
@@ -2783,30 +2789,30 @@ mod tests {
     }
     #[cfg(unix)]
     #[test]
-    fn is_managed_install_matches_only_the_bin_grok_target() {
+    fn is_managed_install_matches_only_the_bin_astra_target() {
         let home =
-            std::env::temp_dir().join(format!("grok-pager-managed-install-{}", std::process::id()));
+            std::env::temp_dir().join(format!("astra-pager-managed-install-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&home);
         std::fs::create_dir_all(home.join("bin")).unwrap();
         std::fs::create_dir_all(home.join("downloads")).unwrap();
         assert!(!is_managed_install(
-            Some(home.join("bin").join("grok")),
+            Some(home.join("bin").join("astra")),
             &home
         ));
         assert!(!is_managed_install(None, &home));
         assert!(!is_managed_install(
-            Some(home.join("bin").join("grok")),
+            Some(home.join("bin").join("astra")),
             std::path::Path::new("")
         ));
-        let target = home.join("downloads").join("grok-1.2.3");
+        let target = home.join("downloads").join("astra-1.2.3");
         std::fs::write(&target, b"binary").unwrap();
-        std::os::unix::fs::symlink(&target, home.join("bin").join("grok")).unwrap();
+        std::os::unix::fs::symlink(&target, home.join("bin").join("astra")).unwrap();
         assert!(is_managed_install(
-            Some(home.join("bin").join("grok")),
+            Some(home.join("bin").join("astra")),
             &home
         ));
         assert!(is_managed_install(Some(target.clone()), &home));
-        let pinned = home.join("bin").join("grok-9.9.9");
+        let pinned = home.join("bin").join("astra-9.9.9");
         std::fs::write(&pinned, b"binary").unwrap();
         assert!(!is_managed_install(Some(pinned), &home));
         let _ = std::fs::remove_dir_all(&home);
@@ -2833,13 +2839,13 @@ mod tests {
         );
     }
     use clap::Parser as _;
-    /// `grok dashboard` flags the startup hook without forcing leader mode —
+    /// `astra dashboard` flags the startup hook without forcing leader mode —
     /// the dashboard is independent of leader mode, so the launch keeps
     /// whatever leader setting the user (or config) chose.
-    #[serial_test::serial(GROK_AGENT_DASHBOARD)]
+    #[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
     #[test]
     fn dashboard_subcommand_flags_startup_without_forcing_leader() {
-        let mut args = PagerArgs::try_parse_from(["grok", "dashboard"]).unwrap();
+        let mut args = PagerArgs::try_parse_from(["astra", "dashboard"]).unwrap();
         assert!(!args.leader, "fixture: no explicit --leader");
         flag_dashboard_at_startup_if_requested(&mut args).unwrap();
         assert!(!args.leader, "dashboard must NOT force leader mode");
@@ -2848,19 +2854,19 @@ mod tests {
             "soft subcommand must be consumed so the interactive path runs",
         );
         assert_eq!(
-            std::env::var("GROK_OPEN_DASHBOARD_AT_STARTUP").as_deref(),
+            std::env::var("ASTRA_OPEN_DASHBOARD_AT_STARTUP").as_deref(),
             Ok("1"),
             "startup hook flag must be set",
         );
-        unsafe { std::env::remove_var("GROK_OPEN_DASHBOARD_AT_STARTUP") };
+        unsafe { std::env::remove_var("ASTRA_OPEN_DASHBOARD_AT_STARTUP") };
     }
-    /// `grok dashboard --no-leader` is allowed — the dashboard does not
+    /// `astra dashboard --no-leader` is allowed — the dashboard does not
     /// require a leader, so the combination launches into the dashboard in
     /// non-leader mode.
-    #[serial_test::serial(GROK_AGENT_DASHBOARD)]
+    #[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
     #[test]
     fn dashboard_subcommand_allows_no_leader() {
-        let mut args = PagerArgs::try_parse_from(["grok", "--no-leader", "dashboard"]).unwrap();
+        let mut args = PagerArgs::try_parse_from(["astra", "--no-leader", "dashboard"]).unwrap();
         flag_dashboard_at_startup_if_requested(&mut args)
             .expect("--no-leader + dashboard must be allowed");
         assert!(args.no_leader, "--no-leader must be preserved");
@@ -2870,25 +2876,25 @@ mod tests {
             "soft subcommand must be consumed so the interactive path runs",
         );
         assert_eq!(
-            std::env::var("GROK_OPEN_DASHBOARD_AT_STARTUP").as_deref(),
+            std::env::var("ASTRA_OPEN_DASHBOARD_AT_STARTUP").as_deref(),
             Ok("1"),
             "startup hook flag must be set",
         );
-        unsafe { std::env::remove_var("GROK_OPEN_DASHBOARD_AT_STARTUP") };
+        unsafe { std::env::remove_var("ASTRA_OPEN_DASHBOARD_AT_STARTUP") };
     }
-    /// `GROK_AGENT_DASHBOARD=0` disables the feature — the subcommand
+    /// `ASTRA_AGENT_DASHBOARD=0` disables the feature — the subcommand
     /// must error visibly before the TUI starts.
-    #[serial_test::serial(GROK_AGENT_DASHBOARD)]
+    #[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
     #[test]
     fn dashboard_subcommand_errors_when_disabled() {
-        unsafe { std::env::set_var("GROK_AGENT_DASHBOARD", "0") };
-        let mut args = PagerArgs::try_parse_from(["grok", "dashboard"]).unwrap();
+        unsafe { std::env::set_var("ASTRA_AGENT_DASHBOARD", "0") };
+        let mut args = PagerArgs::try_parse_from(["astra", "dashboard"]).unwrap();
         let result = flag_dashboard_at_startup_if_requested(&mut args);
-        unsafe { std::env::remove_var("GROK_AGENT_DASHBOARD") };
+        unsafe { std::env::remove_var("ASTRA_AGENT_DASHBOARD") };
         let err = result.expect_err("disabled dashboard must error");
         assert!(err.to_string().contains("disabled"), "got: {err}");
         assert!(
-            std::env::var("GROK_OPEN_DASHBOARD_AT_STARTUP").is_err(),
+            std::env::var("ASTRA_OPEN_DASHBOARD_AT_STARTUP").is_err(),
             "failure path must not flag the startup hook",
         );
     }
@@ -2926,16 +2932,16 @@ mod tests {
             WorkspaceGate::Disabled
         );
     }
-    #[serial_test::serial(GROK_WORKSPACE_COMMAND)]
+    #[serial_test::serial(ASTRA_WORKSPACE_COMMAND)]
     #[test]
     fn workspace_command_env_override_parsing() {
-        unsafe { std::env::remove_var("GROK_WORKSPACE_COMMAND") };
+        unsafe { std::env::remove_var("ASTRA_WORKSPACE_COMMAND") };
         assert_eq!(workspace_command_env_override(), None);
-        unsafe { std::env::set_var("GROK_WORKSPACE_COMMAND", "1") };
+        unsafe { std::env::set_var("ASTRA_WORKSPACE_COMMAND", "1") };
         assert_eq!(workspace_command_env_override(), Some(true));
-        unsafe { std::env::set_var("GROK_WORKSPACE_COMMAND", "off") };
+        unsafe { std::env::set_var("ASTRA_WORKSPACE_COMMAND", "off") };
         assert_eq!(workspace_command_env_override(), Some(false));
-        unsafe { std::env::remove_var("GROK_WORKSPACE_COMMAND") };
+        unsafe { std::env::remove_var("ASTRA_WORKSPACE_COMMAND") };
     }
     fn make_state() -> std::sync::Mutex<StdioReplayState> {
         std::sync::Mutex::new(StdioReplayState::default())

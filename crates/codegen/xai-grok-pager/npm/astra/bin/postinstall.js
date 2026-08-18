@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Runs once after npm install/update. Reads the grok binary from the
+// Runs once after npm install/update. Reads the astra binary from the
 // matching per-platform optional dependency (@xai-official/grok-<platform>)
-// and installs it to ~/.grok/bin/ using versioned filenames:
+// and installs it to ~/.astra/bin/ using versioned filenames:
 //
-//   Unix:    grok-<version>  +  grok  (symlink)
-//   Windows: grok-<version>.exe  +  grok.exe  (copy)
+//   Unix:    astra-<version>  +  astra  (symlink)
+//   Windows: astra-<version>.exe  +  astra.exe  (copy)
 //
 // Versioned files ensure running processes are never disrupted on macOS
 // (replacing a binary that a running process has mmap'd causes SIGKILL
@@ -16,15 +16,15 @@ const zlib = require('zlib');
 const { execSync } = require('child_process');
 const TOML = require('@iarna/toml');
 
-// $GROK_HOME (else ~/.grok), matching the Rust grok_home() including its
+// $ASTRA_HOME (else ~/.astra), matching the Rust astra_home() including its
 // canonicalized-home default. Lets fleets relocate the binary off a slow $HOME
 // (NFS); old code hardcoded os.homedir().
-function defaultGrokHome() {
+function defaultAstraHome() {
     const home = os.homedir();
-    try { return path.join(fs.realpathSync(home), '.grok'); } catch { return path.join(home, '.grok'); }
+    try { return path.join(fs.realpathSync(home), '.astra'); } catch { return path.join(home, '.astra'); }
 }
-const GROK_HOME = process.env.GROK_HOME ?? defaultGrokHome();
-const CANONICAL_DIR = path.join(GROK_HOME, 'bin');
+const ASTRA_HOME = process.env.ASTRA_HOME ?? process.env.GROK_HOME ?? defaultAstraHome();
+const CANONICAL_DIR = path.join(ASTRA_HOME, 'bin');
 
 const key = `${process.platform}-${process.arch}`;
 const SUPPORTED = new Set([
@@ -120,7 +120,7 @@ function installBinary(binName, sourceDir, vendorSubpath) {
                 }
             } catch (e2) {
                 console.error(`@xai-official/grok: failed to update ${canonicalPath}: ${e2.message}`);
-                console.error('Close all running grok processes and try again.');
+                console.error('Close all running astra processes and try again.');
                 return false;
             }
         }
@@ -157,7 +157,7 @@ function byVersionDescending(prefix) {
 // Best-effort cleanup of old versioned binaries for a given binary name.
 // Keeps the current version and the previous one (in case a process is still
 // running the old binary and hasn't fully loaded all pages yet).
-// Uses an exact prefix match + hyphen + digit to avoid grok-* matching grok-pager-*.
+// Uses an exact prefix match + hyphen + digit to avoid astra-* matching grok-pager-*.
 function cleanupOldVersions(binName) {
     try {
         const prefix = `${binName}-`;
@@ -186,20 +186,20 @@ if (!platformDir) {
     process.exit(0);
 }
 
-installBinary('grok', platformDir, `grok${EXE}`);
-cleanupOldVersions('grok');
+installBinary('astra', platformDir, `astra${EXE}`);
+cleanupOldVersions('astra');
 cleanupOldVersions('grok-pager');
 
 // Write installer config
-const configDir = GROK_HOME;
+const configDir = ASTRA_HOME;
 const configPath = path.join(configDir, 'config.toml');
 let obj = {};
 try { obj = TOML.parse(fs.readFileSync(configPath, 'utf8')); } catch { }
 obj.cli ??= {};
 obj.cli.installer = 'npm';
 
-// Persist the npm registry so `grok update` and the trampoline use the same one.
-const npmRegistry = process.env.GROK_NPM_REGISTRY
+// Persist the npm registry so `astra update` and the trampoline use the same one.
+const npmRegistry = process.env.ASTRA_NPM_REGISTRY
     || (() => {
         try {
             const resolved = execSync(
@@ -218,23 +218,23 @@ if (npmRegistry) {
 fs.writeFileSync(configPath, TOML.stringify(obj), 'utf8');
 
 // Shell completions: print setup hints (no silent shell config mutation).
-// Set GROK_INSTALL_COMPLETIONS=1 to auto-generate to ~/.grok/completions.
-const GROK_PATH = path.join(CANONICAL_DIR, `grok${EXE}`);
-if (process.env.GROK_INSTALL_COMPLETIONS === '1' && !IS_WINDOWS) {
+// Set ASTRA_INSTALL_COMPLETIONS=1 to auto-generate to ~/.astra/completions.
+const ASTRA_PATH = path.join(CANONICAL_DIR, `astra${EXE}`);
+if (process.env.ASTRA_INSTALL_COMPLETIONS === '1' && !IS_WINDOWS) {
     try {
         const { spawnSync } = require('child_process');
-        const completionsDir = path.join(GROK_HOME, 'completions');
-        const bashPath = path.join(completionsDir, 'bash', 'grok.bash');
-        const zshPath = path.join(completionsDir, 'zsh', '_grok');
+        const completionsDir = path.join(ASTRA_HOME, 'completions');
+        const bashPath = path.join(completionsDir, 'bash', 'astra.bash');
+        const zshPath = path.join(completionsDir, 'zsh', '_astra');
         fs.mkdirSync(path.dirname(bashPath), { recursive: true });
         fs.mkdirSync(path.dirname(zshPath), { recursive: true });
-        const bashRes = spawnSync(GROK_PATH, ['completions', 'bash'], { encoding: 'utf8' });
+        const bashRes = spawnSync(ASTRA_PATH, ['completions', 'bash'], { encoding: 'utf8' });
         if (bashRes.status === 0) fs.writeFileSync(bashPath, bashRes.stdout);
-        const zshRes = spawnSync(GROK_PATH, ['completions', 'zsh'], { encoding: 'utf8' });
+        const zshRes = spawnSync(ASTRA_PATH, ['completions', 'zsh'], { encoding: 'utf8' });
         if (zshRes.status === 0) fs.writeFileSync(zshPath, zshRes.stdout);
-        console.log('Completions generated to ~/.grok/completions (bash/zsh)');
+        console.log('Completions generated to ~/.astra/completions (bash/zsh)');
     } catch {}
 } else if (!IS_WINDOWS) {
-    console.log('Tip: grok completions bash > ~/.local/share/bash-completion/completions/grok');
-    console.log('     grok completions zsh  > ~/.zsh/completions/_grok');
+    console.log('Tip: astra completions bash > ~/.local/share/bash-completion/completions/astra');
+    console.log('     astra completions zsh  > ~/.zsh/completions/_astra');
 }

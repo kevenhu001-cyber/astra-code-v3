@@ -252,7 +252,7 @@ pub(crate) fn collect_startup_warnings_from(
             None,
         );
         warning.note = Some(
-            "Grok also saves each copy to the backup file shown in the copy message. To copy \
+            "Astra also saves each copy to the backup file shown in the copy message. To copy \
              directly, run `grok wrap ssh <host>` on your local computer or use a terminal that \
              supports OSC 52. You can also use `/copy <file>` or `/minimal`."
                 .to_owned(),
@@ -285,7 +285,7 @@ pub(crate) fn collect_startup_warnings_from(
     {
         let message = match fullscreen_active {
             Some(true) => "Fullscreen may be unreliable in tmux control mode",
-            Some(false) => "Grok is using inline mode because tmux control mode limits fullscreen",
+            Some(false) => "Astra is using inline mode because tmux control mode limits fullscreen",
             None => "Display may be limited in tmux control mode",
         };
         let mut warning = TerminalWarning::new(WarningCategory::ControlMode, message, None, None);
@@ -400,7 +400,7 @@ pub(crate) fn wezterm_kitty_keyboard_warning_from(
             None,
         );
         warning.note = Some(
-            "For this session, type `\\` and then press Enter. Grok can't negotiate the Kitty \
+            "For this session, type `\\` and then press Enter. Astra can't negotiate the Kitty \
              keyboard protocol over SSH yet. `enable_kitty_keyboard = true` applies only to \
              local WezTerm sessions."
                 .to_string(),
@@ -442,7 +442,7 @@ fn sandbox_profile_conflict_warning_from(conflicts: Vec<String>) -> Option<Termi
         fix: None,
         config_path: None,
         note: Some(format!(
-            "Grok is using the user profile. Compare `.grok/sandbox.toml` with {}, then rename \
+            "Astra is using the user profile. Compare `.astra/sandbox.toml` with {}, then rename \
              or remove the conflicting project profile. Project settings can add profile names \
              but can't redefine a user profile.",
             crate::util::display_user_grok_path("sandbox.toml")
@@ -604,7 +604,7 @@ pub(crate) fn collect_notification_warnings_with_method(
     {
         let mut warning = TerminalWarning::new(
             WarningCategory::NotificationProtocolFallback,
-            "Grok is using the terminal bell because the terminal was not recognized",
+            "Astra is using the terminal bell because the terminal was not recognized",
             None,
             None,
         );
@@ -968,12 +968,12 @@ pub fn color_support_warning(
             None,
             None,
         );
-        warning.note = Some("Unset `NO_COLOR`, then restart Grok.".to_string());
+        warning.note = Some("Unset `NO_COLOR`, then restart Astra.".to_string());
         return Some(warning);
     }
 
     // Checked before the detected level is consulted at all: the level says
-    // what Grok emits, which is a different question from what survives tmux.
+    // what Astra emits, which is a different question from what survives tmux.
     // A truecolor detection is not evidence that truecolor reaches the
     // terminal, and a session with no color evidence (piped `grok doctor`)
     // still has a clamping client worth reporting.
@@ -987,7 +987,7 @@ pub fn color_support_warning(
         warning.note = Some(format!(
             "Run `tmux source-file {tmux_config_path}`, then detach and reattach: the server \
              reads the option only on reload, and a client fixes its color depth only at attach. \
-             If Grok still reports less than truecolor afterwards, also add `set -g \
+             If Astra still reports less than truecolor afterwards, also add `set -g \
              default-terminal \"tmux-256color\"` and `export COLORTERM=truecolor` to your shell \
              startup file."
         ));
@@ -1026,7 +1026,7 @@ pub fn color_support_warning(
         warning.note = Some(format!(
             "In the same tmux config, also add `set -g default-terminal \"tmux-256color\"`. Add \
              `export COLORTERM=truecolor` to your shell startup file. Then reload tmux with \
-             `tmux source-file {tmux_config_path}`, then detach and reattach, and restart Grok."
+             `tmux source-file {tmux_config_path}`, then detach and reattach, and restart Astra."
         ));
         return Some(warning);
     }
@@ -1039,7 +1039,7 @@ pub fn color_support_warning(
     );
     warning.note = Some(
         "Add this export to your shell startup file, such as `~/.zshrc` or `~/.bashrc`, then \
-         restart Grok."
+         restart Astra."
             .to_string(),
     );
     Some(warning)
@@ -2132,7 +2132,7 @@ mod tests {
         assert!(w.config_path.is_none());
         assert!(w.note.as_deref().is_some_and(|note| {
             note.contains("rename or remove")
-                && note.contains(".grok/sandbox.toml")
+                && note.contains(".astra/sandbox.toml")
                 && note.contains(&crate::util::display_user_grok_path("sandbox.toml"))
                 && note.contains("can't redefine")
         }));
@@ -3064,7 +3064,7 @@ mod tests {
     }
 
     /// Regression: a tmux client that reduces color used to be invisible to
-    /// Doctor whenever Grok's own detection reported truecolor, so a session
+    /// Doctor whenever Astra's own detection reported truecolor, so a session
     /// with washed-out themes was reported completely healthy.
     #[test]
     fn color_support_warning_reports_tmux_clamp_at_truecolor() {

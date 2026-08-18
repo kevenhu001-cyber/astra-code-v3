@@ -510,7 +510,7 @@ struct ErrorBody {
     code: Option<String>,
 }
 
-/// Flat error from the Grok proxy/gateway: `{"code": "...", "error": "..."}`.
+/// Flat error from the Astra proxy/gateway: `{"code": "...", "error": "..."}`.
 /// The `code` slot stays strict (`Option<String>`) on purpose: flat bodies
 /// with a non-string code (e.g. `{"code":429,"error":"... [WKE=...]"}`) must
 /// keep failing this parse so they reach the provider fallback, which strips
@@ -593,22 +593,22 @@ pub const MAX_USER_ERROR_BODY_CHARS: usize = 280;
 pub fn status_user_message(status: StatusCode) -> String {
     match status.as_u16() {
         code @ 502..=504 => {
-            format!("Grok is temporarily unavailable. Please try again in a moment. (HTTP {code}).")
+            format!("Astra is temporarily unavailable. Please try again in a moment. (HTTP {code}).")
         }
         // Upstream capacity, not an edge failure — see [`SamplingError::is_overloaded`].
         code @ 529 => {
-            format!("Grok is temporarily overloaded. Please try again in a moment. (HTTP {code}).")
+            format!("Astra is temporarily overloaded. Please try again in a moment. (HTTP {code}).")
         }
         // Cloudflare edge: origin unreachable or timed out (520–524), or an
         // edge-side 1xxx failure (530).
         code @ 520..=524 | code @ 530 => {
             format!(
-                "Connection to Grok timed out or was interrupted. Please try again. (HTTP {code})."
+                "Connection to Astra timed out or was interrupted. Please try again. (HTTP {code})."
             )
         }
         // Cloudflare origin TLS (handshake / invalid certificate) — not transient.
         code @ 525 | code @ 526 => {
-            format!("Secure connection to Grok failed. (HTTP {code}).")
+            format!("Secure connection to Astra failed. (HTTP {code}).")
         }
         code if status.is_server_error() => {
             format!("Something went wrong on the server (HTTP {code}).")

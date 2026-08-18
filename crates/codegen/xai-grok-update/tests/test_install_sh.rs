@@ -47,7 +47,7 @@ fn host_platform() -> String {
 }
 
 const GOOD_SCRIPT: &str = "#!/bin/sh\nexit 0\n";
-const INSTALLER_BLOCK_START: &str = "# >>> grok installer >>>";
+const INSTALLER_BLOCK_START: &str = "# >>> astra installer >>>";
 
 /// Write a fake `curl` that intercepts every download `install.sh` performs.
 /// `$FAKE_MODE` (full|truncate|garbage) selects the corruption.
@@ -93,37 +93,37 @@ exit 0
 
 /// Seed a valid previous-good binary + symlink in the isolated home.
 fn seed_previous_good(home: &Path, platform: &str) -> PathBuf {
-    let downloads = home.join(".grok").join("downloads");
-    let bin = home.join(".grok").join("bin");
+    let downloads = home.join(".astra").join("downloads");
+    let bin = home.join(".astra").join("bin");
     std::fs::create_dir_all(&downloads).unwrap();
     std::fs::create_dir_all(&bin).unwrap();
-    let prev = downloads.join(format!("grok-{platform}"));
+    let prev = downloads.join(format!("astra-{platform}"));
     std::fs::write(&prev, GOOD_SCRIPT).unwrap();
     std::fs::set_permissions(&prev, std::fs::Permissions::from_mode(0o755)).unwrap();
-    let link = bin.join("grok");
+    let link = bin.join("astra");
     let _ = std::fs::remove_file(&link);
-    std::os::unix::fs::symlink(format!("../downloads/grok-{platform}"), &link).unwrap();
+    std::os::unix::fs::symlink(format!("../downloads/astra-{platform}"), &link).unwrap();
     dunce::canonicalize(&prev).unwrap()
 }
 
-/// Re-resolve `$BIN_DIR/grok` from disk and re-run it: the active grok must
+/// Re-resolve `$BIN_DIR/grok` from disk and re-run it: the active astra must
 /// always execute, and never be a `.tmp`/partial file.
 fn assert_active_grok_runs(home: &Path) {
-    let link = home.join(".grok").join("bin").join("grok");
+    let link = home.join(".astra").join("bin").join("astra");
     assert!(link.is_symlink(), "grok must remain a symlink");
     let resolved =
         dunce::canonicalize(&link).unwrap_or_else(|e| panic!("grok symlink dangles: {e}"));
     let name = resolved.file_name().unwrap().to_string_lossy().to_string();
     assert!(
         !name.contains(".tmp"),
-        "active grok must not be a temp file: {name}"
+        "active astra must not be a temp file: {name}"
     );
     let ok = Command::new(&resolved)
         .arg("--version")
         .status()
         .map(|s| s.success())
         .unwrap_or(false);
-    assert!(ok, "active grok must run: {}", resolved.display());
+    assert!(ok, "active astra must run: {}", resolved.display());
 }
 
 fn run_installer(install_sh: &Path, home: &Path, fakebin: &Path, mode: &str, shell: &str) -> bool {
@@ -135,8 +135,8 @@ fn run_installer(install_sh: &Path, home: &Path, fakebin: &Path, mode: &str, she
         .env("HOME", home)
         .env("PATH", path_env)
         .env("SHELL", shell)
-        .env("GROK_BIN_DIR", home.join(".grok").join("bin"))
-        .env("GROK_CHANNEL", "stable")
+        .env("ASTRA_BIN_DIR", home.join(".astra").join("bin"))
+        .env("ASTRA_CHANNEL", "stable")
         .env("FAKE_MODE", mode)
         .status()
         .expect("spawn bash install.sh");
@@ -155,7 +155,7 @@ fn assert_single_installer_block(path: &Path, preserved: Option<&str>) {
     assert_eq!(
         n,
         1,
-        "{} must contain exactly one grok installer block, got {n}:\n{body}",
+        "{} must contain exactly one astra installer block, got {n}:\n{body}",
         path.display()
     );
     if let Some(marker) = preserved {
@@ -372,7 +372,7 @@ fn write_fake_macos_x86_host(dir: &Path, host: FakeHost) {
 
 /// Run an install script against a fake macOS/x86_64 host and return the
 /// artifact URLs it requested. The enterprise script requires auth, provided
-/// via a dummy `GROK_DEPLOYMENT_KEY`.
+/// via a dummy `ASTRA_DEPLOYMENT_KEY`.
 fn install_urls_on_fake_host(script: &str, host: FakeHost) -> Option<String> {
     let script_file = script_path(script)?;
     let fakedir = tempfile::tempdir().unwrap();
@@ -389,9 +389,9 @@ fn install_urls_on_fake_host(script: &str, host: FakeHost) -> Option<String> {
         .env("HOME", home.path())
         .env("PATH", path_env)
         .env("SHELL", "/bin/bash")
-        .env("GROK_BIN_DIR", home.path().join(".grok").join("bin"))
-        .env("GROK_CHANNEL", "stable")
-        .env("GROK_DEPLOYMENT_KEY", "test-deployment-key")
+        .env("ASTRA_BIN_DIR", home.path().join(".astra").join("bin"))
+        .env("ASTRA_CHANNEL", "stable")
+        .env("ASTRA_DEPLOYMENT_KEY", "test-deployment-key")
         .env("FAKE_MODE", "full")
         .env("FAKE_URL_LOG", &url_log)
         .status()
@@ -413,7 +413,7 @@ fn install_scripts_rosetta_shell_installs_arm64() {
             return;
         };
         assert!(
-            urls.contains("grok-0.1.181-macos-aarch64"),
+            urls.contains("astra-0.1.181-macos-aarch64"),
             "{script}: Rosetta shell must request the arm64 artifact, urls:\n{urls}"
         );
         assert!(
@@ -431,7 +431,7 @@ fn install_scripts_intel_mac_keeps_x86_64() {
             return;
         };
         assert!(
-            urls.contains("grok-0.1.181-macos-x86_64"),
+            urls.contains("astra-0.1.181-macos-x86_64"),
             "{script}: Intel Mac must keep the x86_64 artifact, urls:\n{urls}"
         );
     }

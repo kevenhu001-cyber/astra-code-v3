@@ -657,11 +657,11 @@ fn validate_selectable_rejects_bad_allowlists() {
             [models]
             default = "grok-3"
             allowed_models = ["grok-4*"]
-            [model.grok-3]
+            [model.astra-3]
             model = "grok-3"
             base_url = "https://api.x.ai/v1"
             context_window = 256000
-            [model.grok-4]
+            [model.astra-4]
             model = "grok-4"
             base_url = "https://api.x.ai/v1"
             context_window = 256000
@@ -678,7 +678,7 @@ fn validate_selectable_rejects_bad_allowlists() {
         r#"
             [models]
             allowed_models = ["nomatch-*"]
-            [model.grok-4]
+            [model.astra-4]
             model = "grok-4"
             base_url = "https://api.x.ai/v1"
             context_window = 256000
@@ -2058,11 +2058,11 @@ fn make_entry_config_with_id(
 fn build_prefetched_map_distinct_ids_same_slug() {
     let entries = vec![
         make_entry_config_with_id(Some("auto"), "grok-build", Some("Auto")),
-        make_entry_config_with_id(Some("grok-build"), "grok-build", Some("Grok Build")),
+        make_entry_config_with_id(Some("grok-build"), "grok-build", Some("Astra")),
         make_entry_config_with_id(
             Some("experimental-fast"),
             "experimental-fast",
-            Some("Grok Fast"),
+            Some("Astra Fast"),
         ),
     ];
     let map = build_prefetched_map(entries, None);
@@ -2124,7 +2124,7 @@ fn build_prefetched_map_none_id_falls_back_to_slug() {
     let entries = vec![make_entry_config_with_id(
         None,
         "grok-build",
-        Some("Grok Build"),
+        Some("Astra"),
     )];
     let map = build_prefetched_map(entries, None);
 

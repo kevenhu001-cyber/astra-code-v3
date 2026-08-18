@@ -645,13 +645,13 @@ mod tests {
         assert_eq!(info.branch.as_deref(), Some("dep-branch"));
     }
 
-    #[serial_test::serial(GROK_HOME)]
+    #[serial_test::serial(ASTRA_HOME)]
     #[test]
     fn compute_cwd_git_info_nested_repo_does_not_inherit_db_record() {
         let home = tempfile::tempdir().unwrap();
-        // serial(GROK_HOME) orders peers; EnvVarGuard restores on drop so
+        // serial(ASTRA_HOME) orders peers; EnvVarGuard restores on drop so
         // later `open_default()` callers do not see a deleted temp home.
-        let _grok_home = crate::test_util::EnvVarGuard::set("GROK_HOME", home.path());
+        let _grok_home = crate::test_util::EnvVarGuard::set("ASTRA_HOME", home.path());
         let _ = xai_fast_worktree::db::WorktreeDb::open(home.path());
 
         let wt = crate::test_util::TempGitRepo::init("wt-branch");

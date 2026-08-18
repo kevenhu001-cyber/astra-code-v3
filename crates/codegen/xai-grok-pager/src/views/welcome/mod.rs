@@ -3159,7 +3159,7 @@ mod tests {
     }
 
     /// The hidden-external hint stays pinned on the welcome picker's default
-    /// Grok view when scanned foreign rows exist — even when the native list
+    /// Astra view when scanned foreign rows exist — even when the native list
     /// overflows the viewport — and never renders under `--chat` (foreign
     /// scanning is disabled there, so the hint is dead weight).
     #[test]
@@ -3218,7 +3218,7 @@ mod tests {
         let build_mode = render(false);
         assert!(
             build_mode.contains("1 external session hidden \u{b7} f to show"),
-            "default Grok filter must pin the hidden-external hint:\n{build_mode}"
+            "default Astra filter must pin the hidden-external hint:\n{build_mode}"
         );
         assert!(
             build_mode.find("external session hidden") < build_mode.find("native session 0"),

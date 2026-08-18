@@ -1,6 +1,6 @@
 //! Standalone workspace ToolServer for remote sandboxes.
 //!
-//! Reads OIDC credentials from `~/.grok/auth.json`, connects to a
+//! Reads OIDC credentials from `~/.astra/auth.json`, connects to a
 //! server, exposes workspace tools, and refreshes tokens
 //! automatically.
 use clap::Parser;
@@ -121,7 +121,7 @@ struct Args {
     /// instead of widening to the built-in default catalog.
     #[arg(long)]
     require_explicit_toolset: bool,
-    /// Trust project-scoped LSP servers from `<repo>/.grok/lsp.json`.
+    /// Trust project-scoped LSP servers from `<repo>/.astra/lsp.json`.
     /// Defaults off; sandbox opts in only after workspace trust is established.
     #[arg(
         long,
@@ -350,14 +350,17 @@ async fn run(
     let url = Url::parse(&args.hub_url).map_err(|e| anyhow::anyhow!("invalid --hub-url: {e}"))?;
     {
         use xai_grok_sandbox::{ProfileName, SandboxManager};
-        let profile = match std::env::var("GROK_SANDBOX_PROFILE").ok() {
+        let profile = match std::env::var("ASTRA_SANDBOX_PROFILE")
+            .or_else(|_| std::env::var("GROK_SANDBOX_PROFILE"))
+            .ok()
+        {
             Some(val) => {
                 let parsed = val
                     .parse::<ProfileName>()
                     .expect("ProfileName::from_str is infallible");
                 if matches!(parsed, ProfileName::Custom(_)) {
                     tracing::warn!(value = %val,
-                        "Unrecognized GROK_SANDBOX_PROFILE, defaulting to workspace");
+                        "Unrecognized ASTRA_SANDBOX_PROFILE, defaulting to workspace");
                     ProfileName::Workspace
                 } else {
                     parsed
@@ -368,7 +371,7 @@ async fn run(
         };
         let profile_name = profile.to_string();
         if profile == ProfileName::Off {
-            tracing::info!(profile = %profile_name, "Sandbox explicitly disabled via GROK_SANDBOX_PROFILE=off");
+            tracing::info!(profile = %profile_name, "Sandbox explicitly disabled via ASTRA_SANDBOX_PROFILE=off");
         } else {
             let mut sandbox = SandboxManager::new(profile, &cwd);
             if let Err(e) = sandbox.apply(&cwd) {

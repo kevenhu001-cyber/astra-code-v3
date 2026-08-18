@@ -28,7 +28,7 @@ async fn rtl_bidi_drag_copy_logical_pty() {
     ));
 
     // Enable app-side RTL reordering via appearance config (pager.toml).
-    let grok_home = content.home().join(".grok");
+    let grok_home = content.home().join(".astra");
     std::fs::create_dir_all(&grok_home).expect("create .grok");
     std::fs::write(
         grok_home.join("pager.toml"),

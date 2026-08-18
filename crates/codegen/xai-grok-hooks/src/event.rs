@@ -309,7 +309,7 @@ pub enum BackgroundTaskType {
     Subagent,
 }
 
-/// `StopFailure` error type. Grok emits a subset: capacity errors fold into
+/// `StopFailure` error type. Astra emits a subset: capacity errors fold into
 /// `RateLimit`, and there is no `billing_error`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, strum::IntoStaticStr, strum::EnumIter)]
 #[serde(rename_all = "snake_case")]

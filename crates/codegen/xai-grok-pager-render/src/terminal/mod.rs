@@ -93,8 +93,8 @@ pub enum TerminalName {
     /// indistinguishable. All capabilities are conservative/Unknown.
     #[strum(to_string = "JetBrains")]
     JetBrains,
-    /// Grok Desktop (Electron app).
-    #[strum(to_string = "Grok Desktop")]
+    /// Astra Desktop (Electron app).
+    #[strum(to_string = "Astra Desktop")]
     GrokDesktop,
     /// VTE-based terminal (GNOME Terminal, kgx/GNOME Console, Tilix, etc.).
     #[strum(to_string = "VTE")]
@@ -1040,7 +1040,7 @@ fn terminal_name_from_term_program(value: &str) -> Option<TerminalName> {
 
 /// User-configured alt-screen (fullscreen) mode.
 ///
-/// Parsed from `[terminal] alt_screen` in `~/.grok/pager.toml` and
+/// Parsed from `[terminal] alt_screen` in `~/.astra/pager.toml` and
 /// overridden by the `--no-alt-screen` CLI flag.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum AltScreenMode {

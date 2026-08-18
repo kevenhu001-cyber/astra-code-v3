@@ -41,7 +41,7 @@ impl OtlpTransport {
 
 /// Master switch env var. Deliberately *not* `GROK_ENABLE_TELEMETRY`: that
 /// would be a word-order typo away from the long-standing
-/// `GROK_TELEMETRY_ENABLED` (product events/Mixpanel mode), and the two control
+/// `ASTRA_TELEMETRY_ENABLED` (product events/Mixpanel mode), and the two control
 /// opposite-pointing data flows (to xAI vs. to the customer's collector).
 pub const ENV_MASTER_SWITCH: &str = "GROK_EXTERNAL_OTEL";
 

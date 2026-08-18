@@ -386,7 +386,7 @@ mod tests {
     #[test]
     fn rebuild_skips_symlink_escape_outside_managed_roots() {
         let tmp = tempfile::TempDir::new().unwrap();
-        let grok_home = tmp.path().join("grok");
+        let grok_home = tmp.path().join("astra");
         let outside = tmp.path().join("outside-real");
         make_fake_standalone_worktree(&outside);
         let link_parent = grok_home.join("worktrees/repo");

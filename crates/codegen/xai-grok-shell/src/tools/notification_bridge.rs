@@ -81,7 +81,7 @@ pub(crate) struct NotificationBridgeConfig {
     /// `InjectNotification` path instead of immediate synthetic prompts.
     pub auto_wake_enabled: bool,
     /// When `true`, an approved `PlanModeExited` also arms the tracker's
-    /// next-turn exit reminder. Grok-build leaves this `false` — its
+    /// next-turn exit reminder. Astra-build leaves this `false` — its
     /// exit-plan tool result already informs the model, and a deferred
     /// reminder would arrive stale. Shared with the session actor (the
     /// `gateway_enabled` pattern) and refreshed on zero-turn rebuilds so the

@@ -1,7 +1,7 @@
 [
   {
     "category": "features",
-    "description": "**New /tutorial slash command** opens an opt-in nine-topic onboarding tour of Grok.",
+    "description": "**New /tutorial slash command** opens an opt-in nine-topic onboarding tour of Astra.",
     "breaking_change": false
   },
   {
@@ -111,7 +111,7 @@
   },
   {
     "category": "features",
-    "description": "**/resume** now shows only native Grok sessions by default and shows a hint when external sessions are hidden.",
+    "description": "**/resume** now shows only native Astra sessions by default and shows a hint when external sessions are hidden.",
     "breaking_change": false
   },
   {

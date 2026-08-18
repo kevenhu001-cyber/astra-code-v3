@@ -1,4 +1,4 @@
-//! Grok tools library.
+//! Astra tools library.
 
 pub use xai_grok_version::VERSION;
 

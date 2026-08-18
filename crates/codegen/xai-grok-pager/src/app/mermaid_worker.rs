@@ -963,11 +963,11 @@ thread_local! {
     /// Per-test override for the session `mermaid/` cache dir. View-side tests
     /// set this to a private tempdir so [`AgentView::mermaid_out_path`] resolves
     /// a hermetic, writable cache dir *without* mutating the process-global
-    /// `GROK_HOME` (whose `grok_home()` value is cached first-write-wins, an
+    /// `ASTRA_HOME` (whose `grok_home()` value is cached first-write-wins, an
     /// isolation hazard under the full parallel suite — PNGs could land in the
-    /// real `~/.grok`). Thread-local, so each parallel test is independent; the
+    /// real `~/.astra`). Thread-local, so each parallel test is independent; the
     /// `TempDir` guard lives here so the dir outlives the view. Mirrors the
-    /// `subagent::REPLAY_GROK_HOME` test seam. Production never sets this.
+    /// `subagent::REPLAY_ASTRA_HOME` test seam. Production never sets this.
     static TEST_MERMAID_DIR: std::cell::RefCell<Option<tempfile::TempDir>> =
         const { std::cell::RefCell::new(None) };
 }
@@ -1006,7 +1006,7 @@ impl AgentView {
     /// Per-session destination path for a diagram's PNG, or `None` until session
     /// identity is known (no on-disk cache before then).
     fn mermaid_out_path(&self, key: &MermaidCacheKey) -> Option<PathBuf> {
-        // Test seam: a hermetic per-test cache dir (no `GROK_HOME` mutation).
+        // Test seam: a hermetic per-test cache dir (no `ASTRA_HOME` mutation).
         #[cfg(test)]
         if let Some(path) = TEST_MERMAID_DIR.with(|d| {
             d.borrow()
@@ -1770,22 +1770,22 @@ mod tests {
     fn is_render_subcommand_matches_only_argv1() {
         let argv = |v: &[&str]| v.iter().map(std::ffi::OsString::from).collect::<Vec<_>>();
         assert!(is_render_subcommand(&argv(&[
-            "grok",
+            "astra",
             MERMAID_RENDER_SUBCOMMAND
         ])));
         assert!(is_render_subcommand(&argv(&[
-            "grok",
+            "astra",
             MERMAID_RENDER_SUBCOMMAND,
             "--out",
             "/tmp/x.png",
         ])));
         // Normal invocations are not the render child.
-        assert!(!is_render_subcommand(&argv(&["grok"])));
-        assert!(!is_render_subcommand(&argv(&["grok", "chat"])));
+        assert!(!is_render_subcommand(&argv(&["astra"])));
+        assert!(!is_render_subcommand(&argv(&["astra", "chat"])));
         assert!(!is_render_subcommand(&argv(&[])));
         // The subcommand only counts as argv[1], not deeper in the args.
         assert!(!is_render_subcommand(&argv(&[
-            "grok",
+            "astra",
             "chat",
             MERMAID_RENDER_SUBCOMMAND,
         ])));
@@ -2104,7 +2104,7 @@ mod tests {
     // session dir) can't.
 
     /// Point this test's session `mermaid/` cache dir at a private tempdir —
-    /// hermetic, with no process-global `GROK_HOME` mutation. The `TempDir` lives
+    /// hermetic, with no process-global `ASTRA_HOME` mutation. The `TempDir` lives
     /// in the [`TEST_MERMAID_DIR`] thread-local for the test thread's lifetime
     /// (so the dir outlives the view), and each parallel test gets its own dir,
     /// so there is no cross-test contamination and no `grok_home()` cache race.

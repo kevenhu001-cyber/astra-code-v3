@@ -27,7 +27,7 @@ use xai_grok_pager_pty_harness::{
 
 const ROWS: u16 = 50;
 const COLS: u16 = 120;
-const BANNER_TITLE: &str = "Help improve Grok";
+const BANNER_TITLE: &str = "Help improve Astra";
 const OPT_OUT: &str = "[Opt out]";
 const OPT_IN: &str = "[Opt in]";
 const ACK: &str = "BANNERACK";
@@ -200,11 +200,11 @@ fn click_text(pager: &mut PtyHarness, needle: &str) -> Result<()> {
     Ok(())
 }
 
-/// Poll `<home>/.grok/config.toml` for the async `privacy_banner_acked`
+/// Poll `<home>/.astra/config.toml` for the async `privacy_banner_acked`
 /// write, pumping PTY output between polls so the pager never blocks on a
 /// full output buffer.
 fn wait_for_ack_on_disk(pager: &mut PtyHarness, home: &Path, timeout: Duration) -> Result<()> {
-    let path = home.join(".grok").join("config.toml");
+    let path = home.join(".astra").join("config.toml");
     let deadline = Instant::now() + timeout;
     loop {
         let body = std::fs::read_to_string(&path).unwrap_or_default();

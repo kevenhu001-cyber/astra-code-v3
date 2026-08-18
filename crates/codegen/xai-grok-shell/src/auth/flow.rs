@@ -2087,7 +2087,7 @@ mod tests {
         // Preamble text with URL
         assert_eq!(
             extract(
-                "Visit the following link to sign into Grok: https://auth.example.com/login?code=abc"
+                "Visit the following link to sign into Astra: https://auth.example.com/login?code=abc"
             ),
             "https://auth.example.com/login?code=abc"
         );

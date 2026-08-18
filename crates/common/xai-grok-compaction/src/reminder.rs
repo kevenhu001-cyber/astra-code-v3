@@ -3,7 +3,7 @@
 //! Lives at the crate root rather than under a compaction-style submodule
 //! because it is consumed by *both* compaction styles and both harnesses:
 //!
-//! - Grok chat intra FullReplace ([`crate::intra_compaction`]) and inter
+//! - Astra chat intra FullReplace ([`crate::intra_compaction`]) and inter
 //!   (appends after sampling via [`append_reminder_block`])
 //! - grok-build full-replace ([`crate::code_compaction`] assemble's
 //!   `system_reminder`)

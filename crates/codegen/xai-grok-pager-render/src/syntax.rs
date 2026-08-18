@@ -1,14 +1,14 @@
 //! Syntax highlighting initialization.
 //!
 //! Provides lazily-initialized `Syntect` instances for code highlighting.
-//! Dark themes (GrokNight, TokyoNight) share `grok-night.tmTheme`;
-//! GrokDay uses `grok-day.tmTheme` with deepened colors for light backgrounds.
+//! Dark themes (Astra Night, TokyoNight) share `astra-night.tmTheme`;
+//! Astra Day uses `astra-day.tmTheme` with deepened colors for light backgrounds.
 //!
 //! ## Minimal / terminal-native lock
 //!
 //! While [`crate::theme::cache::terminal_native_locked`] is set, chrome uses
 //! [`Theme::terminal_default`](crate::theme::Theme::terminal_default) and
-//! `current_kind()` is a nominal `GrokNight` (so leftover kind-keyed paths
+//! `current_kind()` is a nominal `Astra Night` (so leftover kind-keyed paths
 //! still resolve). Syntect therefore loads the night `.tmTheme` whose pastel
 //! RGB tokens, after naive ANSI-16 quantization, collapse to **White** —
 //! invisible on light terminal profiles.
@@ -140,20 +140,20 @@ pub fn highlight_line(
 /// Returns the syntect instance matching the active theme.
 ///
 /// Note: while the terminal-native lock is engaged, [`Theme::current_kind`]
-/// reports a nominal `GrokNight`, so this returns the night theme. Token
+/// reports a nominal `Astra Night`, so this returns the night theme. Token
 /// colors are remapped in [`syntect_to_ratatui_fg`] — do not load a day
 /// theme based on OS/terminal polarity detection.
 pub fn get_syntect() -> &'static Syntect {
     match crate::theme::Theme::current_kind() {
-        ThemeKind::GrokNight
+        ThemeKind::Astra Night
         | ThemeKind::RosePineMoon
         | ThemeKind::OscuraMidnight
         | ThemeKind::Auto => SYNTECT_GROKNIGHT
-            .get_or_init(|| Syntect::new(include_bytes!("../assets/grok-night.tmTheme"))),
+            .get_or_init(|| Syntect::new(include_bytes!("../assets/astra-night.tmTheme"))),
         ThemeKind::TokyoNight => SYNTECT_TOKYONIGHT
             .get_or_init(|| Syntect::new(include_bytes!("../assets/tokyo-night.tmTheme"))),
-        ThemeKind::GrokDay => SYNTECT_GROKDAY
-            .get_or_init(|| Syntect::new(include_bytes!("../assets/grok-day.tmTheme"))),
+        ThemeKind::Astra Day => SYNTECT_GROKDAY
+            .get_or_init(|| Syntect::new(include_bytes!("../assets/astra-day.tmTheme"))),
     }
 }
 

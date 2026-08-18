@@ -42,7 +42,7 @@ fn web_search_call(id: &str) -> ToolCallEvent {
     }
 }
 
-/// A terminal backend `web_search` `ToolCallUpdate` carrying Grok's nested
+/// A terminal backend `web_search` `ToolCallUpdate` carrying Astra's nested
 /// `WebSearchCall` `raw_output` (`action.query` + `action.sources[].url`).
 fn web_search_done(id: &str) -> ToolCallUpdateEvent {
     ToolCallUpdateEvent {

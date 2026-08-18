@@ -2008,7 +2008,7 @@ fn prompt_response_formatted_402_takes_credit_limit_path() {
         Action::TaskComplete(TaskResult::PromptResponse {
             agent_id: id,
             result: Err(
-                "Request failed (402) \u{2014} Grok Build usage balance exhausted".to_string(),
+                "Request failed (402) \u{2014} Astra usage balance exhausted".to_string(),
             ),
             http_status: None,
             prompt_id: None,

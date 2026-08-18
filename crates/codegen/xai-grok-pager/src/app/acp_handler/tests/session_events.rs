@@ -221,7 +221,7 @@
             attempts: 2,
             reason: "API error (status 429 Too Many Requests): \
                      Some resource has been exhausted: You are sending requests too quickly. \
-                     Please slow down, or upgrade to a Grok subscription for higher limits: \
+                     Please slow down, or upgrade to a Astra subscription for higher limits: \
                      https://grok.com/supergrok"
                 .into(),
             is_rate_limited: true,
@@ -399,7 +399,7 @@
             &RetryState::Failed {
                 error_type: "api".into(),
                 message:
-                    "API error (status 402 Payment Required): Grok Build usage balance exhausted"
+                    "API error (status 402 Payment Required): Astra usage balance exhausted"
                         .into(),
             },
             &mut session,

@@ -11,7 +11,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use tokio::io::AsyncWriteExt;
 
 use crate::version::{
-    UpdateConfig, fetch_latest_version, get_installed_grok_version, get_latest_version,
+    UpdateConfig, fetch_latest_version, get_installed_astra_version, get_latest_version,
     is_version_cache_fresh, try_fetch_stable_pointer, write_version_cache,
 };
 use xai_grok_shell::util::config;
@@ -29,9 +29,9 @@ pub enum UpdateRunMode {
 
 const PROMPT_UPDATE_NOW: &str = "Update now? [Y/n/d]";
 const MSG_AUTO_UPDATE_BACKGROUND: &str = "Auto-update running in background.";
-const MSG_RUN_UPDATE_MANUAL: &str = "Run `grok update` to get the latest version.";
+const MSG_RUN_UPDATE_MANUAL: &str = "Run `astra update` to get the latest version.";
 /// An empty or `"stable"` channel means stable — the installers' default
-/// (`CHANNEL="${GROK_CHANNEL:-stable}"` in install.sh).
+/// (`CHANNEL="${ASTRA_CHANNEL:-stable}"` in install.sh).
 fn is_stable_channel(channel: &str) -> bool {
     channel.is_empty() || channel == "stable"
 }
@@ -66,9 +66,9 @@ fn manual_install_cmd(channel: &str) -> String {
         };
     }
     if cfg!(windows) {
-        format!("$env:GROK_CHANNEL='{channel}'; irm https://x.ai/cli/install.ps1 | iex")
+        format!("$env:ASTRA_CHANNEL='{channel}'; irm https://x.ai/cli/install.ps1 | iex")
     } else {
-        format!("curl -fsSL https://x.ai/cli/install.sh | GROK_CHANNEL='{channel}' bash")
+        format!("curl -fsSL https://x.ai/cli/install.sh | ASTRA_CHANNEL='{channel}' bash")
     }
 }
 
@@ -76,7 +76,7 @@ fn manual_install_cmd(channel: &str) -> String {
 fn reinstall_hint(installer: &str, channel: &str) -> String {
     match installer {
         "npm" => "Please reinstall via npm:\n  npm i -g @xai-official/grok".to_string(),
-        "gh-release" => "Please reinstall via GitHub Releases:\n  gh release download --repo xai-org-shared/grok-build --pattern 'grok-*' --output grok && chmod +x grok".to_string(),
+        "gh-release" => "Please reinstall via GitHub Releases:\n  gh release download --repo xai-org-shared/grok-build --pattern 'astra-*' --output grok && chmod +x grok".to_string(),
         _ => format!("Please reinstall via:\n  {}", manual_install_cmd(channel)),
     }
 }
@@ -199,7 +199,7 @@ pub fn print_update_status(status: &UpdateStatus, json: bool) -> anyhow::Result<
 
     if let Some(error) = status.error.as_deref() {
         println!(
-            "Grok Build - v{} [{}]",
+            "Astra - v{} [{}]",
             status.current_version, status.channel
         );
         println!("Update check failed: {error}");
@@ -211,30 +211,30 @@ pub fn print_update_status(status: &UpdateStatus, json: bool) -> anyhow::Result<
     if status.update_available {
         if let Some(latest_version) = status.latest_version.as_deref() {
             println!(
-                "A new version of Grok Build is available: {} -> {}{}",
+                "A new version of Astra is available: {} -> {}{}",
                 status.current_version, latest_version, channel_label
             );
         } else {
-            println!("A new version of Grok Build is available.");
+            println!("A new version of Astra is available.");
         }
         return Ok(());
     }
 
     if let Some(latest_version) = status.latest_version.as_deref() {
         println!(
-            "Grok Build - v{} (latest: {}){}",
+            "Astra - v{} (latest: {}){}",
             status.current_version, latest_version, channel_label
         );
         return Ok(());
     }
 
-    println!("Grok Build - v{}{}", status.current_version, channel_label);
+    println!("Astra - v{}{}", status.current_version, channel_label);
     Ok(())
 }
 
 pub async fn check_update_status(update_config: &UpdateConfig) -> UpdateStatus {
     let installer = get_installer().await.map(|value| value.to_string());
-    let current_version = get_installed_grok_version();
+    let current_version = get_installed_astra_version();
     let current_config = config::load_config().await;
     let auto_update = current_config.cli.auto_update;
     let channel = update_config.channel.clone();
@@ -363,7 +363,7 @@ async fn fetch_update_plan(
 /// downgraded — the decision depends on the installer, never the caller.
 pub async fn auto_update_target(update_config: &UpdateConfig) -> Option<(&'static str, String)> {
     let installer = get_installer().await?;
-    let current = get_installed_grok_version();
+    let current = get_installed_astra_version();
     let policy = config::VersionPolicy::resolve();
     let UpdatePlan::Install { target, .. } = fetch_update_plan(installer, update_config, &policy)
         .await
@@ -398,7 +398,7 @@ pub struct EnsureLatestOutcome {
 ///
 /// Unlike [`run_update`] this never uses the compiled-in version for the
 /// download decision — a binary already installed by another process (TUI
-/// background download, explicit `grok update`) is reused as-is. This both
+/// background download, explicit `astra update`) is reused as-is. This both
 /// removes the duplicate download in leader mode and stops the pre-fix
 /// hourly re-download while a busy leader keeps deferring its relaunch.
 ///
@@ -427,7 +427,7 @@ pub async fn ensure_latest_on_disk(update_config: &UpdateConfig) -> Result<Ensur
     };
 
     let effective_current =
-        disk_version_for_installer(installer).unwrap_or_else(get_installed_grok_version);
+        disk_version_for_installer(installer).unwrap_or_else(get_installed_astra_version);
     if needs_update(
         &effective_current,
         &target,
@@ -454,7 +454,7 @@ pub async fn ensure_latest_on_disk(update_config: &UpdateConfig) -> Result<Ensur
     // Relaunch when the running binary differs from what's on disk in the
     // channel's update direction — covers binaries installed by other
     // processes, not just the install above.
-    let running = get_installed_grok_version();
+    let running = get_installed_astra_version();
     if let Some(disk_now) =
         disk_version_for_installer(installer).or_else(|| outcome.installed.clone())
     {
@@ -466,7 +466,7 @@ pub async fn ensure_latest_on_disk(update_config: &UpdateConfig) -> Result<Ensur
 }
 
 /// Disk-version probe gated on the installer actually maintaining the
-/// managed `~/.grok/bin/grok` symlink.
+/// managed `~/.astra/bin/grok` symlink.
 ///
 /// Only the internal (install.sh / CDN) and gh-release installers write that
 /// symlink. npm manages its own global install, so for npm a symlink left
@@ -483,7 +483,8 @@ fn disk_version_for_installer(installer: &str) -> Option<String> {
 }
 
 fn env_installer() -> Option<&'static str> {
-    if let Ok(v) = std::env::var("GROK_INSTALLER") {
+    let installer = std::env::var("ASTRA_INSTALLER").or_else(|_| std::env::var("GROK_INSTALLER"));
+    if let Ok(v) = installer {
         return match v.to_ascii_lowercase().as_str() {
             "npm" => Some("npm"),
             "internal" => Some("internal"),
@@ -491,10 +492,16 @@ fn env_installer() -> Option<&'static str> {
             _ => None,
         };
     }
-    if std::env::var_os("GROK_MANAGED_BY_NPM").is_some() {
+    if std::env::var_os("ASTRA_MANAGED_BY_NPM")
+        .or_else(|| std::env::var_os("GROK_MANAGED_BY_NPM"))
+        .is_some()
+    {
         return Some("npm");
     }
-    if std::env::var_os("GROK_MANAGED_BY_INTERNAL").is_some() {
+    if std::env::var_os("ASTRA_MANAGED_BY_INTERNAL")
+        .or_else(|| std::env::var_os("GROK_MANAGED_BY_INTERNAL"))
+        .is_some()
+    {
         return Some("internal");
     }
     if std::env::var_os("npm_config_user_agent").is_some() {
@@ -572,7 +579,7 @@ pub struct BackgroundUpdateCheck {
     /// `Some` when the *running* binary is older than the channel pointer —
     /// drives the in-TUI restart hint regardless of who downloads the binary.
     pub update: Option<UpdateAvailable>,
-    /// Handle to the background `grok update` child, `Some` only when a
+    /// Handle to the background `astra update` child, `Some` only when a
     /// download was actually started (the on-disk install was behind the
     /// pointer). The TUI parks this and `wait()`s on it at quit-for-update
     /// time instead of spawning a second downloader.
@@ -593,7 +600,7 @@ impl BackgroundUpdateCheck {
 /// Sets [`BackgroundUpdateCheck::update`] when the running binary is older
 /// than the channel pointer. If `auto_update` is enabled **and the on-disk
 /// install is also behind the pointer**, kicks off a non-blocking download
-/// (spawns `grok update` as a detached child process) so the new binary is
+/// (spawns `astra update` as a detached child process) so the new binary is
 /// ready when the user quits and relaunches. When another process (an earlier
 /// TUI, the leader's hourly checker) already put the target version on disk,
 /// no download is started — only the restart hint is surfaced.
@@ -613,7 +620,7 @@ pub async fn check_update_background(update_config: &UpdateConfig) -> Background
         return BackgroundUpdateCheck::none();
     }
 
-    let current_version = get_installed_grok_version();
+    let current_version = get_installed_astra_version();
     let policy = config::VersionPolicy::resolve();
     let target_version = match fetch_update_plan(installer, update_config, &policy).await {
         Ok(UpdatePlan::Install { target, .. }) => target,
@@ -638,7 +645,7 @@ pub async fn check_update_background(update_config: &UpdateConfig) -> Background
 
     // Only download when the on-disk install is behind the pointer; the
     // running process being stale (checked above) just means "show the
-    // restart hint". The quit-for-update path's `grok update` child resolves
+    // restart hint". The quit-for-update path's `astra update` child resolves
     // to "Already up to date" against the same disk state. Gated on the
     // installer maintaining the managed symlink — for npm a leftover symlink
     // would wrongly suppress the download (see `disk_version_for_installer`).
@@ -720,7 +727,7 @@ pub async fn run_update_if_available(
         tracing::warn!("Failed to save auto-update setting: {}", e);
     }
 
-    let current_version = get_installed_grok_version();
+    let current_version = get_installed_astra_version();
     let policy = config::VersionPolicy::resolve();
     // Don't write version.json here; only cache after confirming no update is
     // needed or after a successful install, so a failed background download
@@ -745,7 +752,7 @@ pub async fn run_update_if_available(
     let channel_label = format!(" [{}]", update_config.channel);
     if auto_update {
         eprintln!(
-            "A new version of Grok Build is available: {} -> {}{}",
+            "A new version of Astra is available: {} -> {}{}",
             current_version, latest_version, channel_label
         );
         if interactive {
@@ -773,7 +780,7 @@ pub async fn run_update_if_available(
             return Ok(false);
         }
         eprintln!(
-            "A new version of Grok Build is available: {} -> {}{}",
+            "A new version of Astra is available: {} -> {}{}",
             current_version, latest_version, channel_label
         );
         if interactive {
@@ -834,7 +841,7 @@ async fn run_update_subcommand(
     // process knows no more than the child; waiting would let telemetry
     // delay an update.
     if let Some(mode) = xai_grok_telemetry::client::current_mode() {
-        cmd.env("GROK_TELEMETRY_ENABLED", mode.to_string());
+        cmd.env("ASTRA_TELEMETRY_ENABLED", mode.to_string());
     }
     match run_mode {
         UpdateRunMode::Blocking => {
@@ -856,7 +863,7 @@ async fn run_update_subcommand(
             // No detach: the child must stay in the foreground process group so Ctrl+C cancels it with the parent; the atomic install protocol makes mid-download kills safe.
             let status = cmd.status().await?;
             if !status.success() {
-                anyhow::bail!("grok update failed with {}", status);
+                anyhow::bail!("astra update failed with {}", status);
             }
             Ok(None)
         }
@@ -874,11 +881,11 @@ async fn run_update_subcommand(
     }
 }
 
-/// Resolve the grok binary path for re-execution after an update.
+/// Resolve the astra binary path for re-execution after an update.
 ///
 /// `current_exe()` resolves symlinks via `/proc/self/exe` (see proc(5)),
 /// so it returns the old versioned target after a symlink swap.
-/// Prefer `~/.grok/bin/grok` which always points to the latest version.
+/// Prefer `~/.astra/bin/grok` which always points to the latest version.
 fn resolve_restart_exe() -> Result<std::path::PathBuf> {
     let canonical = grok_application();
     if canonical.exists() {
@@ -888,15 +895,15 @@ fn resolve_restart_exe() -> Result<std::path::PathBuf> {
 }
 
 /// Restart grok with the original command-line arguments to pick up the update.
-pub fn restart_grok() -> Result<()> {
+pub fn restart_astra() -> Result<()> {
     let exe = resolve_restart_exe()?;
     let mut cmd = Command::new(exe);
     for arg in std::env::args_os().skip(1) {
         cmd.arg(arg);
     }
     cmd.env_clear();
-    cmd.envs(std::env::vars_os().filter(|(k, _)| k != "GROK_AUTO_UPDATE"));
-    eprintln!("Restarting Grok...");
+    cmd.envs(std::env::vars_os().filter(|(k, _)| k != "ASTRA_AUTO_UPDATE"));
+    eprintln!("Restarting Astra...");
 
     // Use exec on Unix to replace the current process, avoiding stdio issues
     // when the parent exits. On Windows, fall back to spawn + exit.
@@ -933,7 +940,7 @@ pub async fn run_install_script(
     // What's on disk is being replaced, not this (possibly stale) process's
     // version; npm has no trustworthy disk version, so it falls back.
     let from_version =
-        disk_version_for_installer(installer).unwrap_or_else(get_installed_grok_version);
+        disk_version_for_installer(installer).unwrap_or_else(get_installed_astra_version);
     let started = Instant::now();
     // Internal reports the version it actually activated; npm/gh-release
     // resolve their own artifact, so the requested target stands in.
@@ -985,7 +992,7 @@ pub async fn run_install_script(
 ///
 /// Arch is the compile-time arch with one correction: an x86_64 build on an
 /// Apple Silicon host (Rosetta) selects `aarch64`, so every update path —
-/// interactive `grok update`, background `--auto` children, the leader's
+/// interactive `astra update`, background `--auto` children, the leader's
 /// hourly converge, and forced minimum-version installs — converges to the
 /// native build instead of perpetuating the translated one. This mirrors
 /// install.sh's `hw.optional.arm64` probe; without it, a lingering x86_64
@@ -1031,8 +1038,8 @@ const DOWNLOAD_REQUEST_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 ///
 /// Appends `.{pid}-{seq}.tmp` to the FULL file name instead of using
 /// `Path::with_extension`, which treats everything after the last dot of the
-/// versioned name as the extension (`grok-0.1.181-linux-x86_64` →
-/// `grok-0.1.tmp`) and therefore collides for every `0.1.x` version. The PID
+/// versioned name as the extension (`astra-0.1.181-linux-x86_64` →
+/// `astra-0.1.tmp`) and therefore collides for every `0.1.x` version. The PID
 /// plus a per-process counter makes the name unique per download attempt —
 /// across processes (two updaters racing in the same instant, the accepted
 /// lock-free residual race) and within one process — so no racer can ever
@@ -1043,7 +1050,7 @@ fn tmp_download_path(dest: &std::path::Path) -> std::path::PathBuf {
 }
 
 /// Unique temp path `<base>.{pid}-{seq}.{ext}`, appended to the full name so a
-/// versioned base like `grok-0.1.181` doesn't collide via `with_extension`.
+/// versioned base like `astra-0.1.181` doesn't collide via `with_extension`.
 /// PID + per-process counter keep racing updaters from clobbering each other.
 fn unique_temp_sibling(base: &std::path::Path, ext: &str) -> std::path::PathBuf {
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -1312,7 +1319,7 @@ pub async fn download_silent(url: &str, dest: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-/// Delete `~/.grok/models_cache.json` after a successful update.
+/// Delete `~/.astra/models_cache.json` after a successful update.
 ///
 /// The cache embeds the binary version and will be treated as a miss by the
 /// new binary anyway, but removing it eagerly avoids a wasted disk read +
@@ -1326,7 +1333,7 @@ async fn remove_stale_models_cache() {
     }
 }
 
-/// Remove the stale `grok-pager` symlink/binary from `~/.grok/bin/` left by
+/// Remove the stale `grok-pager` symlink/binary from `~/.astra/bin/` left by
 /// older installations that shipped a separate pager binary.
 async fn remove_stale_pager(bin_dir: &std::path::Path) {
     let name = if cfg!(windows) {
@@ -1527,8 +1534,8 @@ async fn smoke_test_binary(binary_path: &std::path::Path) -> Result<(), SmokeTes
 
 /// Test-only entry point: same as [`install_internal`] but reads from
 /// `gcs_base_url` instead of the hardcoded GCS bucket. Persists installer
-/// config and writes to `~/.grok/bin/`, so callers must isolate
-/// `GROK_HOME`.
+/// config and writes to `~/.astra/bin/`, so callers must isolate
+/// `ASTRA_HOME`.
 #[doc(hidden)]
 pub async fn install_internal_from_base(
     target: Option<&str>,
@@ -1544,8 +1551,8 @@ pub async fn install_internal_from_base(
         .map_err(|e| InstallPhaseError::Activate(e).into())
 }
 
-/// A downloaded and smoke-tested binary in `~/.grok/downloads/`, not yet
-/// activated as the managed `grok`/`agent`.
+/// A downloaded and smoke-tested binary in `~/.astra/downloads/`, not yet
+/// activated as the managed `astra`/`agent`.
 struct VerifiedDownload {
     version: String,
     binary_path: std::path::PathBuf,
@@ -1575,20 +1582,20 @@ async fn download_verified_from_base(
         }
     };
 
-    let grok_home = grok_home();
-    let download_dir = grok_home.join("downloads");
+    let astra_home = grok_home();
+    let download_dir = astra_home.join("downloads");
     tokio::fs::create_dir_all(&download_dir).await?;
 
-    let binary_name = format!("grok-{}-{}", version, platform);
+    let binary_name = format!("astra-{}-{}", version, platform);
     let binary_path = download_dir.join(&binary_name);
 
-    eprintln!("  Downloading grok v{} ({})...", version, platform);
+    eprintln!("  Downloading astra v{} ({})...", version, platform);
 
     // Published already +x (see `publish_downloaded_artifact`).
     download_cli_artifact_from_gcs(gcs_base_url, &binary_name, &binary_path, true).await?;
 
     // Smoke-test: run the binary before activating it. A truncated or
-    // corrupt download is caught here and never becomes the active grok.
+    // corrupt download is caught here and never becomes the active astra.
     if let Err(fail) = smoke_test_binary(&binary_path).await {
         let _ = tokio::fs::remove_file(&binary_path).await;
         // No prefix: run_install_script's wrap adds "Auto-update failed:".
@@ -1605,12 +1612,12 @@ async fn download_verified_from_base(
 /// binary and finish bookkeeping. Nothing here depends on which base URL
 /// served the download, so callers must not retry another base on failure.
 async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
-    let grok_home = grok_home();
-    let download_dir = grok_home.join("downloads");
-    let bin_dir = grok_home.join("bin");
+    let astra_home = grok_home();
+    let download_dir = astra_home.join("downloads");
+    let bin_dir = astra_home.join("bin");
     tokio::fs::create_dir_all(&bin_dir).await?;
 
-    // Atomic swap of ~/.grok/bin/{grok,agent} -> downloaded binary.
+    // Atomic swap of ~/.astra/bin/{grok,agent} -> downloaded binary.
     let link_path = swap_managed_bin_links(&download.binary_path, &bin_dir).await?;
 
     remove_stale_pager(&bin_dir).await;
@@ -1618,7 +1625,7 @@ async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
     eprintln!();
 
     // Clean up old versioned binaries (keeps current + 1 previous).
-    cleanup_old_downloads(&download_dir, "grok", &download.version).await;
+    cleanup_old_downloads(&download_dir, "astra", &download.version).await;
     cleanup_old_downloads(&download_dir, "grok-pager", &download.version).await;
 
     // Persist installer to config.toml so future runs auto-detect internal.
@@ -1629,7 +1636,7 @@ async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
 
     // Regenerate shell completions so they reflect the new binary's CLI surface.
     // Best-effort: failures are silently ignored (same as the installer).
-    regenerate_completions(&link_path, &grok_home).await;
+    regenerate_completions(&link_path, &astra_home).await;
 
     Ok(())
 }
@@ -1640,16 +1647,16 @@ async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
 /// supported shell and writes the output to the standard completion paths.
 /// Failures are silently ignored — completions are a nice-to-have, not a
 /// requirement for a successful update.
-async fn regenerate_completions(binary: &std::path::Path, grok_home: &std::path::Path) {
-    // Derive $HOME independently — grok_home may be overridden via GROK_HOME
-    // env var, so grok_home.parent() isn't necessarily the user's home dir.
+async fn regenerate_completions(binary: &std::path::Path, astra_home: &std::path::Path) {
+    // Derive $HOME independently — astra_home may be overridden via ASTRA_HOME
+    // env var, so astra_home.parent() isn't necessarily the user's home dir.
     #[allow(deprecated)]
     let user_home = std::env::home_dir().unwrap_or_default();
 
     let completions: &[(&str, std::path::PathBuf)] = &[
-        ("bash", grok_home.join("completions/bash/grok.bash")),
-        ("zsh", grok_home.join("completions/zsh/_grok")),
-        ("fish", user_home.join(".config/fish/completions/grok.fish")),
+        ("bash", astra_home.join("completions/bash/astra.bash")),
+        ("zsh", astra_home.join("completions/zsh/_astra")),
+        ("fish", user_home.join(".config/fish/completions/astra.fish")),
     ];
 
     for (shell, dest) in completions {
@@ -1673,13 +1680,13 @@ async fn regenerate_completions(binary: &std::path::Path, grok_home: &std::path:
 
 /// Compute a relative symlink target from `link` to `target`.
 ///
-/// When both paths share a grandparent (e.g. `~/.grok/bin/grok` and
-/// `~/.grok/downloads/grok-0.1.203-linux-x86_64`), returns a relative path
-/// like `../downloads/grok-0.1.203-linux-x86_64`.  When they share the same
+/// When both paths share a grandparent (e.g. `~/.astra/bin/grok` and
+/// `~/.astra/downloads/astra-0.1.203-linux-x86_64`), returns a relative path
+/// like `../downloads/astra-0.1.203-linux-x86_64`.  When they share the same
 /// parent directory, returns just the filename.  Falls back to the absolute
 /// `target` path for any other layout.
 ///
-/// Relative symlinks survive Docker bind-mounts where `~/.grok/` is mapped
+/// Relative symlinks survive Docker bind-mounts where `~/.astra/` is mapped
 /// into a container with a different `$HOME` (and thus a different absolute
 /// prefix).
 #[cfg(unix)]
@@ -1687,7 +1694,7 @@ fn relative_symlink_target(target: &std::path::Path, link: &std::path::Path) -> 
     let (Some(target_parent), Some(link_parent)) = (target.parent(), link.parent()) else {
         return target.to_path_buf();
     };
-    // Same directory — just the filename (e.g. grok-latest -> grok-0.1.203-…)
+    // Same directory — just the filename (e.g. grok-latest -> astra-0.1.203-…)
     if target_parent == link_parent
         && let Some(name) = target.file_name()
     {
@@ -1703,16 +1710,16 @@ fn relative_symlink_target(target: &std::path::Path, link: &std::path::Path) -> 
     target.to_path_buf()
 }
 
-/// Swap `~/.grok/bin/{grok,agent}` to point at `binary_path`. Returns the
-/// `grok` link path (for [`regenerate_completions`]).
+/// Swap `~/.astra/bin/{grok,agent}` to point at `binary_path`. Returns the
+/// `astra` link path (for [`regenerate_completions`]).
 ///
-/// `grok` and `agent` are first-class entry points that the bootstrap
+/// `astra` and `agent` are first-class entry points that the bootstrap
 /// installers (`install.sh`, `install.ps1`, `install-enterprise.sh`)
-/// maintain in lockstep, and so must the updater — otherwise `grok update`
+/// maintain in lockstep, and so must the updater — otherwise `astra update`
 /// leaves `agent` pinned at the previous version.
 ///
 /// Unix: atomic symlink swap with relative target (survives Docker
-/// bind-mounts of `~/.grok/`). Windows: [`windows_replace_exe`].
+/// bind-mounts of `~/.astra/`). Windows: [`windows_replace_exe`].
 ///
 /// **All-or-nothing.** Each link's prior state is captured (Unix: prior
 /// symlink target; Windows: `.rollback.bak`; or `Absent` marker via
@@ -1725,11 +1732,11 @@ async fn swap_managed_bin_links(
     binary_path: &std::path::Path,
     bin_dir: &std::path::Path,
 ) -> Result<std::path::PathBuf> {
-    let grok_name = if cfg!(windows) { "grok.exe" } else { "grok" };
+    let astra_name = if cfg!(windows) { "astra.exe" } else { "astra" };
     let agent_name = if cfg!(windows) { "agent.exe" } else { "agent" };
-    let grok_link = bin_dir.join(grok_name);
+    let astra_link = bin_dir.join(astra_name);
     let agent_link = bin_dir.join(agent_name);
-    let link_paths: [std::path::PathBuf; 2] = [grok_link.clone(), agent_link];
+    let link_paths: [std::path::PathBuf; 2] = [astra_link.clone(), agent_link];
 
     // Capture every link up-front so a 2nd-link capture failure can't
     // strand the 1st mid-swap.
@@ -1798,7 +1805,7 @@ async fn swap_managed_bin_links(
     for cap in &captured {
         cap.cleanup().await;
     }
-    Ok(grok_link)
+    Ok(astra_link)
 }
 
 /// Snapshot of a managed-bin link's prior state for rollback in
@@ -2068,7 +2075,7 @@ async fn windows_replace_exe(src: &std::path::Path, dest: &std::path::Path) -> R
     rename_result.map_err(|e| {
         anyhow::anyhow!(
             "cannot rename locked executable {}: {e}\n\
-             Close all running grok sessions and retry.",
+             Close all running astra sessions and retry.",
             dest.display(),
         )
     })?;
@@ -2124,9 +2131,9 @@ async fn sweep_old_exe_backups(old: &std::path::Path) {
 /// and hasn't fully loaded all pages yet — deleting it on macOS causes SIGKILL
 /// because the kernel can no longer verify the code signature).
 ///
-/// `bin_prefix` is the binary name prefix, e.g. `"grok"` or `"grok-pager"`.
+/// `bin_prefix` is the binary name prefix, e.g. `"astra"` or `"grok-pager"`.
 /// Files must match `{bin_prefix}-{digit}*` to be considered versioned binaries
-/// (this avoids `grok-*` matching `grok-pager-*` or `grok-latest`).
+/// (this avoids `astra-*` matching `grok-pager-*` or `grok-latest`).
 ///
 /// Temporary/partial files (containing `.tmp`) are deleted only once they
 /// are **stale** (mtime older than [`STALE_TMP_AGE`]). A fresh `.tmp` may be
@@ -2191,14 +2198,14 @@ async fn cleanup_old_downloads(dir: &std::path::Path, bin_prefix: &str, current_
             continue;
         }
         // The suffix after the prefix must start with a digit to be a versioned
-        // binary (avoids `grok-latest`, `grok-pager-*` when prefix is `grok`).
+        // binary (avoids `grok-latest`, `grok-pager-*` when prefix is `astra`).
         let suffix = &name[prefix.len()..];
         if !suffix.starts_with(|c: char| c.is_ascii_digit()) {
             continue;
         }
         // Extract the version portion via the shared parser (handles the
-        // internal `grok-0.1.150-macos-aarch64`, pre-release, and npm
-        // `grok-0.1.150` layouts — see `version_from_versioned_binary_name`).
+        // internal `astra-0.1.150-macos-aarch64`, pre-release, and npm
+        // `astra-0.1.150` layouts — see `version_from_versioned_binary_name`).
         let Some(ver_str) = crate::version::version_from_versioned_binary_name(&name, bin_prefix)
         else {
             continue;
@@ -2254,22 +2261,22 @@ async fn heal_managed_install(installer: &str) {
         let bin_dir = grok_home().join("bin");
 
         #[cfg(unix)]
-        reconcile_agent_to_grok(&bin_dir).await;
+        reconcile_agent_to_astra(&bin_dir).await;
 
         #[cfg(windows)]
-        reconcile_agent_exe_to_grok(&bin_dir).await;
+        reconcile_agent_exe_to_astra(&bin_dir).await;
     }
 }
 
 #[cfg(unix)]
-async fn reconcile_agent_to_grok(bin_dir: &std::path::Path) {
-    let grok_link = bin_dir.join("grok");
+async fn reconcile_agent_to_astra(bin_dir: &std::path::Path) {
+    let astra_link = bin_dir.join("astra");
     let agent_link = bin_dir.join("agent");
 
-    let Ok(grok_target) = tokio::fs::read_link(&grok_link).await else {
+    let Ok(grok_target) = tokio::fs::read_link(&astra_link).await else {
         return;
     };
-    if tokio::fs::metadata(&grok_link).await.is_err() {
+    if tokio::fs::metadata(&astra_link).await.is_err() {
         return;
     }
     if let Ok(agent_target) = tokio::fs::read_link(&agent_link).await
@@ -2287,8 +2294,8 @@ async fn reconcile_agent_to_grok(bin_dir: &std::path::Path) {
 }
 
 #[cfg(windows)]
-async fn reconcile_agent_exe_to_grok(bin_dir: &std::path::Path) {
-    let grok_exe = bin_dir.join("grok.exe");
+async fn reconcile_agent_exe_to_astra(bin_dir: &std::path::Path) {
+    let grok_exe = bin_dir.join("astra.exe");
     let agent_exe = bin_dir.join("agent.exe");
 
     if tokio::fs::metadata(&grok_exe).await.is_err() {
@@ -2303,8 +2310,8 @@ async fn reconcile_agent_exe_to_grok(bin_dir: &std::path::Path) {
         }
     }
     match windows_replace_exe(&grok_exe, &agent_exe).await {
-        Ok(()) => tracing::info!("reconciled agent.exe to grok.exe"),
-        Err(e) => tracing::warn!("failed to reconcile agent.exe to grok.exe: {e:#}"),
+        Ok(()) => tracing::info!("reconciled agent.exe to astra.exe"),
+        Err(e) => tracing::warn!("failed to reconcile agent.exe to astra.exe: {e:#}"),
     }
 }
 
@@ -2396,13 +2403,13 @@ async fn install_gh_release(target: Option<&str>) -> Result<()> {
         None => crate::version::fetch_gh_release_version("stable").await?,
     };
 
-    let grok_home = grok_home();
-    let download_dir = grok_home.join("downloads");
-    let bin_dir = grok_home.join("bin");
+    let astra_home = grok_home();
+    let download_dir = astra_home.join("downloads");
+    let bin_dir = astra_home.join("bin");
     tokio::fs::create_dir_all(&download_dir).await?;
     tokio::fs::create_dir_all(&bin_dir).await?;
 
-    let binary_name = format!("grok-{}-{}", version, platform);
+    let binary_name = format!("astra-{}-{}", version, platform);
     let binary_path = download_dir.join(&binary_name);
     let tag = format!("v{}", version);
 
@@ -2420,30 +2427,30 @@ async fn install_gh_release(target: Option<&str>) -> Result<()> {
         tokio::fs::set_permissions(&binary_path, std::fs::Permissions::from_mode(0o755)).await?;
     }
 
-    // Atomic swap of ~/.grok/bin/{grok,agent} -> downloaded binary.
+    // Atomic swap of ~/.astra/bin/{grok,agent} -> downloaded binary.
     swap_managed_bin_links(&binary_path, &bin_dir).await?;
 
     // Update grok-latest -> versioned binary so any existing symlinks that route
-    // through it (e.g. /usr/local/bin/grok -> ~/.grok/downloads/grok-latest)
+    // through it (e.g. /usr/local/bin/grok -> ~/.astra/downloads/grok-latest)
     // resolve to the newly installed version.
     #[cfg(unix)]
     {
         let latest_path = download_dir.join("grok-latest");
         let rel_target = relative_symlink_target(&binary_path, &latest_path);
         if let Err(e) = atomic_symlink_swap(&rel_target, &latest_path).await {
-            tracing::warn!("Failed to update grok-latest symlink: {e}");
+            tracing::warn!("Failed to update astra-latest symlink: {e}");
         }
     }
 
     // Also update /usr/local/bin/{grok,agent} if either points directly into
-    // ~/.grok/downloads/ (legacy layout — skips the grok-latest indirection).
+    // ~/.astra/downloads/ (legacy layout — skips the grok-latest indirection).
     // Permission errors ignored.
     #[cfg(unix)]
-    for name in ["grok", "agent"] {
+    for name in ["astra", "agent"] {
         let system_link = std::path::PathBuf::from(format!("/usr/local/bin/{name}"));
         if let Ok(existing_target) = tokio::fs::read_link(&system_link).await {
             let target_str = existing_target.to_string_lossy();
-            if target_str.contains(".grok/downloads/") && !target_str.ends_with("grok-latest") {
+            if target_str.contains(".astra/downloads/") && !target_str.ends_with("grok-latest") {
                 // Try to update; ignore permission errors
                 let _ = atomic_symlink_swap(&binary_path, &system_link).await;
             }
@@ -2455,7 +2462,7 @@ async fn install_gh_release(target: Option<&str>) -> Result<()> {
     eprintln!();
 
     // Clean up old versioned binaries (keeps current + 1 previous).
-    cleanup_old_downloads(&download_dir, "grok", &version).await;
+    cleanup_old_downloads(&download_dir, "astra", &version).await;
     cleanup_old_downloads(&download_dir, "grok-pager", &version).await;
 
     // Persist installer to config.toml so future runs auto-detect gh-release.
@@ -2496,22 +2503,22 @@ fn create_temp_npmrc(npm_registry: Option<&str>) -> Result<Option<std::path::Pat
     Ok(None)
 }
 
-/// Check if other grok processes are running (macOS only).
+/// Check if other astra processes are running (macOS only).
 ///
 /// On macOS, `npm i -g` replaces the vendored binary in node_modules in-place.
-/// Any grok process running from that vendored path will be SIGKILL'd by the
+/// Any astra process running from that vendored path will be SIGKILL'd by the
 /// kernel because macOS (Apple Silicon in particular) can no longer verify
 /// the code signature of the mmap'd executable pages once the backing file
 /// inode is unlinked.
 ///
-/// While our postinstall.js now uses versioned binaries under ~/.grok/bin/
+/// While our postinstall.js now uses versioned binaries under ~/.astra/bin/
 /// (so processes launched from there are safe), older installations or npx
 /// invocations may still be running the vendored binary directly.
 #[cfg(target_os = "macos")]
 fn warn_if_other_grok_processes_running() {
     let my_pid = std::process::id().to_string();
     let mut cmd = Command::new("pgrep");
-    cmd.args(["-f", "grok"])
+    cmd.args(["-f", "astra"])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -2525,12 +2532,12 @@ fn warn_if_other_grok_processes_running() {
             .collect();
         if !other_pids.is_empty() {
             eprintln!(
-                "  ⚠ Warning: {} other grok process(es) detected.",
+                "  ⚠ Warning: {} other astra process(es) detected.",
                 other_pids.len()
             );
             eprintln!("    Processes running from the npm vendored binary path may be");
             eprintln!("    killed by macOS when npm replaces the package files.");
-            eprintln!("    Consider closing other grok sessions before updating.");
+            eprintln!("    Consider closing other astra sessions before updating.");
             eprintln!();
         }
     }
@@ -2629,7 +2636,7 @@ pub async fn apply_channel_switch(channel_switch: Option<&str>, update_config: &
     }
 }
 
-/// Run the `grok update` command. Returns `Ok(Some(version))` when the target
+/// Run the `astra update` command. Returns `Ok(Some(version))` when the target
 /// version is present on disk afterwards — either installed by this call or
 /// found already installed (e.g. by a concurrent background download); returns
 /// `Ok(None)` when there is no installer or no applicable target. Callers use
@@ -2663,7 +2670,7 @@ pub async fn run_update(
 
     heal_managed_install(installer).await;
 
-    let current_version = get_installed_grok_version();
+    let current_version = get_installed_astra_version();
     let policy = config::VersionPolicy::resolve();
 
     // When --version is given, skip the latest-version check and install directly
@@ -2672,7 +2679,7 @@ pub async fn run_update(
             anyhow::bail!("{e}");
         }
         eprintln!(
-            "Installing Grok {} (current: {})...",
+            "Installing Astra {} (current: {})...",
             version, current_version
         );
         eprintln!();
@@ -2685,8 +2692,8 @@ pub async fn run_update(
         {
             tracing::warn!("Failed to persist auto_update=false for pinned install: {e}");
         }
-        eprintln!("  ✓ grok v{} installed successfully!", version);
-        eprintln!("  Please restart Grok.");
+        eprintln!("  ✓ astra v{} installed successfully!", version);
+        eprintln!("  Please restart Astra.");
         return Ok(Some(version.to_string()));
     }
 
@@ -2702,7 +2709,7 @@ pub async fn run_update(
 
     let (latest_version, install_target) = match plan {
         UpdatePlan::Skip { latest } => {
-            // Cache so an explicit `grok update` doesn't re-prompt every run.
+            // Cache so an explicit `astra update` doesn't re-prompt every run.
             let stable_ptr = try_fetch_stable_pointer().await;
             write_version_cache(&latest, stable_ptr.as_deref()).await;
             eprintln!(
@@ -2798,12 +2805,12 @@ pub async fn run_update(
         .unwrap_or(true)
     {
         eprintln!(
-            "Forcing reinstall of Grok {} (already up to date)",
+            "Forcing reinstall of Astra {} (already up to date)",
             effective_current
         );
         &effective_current
     } else {
-        eprintln!("Updating Grok {} → {}", effective_current, install_target);
+        eprintln!("Updating Astra {} → {}", effective_current, install_target);
         &install_target
     };
 
@@ -2815,10 +2822,14 @@ pub async fn run_update(
     let stable_ptr = try_fetch_stable_pointer().await;
     write_version_cache(target_version, stable_ptr.as_deref()).await;
     refresh_deployment_config().await;
-    eprintln!("  ✓ grok v{} installed successfully!", target_version);
+    eprintln!("  ✓ astra v{} installed successfully!", target_version);
 
-    if !force && std::env::var_os("GROK_AUTO_UPDATE").is_none() {
-        eprintln!("  Please restart Grok.");
+    if !force
+        && std::env::var_os("ASTRA_AUTO_UPDATE")
+            .or_else(|| std::env::var_os("GROK_AUTO_UPDATE"))
+            .is_none()
+    {
+        eprintln!("  Please restart Astra.");
     }
     Ok(Some(target_version.to_string()))
 }
@@ -2846,7 +2857,7 @@ async fn refresh_deployment_config() {
         Err(e) if e.is_auth_rejection() => tracing::debug!("managed config not applied: {e}"),
         Err(e) if e.is_retryable() => {
             tracing::debug!("managed config refresh failed: {e}");
-            eprintln!("  Couldn't apply managed configuration. Run `grok setup` to retry.");
+            eprintln!("  Couldn't apply managed configuration. Run `astra setup` to retry.");
         }
         Err(e) => eprintln!("  Couldn't apply managed configuration. {e}"),
     }

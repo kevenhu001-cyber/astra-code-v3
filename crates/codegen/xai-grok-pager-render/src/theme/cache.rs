@@ -1,7 +1,7 @@
 //! In-memory theme cache + resolution.
 //!
 //! The pager reads the active `ThemeKind` on every render frame, so the
-//! lookup must be cheaper than re-loading from `~/.grok/config.toml`.
+//! lookup must be cheaper than re-loading from `~/.astra/config.toml`.
 //! [`current_kind`] returns the in-memory value, lazily seeding from the
 //! shell's layered effective config on first call.
 //!
@@ -73,7 +73,7 @@ pub struct AutoThemeConfig {
 
 /// Get the current theme kind.
 ///
-/// On the first call, reads from `~/.grok/config.toml` (via the shell's
+/// On the first call, reads from `~/.astra/config.toml` (via the shell's
 /// `load_effective_config`). After that, returns the in-memory value
 /// (updated by [`set`]).
 pub fn current_kind() -> ThemeKind {
@@ -165,7 +165,7 @@ pub fn invalidate_auto_theme_config() {
 /// Called once at startup. Returns the concrete `ThemeKind` (never `Auto`).
 ///
 /// Precedence:
-/// 1. Environment variable (`GROK_THEME` / `LC_GROK_THEME`)
+/// 1. Environment variable (`ASTRA_THEME` / `LC_ASTRA_THEME`)
 /// 2. Config file (`[ui].theme`)
 /// 3. Default: `GrokNight`
 #[must_use]
@@ -185,7 +185,7 @@ fn env_theme_name() -> Option<String> {
 }
 
 fn env_theme_name_from(env: &HashMap<String, String>) -> Option<&str> {
-    for key in ["GROK_THEME", "LC_GROK_THEME"] {
+    for key in ["ASTRA_THEME", "LC_ASTRA_THEME", "GROK_THEME", "LC_GROK_THEME"] {
         let Some(raw) = env
             .get(key)
             .map(String::as_str)
@@ -611,7 +611,7 @@ mod tests {
     fn env_theme_overrides_config() {
         with_test_env(|| {
             assert_eq!(
-                resolve_initial_theme_from(Some("grokday"), Some(ThemeKind::TokyoNight), false),
+                resolve_initial_theme_from(Some("astraday"), Some(ThemeKind::TokyoNight), false),
                 ThemeKind::GrokDay
             );
             assert!(!is_auto_mode());
@@ -662,7 +662,7 @@ mod tests {
     #[test]
     fn grok_theme_wins_over_lc_and_config() {
         with_test_env(|| {
-            let env = theme_env(&[("GROK_THEME", "grokday"), ("LC_GROK_THEME", "tokyonight")]);
+            let env = theme_env(&[("ASTRA_THEME", "astraday"), ("LC_ASTRA_THEME", "tokyonight")]);
             assert_eq!(
                 resolve_initial_theme_from(
                     env_theme_name_from(&env),
@@ -689,8 +689,8 @@ mod tests {
             assert_eq!(
                 resolve_initial_theme_from(
                     env_theme_name_from(&theme_env(&[
-                        ("GROK_THEME", ""),
-                        ("LC_GROK_THEME", "grokday")
+                        ("ASTRA_THEME", ""),
+                        ("LC_ASTRA_THEME", "astraday")
                     ])),
                     Some(ThemeKind::TokyoNight),
                     false,
@@ -699,7 +699,7 @@ mod tests {
             );
             assert_eq!(
                 resolve_initial_theme_from(
-                    env_theme_name_from(&theme_env(&[("LC_GROK_THEME", "grokday")])),
+                    env_theme_name_from(&theme_env(&[("LC_ASTRA_THEME", "astraday")])),
                     Some(ThemeKind::TokyoNight),
                     true,
                 ),
@@ -714,8 +714,8 @@ mod tests {
             assert_eq!(
                 resolve_initial_theme_from(
                     env_theme_name_from(&theme_env(&[
-                        ("GROK_THEME", "not-a-theme"),
-                        ("LC_GROK_THEME", "grokday"),
+                        ("ASTRA_THEME", "not-a-theme"),
+                        ("LC_ASTRA_THEME", "astraday"),
                     ])),
                     Some(ThemeKind::TokyoNight),
                     false,
@@ -732,8 +732,8 @@ mod tests {
             assert_eq!(
                 resolve_initial_theme_from(
                     env_theme_name_from(&theme_env(&[
-                        ("GROK_THEME", "not-a-theme"),
-                        ("LC_GROK_THEME", "")
+                        ("ASTRA_THEME", "not-a-theme"),
+                        ("LC_ASTRA_THEME", "")
                     ])),
                     Some(ThemeKind::GrokDay),
                     false,
@@ -742,7 +742,7 @@ mod tests {
             );
             assert_eq!(
                 resolve_initial_theme_from(
-                    env_theme_name_from(&theme_env(&[("GROK_THEME", ""), ("LC_GROK_THEME", "")])),
+                    env_theme_name_from(&theme_env(&[("ASTRA_THEME", ""), ("LC_ASTRA_THEME", "")])),
                     Some(ThemeKind::GrokDay),
                     true,
                 ),
@@ -765,7 +765,7 @@ mod tests {
             system_appearance::set_mock(Some(system_appearance::SystemAppearance::Light));
             assert_eq!(
                 resolve_initial_theme_from(
-                    env_theme_name_from(&theme_env(&[("GROK_THEME", "system")])),
+                    env_theme_name_from(&theme_env(&[("ASTRA_THEME", "system")])),
                     Some(ThemeKind::TokyoNight),
                     false,
                 ),
@@ -777,7 +777,7 @@ mod tests {
             system_appearance::set_mock(Some(system_appearance::SystemAppearance::Dark));
             assert_eq!(
                 resolve_initial_theme_from(
-                    env_theme_name_from(&theme_env(&[("LC_GROK_THEME", "auto")])),
+                    env_theme_name_from(&theme_env(&[("LC_ASTRA_THEME", "auto")])),
                     Some(ThemeKind::TokyoNight),
                     true,
                 ),

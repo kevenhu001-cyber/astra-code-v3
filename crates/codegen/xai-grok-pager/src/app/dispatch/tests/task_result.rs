@@ -999,7 +999,7 @@ fn switch_model_complete_success_updates_model_and_pushes_message() {
         .available
         .insert(
             model_id.clone(),
-            acp::ModelInfo::new(model_id.clone(), "Grok 4.5".to_string()),
+            acp::ModelInfo::new(model_id.clone(), "Astra 4.5".to_string()),
         );
     app.agents
         .get_mut(&id)
@@ -1046,7 +1046,7 @@ fn switch_model_complete_skips_message_and_persist_when_unchanged() {
     let agent = app.agents.get_mut(&id).unwrap();
     agent.session.models.available.insert(
         model_id.clone(),
-        acp::ModelInfo::new(model_id.clone(), "Grok 4.5".to_string()),
+        acp::ModelInfo::new(model_id.clone(), "Astra 4.5".to_string()),
     );
     agent.session.models.current = Some(model_id.clone());
     agent.session.models.reasoning_effort = None;
@@ -1165,7 +1165,7 @@ fn switch_to_non_reasoning_model_clears_persisted_effort() {
         .available
         .insert(
             model_id.clone(),
-            acp::ModelInfo::new(model_id.clone(), "Grok Build".to_string()),
+            acp::ModelInfo::new(model_id.clone(), "Astra".to_string()),
         );
     app.agents
         .get_mut(&id)
@@ -1405,12 +1405,12 @@ fn same_agent_type_switch_no_modal() {
     let agent = app.agents.get_mut(&id).unwrap();
     agent.session.models.available.insert(
         model_a.clone(),
-        acp::ModelInfo::new(model_a.clone(), "Grok Build A".to_string()),
+        acp::ModelInfo::new(model_a.clone(), "Astra A".to_string()),
     );
     agent.session.models.set_current(model_a, None);
     agent.session.models.available.insert(
         model_b.clone(),
-        acp::ModelInfo::new(model_b.clone(), "Grok Build B".to_string()),
+        acp::ModelInfo::new(model_b.clone(), "Astra B".to_string()),
     );
     agent.session.model_switch_pending = true;
 

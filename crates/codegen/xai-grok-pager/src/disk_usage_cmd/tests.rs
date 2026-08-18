@@ -560,11 +560,11 @@ fn json_shape_is_frozen() {
         unfollowed_dir_symlinks: 0,
         worktrees_outside_managed_roots: 0,
         registry: RegistryState::Read,
-        registry_path: "/home/user/.grok/worktrees.db".into(),
+        registry_path: "/home/user/.astra/worktrees.db".into(),
         worktrees: vec![
             WorktreeUsage {
                 last_modified_at: Some(1_700_005_000),
-                path: "/home/user/.grok/worktrees/xai/wt-1".into(),
+                path: "/home/user/.astra/worktrees/xai/wt-1".into(),
                 ..tracked_row(
                     90,
                     TrackedRow {
@@ -579,7 +579,7 @@ fn json_shape_is_frozen() {
             WorktreeUsage {
                 kind: WorktreeKind::Pool,
                 last_modified_at: Some(1_700_002_000),
-                path: "/home/user/.grok/worktree_pool/inst/wt-2".into(),
+                path: "/home/user/.astra/worktree_pool/inst/wt-2".into(),
                 ..untracked_row(10)
             },
         ],
@@ -601,7 +601,7 @@ fn json_shape_is_frozen() {
             "unfollowed_dir_symlinks": 0,
             "worktrees_outside_managed_roots": 0,
             "registry": "read",
-            "registry_path": "/home/user/.grok/worktrees.db",
+            "registry_path": "/home/user/.astra/worktrees.db",
             "worktrees": [
                 {
                     "bytes": 90,
@@ -615,7 +615,7 @@ fn json_shape_is_frozen() {
                     "label": "my-feature",
                     "repo_name": "xai",
                     "git_ref": "brian/fix",
-                    "path": "/home/user/.grok/worktrees/xai/wt-1",
+                    "path": "/home/user/.astra/worktrees/xai/wt-1",
                 },
                 {
                     "bytes": 10,
@@ -629,7 +629,7 @@ fn json_shape_is_frozen() {
                     "label": null,
                     "repo_name": null,
                     "git_ref": null,
-                    "path": "/home/user/.grok/worktree_pool/inst/wt-2",
+                    "path": "/home/user/.astra/worktree_pool/inst/wt-2",
                 },
             ],
         })
@@ -829,7 +829,7 @@ fn print_report_renders_registry_notices() {
             registry: RegistryState::Busy,
             rows: true,
             expected: &["in use by another process", "Retry in a moment."],
-            absent: &["db rebuild", "damaged", "Remove $GROK_HOME/worktrees.db"],
+            absent: &["db rebuild", "damaged", "Remove $ASTRA_HOME/worktrees.db"],
         },
         Case {
             name: "an unopenable registry names the file without proposing deletion",
@@ -840,7 +840,7 @@ fn print_report_renders_registry_notices() {
                 "worktrees.db",
                 "Check its permissions.",
             ],
-            absent: &["db rebuild", "damaged", "Remove $GROK_HOME/worktrees.db"],
+            absent: &["db rebuild", "damaged", "Remove $ASTRA_HOME/worktrees.db"],
         },
     ];
     for case in cases {
@@ -990,7 +990,7 @@ fn symlinked_worktrees_dir_is_surfaced_not_silently_dropped() {
 
 #[cfg(unix)]
 #[test]
-#[serial_test::serial(GROK_HOME)]
+#[serial_test::serial(ASTRA_HOME)]
 // serial keys are independent locks, so a test setting both must hold both.
 #[serial_test::serial(HOME)]
 fn symlinked_default_home_keeps_home_label() {
@@ -999,14 +999,14 @@ fn symlinked_default_home_keeps_home_label() {
     let real_grok = tmp.path().join("grok-on-disk");
     std::fs::create_dir_all(&fake_home).unwrap();
     std::fs::create_dir_all(&real_grok).unwrap();
-    std::os::unix::fs::symlink(&real_grok, fake_home.join(".grok")).unwrap();
+    std::os::unix::fs::symlink(&real_grok, fake_home.join(".astra")).unwrap();
     let _home = crate::test_util::EnvVarGuard::set("HOME", &fake_home);
 
-    let resolved = dunce::canonicalize(&fake_home).unwrap().join(".grok");
+    let resolved = dunce::canonicalize(&fake_home).unwrap().join(".astra");
     let canonical = dunce::canonicalize(&resolved).unwrap();
     assert_ne!(canonical, resolved, "the symlink must actually resolve");
     assert_eq!(
         crate::util::display_grok_home_prefix_for(&canonical),
-        "~/.grok"
+        "~/.astra"
     );
 }

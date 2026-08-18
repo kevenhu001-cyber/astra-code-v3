@@ -1355,7 +1355,7 @@ impl ConversationItem {
 // for `ConversationItem`
 // ---------------------------------------------------------------------------
 //
-// Part of the Grok Compaction unification. Lets the shared, transport-agnostic
+// Part of the Astra Compaction unification. Lets the shared, transport-agnostic
 // engine in `crates/common/xai-grok-compaction` operate over grok-build's
 // `ConversationItem` without depending on this crate — the orphan rule forces
 // the impls to live here, next to the type. Mirrors the harness's
@@ -3319,7 +3319,7 @@ mod tests {
     fn test_transform_cwd_transforms_tool_call_arguments() {
         // Tool call arguments containing paths are transformed alongside text content.
         // This ensures the model sees consistent paths on the next turn.
-        let worktree = "/home/user/.grok/worktrees/project/ab-uuid-a";
+        let worktree = "/home/user/.astra/worktrees/project/ab-uuid-a";
         let root = "/home/user/project";
 
         let mut items = vec![ConversationItem::Assistant(AssistantItem {
@@ -3394,7 +3394,7 @@ mod tests {
         // End-to-end sync-back scenario: worktree paths -> root paths
         // This simulates what happens when a forked session's worktree
         // contents are synced back to the original root path.
-        let worktree = "/home/user/.grok/worktrees/myproject/fork-a";
+        let worktree = "/home/user/.astra/worktrees/myproject/fork-a";
         let root = "/home/user/myproject";
 
         let mut items = vec![
@@ -3463,7 +3463,7 @@ mod tests {
         // Tool call arguments are transformed so the fork session's history
         // has consistent worktree paths everywhere.
         let root = "/home/user/myproject";
-        let worktree = "/home/user/.grok/worktrees/myproject/fork-a";
+        let worktree = "/home/user/.astra/worktrees/myproject/fork-a";
 
         let mut items = vec![
             ConversationItem::system(format!("Working in {root}.")),
@@ -3600,7 +3600,7 @@ mod tests {
     #[test]
     fn test_transform_cwd_assistant_only_tool_calls_no_content() {
         // Assistant message with empty content but tool calls containing paths
-        let worktree = "/home/user/.grok/worktrees/proj/fork-a";
+        let worktree = "/home/user/.astra/worktrees/proj/fork-a";
         let root = "/home/user/proj";
 
         let mut items = vec![ConversationItem::assistant_tool_calls(vec![

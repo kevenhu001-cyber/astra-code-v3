@@ -1,4 +1,4 @@
-//! Shared announcement types, persistence, and formatting for Grok CLI apps.
+//! Shared announcement types, persistence, and formatting for Astra CLI apps.
 //!
 //! This crate provides the common logic used by `xai-grok-shell` and
 //! `xai-grok-pager` for handling announcements (banner notifications).
@@ -126,7 +126,7 @@ pub fn prune_hidden_announcement_ids(
     ids.len() != before
 }
 
-/// Read hidden announcement ids from `~/.grok/announcements.json`.
+/// Read hidden announcement ids from `~/.astra/announcements.json`.
 /// Returns an empty set (everything visible) on missing or malformed file.
 pub async fn read_hidden_announcement_ids() -> BTreeSet<String> {
     let path = announcements_state_path();
@@ -136,7 +136,7 @@ pub async fn read_hidden_announcement_ids() -> BTreeSet<String> {
     }
 }
 
-/// Write hidden announcement ids to `~/.grok/announcements.json`.
+/// Write hidden announcement ids to `~/.astra/announcements.json`.
 pub async fn write_hidden_announcement_ids(ids: &BTreeSet<String>) {
     let path = announcements_state_path();
     if let Some(s) = serialize_hidden_announcement_ids(ids) {

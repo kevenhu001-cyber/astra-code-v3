@@ -88,7 +88,7 @@ pub fn load_from_disk() -> std::io::Result<toml::Value> {
     load_user_config_layer(user_grok_home().as_deref(), USER_CONFIG_FILENAME)
 }
 
-/// User config filename (`$GROK_HOME/config.toml`), shared by the loaders here.
+/// User config filename (`$ASTRA_HOME/config.toml`), shared by the loaders here.
 pub const USER_CONFIG_FILENAME: &str = "config.toml";
 
 /// Managed config filename, shared by the loaders in this module.
@@ -103,8 +103,8 @@ pub fn load_managed_config() -> std::io::Result<toml::Value> {
 
 /// Load a user-tier config layer from `<home>/<filename>`. With no resolvable
 /// user home, returns an empty table rather than reading a cwd-relative
-/// `.grok/<filename>` (the cwd-fallback would silently promote an untrusted
-/// project `.grok` to the user tier).
+/// `.astra/<filename>` (the cwd-fallback would silently promote an untrusted
+/// project `.astra` to the user tier).
 fn load_user_config_layer(home: Option<&Path>, filename: &str) -> std::io::Result<toml::Value> {
     match home {
         Some(g) => load_config_file(&g.join(filename)),
@@ -173,11 +173,11 @@ pub fn managed_config_layers_at(
 pub enum HookProvenance {
     /// `/etc/grok/managed_config.toml`.
     SystemManaged,
-    /// `$GROK_HOME/managed_config.toml` (server-synced).
+    /// `$ASTRA_HOME/managed_config.toml` (server-synced).
     Managed,
     /// `requirements.toml` (user or system tier).
     Requirements,
-    /// `$GROK_HOME/config.toml`.
+    /// `$ASTRA_HOME/config.toml`.
     User,
     /// A JSON hook file (the hooks directory, a vendor settings file, or a
     /// configured hooks path).
@@ -733,7 +733,7 @@ mod tests {
     #[test]
     fn load_user_config_layer_is_empty_without_user_home() {
         // No resolvable user home: no user layer, and crucially no
-        // cwd-relative .grok read.
+        // cwd-relative .astra read.
         let v = load_user_config_layer(None, "config.toml").unwrap();
         assert_eq!(v.as_table().map(|t| t.is_empty()), Some(true));
     }

@@ -432,7 +432,7 @@ impl SkillsClient {
         xai_file_utils::trace_context::inject_trace_context_into_request(builder)
     }
 
-    /// Grok.com product Skills require first-party session auth (same gate as
+    /// Astra.com product Skills require first-party session auth (same gate as
     /// managed MCP / sibling grok.com clients — not plain BYOK API keys).
     async fn require_skills_auth(&self) -> Result<crate::auth::GrokAuth, SkillsError> {
         let auth = self.auth.auth().await.map_err(|_| SkillsError::NoAuth)?;

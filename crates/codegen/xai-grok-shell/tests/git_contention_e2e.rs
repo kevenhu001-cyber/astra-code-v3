@@ -430,11 +430,11 @@ fn git_rebase_refresh_storm_e2e() {
     // SAFETY: the only live threads are the mock runtime's workers, which
     // serve HTTP and never read the process environment.
     unsafe {
-        std::env::set_var("GROK_HOME", grok_home.path());
+        std::env::set_var("ASTRA_HOME", grok_home.path());
         std::env::set_var("GROK_CLI_CHAT_PROXY_BASE_URL", server.url());
         std::env::set_var("GROK_XAI_API_BASE_URL", server.url());
         std::env::set_var("XAI_API_KEY", "test-key-for-ci");
-        std::env::set_var("GROK_TELEMETRY_ENABLED", "false");
+        std::env::set_var("ASTRA_TELEMETRY_ENABLED", "false");
         std::env::set_var("GROK_FEEDBACK_ENABLED", "false");
         std::env::set_var("GROK_TRACE_UPLOAD", "false");
     }

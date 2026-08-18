@@ -2776,7 +2776,7 @@ fn render_empty_state(buf: &mut Buffer, area: Rect, theme: &Theme, loading: bool
 /// chrome reflects what Enter will do: dispatch a new session vs.
 /// enqueue / send a prompt to the currently-selected agent.
 /// Paint a short right-aligned feedback badge onto the dispatch box's
-/// **top border** (e.g. `✗ Session no longer exists`, `✓ Theme: Grok
+/// **top border** (e.g. `✗ Session no longer exists`, `✓ Theme: Astra
 /// Day`), in a neutral accent colour. The message is painted VERBATIM:
 /// it already carries its own status glyph — errors are built via
 /// [`DashboardState::set_error_toast`] (`✗`), while successes / info

@@ -1,12 +1,12 @@
 //! I/O integration tests for the auto-update crate.
 //!
-//! These tests touch global process state — `GROK_HOME` (a `OnceLock` in
+//! These tests touch global process state — `ASTRA_HOME` (a `OnceLock` in
 //! `xai-grok-config`), `GROK_TEST_VERSION`, and `NPM_TOKEN` — so they
-//! must run serially. Once `GROK_HOME` is initialized for a process, it can't
+//! must run serially. Once `ASTRA_HOME` is initialized for a process, it can't
 //! be changed; we set it from a single shared `OnceLock` and reset the
 //! contents of the directory between tests.
 //!
-//! The patterns here mirror the GROK_HOME isolation used in other
+//! The patterns here mirror the ASTRA_HOME isolation used in other
 //! integration tests.
 
 mod common;
@@ -35,7 +35,7 @@ fn reset() {
 
 #[tokio::test]
 #[serial]
-async fn write_version_cache_creates_file_at_grok_home() {
+async fn write_version_cache_creates_file_at_astra_home() {
     let _ = test_home();
     reset();
 
@@ -156,7 +156,7 @@ fn write_cache_with_timestamp(version: &str, ts: time::OffsetDateTime) {
 /// its on-disk contract: file shape + freshness logic via the public
 /// `GrokVersion` JSON layout.
 async fn cache_is_fresh() -> bool {
-    // Mirror the implementation: look at version.json under GROK_HOME,
+    // Mirror the implementation: look at version.json under ASTRA_HOME,
     // parse, and check the TTL.
     let path = version_cache_path();
     let Ok(body) = tokio::fs::read_to_string(&path).await else {
@@ -277,13 +277,13 @@ async fn write_version_cache_idempotent_for_same_version() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// get_installed_grok_version env override
+// get_installed_astra_version env override
 //
 // The function honors `GROK_TEST_VERSION` for testing. We exercise it
 // via the public re-export only — no private items leaked.
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Note: `get_installed_grok_version` is not re-exported from `lib.rs`, but
+// Note: `get_installed_astra_version` is not re-exported from `lib.rs`, but
 // it's `pub` from `version` module and accessible via `version::`.
 
 #[tokio::test]
@@ -295,7 +295,7 @@ async fn get_installed_version_uses_env_var_override() {
     unsafe {
         std::env::set_var("GROK_TEST_VERSION", "9.9.9");
     }
-    let v = xai_grok_update::version::get_installed_grok_version();
+    let v = xai_grok_update::version::get_installed_astra_version();
     assert_eq!(v, "9.9.9");
     unsafe {
         std::env::remove_var("GROK_TEST_VERSION");
@@ -311,7 +311,7 @@ async fn get_installed_version_falls_back_to_cargo_pkg_version_when_env_unset() 
     unsafe {
         std::env::remove_var("GROK_TEST_VERSION");
     }
-    let v = xai_grok_update::version::get_installed_grok_version();
+    let v = xai_grok_update::version::get_installed_astra_version();
     // The compile-time CARGO_PKG_VERSION must be a parseable semver string.
     let _: semver::Version = v
         .parse()
@@ -328,13 +328,13 @@ async fn get_installed_version_with_env_var_takes_precedence() {
         unsafe {
             std::env::remove_var("GROK_TEST_VERSION");
         }
-        xai_grok_update::version::get_installed_grok_version()
+        xai_grok_update::version::get_installed_astra_version()
     };
 
     unsafe {
         std::env::set_var("GROK_TEST_VERSION", "0.0.0-test");
     }
-    let overridden = xai_grok_update::version::get_installed_grok_version();
+    let overridden = xai_grok_update::version::get_installed_astra_version();
     assert_ne!(real, overridden);
     assert_eq!(overridden, "0.0.0-test");
 
@@ -352,7 +352,7 @@ async fn get_installed_version_handles_alpha_prerelease_in_env() {
     unsafe {
         std::env::set_var("GROK_TEST_VERSION", "0.1.200-alpha.5");
     }
-    let v = xai_grok_update::version::get_installed_grok_version();
+    let v = xai_grok_update::version::get_installed_astra_version();
     assert_eq!(v, "0.1.200-alpha.5");
     unsafe {
         std::env::remove_var("GROK_TEST_VERSION");
@@ -370,7 +370,7 @@ async fn get_installed_version_does_not_validate_env_var_format() {
     unsafe {
         std::env::set_var("GROK_TEST_VERSION", "not-a-version");
     }
-    let v = xai_grok_update::version::get_installed_grok_version();
+    let v = xai_grok_update::version::get_installed_astra_version();
     assert_eq!(v, "not-a-version");
     unsafe {
         std::env::remove_var("GROK_TEST_VERSION");

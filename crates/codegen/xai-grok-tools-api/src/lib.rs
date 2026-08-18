@@ -1,4 +1,4 @@
-//! Shared API definitions for Grok tools: protobuf types, config validation,
+//! Shared API definitions for Astra tools: protobuf types, config validation,
 //! and canonical slash-command wording.
 //!
 //! Used by both the tools library and the gRPC server, and by host services

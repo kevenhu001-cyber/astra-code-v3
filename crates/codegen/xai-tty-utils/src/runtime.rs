@@ -2,7 +2,7 @@
 //!
 //! Tokio defaults to one worker per core and 512 blocking threads *per
 //! runtime*. On many-core shared hosts that pins too many thread slots
-//! against per-user ceilings (`pids.max` / `RLIMIT_NPROC`). Grok runtimes
+//! against per-user ceilings (`pids.max` / `RLIMIT_NPROC`). Astra runtimes
 //! are I/O-bound, so throughput does not scale past a small worker count.
 //!
 //! Blocking pool: `spawn_blocking` panics on `pthread_create` EAGAIN only

@@ -11,7 +11,7 @@
 //! no verdict behind — is a unit test (`auth::manager::remedy`); driving it here
 //! would buy the same assertions for two more timeout budgets of wall clock.
 //!
-//! One `#[test]`: the phases share one process-global `GROK_HOME` and env, so
+//! One `#[test]`: the phases share one process-global `ASTRA_HOME` and env, so
 //! nothing else may run concurrently.
 #![cfg(unix)]
 
@@ -290,7 +290,7 @@ fn expired_external_credential_routes_to_the_provider_login_flow() {
     // SAFETY: the only other live threads are the mock runtime's HTTP workers,
     // which never read the process environment.
     unsafe {
-        std::env::set_var("GROK_HOME", grok_home.path());
+        std::env::set_var("ASTRA_HOME", grok_home.path());
         std::env::set_var("GROK_CLI_CHAT_PROXY_BASE_URL", server.url());
         std::env::set_var("GROK_XAI_API_BASE_URL", server.url());
         std::env::set_var("GROK_MODELS_BASE_URL", server.url());
@@ -307,7 +307,7 @@ fn expired_external_credential_routes_to_the_provider_login_flow() {
         for name in ambient_mint_endpoints() {
             std::env::remove_var(&name);
         }
-        std::env::set_var("GROK_TELEMETRY_ENABLED", "false");
+        std::env::set_var("ASTRA_TELEMETRY_ENABLED", "false");
         std::env::set_var("GROK_FEEDBACK_ENABLED", "false");
         std::env::set_var("GROK_TRACE_UPLOAD", "false");
     }

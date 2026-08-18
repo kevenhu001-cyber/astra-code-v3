@@ -23,7 +23,7 @@ Examples:
   # Add a remote server with an authentication header
   grok mcp add --transport http api https://mcp.example.com/mcp --header \"Authorization: Bearer YOUR_TOKEN\"
 
-  # Add to the project config (./.grok/config.toml) instead of ~/.grok/config.toml
+  # Add to the project config (./.astra/config.toml) instead of ~/.astra/config.toml
   grok mcp add --scope project github -- npx -y @modelcontextprotocol/server-github";
 
 #[derive(Debug, clap::Args, Clone)]
@@ -46,9 +46,9 @@ pub enum McpTransport {
 /// Which config file an MCP server definition is written to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum McpScope {
-    /// `~/.grok/config.toml`, available in all your projects
+    /// `~/.astra/config.toml`, available in all your projects
     User,
-    /// `./.grok/config.toml`, shared with everyone working in this directory
+    /// `./.astra/config.toml`, shared with everyone working in this directory
     Project,
 }
 
@@ -121,7 +121,7 @@ pub struct AddArgs {
     #[arg(short = 't', long, value_enum)]
     transport: Option<McpTransport>,
 
-    /// Config to write to: user (~/.grok/config.toml) or project (./.grok/config.toml)
+    /// Config to write to: user (~/.astra/config.toml) or project (./.astra/config.toml)
     #[arg(short = 's', long, value_enum, default_value = "user")]
     scope: McpScope,
 
@@ -671,7 +671,7 @@ async fn run_remove(name: &str, requested_scope: Option<McpScope>) -> Result<()>
     println!("File modified: {}", scope_display(scope, &path));
 
     // A scoped delete can leave the name defined in the other scope or an
-    // ancestor .grok/config.toml, where it still resolves for sessions.
+    // ancestor .astra/config.toml, where it still resolves for sessions.
     let still_user_defined = mcp_server_defined_at(&user_config_path(), name);
     if let Some((survivor_scope, remaining)) =
         surviving_definition(still_user_defined, find_project_site())
@@ -735,7 +735,7 @@ mod tests {
         // The invocation from the original report: a stdio server whose
         // command follows `--`, with an explicit transport.
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -762,7 +762,7 @@ mod tests {
     #[test]
     fn add_passes_hyphen_flags_and_repeated_env_to_server() {
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "fs",
@@ -795,7 +795,7 @@ mod tests {
 
     #[test]
     fn add_hyphen_flag_without_double_dash_is_rejected() {
-        let err = PagerArgs::try_parse_from(["grok", "mcp", "add", "fs", "npx", "-y"])
+        let err = PagerArgs::try_parse_from(["astra", "mcp", "add", "fs", "npx", "-y"])
             .expect_err("hyphen args must be escaped with --");
         assert_eq!(err.kind(), clap::error::ErrorKind::UnknownArgument);
     }
@@ -803,7 +803,7 @@ mod tests {
     #[test]
     fn add_http_with_headers() {
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -837,7 +837,7 @@ mod tests {
     #[test]
     fn add_sse_sets_transport_type() {
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -859,7 +859,7 @@ mod tests {
     fn add_http_transport_with_non_url_command_is_rejected() {
         // Previously this silently stored `xcrun` as an HTTP URL.
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -877,7 +877,7 @@ mod tests {
     fn add_explicit_stdio_keeps_url_looking_command_as_stdio() {
         // Previously URL sniffing overrode an explicit stdio transport.
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -896,7 +896,7 @@ mod tests {
 
     #[test]
     fn add_default_transport_warns_on_url_looking_command() {
-        let add = parse_add(&["grok", "mcp", "add", "api", "https://mcp.example.com/mcp"]);
+        let add = parse_add(&["astra", "mcp", "add", "api", "https://mcp.example.com/mcp"]);
         let resolved = resolve_add(&add).expect("defaults to stdio with a warning");
         assert!(matches!(
             resolved.transport,
@@ -907,7 +907,7 @@ mod tests {
 
         // Scheme-less commands get http:// prepended so the suggested
         // command passes URL validation verbatim.
-        let add = parse_add(&["grok", "mcp", "add", "local", "localhost:3000"]);
+        let add = parse_add(&["astra", "mcp", "add", "local", "localhost:3000"]);
         let resolved = resolve_add(&add).expect("localhost command warns");
         assert!(
             resolved.warnings[0].contains("--transport http local http://localhost:3000"),
@@ -919,12 +919,12 @@ mod tests {
     #[test]
     fn add_scope_project_parses_and_invalid_scope_is_rejected() {
         let add = parse_add(&[
-            "grok", "mcp", "add", "-s", "project", "fs", "--", "npx", "pkg",
+            "astra", "mcp", "add", "-s", "project", "fs", "--", "npx", "pkg",
         ]);
         assert_eq!(add.scope, McpScope::Project);
 
         let err = PagerArgs::try_parse_from([
-            "grok", "mcp", "add", "-s", "local", "fs", "--", "npx", "pkg",
+            "astra", "mcp", "add", "-s", "local", "fs", "--", "npx", "pkg",
         ])
         .expect_err("local is not a grok scope");
         assert_eq!(err.kind(), clap::error::ErrorKind::InvalidValue);
@@ -933,7 +933,7 @@ mod tests {
     #[test]
     fn add_legacy_flag_forms_still_parse() {
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "oldfs",
@@ -953,7 +953,7 @@ mod tests {
         }
 
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "remote",
@@ -979,7 +979,7 @@ mod tests {
     #[test]
     fn add_legacy_command_conflicts_with_positional() {
         let err = PagerArgs::try_parse_from([
-            "grok",
+            "astra",
             "mcp",
             "add",
             "fs",
@@ -996,7 +996,7 @@ mod tests {
         // Pre-parity --env was greedy (`--env A=1 B=2`); with --command the
         // stray pair now lands in the positional and trips the source group.
         let err = PagerArgs::try_parse_from([
-            "grok",
+            "astra",
             "mcp",
             "add",
             "github",
@@ -1014,7 +1014,7 @@ mod tests {
         // Without --command the stray pair used to be silently written as the
         // command; resolve_add must reject it with migration guidance.
         let add = parse_add(&[
-            "grok", "mcp", "add", "pg", "--env", "A=1", "B=2", "--", "npx", "-y", "server",
+            "astra", "mcp", "add", "pg", "--env", "A=1", "B=2", "--", "npx", "-y", "server",
         ]);
         let err = resolve_add(&add).expect_err("env-shaped command must fail");
         assert!(err.to_string().contains("-e A=1 -e B=2"), "got: {err}");
@@ -1025,7 +1025,7 @@ mod tests {
         // --url with an explicit stdio transport used to silently store the
         // URL as a stdio command.
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "foo",
@@ -1039,7 +1039,7 @@ mod tests {
 
         // --type without --url used to be silently ignored.
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "bar",
@@ -1053,7 +1053,7 @@ mod tests {
 
     #[test]
     fn add_validates_name_env_and_headers() {
-        let add = parse_add(&["grok", "mcp", "add", "fs", "-e", "NOT_A_PAIR", "--", "npx"]);
+        let add = parse_add(&["astra", "mcp", "add", "fs", "-e", "NOT_A_PAIR", "--", "npx"]);
         let err = resolve_add(&add).expect_err("malformed env must fail");
         assert!(
             err.to_string()
@@ -1062,7 +1062,7 @@ mod tests {
         );
 
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -1078,19 +1078,19 @@ mod tests {
             "got: {err}"
         );
 
-        let add = parse_add(&["grok", "mcp", "add", "bad name!", "--", "npx"]);
+        let add = parse_add(&["astra", "mcp", "add", "bad name!", "--", "npx"]);
         let err = resolve_add(&add).expect_err("invalid name must fail");
         assert!(err.to_string().contains("Invalid name"), "got: {err}");
     }
 
     #[test]
     fn add_rejects_mismatched_options_per_transport() {
-        let add = parse_add(&["grok", "mcp", "add", "fs", "-H", "X: y", "--", "npx"]);
+        let add = parse_add(&["astra", "mcp", "add", "fs", "-H", "X: y", "--", "npx"]);
         let err = resolve_add(&add).expect_err("--header is remote-only");
         assert!(err.to_string().contains("--header"), "got: {err}");
 
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -1104,7 +1104,7 @@ mod tests {
         assert!(err.to_string().contains("--env"), "got: {err}");
 
         let add = parse_add(&[
-            "grok",
+            "astra",
             "mcp",
             "add",
             "--transport",
@@ -1123,21 +1123,21 @@ mod tests {
 
     #[test]
     fn add_requires_a_source_for_each_transport() {
-        let add = parse_add(&["grok", "mcp", "add", "fs"]);
+        let add = parse_add(&["astra", "mcp", "add", "fs"]);
         let err = resolve_add(&add).expect_err("stdio without a command must fail");
         assert!(
             err.to_string().contains("command is required"),
             "got: {err}"
         );
 
-        let add = parse_add(&["grok", "mcp", "add", "--transport", "http", "api"]);
+        let add = parse_add(&["astra", "mcp", "add", "--transport", "http", "api"]);
         let err = resolve_add(&add).expect_err("http without a URL must fail");
         assert!(err.to_string().contains("URL is required"), "got: {err}");
     }
 
     #[test]
     fn remove_accepts_optional_scope() {
-        let args = PagerArgs::try_parse_from(["grok", "mcp", "remove", "fs", "-s", "project"])
+        let args = PagerArgs::try_parse_from(["astra", "mcp", "remove", "fs", "-s", "project"])
             .expect("remove with scope parses");
         match args.command {
             Some(Command::Mcp(McpArgs {
@@ -1160,9 +1160,9 @@ mod tests {
 
     #[test]
     fn grok_com_known_only_with_toml_definition() {
-        // Unique name: `grok_home()` is process-wide OnceLock, so GROK_HOME
+        // Unique name: `grok_home()` is process-wide OnceLock, so ASTRA_HOME
         // EnvGuard is a no-op if another test already resolved it. A leftover
-        // `grok_com_*` in the real ~/.grok disabled list would fail an orphan
+        // `grok_com_*` in the real ~/.astra disabled list would fail an orphan
         // assertion on a well-known name.
         let name = format!("grok_com_orphan_{}", uuid::Uuid::new_v4().as_simple());
 
@@ -1174,9 +1174,9 @@ mod tests {
         );
 
         let defined = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(defined.path().join(".grok")).unwrap();
+        std::fs::create_dir_all(defined.path().join(".astra")).unwrap();
         std::fs::write(
-            defined.path().join(".grok").join("config.toml"),
+            defined.path().join(".astra").join("config.toml"),
             format!(
                 r#"
 [mcp_servers.{name}]
@@ -1194,7 +1194,7 @@ url = "https://mcp.example.test/sse"
 
     #[test]
     fn enable_and_disable_parse_name() {
-        let args = PagerArgs::try_parse_from(["grok", "mcp", "enable", "user-grafana"])
+        let args = PagerArgs::try_parse_from(["astra", "mcp", "enable", "user-grafana"])
             .expect("enable should parse");
         match args.command {
             Some(Command::Mcp(McpArgs {
@@ -1203,7 +1203,7 @@ url = "https://mcp.example.test/sse"
             other => panic!("expected mcp enable, got {other:?}"),
         }
 
-        let args = PagerArgs::try_parse_from(["grok", "mcp", "disable", "user-slack"])
+        let args = PagerArgs::try_parse_from(["astra", "mcp", "disable", "user-slack"])
             .expect("disable should parse");
         match args.command {
             Some(Command::Mcp(McpArgs {
@@ -1215,11 +1215,11 @@ url = "https://mcp.example.test/sse"
 
     #[test]
     fn enable_disable_require_name() {
-        let err = PagerArgs::try_parse_from(["grok", "mcp", "enable"])
+        let err = PagerArgs::try_parse_from(["astra", "mcp", "enable"])
             .expect_err("enable without name must fail");
         assert_eq!(err.kind(), clap::error::ErrorKind::MissingRequiredArgument);
 
-        let err = PagerArgs::try_parse_from(["grok", "mcp", "disable"])
+        let err = PagerArgs::try_parse_from(["astra", "mcp", "disable"])
             .expect_err("disable without name must fail");
         assert_eq!(err.kind(), clap::error::ErrorKind::MissingRequiredArgument);
     }
@@ -1227,7 +1227,7 @@ url = "https://mcp.example.test/sse"
     #[test]
     fn select_remove_site_covers_scope_presence_matrix() {
         let user = xai_grok_shell::util::config::user_config_path();
-        let project = PathBuf::from("/repo/.grok/config.toml");
+        let project = PathBuf::from("/repo/.astra/config.toml");
 
         // No scope: single hits resolve, both scopes is ambiguous, neither is
         // not found.
@@ -1272,7 +1272,7 @@ url = "https://mcp.example.test/sse"
     #[test]
     fn surviving_definition_prefers_project_then_user() {
         let user = xai_grok_shell::util::config::user_config_path();
-        let project = PathBuf::from("/repo/.grok/config.toml");
+        let project = PathBuf::from("/repo/.astra/config.toml");
 
         // The mirror of the remove note: a user-scope delete with a project
         // survivor (and vice versa) must still report the remaining site.

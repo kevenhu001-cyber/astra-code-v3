@@ -215,7 +215,7 @@ pub struct FeedbackManagerConfig {
     /// ratings). Gated by `GROK_FEEDBACK_ENABLED`.
     pub feedback_enabled: bool,
     /// Whether session analytics (signal sync, turn deltas) are enabled.
-    /// Gated by `GROK_TELEMETRY_ENABLED`. These are analytics data that
+    /// Gated by `ASTRA_TELEMETRY_ENABLED`. These are analytics data that
     /// flow continuously without user action.
     pub telemetry_enabled: bool,
     /// Client type (Agent, Tui, Web, Extension)

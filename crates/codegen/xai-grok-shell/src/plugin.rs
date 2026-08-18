@@ -120,7 +120,7 @@ impl std::fmt::Display for UninstallError {
 }
 
 /// Find, remove, clean up, and deregister a plugin.
-/// When `keep_data` is true, `~/.grok/plugin-data/<id>/` is preserved.
+/// When `keep_data` is true, `~/.astra/plugin-data/<id>/` is preserved.
 pub fn uninstall_plugin(
     name: &str,
     confirm: bool,
@@ -1196,10 +1196,10 @@ pub fn remove_toml_marketplace_block(content: &str, source_identity: &str) -> Op
 }
 
 /// Try removing a source from `settings.json` / `known_marketplaces.json` under
-/// `~/.grok/` and `~/.claude/`. Returns `true` if removed from at least one file.
+/// `~/.astra/` and `~/.claude/`. Returns `true` if removed from at least one file.
 pub fn try_remove_source_from_json_files(source_url_or_path: &str) -> bool {
     // Resolve user grok via user_grok_home() (None when no home resolves) and
-    // home separately, so removal still runs from $GROK_HOME when no home dir
+    // home separately, so removal still runs from $ASTRA_HOME when no home dir
     // exists, and never touches a cwd-relative .grok.
     let home = dirs::home_dir();
     let grok = xai_grok_config::user_grok_home();
@@ -1591,10 +1591,10 @@ mod tests {
     fn registered_source_label_uses_addressable_qualifier() {
         assert_eq!(
             registered_source_label(&git_source(
-                "xAI Official",
+                "Astra Official",
                 "https://github.com/xai-org/plugin-marketplace.git"
             )),
-            "xAI Official (xai-org/plugin-marketplace)"
+            "Astra Official (xai-org/plugin-marketplace)"
         );
         assert_eq!(
             registered_source_label(&local_source("Local Dev", "/tmp/p")),
@@ -1615,12 +1615,12 @@ mod tests {
         assert_eq!(
             candidate_label(
                 &git_source(
-                    "xAI Official",
+                    "Astra Official",
                     "https://github.com/xai-org/plugin-marketplace.git"
                 ),
                 "sentry"
             ),
-            "xAI Official (pin: sentry@xai-org/plugin-marketplace)"
+            "Astra Official (pin: sentry@xai-org/plugin-marketplace)"
         );
         assert_eq!(
             candidate_label(&local_source("Local Dev", "/tmp/p"), "sentry"),
@@ -1633,14 +1633,14 @@ mod tests {
         let err = MarketplaceInstallError::UnknownQualifier {
             qualifier: "acme/repo".into(),
             registered: vec![
-                "xAI Official (xai-org/plugin-marketplace)".into(),
+                "Astra Official (xai-org/plugin-marketplace)".into(),
                 "Local Dev (local/local-dev)".into(),
             ],
         };
         let msg = err.to_string();
         assert!(msg.contains("Unknown marketplace \"acme/repo\""), "{msg}");
         assert!(
-            msg.contains("  - xAI Official (xai-org/plugin-marketplace)"),
+            msg.contains("  - Astra Official (xai-org/plugin-marketplace)"),
             "{msg}"
         );
         assert!(msg.contains("  - Local Dev (local/local-dev)"), "{msg}");
@@ -1691,7 +1691,7 @@ mod tests {
     fn name_ambiguous_error_lists_candidates_and_pin_hint() {
         let err = MarketplaceInstallError::NameAmbiguous {
             name: "sentry".into(),
-            candidates: vec!["xAI Official (pin: sentry@xai-org/plugin-marketplace)".into()],
+            candidates: vec!["Astra Official (pin: sentry@xai-org/plugin-marketplace)".into()],
         };
         let msg = err.to_string();
         assert!(
@@ -1699,7 +1699,7 @@ mod tests {
             "{msg}"
         );
         assert!(
-            msg.contains("  - xAI Official (pin: sentry@xai-org/plugin-marketplace)"),
+            msg.contains("  - Astra Official (pin: sentry@xai-org/plugin-marketplace)"),
             "{msg}"
         );
         assert!(
@@ -1802,7 +1802,7 @@ mod tests {
     #[test]
     fn plan_install_qualifier_unknown_lists_registered_labels() {
         let sources = [
-            git_source("xAI Official", OFFICIAL_URL),
+            git_source("Astra Official", OFFICIAL_URL),
             local_source("Local Dev", "/tmp/p"),
         ];
         let err = plan_install(&sources, "sentry", Some("acme/repo"), |_| Ok(Vec::new()))
@@ -1816,7 +1816,7 @@ mod tests {
                 assert_eq!(
                     registered,
                     vec![
-                        "xAI Official (xai-org/plugin-marketplace)".to_string(),
+                        "Astra Official (xai-org/plugin-marketplace)".to_string(),
                         "Local Dev (local/local-dev)".to_string(),
                     ]
                 );
@@ -1852,7 +1852,7 @@ mod tests {
 
     #[test]
     fn plan_install_qualifier_not_found_when_scan_lacks_name() {
-        let sources = [git_source("xAI Official", OFFICIAL_URL)];
+        let sources = [git_source("Astra Official", OFFICIAL_URL)];
         let err = plan_install(
             &sources,
             "sentry",
@@ -1866,7 +1866,7 @@ mod tests {
                 source_display,
             } => {
                 assert_eq!(name, "sentry");
-                assert_eq!(source_display, "xAI Official");
+                assert_eq!(source_display, "Astra Official");
             }
             other => panic!("expected QualifiedNameNotFound, got: {other}"),
         }
@@ -1874,7 +1874,7 @@ mod tests {
 
     #[test]
     fn plan_install_qualifier_sync_failure_is_hard_error() {
-        let sources = [git_source("xAI Official", OFFICIAL_URL)];
+        let sources = [git_source("Astra Official", OFFICIAL_URL)];
         let err = plan_install(
             &sources,
             "sentry",
@@ -1887,7 +1887,7 @@ mod tests {
                 source_display,
                 detail,
             } => {
-                assert_eq!(source_display, "xAI Official");
+                assert_eq!(source_display, "Astra Official");
                 assert_eq!(detail, "network down");
             }
             other => panic!("expected Sync, got: {other}"),
@@ -1898,7 +1898,7 @@ mod tests {
     fn plan_install_qualifier_ok_selects_source_and_entry() {
         let sources = [
             local_source("Local Dev", "/tmp/p"),
-            git_source("xAI Official", OFFICIAL_URL),
+            git_source("Astra Official", OFFICIAL_URL),
         ];
         let plan = plan_install(
             &sources,
@@ -1941,7 +1941,7 @@ mod tests {
     fn plan_install_bare_name_official_priority_selects_official_and_sets_note() {
         let sources = [
             git_source("Third Party", "https://github.com/acme/x.git"),
-            git_source("xAI Official", OFFICIAL_URL),
+            git_source("Astra Official", OFFICIAL_URL),
         ];
         let plan = plan_install(&sources, "sentry", None, |_| Ok(vec![mp_entry("sentry")]))
             .expect("official source wins the tie");
@@ -2000,11 +2000,11 @@ mod tests {
     #[test]
     fn plan_install_bare_name_official_match_proceeds_despite_skip() {
         let sources = [
-            git_source("xAI Official", OFFICIAL_URL),
+            git_source("Astra Official", OFFICIAL_URL),
             git_source("Flaky Remote", "https://github.com/acme/a.git"),
         ];
         let plan = plan_install(&sources, "sentry", None, |source| {
-            if source.name == "xAI Official" {
+            if source.name == "Astra Official" {
                 Ok(vec![mp_entry("sentry")])
             } else {
                 Err("sync failed".to_string())
@@ -2201,7 +2201,7 @@ mod tests {
     fn resolve_qualified_source_name_with_matches_git_owner_repo() {
         let sources = vec![
             git_source(
-                "xAI Official",
+                "Astra Official",
                 "https://github.com/xai-org/plugin-marketplace.git",
             ),
             git_source(
@@ -2211,7 +2211,7 @@ mod tests {
         ];
         let name = resolve_qualified_source_name_with(&sources, "xai-org/plugin-marketplace")
             .expect("qualifier should match the official source");
-        assert_eq!(name, "xAI Official");
+        assert_eq!(name, "Astra Official");
     }
 
     #[test]
@@ -2228,7 +2228,7 @@ mod tests {
     #[test]
     fn resolve_qualified_source_name_with_unknown_qualifier_errors() {
         let sources = vec![git_source(
-            "xAI Official",
+            "Astra Official",
             "https://github.com/xai-org/plugin-marketplace.git",
         )];
         let err = resolve_qualified_source_name_with(&sources, "bogus/repo")

@@ -37,11 +37,11 @@ pub enum PluginScope {
 pub enum PluginOrigin {
     /// CLI `--plugin-dir`.
     CliOverride,
-    /// Project `.grok/plugins/`.
+    /// Project `.astra/plugins/`.
     ProjectGrok,
     /// Project `.claude/plugins/`.
     ProjectClaude,
-    /// `$GROK_HOME/plugins/`.
+    /// `$ASTRA_HOME/plugins/`.
     UserGrok,
     /// `~/.claude/plugins/`.
     UserClaude,
@@ -56,7 +56,7 @@ pub enum PluginOrigin {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         marketplace: Option<String>,
     },
-    /// Grok's install registry (marketplace or direct git/local install).
+    /// Astra's install registry (marketplace or direct git/local install).
     MarketplaceInstall {
         /// Marketplace source display name (None for direct installs).
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -241,7 +241,7 @@ pub struct HookInfo {
     pub timeout_ms: u64,
     /// Source directory of the hook definition file.
     pub source_dir: String,
-    /// Whether this hook is disabled via ~/.grok/disabled-hooks.
+    /// Whether this hook is disabled via ~/.astra/disabled-hooks.
     #[serde(default)]
     pub disabled: bool,
 }
@@ -657,7 +657,7 @@ mod tests {
     #[test]
     fn hooks_action_serde_roundtrip() {
         let action = HooksAction::Add {
-            path: "/home/user/.grok/hooks".into(),
+            path: "/home/user/.astra/hooks".into(),
         };
         let json = serde_json::to_string(&action).unwrap();
         let parsed: HooksAction = serde_json::from_str(&json).unwrap();
@@ -746,7 +746,7 @@ mod tests {
             command: Some("check.sh".into()),
             url: None,
             timeout_ms: 5000,
-            source_dir: "/home/user/.grok/hooks".into(),
+            source_dir: "/home/user/.astra/hooks".into(),
             disabled: false,
         };
         let json = serde_json::to_string(&hook).unwrap();
@@ -763,7 +763,7 @@ mod tests {
         let plugin = PluginInfo {
             name: "test-plugin".into(),
             id: "user/abc12345/test-plugin".into(),
-            root: "/home/user/.grok/plugins/test-plugin".into(),
+            root: "/home/user/.astra/plugins/test-plugin".into(),
             scope: PluginScope::User,
             trusted: true,
             enabled: true,
@@ -811,7 +811,7 @@ mod tests {
                 git_url: None,
             },
             PluginOrigin::MarketplaceInstall {
-                source_name: Some("xAI Official".into()),
+                source_name: Some("Astra Official".into()),
                 git_url: Some("https://example.com/r.git".into()),
             },
             PluginOrigin::ConfigPath,

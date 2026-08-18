@@ -4416,7 +4416,7 @@ async fn models_update_broadcasts_to_all_clients() {
     let (mut reader_b, _writer_b) = connect_and_register(&sock_path, "client-b").await;
     tokio::time::sleep(Duration::from_millis(20)).await;
 
-    let update = r#"{"jsonrpc":"2.0","method":"_x.ai/models/update","params":{"currentModelId":"grok-new","availableModels":[{"modelId":"grok-new","name":"Grok New"}]}}"#;
+    let update = r#"{"jsonrpc":"2.0","method":"_x.ai/models/update","params":{"currentModelId":"grok-new","availableModels":[{"modelId":"grok-new","name":"Astra New"}]}}"#;
     response_tx.send(update.to_string()).unwrap();
 
     let got_a = next_acp_payload(&mut reader_a).await;

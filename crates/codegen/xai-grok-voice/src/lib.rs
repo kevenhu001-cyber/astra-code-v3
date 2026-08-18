@@ -1,4 +1,4 @@
-//! Voice input for Grok Build CLI: an xAI streaming STT client and the
+//! Voice input for Astra CLI: an xAI streaming STT client and the
 //! [`run_voice_pipeline`] task that emits [`VoiceEvent`]s for the pager.
 //!
 //! Voice is dictation only: mic → streaming STT → transcript into the prompt box.
@@ -103,17 +103,17 @@ mod intercept_tests {
 
     #[test]
     fn capture_subcommand_matches_only_argv1() {
-        assert!(is_capture_subcommand(&argv(&["grok", "__mic-capture"])));
+        assert!(is_capture_subcommand(&argv(&["astra", "__mic-capture"])));
         assert!(is_capture_subcommand(&argv(&[
-            "grok",
+            "astra",
             "__mic-capture",
             "--rate",
             "16000"
         ])));
-        assert!(!is_capture_subcommand(&argv(&["grok"])));
-        assert!(!is_capture_subcommand(&argv(&["grok", "chat"])));
+        assert!(!is_capture_subcommand(&argv(&["astra"])));
+        assert!(!is_capture_subcommand(&argv(&["astra", "chat"])));
         assert!(!is_capture_subcommand(&argv(&[
-            "grok",
+            "astra",
             "chat",
             "__mic-capture"
         ])));

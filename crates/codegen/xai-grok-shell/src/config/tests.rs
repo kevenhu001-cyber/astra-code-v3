@@ -2267,7 +2267,7 @@ fn roles_parse_from_toml() {
             [roles.implementer]
             description = "Implementation agent"
             default_capability_mode = "all"
-            prompt_file = ".grok/prompts/impl.md"
+            prompt_file = ".astra/prompts/impl.md"
         "#;
     let cfg: SubagentsConfig = toml::from_str(toml_str).unwrap();
     assert_eq!(cfg.roles.len(), 2);
@@ -2285,7 +2285,7 @@ fn roles_parse_from_toml() {
     assert!(implementer.model.is_none());
     assert_eq!(
             implementer.prompt_file.as_deref(),
-            Some(".grok/prompts/impl.md")
+            Some(".astra/prompts/impl.md")
         );
 }
 #[test]
@@ -2364,7 +2364,7 @@ fn validate_roles_accepts_valid_prompt_file() {
     let toml_str = r#"
             [roles.ok]
             description = "Valid prompt file"
-            prompt_file = ".grok/prompts/ok.md"
+            prompt_file = ".astra/prompts/ok.md"
         "#;
     let cfg: SubagentsConfig = toml::from_str(toml_str).unwrap();
     assert!(cfg.validate_roles().is_empty());
@@ -2372,7 +2372,7 @@ fn validate_roles_accepts_valid_prompt_file() {
 #[test]
 fn discover_roles_loads_from_directory() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let roles_dir = tmp.path().join(".grok").join("roles");
+    let roles_dir = tmp.path().join(".astra").join("roles");
     std::fs::create_dir_all(&roles_dir).unwrap();
     std::fs::write(
             roles_dir.join("reviewer.toml"),
@@ -2391,7 +2391,7 @@ fn discover_roles_loads_from_directory() {
 #[test]
 fn discover_roles_inline_takes_precedence() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let roles_dir = tmp.path().join(".grok").join("roles");
+    let roles_dir = tmp.path().join(".astra").join("roles");
     std::fs::create_dir_all(&roles_dir).unwrap();
     std::fs::write(
             roles_dir.join("researcher.toml"),
@@ -2415,7 +2415,7 @@ fn discover_roles_inline_takes_precedence() {
 #[test]
 fn discover_roles_ignores_non_toml_files() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let roles_dir = tmp.path().join(".grok").join("roles");
+    let roles_dir = tmp.path().join(".astra").join("roles");
     std::fs::create_dir_all(&roles_dir).unwrap();
     std::fs::write(roles_dir.join("readme.md"), "This is not a role definition")
         .unwrap();
@@ -2438,7 +2438,7 @@ fn personas_parse_from_toml() {
 
             [personas.concise]
             instructions = "Be concise."
-            instructions_file = ".grok/personas/concise.md"
+            instructions_file = ".astra/personas/concise.md"
         "#;
     let cfg: SubagentsConfig = toml::from_str(toml_str).unwrap();
     assert_eq!(cfg.personas.len(), 2);
@@ -2452,7 +2452,7 @@ fn personas_parse_from_toml() {
     assert_eq!(concise.instructions.as_deref(), Some("Be concise."));
     assert_eq!(
             concise.instructions_file.as_deref(),
-            Some(".grok/personas/concise.md")
+            Some(".astra/personas/concise.md")
         );
 }
 #[test]
@@ -2468,7 +2468,7 @@ fn persona_lookup_returns_none_for_unknown() {
 #[test]
 fn discover_personas_loads_from_directory() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let dir = tmp.path().join(".grok").join("personas");
+    let dir = tmp.path().join(".astra").join("personas");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(
             dir.join("friendly.toml"),
@@ -2483,7 +2483,7 @@ fn discover_personas_loads_from_directory() {
 #[test]
 fn discover_personas_inline_takes_precedence() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let dir = tmp.path().join(".grok").join("personas");
+    let dir = tmp.path().join(".astra").join("personas");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("strict.toml"), r#"instructions = "File-based strict""#)
         .unwrap();
@@ -2525,7 +2525,7 @@ fn project_overlay_preserves_source_precedence() {
     let home = tmp.path().join("home");
     let bundled = tmp.path().join("bundled");
     write_subagent_definitions(
-        &project.join(".grok"),
+        &project.join(".astra"),
         &[
             ("shadowed", "Project"),
             ("bundled-shadowed", "Project"),
@@ -2534,7 +2534,7 @@ fn project_overlay_preserves_source_precedence() {
         ],
     );
     write_subagent_definitions(
-        &home.join(".grok"),
+        &home.join(".astra"),
         &[("shadowed", "User"), ("user-only", "User")],
     );
     write_subagent_definitions(
@@ -2559,7 +2559,7 @@ fn project_overlay_preserves_source_precedence() {
     let base = SubagentsConfig::resolve_base_with_sources(
         false,
         &config,
-        Some(&home.join(".grok")),
+        Some(&home.join(".astra")),
         &bundled,
     );
     let resolve = |project_trusted| {
@@ -2645,11 +2645,11 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
     let tmp = tempfile::TempDir::new().unwrap();
     let home = tmp.path().join("home");
     let workspace = tmp.path().join("workspace");
-    let bundled = home.join(".grok").join("bundled");
-    std::fs::create_dir_all(workspace.join(".grok").join("roles")).unwrap();
-    std::fs::create_dir_all(workspace.join(".grok").join("personas")).unwrap();
-    std::fs::create_dir_all(home.join(".grok").join("roles")).unwrap();
-    std::fs::create_dir_all(home.join(".grok").join("personas")).unwrap();
+    let bundled = home.join(".astra").join("bundled");
+    std::fs::create_dir_all(workspace.join(".astra").join("roles")).unwrap();
+    std::fs::create_dir_all(workspace.join(".astra").join("personas")).unwrap();
+    std::fs::create_dir_all(home.join(".astra").join("roles")).unwrap();
+    std::fs::create_dir_all(home.join(".astra").join("personas")).unwrap();
     std::fs::create_dir_all(bundled.join("roles")).unwrap();
     std::fs::create_dir_all(bundled.join("personas")).unwrap();
     std::fs::write(
@@ -2663,22 +2663,22 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
         )
         .unwrap();
     std::fs::write(
-            home.join(".grok/roles/reviewer.toml"),
+            home.join(".astra/roles/reviewer.toml"),
             r#"description = "User reviewer""#,
         )
         .unwrap();
     std::fs::write(
-            home.join(".grok/personas/reviewer.toml"),
+            home.join(".astra/personas/reviewer.toml"),
             r#"instructions = "User persona""#,
         )
         .unwrap();
     std::fs::write(
-            workspace.join(".grok/roles/reviewer.toml"),
+            workspace.join(".astra/roles/reviewer.toml"),
             r#"description = "Project reviewer""#,
         )
         .unwrap();
     std::fs::write(
-            workspace.join(".grok/personas/reviewer.toml"),
+            workspace.join(".astra/personas/reviewer.toml"),
             r#"instructions = "Project persona""#,
         )
         .unwrap();
@@ -2700,7 +2700,7 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
     let base = SubagentsConfig::resolve_base_with_sources(
         true,
         &config,
-        Some(&home.join(".grok")),
+        Some(&home.join(".astra")),
         &bundled,
     );
     let (roles, personas) = SubagentsConfig::effective_definition_maps(
@@ -2726,8 +2726,8 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
                 .as_deref(),
             Some("Inline persona")
         );
-    std::fs::remove_file(workspace.join(".grok/roles/reviewer.toml")).unwrap();
-    std::fs::remove_file(workspace.join(".grok/personas/reviewer.toml")).unwrap();
+    std::fs::remove_file(workspace.join(".astra/roles/reviewer.toml")).unwrap();
+    std::fs::remove_file(workspace.join(".astra/personas/reviewer.toml")).unwrap();
     let config = toml::from_str::<
         toml::Value,
     >(r#"
@@ -2738,7 +2738,7 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
     let base = SubagentsConfig::resolve_base_with_sources(
         true,
         &config,
-        Some(&home.join(".grok")),
+        Some(&home.join(".astra")),
         &bundled,
     );
     let (roles, personas) = SubagentsConfig::effective_definition_maps(
@@ -2764,8 +2764,8 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
                 .as_deref(),
             Some("User persona")
         );
-    std::fs::remove_file(home.join(".grok/roles/reviewer.toml")).unwrap();
-    std::fs::remove_file(home.join(".grok/personas/reviewer.toml")).unwrap();
+    std::fs::remove_file(home.join(".astra/roles/reviewer.toml")).unwrap();
+    std::fs::remove_file(home.join(".astra/personas/reviewer.toml")).unwrap();
     let config = toml::from_str::<
         toml::Value,
     >(r#"
@@ -2776,7 +2776,7 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
     let base = SubagentsConfig::resolve_base_with_sources(
         true,
         &config,
-        Some(&home.join(".grok")),
+        Some(&home.join(".astra")),
         &bundled,
     );
     let (roles, personas) = SubagentsConfig::effective_definition_maps(
@@ -2807,7 +2807,7 @@ fn bundled_personas_and_roles_have_lowest_priority_in_resolve_order() {
 fn render_io_summary_shows_bundled_for_bundled_personas() {
     let persona = SubagentPersona {
         instructions: Some("Bundled instructions".to_string()),
-        source_path: Some("/tmp/home/.grok/bundled/personas/reviewer.toml".to_string()),
+        source_path: Some("/tmp/home/.astra/bundled/personas/reviewer.toml".to_string()),
         ..Default::default()
     };
     let summary = persona.render_io_summary("reviewer");
@@ -2993,7 +2993,7 @@ fn config_layers_user_overrides_managed() {
 /// A provider in a trusted disk layer resolves through the real
 /// `ConfigLayers` → `effective_config_disk_only` → parse seam that the
 /// direct-TOML parse tests bypass. (`ConfigLayers` has no project slot, so
-/// a repo `.grok/config.toml` structurally cannot supply one.)
+/// a repo `.astra/config.toml` structurally cannot supply one.)
 #[test]
 fn auth_provider_honored_only_from_trusted_disk_layers() {
     let layers = ConfigLayers {
@@ -3061,7 +3061,7 @@ fn enterprise_two_file_merge_routes_deployment_key_to_proxy() {
 xai_api_base_url = "https://inference.acme-corp.example/xai/v1"
 cli_chat_proxy_base_url = "https://cli-chat-proxy.grok.com/v1"
 
-[model.grok-build]
+[model.astra-build]
 base_url = "https://inference.acme-corp.example/xai/v1"
 env_key = "ANTHROPIC_AUTH_TOKEN"
 model = "grok-4.5"
@@ -3151,19 +3151,19 @@ email_domain = "example.com"
         .unwrap();
     assert_eq!(cfg.feedback.user, None);
 }
-/// RCE guard: a project `.grok/config.toml` must never source
+/// RCE guard: a project `.astra/config.toml` must never source
 /// `[feedback.user]` (its `command` runs `sh -c`).
 #[test]
 #[serial_test::serial]
 fn project_config_never_sources_feedback_user() {
     use xai_grok_test_support::EnvGuard;
     let home = tempfile::tempdir().unwrap();
-    let _env = EnvGuard::set("GROK_HOME", home.path());
+    let _env = EnvGuard::set("ASTRA_HOME", home.path());
     let _flag = EnvGuard::unset("GROK_FOLDER_TRUST");
     let _sim = simulate_release_build();
     let repo = tempfile::tempdir().unwrap();
     git2::Repository::init(repo.path()).unwrap();
-    let grok = repo.path().join(".grok");
+    let grok = repo.path().join(".astra");
     std::fs::create_dir_all(&grok).unwrap();
     std::fs::write(
             grok.join("config.toml"),
@@ -3391,7 +3391,7 @@ fn a_repeated_pin_is_reported_against_the_layer_that_decided() {
     let req: toml::Value = toml::from_str("[features]\nsession_search = false\n")
         .unwrap();
     let user = RequirementSource::Requirements {
-        path: std::path::PathBuf::from("/home/dev/.grok/requirements.toml"),
+        path: std::path::PathBuf::from("/home/dev/.astra/requirements.toml"),
     };
     let system = RequirementSource::Requirements {
         path: std::path::PathBuf::from("/etc/grok/requirements.toml"),
@@ -3442,7 +3442,7 @@ fn malformed_requirements_pin_is_ignored() {
     let mut cfg = crate::agent::config::Config::default();
     let req: toml::Value = toml::from_str("[features]\nweb_fetch = 1\n").unwrap();
     let source = RequirementSource::Requirements {
-        path: std::path::PathBuf::from("/home/dev/.grok/requirements.toml"),
+        path: std::path::PathBuf::from("/home/dev/.astra/requirements.toml"),
     };
     let enforced = apply_requirements_inner(&mut cfg, &req, &source);
     assert_eq!(cfg.requirements.pinned_feature(Feature::WebFetch), None);
@@ -3526,8 +3526,8 @@ fn validate_hooks_path_rejects_outside_grok_home() {
     assert!(result.is_err());
     let msg = result.unwrap_err().to_string();
     assert!(
-            msg.contains("must be under ~/.grok/"),
-            "should mention ~/.grok/ restriction, got: {msg}"
+            msg.contains("must be under ~/.astra/"),
+            "should mention ~/.astra/ restriction, got: {msg}"
         );
 }
 #[test]
@@ -3538,7 +3538,7 @@ fn validate_hooks_path_rejects_traversal_attack() {
     assert!(result.is_err());
     let msg = result.unwrap_err().to_string();
     assert!(
-            msg.contains("must be under ~/.grok/"),
+            msg.contains("must be under ~/.astra/"),
             "traversal should be rejected, got: {msg}"
         );
 }
@@ -3548,7 +3548,7 @@ fn validate_hooks_path_accepts_grok_hooks_subdir() {
     let valid_path = grok_home.join("hooks").join("my-hooks");
     let _ = std::fs::create_dir_all(&valid_path);
     let result = validate_hooks_path(valid_path.to_str().unwrap());
-    assert!(result.is_ok(), "path under ~/.grok/ should be accepted");
+    assert!(result.is_ok(), "path under ~/.astra/ should be accepted");
 }
 #[test]
 fn managed_settings_disables_features_and_requirements_overrides() {
@@ -3629,7 +3629,7 @@ fn project_overlay_tracks_authoritative_trust_transitions() {
     let repo = tempfile::tempdir().unwrap();
     git2::Repository::init(repo.path()).unwrap();
     write_subagent_definitions(
-        &repo.path().join(".grok"),
+        &repo.path().join(".astra"),
         &[("shared", "Project"), ("project-only", "Project")],
     );
     let mut base = SubagentsConfig::default();
@@ -3681,7 +3681,7 @@ fn project_overlay_tracks_authoritative_trust_transitions() {
 #[test]
 fn base_resolver_without_project_cwd_keeps_project_files_out() {
     let tmp = tempfile::tempdir().unwrap();
-    write_subagent_definitions(&tmp.path().join(".grok"), &[("project", "Project")]);
+    write_subagent_definitions(&tmp.path().join(".astra"), &[("project", "Project")]);
     let base = SubagentsConfig::resolve_base_with_sources(
         false,
         &toml::Value::Table(Default::default()),
@@ -3714,10 +3714,10 @@ fn explicit_grok_root_is_the_only_user_source() {
 /// effective config ONLY when the folder is trusted; project
 /// `[plugins].disabled` is never gated. The closing set-difference proves
 /// the gate toggles ONLY that path (user/global paths pass through both
-/// verdicts untouched). GROK_HOME-isolated + `#[serial]` for folder-trust
+/// verdicts untouched). ASTRA_HOME-isolated + `#[serial]` for folder-trust
 /// store hygiene (empty store ⇒ deterministic untrusted;
-/// `EnvGuard` restores GROK_HOME even on panic). No user-global
-/// `$GROK_HOME/config.toml` is seeded: `grok_home()` is `OnceLock`-cached,
+/// `EnvGuard` restores ASTRA_HOME even on panic). No user-global
+/// `$ASTRA_HOME/config.toml` is seeded: `grok_home()` is `OnceLock`-cached,
 /// so under a shared-process harness (Bazel) such a seed is read
 /// non-deterministically — reliable only under nextest's process-per-test
 /// isolation.
@@ -3726,12 +3726,12 @@ fn explicit_grok_root_is_the_only_user_source() {
 fn resolve_effective_plugins_config_gates_project_paths_on_folder_trust() {
     use xai_grok_test_support::EnvGuard;
     let home = tempfile::tempdir().unwrap();
-    let _env = EnvGuard::set("GROK_HOME", home.path());
+    let _env = EnvGuard::set("ASTRA_HOME", home.path());
     let _flag = EnvGuard::unset("GROK_FOLDER_TRUST");
     let _sim = simulate_release_build();
     let repo = tempfile::tempdir().unwrap();
     git2::Repository::init(repo.path()).unwrap();
-    let grok = repo.path().join(".grok");
+    let grok = repo.path().join(".astra");
     std::fs::create_dir_all(&grok).unwrap();
     std::fs::write(
             grok.join("config.toml"),
@@ -3780,14 +3780,14 @@ fn resolve_effective_plugins_config_gates_project_paths_on_folder_trust() {
 /// in `xai-grok-agent`. An ABSOLUTE plugin path is used so the merged
 /// `config_paths` entry resolves against the repo — `discover_plugins`' `is_dir()`
 /// check resolves a relative `./x` against the process cwd, not `cwd`.
-/// GROK_HOME-isolated + `#[serial]` (`EnvGuard` restores it even on panic).
+/// ASTRA_HOME-isolated + `#[serial]` (`EnvGuard` restores it even on panic).
 #[test]
 #[serial_test::serial]
 fn discover_plugins_excludes_untrusted_configpath_plugin_end_to_end() {
     use xai_grok_agent::plugins::{TrustStore, discover_plugins};
     use xai_grok_test_support::EnvGuard;
     let home = tempfile::tempdir().unwrap();
-    let _env = EnvGuard::set("GROK_HOME", home.path());
+    let _env = EnvGuard::set("ASTRA_HOME", home.path());
     let _flag = EnvGuard::unset("GROK_FOLDER_TRUST");
     let _sim = simulate_release_build();
     let repo = tempfile::tempdir().unwrap();
@@ -3797,7 +3797,7 @@ fn discover_plugins_excludes_untrusted_configpath_plugin_end_to_end() {
     std::fs::create_dir_all(&plugin_dir).unwrap();
     std::fs::write(plugin_dir.join("plugin.json"), r#"{"name":"cfgpath-probe"}"#)
         .unwrap();
-    let grok = cwd.join(".grok");
+    let grok = cwd.join(".astra");
     std::fs::create_dir_all(&grok).unwrap();
     std::fs::write(
             grok.join("config.toml"),
@@ -3854,19 +3854,19 @@ fn discover_plugins_excludes_untrusted_configpath_plugin_end_to_end() {
 /// under an org kill-switch must end up allowed — if the plugins-config read
 /// ran first, the gate's remote-less backstop would record a durable
 /// kill-switch-blind deny that `resolve_and_record_inner`'s `Some(false)`
-/// arm (store-only reconcile) could never lift. GROK_HOME-isolated (empty
+/// arm (store-only reconcile) could never lift. ASTRA_HOME-isolated (empty
 /// store); GROK_FOLDER_TRUST unset so the kill-switch is the only signal.
 #[test]
 #[serial_test::serial]
 fn kill_switched_cold_cwd_stays_allowed_through_plugins_config_read() {
     use xai_grok_test_support::EnvGuard;
     let home = tempfile::tempdir().unwrap();
-    let _env = EnvGuard::set("GROK_HOME", home.path());
+    let _env = EnvGuard::set("ASTRA_HOME", home.path());
     let _flag = EnvGuard::unset("GROK_FOLDER_TRUST");
     let _sim = simulate_release_build();
     let repo = tempfile::tempdir().unwrap();
     git2::Repository::init(repo.path()).unwrap();
-    let grok = repo.path().join(".grok");
+    let grok = repo.path().join(".astra");
     std::fs::create_dir_all(&grok).unwrap();
     std::fs::write(grok.join("config.toml"), "[plugins]\npaths = [\"./proj-plugin\"]\n")
         .unwrap();

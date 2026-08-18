@@ -24,7 +24,7 @@ pub use scanner::scan_marketplace;
 pub use types::*;
 
 /// Display name of the official xAI marketplace source.
-pub const OFFICIAL_SOURCE_NAME: &str = "xAI Official";
+pub const OFFICIAL_SOURCE_NAME: &str = "Astra Official";
 
 /// Git URL of the official xAI marketplace source. Auto-registered on first run.
 pub const OFFICIAL_SOURCE_GIT_URL: &str = "https://github.com/xai-org/plugin-marketplace.git";

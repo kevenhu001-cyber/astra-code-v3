@@ -23,23 +23,23 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
-            binary: xai-grok-pager
+            binary: astra
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             archive: tar.gz
-            binary: xai-grok-pager
+            binary: astra
           - os: macos-latest
             target: aarch64-apple-darwin
             archive: tar.gz
-            binary: xai-grok-pager
+            binary: astra
           - os: macos-15-intel
             target: x86_64-apple-darwin
             archive: tar.gz
-            binary: xai-grok-pager
+            binary: astra
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: zip
-            binary: xai-grok-pager.exe
+            binary: astra.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -96,12 +96,20 @@ jobs:
           REF_NAME="${GITHUB_REF_NAME:-dev}"
           ARTIFACT="astra-${REF_NAME}-${{ matrix.target }}"
           if [ "${{ matrix.archive }}" = "tar.gz" ]; then
-            cp "${{ matrix.binary }}" astra
+            # The matrix binary is already named `astra`; only rename when
+            # it differs (cp refuses source == destination).
+            if [ "${{ matrix.binary }}" != "astra" ]; then
+              cp "${{ matrix.binary }}" astra
+            fi
             tar -czf "${ARTIFACT}.tar.gz" astra
             sha256sum "${ARTIFACT}.tar.gz" > "${ARTIFACT}.tar.gz.sha256"
           else
             mkdir astra
-            cp "${{ matrix.binary }}" astra/
+            if [ "${{ matrix.binary }}" != "astra.exe" ]; then
+              cp "${{ matrix.binary }}" astra/
+            else
+              cp astra.exe astra/
+            fi
             # Windows runners' Git bash has no `zip`; use PowerShell instead.
             pwsh -NoProfile -Command "Compress-Archive -Path astra -DestinationPath '${ARTIFACT}.zip' -Force"
             sha256sum "${ARTIFACT}.zip" > "${ARTIFACT}.zip.sha256"

@@ -1,6 +1,6 @@
 # Agent mode (ACP) and IDE integration
 
-Agent mode runs Grok as a long-lived server that clients talk to over [ACP](https://agentclientprotocol.com) (JSON-RPC). Use it from IDEs, SDKs, eval harnesses, and custom apps. For a one-shot prompt that prints and exits, use `grok -p` instead ([headless mode](14-headless-mode.md)).
+Agent mode runs Astra as a long-lived server that clients talk to over [ACP](https://agentclientprotocol.com) (JSON-RPC). Use it from IDEs, SDKs, eval harnesses, and custom apps. For a one-shot prompt that prints and exits, use `astra -p` instead ([headless mode](14-headless-mode.md)).
 
 ---
 
@@ -10,10 +10,10 @@ For scripts, CI, evals, and agent servers, start with always-approve so tools ru
 
 ```bash
 # stdio (local process / many SDKs)
-grok agent --always-approve stdio
+astra agent --always-approve stdio
 
 # WebSocket server
-grok agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
+astra agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
 ```
 
 You can also set always-approve per session on `session/new`:
@@ -32,7 +32,7 @@ Interactive TUI users typically leave the default ask mode (or use auto). See [P
 
 ## What is ACP?
 
-The [Agent Client Protocol (ACP)](https://agentclientprotocol.com) defines how clients talk to coding agents over JSON-RPC. With Grok it covers:
+The [Agent Client Protocol (ACP)](https://agentclientprotocol.com) defines how clients talk to coding agents over JSON-RPC. With Astra it covers:
 
 - Sessions (create, load, resume)
 - Prompts and streamed replies
@@ -47,7 +47,7 @@ The [Agent Client Protocol (ACP)](https://agentclientprotocol.com) defines how c
 stdio is the common local integration path. The agent speaks JSON-RPC on stdin and stdout:
 
 ```bash
-grok agent --always-approve stdio
+astra agent --always-approve stdio
 ```
 
 Typical clients: IDE extensions (Zed, Neovim, Emacs), custom tools, and ACP SDKs.
@@ -57,8 +57,8 @@ Typical clients: IDE extensions (Zed, Neovim, Emacs), custom tools, and ACP SDKs
 Agent options apply to every transport (`stdio`, `serve`, `headless`, `leader`). They go after `agent` and before the mode name. Mode-specific flags go after the mode (for example `serve --bind`).
 
 ```bash
-grok agent --always-approve --model grok-build stdio
-grok agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
+astra agent --always-approve --model grok-build stdio
+astra agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
 ```
 
 | Flag | Description |
@@ -74,12 +74,12 @@ grok agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
 ## Server mode
 
 ```bash
-grok agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
+astra agent --always-approve serve --bind 127.0.0.1:2419 --secret <token>
 ```
 
-Clients connect over WebSocket and authenticate with the secret token. If you omit `--secret`, the agent prints a generated token at startup, or set `GROK_AGENT_SECRET`. The process keeps state across client reconnects. Permissions match other entry points; see [Permissions and safety](22-permissions-and-safety.md).
+Clients connect over WebSocket and authenticate with the secret token. If you omit `--secret`, the agent prints a generated token at startup, or set `ASTRA_AGENT_SECRET`. The process keeps state across client reconnects. Permissions match other entry points; see [Permissions and safety](22-permissions-and-safety.md).
 
-This is a server you run yourself — Grok's hosted cloud sandboxes do not run `grok agent serve`.
+This is a server you run yourself — Astra's hosted cloud sandboxes do not run `astra agent serve`.
 
 ---
 
@@ -88,7 +88,7 @@ This is a server you run yourself — Grok's hosted cloud sandboxes do not run `
 To reach the agent over the internet, connect the agent to a relay and point browsers at the same relay:
 
 ```bash
-grok agent --always-approve headless --grok-ws-url wss://your-relay.example.com/ws
+astra agent --always-approve headless --grok-ws-url wss://your-relay.example.com/ws
 ```
 
 ---
@@ -112,7 +112,7 @@ Communication follows the JSON-RPC 2.0 format. A typical session lifecycle:
 +-------------------+----------------------+
                     | JSON-RPC over stdio
 +-------------------v----------------------+
-|           grok agent stdio               |
+|           astra agent stdio               |
 |                                          |
 |  +---------+  +---------+  +---------+   |
 |  | Session |  |  Tools  |  |   MCP   |   |
@@ -141,7 +141,7 @@ Each update names its type, so a client can render distinct panels for reasoning
 
 ## Extension methods
 
-Beyond the base ACP protocol, Grok defines extension methods under the `x.ai/` prefix for SpaceXAI-specific functionality. These cover:
+Beyond the base ACP protocol, Astra defines extension methods under the `x.ai/` prefix for Astra-specific functionality. These cover:
 
 | Category                   | Prefix               | Examples                                         |
 | -------------------------- | -------------------- | ------------------------------------------------ |
@@ -155,7 +155,7 @@ Beyond the base ACP protocol, Grok defines extension methods under the `x.ai/` p
 | **Authentication**         | `x.ai/auth/*`        | `get_url`, `submit_code`                         |
 | **Feedback & Telemetry**   | `x.ai/*`             | `feedback`, `telemetry/*`                        |
 
-The tables here show representative methods in each category. The `x.ai/*` set is SpaceXAI-specific and may expand across releases, so treat it as non-exhaustive and discover the available methods from the agent's `initialize` response.
+The tables here show representative methods in each category. The `x.ai/*` set is Astra-specific and may expand across releases, so treat it as non-exhaustive and discover the available methods from the agent's `initialize` response.
 
 ### Notifications (agent to client)
 
@@ -235,7 +235,7 @@ class GrokACPChat {
   constructor(private cwd = ".") {}
 
   async init() {
-    this.proc = spawn("grok", ["agent", "--always-approve", "stdio"]);
+    this.proc = spawn("astra", ["agent", "--always-approve", "stdio"]);
     this.rl = readline.createInterface({ input: this.proc.stdout! });
 
     await this.request("initialize", {

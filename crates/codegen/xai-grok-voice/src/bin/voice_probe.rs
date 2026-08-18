@@ -137,7 +137,7 @@ fn load_config(path: Option<&std::path::Path>) -> VoiceConfig {
     {
         return VoiceConfig::from_config_table(&table, env_base.as_deref());
     }
-    if let Ok(home) = std::env::var("GROK_HOME")
+    if let Ok(home) = std::env::var("ASTRA_HOME").or_else(|_| std::env::var("GROK_HOME"))
         && let Ok(raw) = std::fs::read_to_string(PathBuf::from(home).join("config.toml"))
         && let Ok(table) = toml::from_str::<toml::Table>(&raw)
     {
@@ -147,7 +147,7 @@ fn load_config(path: Option<&std::path::Path>) -> VoiceConfig {
         std::env::var("HOME")
             .map(PathBuf::from)
             .unwrap_or_default()
-            .join(".grok/config.toml"),
+            .join(".astra/config.toml"),
     ) && let Ok(table) = toml::from_str::<toml::Table>(&raw)
     {
         return VoiceConfig::from_config_table(&table, env_base.as_deref());
@@ -166,7 +166,7 @@ Environment:
   XAI_API_KEY     required
   RUST_LOG        optional (default info,xai_grok_voice=debug)
 
-Reads [voice] from ~/.grok/config.toml unless --config PATH is set.
+Reads [voice] from ~/.astra/config.toml unless --config PATH is set.
 "#
     );
 }
