@@ -28,8 +28,8 @@ const ORANGE_DIM: Color = Color::Rgb(0xCC, 0x55, 0x00);
 /// `▓` and `░` are the two shaded / empty variants used for the A-triangle and
 /// S-curve rounding.
 const LIT: &str = "█";
-const SHADE: &str = "▓";
-const DIM: &str = "░";
+// const SHADE: &str = "▓";
+// const DIM: &str = "░";
 
 /// 5-row, 5-column pixel-art glyphs for A, S, T, R, A. `L` = lit, `S` =
 /// shaded, `D` = dim, ` ` = blank. The renderer maps `L→ORANGE`, `S→ORANGE`,
