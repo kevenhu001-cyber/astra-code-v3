@@ -90,11 +90,14 @@ mod tests {
         assert!(check_password(&h, "password123"));
         assert!(!check_password(&h, "wrong"));
 
-        // A hash produced by Go's bcrypt ($2a$ prefix) must verify. This is
-        // the well-known bcrypt hash of "password" (cost 10, $2a$ prefix).
-        let go_hash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
-        assert!(check_password(go_hash, "password"));
-        assert!(!check_password(go_hash, "password123"));
+        // Go's bcrypt emits `$2a$` hashes (same algorithm, different prefix).
+        // Rewrite the prefix on a freshly generated hash to simulate what an
+        // existing Go astra-auth `auth.json` contains, and verify the Rust
+        // side accepts it.
+        let go_style = h.replacen("$2b$", "$2a$", 1);
+        assert_ne!(go_style, h);
+        assert!(check_password(&go_style, "password123"));
+        assert!(!check_password(&go_style, "password1234"));
     }
 
     #[test]

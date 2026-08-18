@@ -31,8 +31,8 @@ fn parse_flag<T: std::str::FromStr>(args: &[String], name: &str, default: T) -> 
     out
 }
 
-fn env_or(key: &str, default: &str) -> String {
-    std::env::var(key).unwrap_or_else(|_| default.to_string())
+fn env_or(key: &str, default: impl AsRef<str>) -> String {
+    std::env::var(key).unwrap_or_else(|_| default.as_ref().to_string())
 }
 
 fn default_data_dir() -> PathBuf {
@@ -81,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
         cookie_secure,
         cookie_path,
     };
-    let srv = Server::new(store, mailer, opts);
+    let srv = Server::new(store, mailer, opts.clone());
     let router = srv.router();
 
     let listener = tokio::net::TcpListener::bind(&addr)

@@ -80,10 +80,21 @@ pub struct DeviceGrant {
 }
 
 /// Store persists all auth state as a single JSON document.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct Store {
     inner: Mutex<StoreInner>,
     path: PathBuf,
+}
+
+impl Clone for Store {
+    fn clone(&self) -> Self {
+        Store {
+            // Snapshot the current in-memory state; the clone gets its own
+            // mutex (each instance persists to the same `path` on write).
+            inner: Mutex::new(self.inner.lock().unwrap().clone()),
+            path: self.path.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]

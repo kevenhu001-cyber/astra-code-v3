@@ -12,11 +12,13 @@ use astra_auth::server::{Options, Server};
 use astra_auth::store::Store;
 use axum::http::StatusCode;
 
-/// Start a test server on an ephemeral port. Returns (base_url, store).
-fn test_server() -> (String, Store) {
+/// Start a test server on an ephemeral port. Returns (base_url, store); the
+/// store is shared with the server so tests observe its mutations. The temp
+/// dir lives as long as the server thread.
+fn test_server() -> (String, Arc<Store>) {
     let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(dir.path().join("auth.json")).unwrap();
-    let srv = Server::new(store.clone(), Arc::new(ConsoleMailer), Options {
+    let store = Arc::new(Store::open(dir.path().join("auth.json")).unwrap());
+    let srv = Server::from_arc(store.clone(), Arc::new(ConsoleMailer), Options {
         base_url: "http://test.local".to_string(),
         cookie_secure: false,
         cookie_path: "/".to_string(),
@@ -29,6 +31,7 @@ fn test_server() -> (String, Store) {
         .unwrap();
     let addr = listener.local_addr().unwrap();
     std::thread::spawn(move || {
+        let _dir = dir; // keep the temp dir alive while the server runs
         rt.block_on(async move {
             let _ = axum::serve(listener, app).await;
         });

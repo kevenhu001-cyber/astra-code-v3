@@ -56,8 +56,14 @@ pub struct Server {
 
 impl Server {
     pub fn new(store: Store, mailer: Arc<dyn Mailer>, opts: Options) -> Self {
+        Self::from_arc(Arc::new(store), mailer, opts)
+    }
+
+    /// Construct from a shared store handle, so callers that hold the store
+    /// (e.g. tests) observe mutations made by the server.
+    pub fn from_arc(store: Arc<Store>, mailer: Arc<dyn Mailer>, opts: Options) -> Self {
         Server {
-            store: Arc::new(store),
+            store,
             mailer,
             opts,
         }
