@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astra — uncertainty-driven software engineering runtime</title>
+  <meta name="description" content="Astra is an uncertainty-driven software engineering runtime for the terminal. Goals, claims, evidence, and unknowns as first-class citizens.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/assets/site.css?v=4">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="shell-wide header-inner">
+      <a class="brand" href="/" aria-label="Astra home"><span class="brand-mark">A</span><span>Astra</span></a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#protocol">Protocol</a>
+        <a href="#install">Install</a>
+        <a href="/login">Sign in</a>
+        <a href="/account">Account</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-quiet" href="/authorize">Authorize a device</a>
+        <a class="btn btn-primary" href="/login">Get started</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="shell-wide">
+        <span class="hero-kicker"><span class="dot"></span>Terminal &middot; State &middot; Evidence</span>
+        <h1>Software engineering driven by <em>uncertainty</em>, not chat history.</h1>
+        <p class="lede">Astra is an agentic coding runtime where durable intelligence lives in persistent state &mdash; goals, claims, evidence &mdash; instead of disposable conversation. Every conclusion must earn its way to <strong>VERIFIED</strong>.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/login">Create your account</a>
+          <a class="btn btn-quiet" href="#protocol">See the protocol</a>
+        </div>
+        <p class="hero-note">Email verification required. Self-hosted? Verification links are printed to the server log.</p>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="shell-wide">
+        <p class="kicker">Built for agents that must be accountable</p>
+        <h2>Six first-class citizens, one closed loop.</h2>
+        <p class="lede">Understand &rarr; build knowledge state &rarr; identify unknowns &rarr; choose the best action &rarr; execute &rarr; collect evidence &rarr; update state &rarr; verify the goal. Repeat.</p>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+            </div>
+            <h3>State over chat</h3>
+            <p>Goal, Claim, Evidence, Unknown are first-class citizens &mdash; persisted across sessions and replayed from an event log, never lost when the model disconnects.</p>
+          </div>
+
+          <div class="card">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v18M5 7l7-4 7 4M5 17l7 4 7-4"/>
+                <path d="M3 12h18"/>
+              </svg>
+            </div>
+            <h3>Evidence-bound claims</h3>
+            <p>Conclusions require test, build, or runtime evidence. Stale evidence is automatically invalidated when the code changes &mdash; the claim is downgraded, the goal is re-scoped.</p>
+          </div>
+
+          <div class="card">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+            <h3>Uncertainty-driven</h3>
+            <p>Actions compete on expected information gain. The runtime prioritizes what it does not know &mdash; not what is easiest to claim.</p>
+          </div>
+
+          <div class="card">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2L4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </div>
+            <h3>Permissioned execution</h3>
+            <p>Every tool call runs through a permission model with Plan, Ask, Allow, and Deny modes &mdash; plus lifecycle hooks for org-specific gates.</p>
+          </div>
+
+          <div class="card">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h10"/>
+              </svg>
+            </div>
+            <h3>Open protocol</h3>
+            <p>OpenAI-compatible and Anthropic providers, MCP servers over stdio or streamable HTTP, Codex-style apply_patch. No lock-in, no proprietary wire format.</p>
+          </div>
+
+          <div class="card">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="9" cy="8" r="3.5"/>
+                <path d="M2 20a7 7 0 0114 0"/>
+                <circle cx="17" cy="9" r="2.5"/>
+                <path d="M14 19a4 4 0 018 0"/>
+              </svg>
+            </div>
+            <h3>Account &amp; devices</h3>
+            <p>Sign in with your email, then authorize the Astra CLI from your browser with a one-time device code. Revoke tokens at any time from your account page.</p>
+          </div>
+        </div>
+
+        <div class="cli" aria-label="terminal usage">
+          <span class="label">terminal</span>
+          <div><span class="prompt">$</span> <span class="cmd">go install github.com/kevenhu001-cyber/astra-harness/cmd/astra@latest</span></div>
+          <div><span class="prompt">$</span> <span class="cmd">astra login</span></div>
+          <div class="out">  Open: http://localhost:8080/authorize?code=K7Q2-XM9D</div>
+          <div class="out">  Code: K7Q2-XM9D</div>
+          <div class="out">&nbsp;</div>
+          <div class="out-ok">  logged in as you@example.com</div>
+          <div><span class="prompt">$</span> <span class="cmd">astra "design a query layer for the events store"</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install">
+      <div class="shell-wide">
+        <p class="kicker">One-line setup</p>
+        <h2>Install in seconds.</h2>
+        <p class="lede">Astra ships as a single static binary for Linux, macOS, and Windows &mdash; no runtime, no package manager, no dependencies.</p>
+
+        <div class="install-grid">
+          <div class="install-card">
+            <h3>Linux / macOS</h3>
+            <div class="cli" aria-label="Linux and macOS install command">
+              <div class="cmd-line">
+                <span class="prompt">$</span>
+                <span class="cmd">curl -fsSL https://astracode.topodrive.top/install/install.sh | sh</span>
+                <button class="copy-btn" type="button" aria-label="Copy install command">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="install-card">
+            <h3>Windows PowerShell</h3>
+            <div class="cli" aria-label="Windows PowerShell install command">
+              <div class="cmd-line">
+                <span class="prompt">&gt;</span>
+                <span class="cmd">irm https://astracode.topodrive.top/install/install.ps1 | iex</span>
+                <button class="copy-btn" type="button" aria-label="Copy install command">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="install-note">Then run <code>astra login</code> to authorize your CLI from this site, or jump straight in with <code>astra "your first task"</code>.</p>
+      </div>
+    </section>
+
+    <section class="section" id="protocol">
+      <div class="shell-wide">
+        <p class="kicker">Open by construction</p>
+        <h2>Wire-format compatible, storage-agnostic.</h2>
+        <p class="lede">Astra speaks the protocols your stack already uses. Self-host the auth server, point the CLI at it, and own the data on disk as a single JSON file.</p>
+        <div class="protocol">
+          <div class="item"><div class="k">Providers</div><div class="v">OpenAI, Anthropic, DeepSeek, Qwen, OpenRouter, Ollama</div></div>
+          <div class="item"><div class="k">MCP</div><div class="v">stdio + streamable HTTP, JSON-RPC 2.0</div></div>
+          <div class="item"><div class="k">Auth</div><div class="v">RFC 8628 device flow, httpOnly session cookies</div></div>
+          <div class="item"><div class="k">Storage</div><div class="v">State events.jsonl + state.json, no database required</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell-wide">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+          <p>An uncertainty-driven engineering runtime for the terminal.</p>
+        </div>
+        <div class="footer-col">
+          <h2>Product</h2>
+          <a href="#features">Features</a>
+          <a href="#protocol">Protocol</a>
+          <a href="#install">Install</a>
+          <a href="/login">Create account</a>
+        </div>
+        <div class="footer-col">
+          <h2>Account</h2>
+          <a href="/account">My account</a>
+          <a href="/authorize">Authorize device</a>
+          <a href="/login">Sign in</a>
+        </div>
+        <div class="footer-col">
+          <h2>Run</h2>
+          <a href="https://github.com/kevenhu001-cyber/astra-harness">GitHub</a>
+          <a href="https://github.com/kevenhu001-cyber/astra-harness/blob/main/README.md">Documentation</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Astra Harness</span>
+        <span>Terminal &middot; State &middot; Evidence</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // One-line install command copy buttons.
+    (function () {
+      function fallbackCopy(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.top = "-9999px";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+      document.querySelectorAll(".copy-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var line = btn.closest(".cmd-line");
+          var cmd = line ? line.querySelector(".cmd").textContent.trim() : "";
+          var label = btn.querySelector(".copy-label");
+          var prev = label ? label.textContent : "Copy";
+          function flash() {
+            btn.classList.add("copied");
+            if (label) label.textContent = "Copied";
+            setTimeout(function () {
+              btn.classList.remove("copied");
+              if (label) label.textContent = prev;
+            }, 1600);
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(cmd).then(flash, function () {
+              fallbackCopy(cmd);
+              flash();
+            });
+          } else {
+            fallbackCopy(cmd);
+            flash();
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
