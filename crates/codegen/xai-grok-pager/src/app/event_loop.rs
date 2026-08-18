@@ -1059,24 +1059,9 @@ pub(crate) async fn run(
         .or_else(|| remote_settings.as_ref().and_then(|s| s.plugin_cta))
         .unwrap_or(false);
     // Voice is applied after auth_meta so API-key detection is accurate.
-    app.session_picker_grouped = std::env::var("GROK_SESSION_PICKER_GROUPED")
-        .ok()
-        .and_then(|v| match v.as_str() {
-            "1" | "true" => Some(true),
-            "0" | "false" => Some(false),
-            _ => None,
-        })
-        .or_else(|| {
-            xai_grok_shell::config::load_effective_config()
-                .ok()
-                .and_then(|cfg| cfg.get("cli")?.get("session_picker_grouped")?.as_bool())
-        })
-        .or_else(|| {
-            remote_settings
-                .as_ref()
-                .and_then(|s| s.session_picker_grouped)
-        })
-        .unwrap_or(true);
+    app.session_picker_grouped = crate::app::resolve_session_picker_grouped(
+        remote_settings.as_ref().and_then(|s| s.session_picker_grouped),
+    );
     app.cancel_rewind_enabled = connection.cancel_rewind_enabled;
     apply_session_recap_available(&mut app, connection.session_recap_available);
 

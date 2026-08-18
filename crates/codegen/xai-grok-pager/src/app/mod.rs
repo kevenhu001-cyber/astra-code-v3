@@ -234,6 +234,24 @@ pub(crate) fn resolve_voice_mode_enabled(
     }
     is_api_key && resolved.source == ConfigSource::Remote
 }
+/// Resolve session picker grouped state from env + config + remote precedence.
+pub(crate) fn resolve_session_picker_grouped(remote: Option<bool>) -> bool {
+    std::env::var("GROK_SESSION_PICKER_GROUPED")
+        .ok()
+        .and_then(|v| match v.as_str() {
+            "1" | "true" => Some(true),
+            "0" | "false" => Some(false),
+            _ => None,
+        })
+        .or_else(|| {
+            xai_grok_shell::config::load_effective_config()
+                .ok()
+                .and_then(|cfg| cfg.get("cli")?.get("session_picker_grouped")?.as_bool())
+        })
+        .or_else(|| remote)
+        .unwrap_or(true)
+}
+
 /// Resolve from live policy + env + remote + API-key state.
 pub(crate) fn resolve_voice_mode_live(remote: Option<bool>, is_api_key: bool) -> bool {
     resolve_voice_mode_enabled(

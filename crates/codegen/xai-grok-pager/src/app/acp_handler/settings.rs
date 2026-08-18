@@ -174,23 +174,9 @@ pub(super) fn handle_settings_update(notif: &acp::ExtNotification, app: &mut App
     } else {
         app.ensure_voice_for_api_key();
     }
-    // TODO: extract resolve_session_picker_grouped helper (duplicates event_loop.rs:143-160)
     // Respect env var > config > remote precedence (mirrors event_loop.rs startup).
     if let Some(remote_val) = update.session_picker_grouped {
-        let resolved = std::env::var("GROK_SESSION_PICKER_GROUPED")
-            .ok()
-            .and_then(|v| match v.as_str() {
-                "1" | "true" => Some(true),
-                "0" | "false" => Some(false),
-                _ => None,
-            })
-            .or_else(|| {
-                xai_grok_shell::config::load_effective_config()
-                    .ok()
-                    .and_then(|cfg| cfg.get("cli")?.get("session_picker_grouped")?.as_bool())
-            })
-            .unwrap_or(remote_val);
-        app.session_picker_grouped = resolved;
+        app.session_picker_grouped = crate::app::resolve_session_picker_grouped(Some(remote_val));
     }
     if let Some(v) = update.subscription_watch_interval_secs {
         app.subscription_watch_interval_secs = Some(v);
