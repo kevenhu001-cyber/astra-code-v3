@@ -153,7 +153,11 @@ jobs:
           set -euo pipefail
           REF_NAME="${GITHUB_REF_NAME:-dev}"
           ARTIFACT="astra-auth-${REF_NAME}-${{ matrix.target }}"
-          cp "${{ matrix.binary }}" astra-auth
+          # The matrix binary is already named `astra-auth`; only rename when
+          # it differs (cp refuses source == destination).
+          if [ "${{ matrix.binary }}" != "astra-auth" ]; then
+            cp "${{ matrix.binary }}" astra-auth
+          fi
           tar -czf "${ARTIFACT}.tar.gz" astra-auth
           sha256sum "${ARTIFACT}.tar.gz" > "${ARTIFACT}.tar.gz.sha256"
 
