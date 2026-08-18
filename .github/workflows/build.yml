@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -42,3 +43,41 @@ jobs:
         run: |
           cargo test -p xai-grok-sampling-types --lib
           cargo test -p xai-grok-agent --lib prompt::template
+
+      - name: Upload release binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: astra-code-linux-x86_64
+          path: target/release/xai-grok-pager-bin
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download release binary
+        uses: actions/download-artifact@v4
+        with:
+          name: astra-code-linux-x86_64
+          path: dist
+
+      - name: Package tarball + checksum
+        working-directory: dist
+        run: |
+          chmod +x astra-code-linux-x86_64
+          mv astra-code-linux-x86_64 astra-code
+          tar -czf "astra-code-${GITHUB_REF_NAME}-linux-x86_64.tar.gz" astra-code
+          sha256sum "astra-code-${GITHUB_REF_NAME}-linux-x86_64.tar.gz" \
+            > "astra-code-${GITHUB_REF_NAME}-linux-x86_64.tar.gz.sha256"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/*.sha256
