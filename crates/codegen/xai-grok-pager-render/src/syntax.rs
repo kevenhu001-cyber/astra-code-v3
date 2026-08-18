@@ -145,14 +145,14 @@ pub fn highlight_line(
 /// theme based on OS/terminal polarity detection.
 pub fn get_syntect() -> &'static Syntect {
     match crate::theme::Theme::current_kind() {
-        ThemeKind::Astra Night
+        ThemeKind::GrokNight
         | ThemeKind::RosePineMoon
         | ThemeKind::OscuraMidnight
         | ThemeKind::Auto => SYNTECT_GROKNIGHT
             .get_or_init(|| Syntect::new(include_bytes!("../assets/astra-night.tmTheme"))),
         ThemeKind::TokyoNight => SYNTECT_TOKYONIGHT
             .get_or_init(|| Syntect::new(include_bytes!("../assets/tokyo-night.tmTheme"))),
-        ThemeKind::Astra Day => SYNTECT_GROKDAY
+        ThemeKind::GrokDay => SYNTECT_GROKDAY
             .get_or_init(|| Syntect::new(include_bytes!("../assets/astra-day.tmTheme"))),
     }
 }
