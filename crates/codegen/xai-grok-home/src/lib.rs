@@ -78,37 +78,31 @@ pub fn user_astra_home() -> Option<PathBuf> {
 // ---------------------------------------------------------------------------
 
 /// Deprecated: use [`astra_home`] instead. Returns the same path.
-#[deprecated(note = "use `astra_home` instead; the underlying directory is now `.astra`")]
 pub fn grok_home() -> PathBuf {
     astra_home()
 }
 
 /// Deprecated: use [`default_astra_home`] instead.
-#[deprecated(note = "use `default_astra_home` instead")]
 pub fn default_grok_home() -> PathBuf {
     default_astra_home()
 }
 
 /// Deprecated: use [`user_astra_home`] instead.
-#[deprecated(note = "use `user_astra_home` instead")]
 pub fn user_grok_home() -> Option<PathBuf> {
     user_astra_home()
 }
 
 /// Deprecated: use [`resolve_astra_home`] instead.
-#[deprecated(note = "use `resolve_astra_home` instead")]
 pub fn resolve_grok_home() -> Option<PathBuf> {
     resolve_astra_home()
 }
 
 #[allow(dead_code)]
-#[deprecated(note = "internal helper; use [`astra_home_in`] instead")]
 fn grok_home_in(home: &Path) -> PathBuf {
     astra_home_in(home)
 }
 
 #[allow(dead_code)]
-#[deprecated(note = "internal helper; use [`resolve_astra_home_from`] instead")]
 fn resolve_grok_home_from(
     grok_home_env: Option<&OsStr>,
     os_home: Option<&Path>,

@@ -26,12 +26,10 @@ pub fn astra_application_in(home: &std::path::Path) -> PathBuf {
 
 // Backward-compat alias — kept because the wider workspace has many
 // `xai_grok_config::paths::grok_application` call sites.
-#[deprecated(note = "use `astra_application` instead")]
 pub fn grok_application() -> PathBuf {
     astra_application()
 }
 
-#[deprecated(note = "use `astra_application_in` instead")]
 pub fn grok_application_in(home: &std::path::Path) -> PathBuf {
     astra_application_in(home)
 }
