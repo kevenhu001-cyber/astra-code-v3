@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My account &mdash; Astra</title>
+  <meta name="description" content="Manage your Astra account, display name, and authorized CLI devices.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/assets/site.css?v=3">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="shell-wide header-inner">
+      <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/login">Sign in</a>
+        <a href="/account" aria-current="page">Account</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-quiet" href="/authorize">Authorize another device</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="app-wrap">
+      <aside class="app-side" aria-label="Account navigation">
+        <p class="kicker">Account</p>
+        <nav>
+          <a href="#profile" class="is-current"><span>01</span>Profile</a>
+          <a href="#tokens"><span>02</span>API tokens</a>
+          <a href="/authorize"><span>03</span>Authorize device</a>
+        </nav>
+        <p class="note">Need help? Write to the Astra maintainers on <a href="https://github.com/kevenhu001-cyber/astra-harness">GitHub</a>.</p>
+      </aside>
+
+      <div>
+        <div class="acct-card" id="profile">
+          <h1>My account</h1>
+          <p class="sub">Your profile and the devices you have authorized.</p>
+
+          <div class="msg err" id="formErr" role="alert"></div>
+          <div class="msg ok" id="formOk"></div>
+
+          <div id="profileBox">
+            <div class="acct-meta">
+              <span class="avatar" id="avatar">&middot;</span>
+              <div style="min-width:0">
+                <div class="email" id="email">&mdash;</div>
+                <div class="since" id="since"></div>
+                <div style="margin-top:8px">
+                  <span class="section-title" style="font-size:10px">Display name</span>
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+                    <span id="displayName" class="editable" title="Click to edit" style="font-size:14.5px;color:var(--text-90)">&mdash;</span>
+                    <button class="btn-link" id="editNameBtn" type="button" style="font-size:12.5px">Edit</button>
+                  </div>
+                  <form id="nameForm" hidden style="display:flex;gap:8px;margin-top:6px">
+                    <input id="nameInput" type="text" maxlength="60" style="flex:1;padding:9px 11px;background:#000;border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;outline:0">
+                    <button class="btn btn-primary" type="submit" style="min-height:36px;padding:6px 14px;font-size:13px">Save</button>
+                    <button class="btn btn-quiet" id="cancelNameBtn" type="button" style="min-height:36px;padding:6px 14px;font-size:13px">Cancel</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <p class="section-title" id="tokens">API tokens</p>
+            <p class="section-help">Tokens authorize the Astra CLI. Revoke any you do not recognize.</p>
+            <ul class="token-list" id="tokenList"></ul>
+
+            <div class="divider"></div>
+
+            <p class="section-title">Session</p>
+            <div class="actions-row">
+              <button class="btn btn-quiet" id="logoutBtn" type="button">Sign out of this browser</button>
+              <a class="btn btn-quiet" href="/authorize">Authorize another device</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell-wide">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+          <p>An uncertainty-driven engineering runtime for the terminal.</p>
+        </div>
+        <div class="footer-col">
+          <h2>Product</h2>
+          <a href="/">Home</a>
+          <a href="/login">Sign in</a>
+          <a href="/account">Account</a>
+        </div>
+        <div class="footer-col">
+          <h2>Account</h2>
+          <a href="/account">My account</a>
+          <a href="/authorize">Authorize device</a>
+        </div>
+        <div class="footer-col">
+          <h2>Run</h2>
+          <a href="https://github.com/kevenhu001-cyber/astra-harness">GitHub</a>
+          <a href="https://github.com/kevenhu001-cyber/astra-harness/blob/main/README.md">Documentation</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Astra Harness</span>
+        <span>Terminal &middot; State &middot; Evidence</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/auth.js?v=3"></script>
+  <script>
+    (function () {
+      var A = window.Astra;
+
+      function renderTokens(tokens) {
+        var list = document.getElementById('tokenList');
+        list.innerHTML = '';
+        if (!tokens || !tokens.length) {
+          var li = document.createElement('li');
+          li.className = 'muted';
+          li.style.border = '1px dashed var(--line-strong)';
+          li.style.background = 'transparent';
+          li.textContent = 'No active tokens. Run astra login to authorize this CLI.';
+          list.appendChild(li);
+          return;
+        }
+        tokens.forEach(function (t) {
+          var li = document.createElement('li');
+          var left = document.createElement('div');
+          left.className = 'left';
+          var tok = document.createElement('div');
+          tok.className = 'tok';
+          tok.textContent = t.token;
+          var lbl = document.createElement('div');
+          lbl.className = 'lbl';
+          lbl.textContent = (t.label || 'device') + ' · created ' + new Date(t.created_at).toLocaleDateString();
+          left.appendChild(tok); left.appendChild(lbl);
+          var revoke = document.createElement('button');
+          revoke.className = 'btn btn-danger';
+          revoke.type = 'button';
+          revoke.textContent = 'Revoke';
+          revoke.addEventListener('click', async function () {
+            try {
+              await A.api('/tokens', { method: 'DELETE', body: { token: t.token } });
+              renderTokens(tokens.filter(function (x) { return x.token !== t.token; }));
+            } catch (err) { A.setErr(err.message); }
+          });
+          li.appendChild(left); li.appendChild(revoke);
+          list.appendChild(li);
+        });
+      }
+
+      function showNameEditor() {
+        var dn = document.getElementById('displayName');
+        var input = document.getElementById('nameInput');
+        input.value = dn.dataset.value || '';
+        document.getElementById('nameForm').hidden = false;
+        document.getElementById('editNameBtn').hidden = true;
+        input.focus();
+        input.select();
+      }
+
+      function hideNameEditor() {
+        document.getElementById('nameForm').hidden = true;
+        document.getElementById('editNameBtn').hidden = false;
+      }
+
+      function setDisplayName(name) {
+        var dn = document.getElementById('displayName');
+        if (name && name.trim()) {
+          dn.textContent = name;
+          dn.dataset.value = name;
+        } else {
+          dn.textContent = '(not set)';
+          dn.dataset.value = '';
+        }
+      }
+
+      A.me().then(function (u) {
+        if (!u) { A.redirectLogin(); return; }
+        document.getElementById('email').textContent = u.email;
+        document.getElementById('avatar').textContent = (u.email || '?').charAt(0).toUpperCase();
+        document.getElementById('since').textContent = 'Member since ' + new Date(u.created_at).toLocaleDateString();
+        setDisplayName(u.display_name);
+        return A.api('/tokens', { method: 'GET' }).then(function (d) { renderTokens(d.tokens); });
+      }).catch(function () { A.redirectLogin(); });
+
+      document.getElementById('editNameBtn').addEventListener('click', showNameEditor);
+      document.getElementById('displayName').addEventListener('click', showNameEditor);
+      document.getElementById('cancelNameBtn').addEventListener('click', hideNameEditor);
+      document.getElementById('nameForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var input = document.getElementById('nameInput');
+        var value = input.value.trim().slice(0, 60);
+        try {
+          await A.api('/account', { body: { display_name: value } });
+          setDisplayName(value);
+          hideNameEditor();
+          A.setOk('Display name updated.');
+        } catch (err) { A.setErr(err.message); }
+      });
+
+      document.getElementById('logoutBtn').addEventListener('click', async function () {
+        try { await A.api('/logout'); } catch (e) { /* ignore */ }
+        window.location.href = 'login';
+      });
+    })();
+  </script>
+</body>
+</html>
