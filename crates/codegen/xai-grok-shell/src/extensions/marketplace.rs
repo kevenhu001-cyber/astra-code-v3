@@ -1204,7 +1204,7 @@ fn read_official_marketplace_auto_installed(config_path: &std::path::Path) -> bo
     read_marketplace_bool_flag(config_path, "official_marketplace_auto_installed")
 }
 
-/// Acquire an advisory exclusive `flock` on `<grok_home>/.config-init.lock`,
+/// Acquire an advisory exclusive `flock` on `<astra_home>/.config-init.lock`,
 /// retrying briefly under contention, to serialize first-run auto-register
 /// across processes. Only `WouldBlock` retries; other I/O errors return early.
 /// The lock file is intentionally never removed (flock releases on exit).

@@ -952,7 +952,7 @@ pub(crate) fn plan_lines_duplicated(
         .collect()
 }
 
-/// Locate `<grok_home>/sessions/<encoded cwd>/<session id>/`, where the shell
+/// Locate `<astra_home>/sessions/<encoded cwd>/<session id>/`, where the shell
 /// keeps the session's `plan.md`. Polls: the first turn creates it
 /// asynchronously.
 pub(crate) fn session_dir(content: &ContentController, harness: &mut PtyHarness) -> PathBuf {

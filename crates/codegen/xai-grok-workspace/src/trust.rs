@@ -1529,7 +1529,7 @@ mod tests {
     #[test]
     fn workspace_key_ignores_registry_for_cwd_outside_worktrees_dir() {
         // A populated registry must NOT collapse a cwd OUTSIDE
-        // `<grok_home>/worktrees`: `worktree_record_for_cwd` skips the registry
+        // `<astra_home>/worktrees`: `worktree_record_for_cwd` skips the registry
         // there, so the key falls back to git/cwd. Non-vacuous: the registry IS
         // populated with a real git source repo that WOULD be returned for a
         // worktree cwd, and `outside` is its OWN git repo (under grok HOME but not
@@ -1552,7 +1552,7 @@ mod tests {
         assert_eq!(
             key,
             canonicalize_or_owned(&outside),
-            "a cwd outside <grok_home>/worktrees keys on its own repo root"
+            "a cwd outside <astra_home>/worktrees keys on its own repo root"
         );
         assert_ne!(
             key,

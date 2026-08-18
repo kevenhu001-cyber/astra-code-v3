@@ -375,7 +375,7 @@ fn leader_kill_reconnect_reloads_without_duplicating_history() {
     });
 }
 
-/// Locate `<grok_home>/sessions/<enc-cwd>/<sid>/updates.jsonl` without the
+/// Locate `<astra_home>/sessions/<enc-cwd>/<sid>/updates.jsonl` without the
 /// (internal) cwd encoder: scan one level of cwd dirs (same approach as
 /// session_load_perf's `locate_session_dir`).
 fn find_session_updates_file(sid: &str) -> Option<PathBuf> {

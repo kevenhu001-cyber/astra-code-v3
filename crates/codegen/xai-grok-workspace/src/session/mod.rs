@@ -546,7 +546,7 @@ pub struct WorkspaceShared {
     /// (from `GROK_WORKSPACE_REWIND_ALL_OUTCOMES`, default off).
     pub(crate) workspace_rewind_all_outcomes: bool,
     /// Resolved `$GROK_WORKSPACE_HOME` — the workspace-owned on-disk state root
-    /// (`<grok_home>/workspace` by default). The upload queue spills here.
+    /// (`<astra_home>/workspace` by default). The upload queue spills here.
     pub(crate) workspace_home: std::path::PathBuf,
     pub(crate) upload_queue: Option<std::sync::Arc<xai_file_utils::queue::UploadQueue>>,
     /// Whether collection is disabled (opt-out, or the fail-closed default).

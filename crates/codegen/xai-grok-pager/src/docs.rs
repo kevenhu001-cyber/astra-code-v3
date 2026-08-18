@@ -224,7 +224,7 @@ pub fn default_howto_entries() -> Vec<DocEntry> {
         .collect()
 }
 
-/// Extract user-guide docs to `<grok_home>/docs/user-guide/`.
+/// Extract user-guide docs to `<astra_home>/docs/user-guide/`.
 ///
 /// Called from the pager binary startup so the model can read them from disk.
 pub fn extract_user_guide_docs(grok_home: &std::path::Path) {

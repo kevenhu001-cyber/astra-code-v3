@@ -1550,7 +1550,7 @@ mod tests {
         assert!(found, "should detect config.toml change");
     }
 
-    /// A write to `<grok_home>/models_cache.json` must surface as
+    /// A write to `<astra_home>/models_cache.json` must surface as
     /// `ConfigChangeEvent::ModelsCacheChanged` so a long-running leader can
     /// hot-load a catalog fetched by another grok process.
     #[test]
