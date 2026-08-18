@@ -52,7 +52,9 @@ pub fn check_password(hash: &str, password: &str) -> bool {
 
 /// n random bytes hex-encoded (crypto/rand equivalent).
 pub fn random_hex(n: usize) -> String {
-    let bytes: Vec<u8> = (0..n).map(|_| rand::rng().random::<u8>()).collect();
+    let mut rng = rand::rng();
+    let mut bytes = vec![0u8; n];
+    rng.fill(bytes.as_mut_slice());
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
@@ -62,7 +64,7 @@ pub fn random_user_code() -> String {
     let mut rng = rand::rng();
     let mut b = [0u8; 8];
     for slot in b.iter_mut() {
-        *slot = ALPHABET[rng.random::<usize>() % ALPHABET.len()];
+        *slot = ALPHABET[rng.random_range(0..ALPHABET.len())];
     }
     let s: String = b.iter().map(|c| *c as char).collect();
     format!("{}-{}", &s[..4], &s[4..])

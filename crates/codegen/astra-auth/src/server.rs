@@ -294,7 +294,7 @@ async fn handlers_register(
         email: String,
         password: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -342,7 +342,7 @@ async fn handlers_resend(
     struct Body {
         email: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -356,11 +356,12 @@ async fn handlers_resend(
     json_response(StatusCode::OK, json!({ "ok": true }))
 }
 
+#[derive(Deserialize)]
+struct VerifyQuery {
+    token: String,
+}
+
 async fn handlers_verify(State(s): State<Server>, Query(q): Query<VerifyQuery>) -> Response {
-    #[derive(Deserialize)]
-    struct VerifyQuery {
-        token: String,
-    }
     let token = &q.token;
     let p = match s.store.find_pending_by_token(token) {
         Some(p) => p,
@@ -425,7 +426,7 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
         email: String,
         password: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -494,7 +495,7 @@ async fn handlers_device_create(State(s): State<Server>, _req: axum::extract::Re
         expires_at: Utc::now() + Duration::seconds(DEVICE_EXPIRY_SECS),
         approved_at: None,
     };
-    if let Err(e) = s.store.create_device(&g) {
+    if let Err(_) = s.store.create_device(&g) {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     let base = {
@@ -535,7 +536,7 @@ async fn handlers_device_approve(
         #[serde(rename = "user_code")]
         user_code: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -582,7 +583,7 @@ async fn handlers_device_token(
         #[serde(rename = "device_code")]
         device_code: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -668,7 +669,7 @@ async fn handlers_tokens_delete(
     struct Body {
         token: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -692,7 +693,7 @@ async fn handlers_account(State(s): State<Server>, req: axum::extract::Request) 
         #[serde(rename = "display_name")]
         display_name: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
         Err(r) => return r,
     };

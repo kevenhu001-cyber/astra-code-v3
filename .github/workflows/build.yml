@@ -59,7 +59,7 @@ jobs:
       - name: Install dotslash (protoc provider)
         run: |
           cargo install dotslash --locked
-          /usr/bin/env dotslash --help
+          dotslash --help
 
       - name: Cargo check (fast validation)
         run: cargo check -p xai-grok-pager-bin --target ${{ matrix.target }}

@@ -19,7 +19,8 @@ base64 = { workspace = true }
 # `$2b$` for new hashes, which Go's bcrypt also accepts — so credentials stay
 # mutually compatible across the old and new servers.
 bcrypt = "0.16"
-chrono = { workspace = true }
+# `serde` feature: auth.json rows serialize RFC3339 timestamps.
+chrono = { workspace = true, features = ["serde"] }
 rand = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
