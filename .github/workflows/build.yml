@@ -61,6 +61,18 @@ jobs:
           cargo install dotslash --locked
           dotslash --help
 
+      # On Windows the dotslash `bin/protoc` manifest cannot be executed
+      # directly (no shebang support), so provide the pinned protoc binary via
+      # $PROTOC instead. Same version (v29.3) as the dotslash manifest.
+      - name: Install protoc (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $protocDir = "$env:TEMP\protoc-29.3"
+          $zip = "$env:TEMP\protoc-29.3.zip"
+          curl.exe -sSL -o $zip "https://gh-proxy.com/https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-win64.zip"
+          Expand-Archive -Path $zip -DestinationPath $protocDir -Force
+          "PROTOC=$protocDir\bin\protoc.exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
       - name: Cargo check (fast validation)
         run: cargo check -p xai-grok-pager-bin --target ${{ matrix.target }}
 
