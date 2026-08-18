@@ -24,12 +24,9 @@ const ORANGE: Color = Color::Rgb(0xFF, 0x6A, 0x00);
 /// highlights / secondary accents.
 const ORANGE_DIM: Color = Color::Rgb(0xCC, 0x55, 0x00);
 
-/// Block characters used to draw the pixel letters. `█` is full block (lit),
-/// `▓` and `░` are the two shaded / empty variants used for the A-triangle and
-/// S-curve rounding.
+/// Block character used to draw the pixel letters. `█` is full block (lit);
+/// the `S`/`D` glyph markers select primary vs dim orange at render time.
 const LIT: &str = "█";
-const SHADE: &str = "▓";
-const DIM: &str = "░";
 
 /// 5-row, 5-column pixel-art glyphs for A, S, T, R, A. `L` = lit, `S` =
 /// shaded, `D` = dim, ` ` = blank. The renderer maps `L→ORANGE`, `S→ORANGE`,
