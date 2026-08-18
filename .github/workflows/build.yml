@@ -102,7 +102,8 @@ jobs:
           else
             mkdir astra-code
             cp "${{ matrix.binary }}" astra-code/
-            (cd astra-code && zip -r "../${ARTIFACT}.zip" .)
+            # Windows runners' Git bash has no `zip`; use PowerShell instead.
+            pwsh -NoProfile -Command "Compress-Archive -Path astra-code -DestinationPath '${ARTIFACT}.zip' -Force"
             sha256sum "${ARTIFACT}.zip" > "${ARTIFACT}.zip.sha256"
           fi
 
