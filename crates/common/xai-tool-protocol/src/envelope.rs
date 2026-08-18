@@ -255,3 +255,44 @@ impl<R> JsonRpcResponse<R> {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_string() {
+        let id = JsonRpcId::new_string("test-id");
+        assert_eq!(id, JsonRpcId::String("test-id".to_string()));
+    }
+
+    #[test]
+    fn test_new_uuid_v7() {
+        let id = JsonRpcId::new_uuid_v7();
+        if let JsonRpcId::String(s) = id {
+            let parsed = uuid::Uuid::parse_str(&s).expect("Should be a valid UUID");
+            assert_eq!(parsed.get_version_num(), 7);
+        } else {
+            panic!("new_uuid_v7 should return a String variant");
+        }
+    }
+
+    #[test]
+    fn test_from_request_id() {
+        let req_id = RequestId::new("req-123").unwrap();
+        let id = JsonRpcId::from_request_id(&req_id);
+        assert_eq!(id, JsonRpcId::String("req-123".to_string()));
+    }
+
+    #[test]
+    fn test_as_request_id() {
+        let id_str = JsonRpcId::String("foo".to_string());
+        assert_eq!(id_str.as_request_id().unwrap(), RequestId::new("foo").unwrap());
+
+        let id_num = JsonRpcId::Number(123);
+        assert_eq!(id_num.as_request_id().unwrap(), RequestId::new("123").unwrap());
+
+        let id_empty = JsonRpcId::String("".to_string());
+        assert_eq!(id_empty.as_request_id(), Err(IdError::Empty));
+    }
+}
