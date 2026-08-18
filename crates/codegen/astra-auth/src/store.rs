@@ -80,13 +80,13 @@ pub struct DeviceGrant {
 }
 
 /// Store persists all auth state as a single JSON document.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Store {
     inner: Mutex<StoreInner>,
     path: PathBuf,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 struct StoreInner {
     users: Vec<User>,
     pending: Vec<PendingRegistration>,

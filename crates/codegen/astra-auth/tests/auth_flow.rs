@@ -1,5 +1,9 @@
 //! End-to-end HTTP tests mirroring the Go `authsrv_test.go` flows: register →
 //! verify → session login, device flow, tokens, account update, CSRF.
+//!
+//! The server runs on a background thread with its own tokio runtime; the
+//! tests drive it with `reqwest::blocking` (a blocking client cannot live
+//! inside a tokio runtime, so the tests themselves are plain `#[test]`).
 
 use std::sync::Arc;
 
@@ -8,8 +12,8 @@ use astra_auth::server::{Options, Server};
 use astra_auth::store::Store;
 use axum::http::StatusCode;
 
-/// Build a test server bound to an ephemeral port, returning (base_url, store).
-async fn test_server() -> (String, Store) {
+/// Start a test server on an ephemeral port. Returns (base_url, store).
+fn test_server() -> (String, Store) {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::open(dir.path().join("auth.json")).unwrap();
     let srv = Server::new(store.clone(), Arc::new(ConsoleMailer), Options {
@@ -18,30 +22,45 @@ async fn test_server() -> (String, Store) {
         cookie_path: "/".to_string(),
     });
     let app = srv.router();
-    // Bind an ephemeral port so we can drive real HTTP with a cookie jar.
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let listener = rt
+        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
-        let _ = axum::serve(listener, app).await;
+    std::thread::spawn(move || {
+        rt.block_on(async move {
+            let _ = axum::serve(listener, app).await;
+        });
     });
     (format!("http://{addr}"), store)
 }
 
 fn post_json(url: &str, body: serde_json::Value) -> (StatusCode, serde_json::Value) {
     let client = reqwest::blocking::Client::new();
-    let resp = client
-        .post(url)
-        .json(&body)
-        .send()
-        .unwrap();
+    let resp = client.post(url).json(&body).send().unwrap();
     let status = resp.status();
     let json: serde_json::Value = resp.json().unwrap_or(serde_json::Value::Null);
     (status, json)
 }
 
-#[tokio::test]
-async fn register_verify_login_flow() {
-    let (base, store) = test_server().await;
+fn seed_user(store: &Store, id: &str, email: &str, password: &str) {
+    let hash = astra_auth::password::hash_password(password).unwrap();
+    store
+        .create_user(&astra_auth::store::User {
+            id: id.into(),
+            email: email.into(),
+            password_hash: hash,
+            display_name: None,
+            created_at: chrono::Utc::now(),
+            verified_at: None,
+        })
+        .unwrap();
+}
+
+#[test]
+fn register_verify_login_flow() {
+    let (base, store) = test_server();
 
     // Register → pending, no user yet.
     let (status, out) = post_json(
@@ -75,43 +94,28 @@ async fn register_verify_login_flow() {
     assert!(body.contains("user@example.com"));
 }
 
-#[tokio::test]
-async fn login_wrong_password() {
-    let (base, store) = test_server().await;
-    let hash = astra_auth::password::hash_password("correct-horse").unwrap();
-    store
-        .create_user(&astra_auth::store::User {
-            id: "u1".into(),
-            email: "a@b.co".into(),
-            password_hash: hash,
-            display_name: None,
-            created_at: chrono::Utc::now(),
-            verified_at: None,
-        })
-        .unwrap();
+#[test]
+fn login_wrong_password() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "a@b.co", "correct-horse");
 
     let (status, out) = post_json(
         &format!("{base}/api/auth/login"),
         serde_json::json!({"email": "a@b.co", "password": "wrong"}),
     );
     assert_eq!(status, StatusCode::UNAUTHORIZED);
-    assert!(out["error"].as_str().unwrap().contains("invalid email or password"));
+    assert!(
+        out["error"]
+            .as_str()
+            .unwrap()
+            .contains("invalid email or password")
+    );
 }
 
-#[tokio::test]
-async fn duplicate_registration_is_silent() {
-    let (base, store) = test_server().await;
-    let hash = astra_auth::password::hash_password("password123").unwrap();
-    store
-        .create_user(&astra_auth::store::User {
-            id: "u1".into(),
-            email: "a@b.co".into(),
-            password_hash: hash,
-            display_name: None,
-            created_at: chrono::Utc::now(),
-            verified_at: None,
-        })
-        .unwrap();
+#[test]
+fn duplicate_registration_is_silent() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "a@b.co", "password123");
 
     let (status, out) = post_json(
         &format!("{base}/api/auth/register"),
@@ -121,23 +125,16 @@ async fn duplicate_registration_is_silent() {
     assert_eq!(out["ok"], true);
 }
 
-#[tokio::test]
-async fn device_flow_end_to_end() {
-    let (base, store) = test_server().await;
-    let hash = astra_auth::password::hash_password("password123").unwrap();
-    store
-        .create_user(&astra_auth::store::User {
-            id: "u1".into(),
-            email: "dev@b.co".into(),
-            password_hash: hash,
-            display_name: None,
-            created_at: chrono::Utc::now(),
-            verified_at: None,
-        })
-        .unwrap();
+#[test]
+fn device_flow_end_to_end() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "dev@b.co", "password123");
 
     // Browser session: log in and keep the cookie.
-    let client = reqwest::blocking::Client::builder().cookie_store(true).build().unwrap();
+    let client = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap();
     let login = client
         .post(format!("{base}/api/auth/login"))
         .json(&serde_json::json!({"email": "dev@b.co", "password": "password123"}))
@@ -149,7 +146,10 @@ async fn device_flow_end_to_end() {
     let (_, out) = post_json(&format!("{base}/api/auth/device"), serde_json::json!({}));
     let device_code = out["device_code"].as_str().unwrap().to_string();
     let user_code = out["user_code"].as_str().unwrap().to_string();
-    assert!(out["verification_uri"].as_str().unwrap().contains(&user_code));
+    assert!(out["verification_uri"]
+        .as_str()
+        .unwrap()
+        .contains(&user_code));
 
     // 2) TUI polls → pending.
     let (_, poll) = post_json(
@@ -186,23 +186,12 @@ async fn device_flow_end_to_end() {
     assert!(me.text().unwrap().contains("dev@b.co"));
 }
 
-#[tokio::test]
-async fn cross_site_origin_rejected() {
-    let (base, store) = test_server().await;
-    let hash = astra_auth::password::hash_password("password123").unwrap();
-    store
-        .create_user(&astra_auth::store::User {
-            id: "u1".into(),
-            email: "a@b.co".into(),
-            password_hash: hash,
-            display_name: None,
-            created_at: chrono::Utc::now(),
-            verified_at: None,
-        })
-        .unwrap();
+#[test]
+fn cross_site_origin_rejected() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "a@b.co", "password123");
 
-    let client = reqwest::blocking::Client::new();
-    let resp = client
+    let resp = reqwest::blocking::Client::new()
         .post(format!("{base}/api/auth/login"))
         .header("Origin", "https://evil.example")
         .json(&serde_json::json!({"email": "a@b.co", "password": "password123"}))
@@ -211,9 +200,9 @@ async fn cross_site_origin_rejected() {
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
-#[tokio::test]
-async fn site_pages_serve() {
-    let (base, _store) = test_server().await;
+#[test]
+fn site_pages_serve() {
+    let (base, _store) = test_server();
     for p in [
         "/", "/login", "/authorize", "/account", "/assets/site.css", "/assets/auth.js",
         "/favicon.svg",
@@ -232,30 +221,23 @@ async fn site_pages_serve() {
     }
 }
 
-#[tokio::test]
-async fn me_unauthenticated_returns_null() {
-    let (base, _store) = test_server().await;
+#[test]
+fn me_unauthenticated_returns_null() {
+    let (base, _store) = test_server();
     let me = reqwest::blocking::get(format!("{base}/api/auth/me")).unwrap();
     assert_eq!(me.status(), StatusCode::OK);
     assert!(me.text().unwrap().contains("\"user\":null"));
 }
 
-#[tokio::test]
-async fn account_update_display_name() {
-    let (base, store) = test_server().await;
-    let hash = astra_auth::password::hash_password("password123").unwrap();
-    store
-        .create_user(&astra_auth::store::User {
-            id: "u1".into(),
-            email: "u@b.co".into(),
-            password_hash: hash,
-            display_name: None,
-            created_at: chrono::Utc::now(),
-            verified_at: None,
-        })
-        .unwrap();
+#[test]
+fn account_update_display_name() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "u@b.co", "password123");
 
-    let client = reqwest::blocking::Client::builder().cookie_store(true).build().unwrap();
+    let client = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap();
     client
         .post(format!("{base}/api/auth/login"))
         .json(&serde_json::json!({"email": "u@b.co", "password": "password123"}))
@@ -281,7 +263,10 @@ async fn account_update_display_name() {
 
     // /me reflects the trimmed name.
     let me = client.get(format!("{base}/api/auth/me")).send().unwrap();
-    assert!(me.text().unwrap().contains("\"display_name\":\"New Name\""));
+    assert!(me
+        .text()
+        .unwrap()
+        .contains("\"display_name\":\"New Name\""));
 
     // Over-long input truncated to 60 chars.
     let long = "a".repeat(100);
@@ -293,4 +278,52 @@ async fn account_update_display_name() {
         .unwrap();
     let u = store.find_user_by_id("u1").unwrap();
     assert_eq!(u.display_name.as_deref().unwrap().chars().count(), 60);
+}
+
+#[test]
+fn tokens_crud() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "t@b.co", "password123");
+
+    let client = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap();
+    client
+        .post(format!("{base}/api/auth/login"))
+        .json(&serde_json::json!({"email": "t@b.co", "password": "password123"}))
+        .send()
+        .unwrap();
+
+    // Create a manual token.
+    let create = client
+        .post(format!("{base}/api/auth/tokens"))
+        .send()
+        .unwrap();
+    assert_eq!(create.status(), StatusCode::OK);
+    let token: serde_json::Value = create.json().unwrap();
+    let tok = token["token"].as_str().unwrap().to_string();
+
+    // List tokens.
+    let list = client.get(format!("{base}/api/auth/tokens")).send().unwrap();
+    assert_eq!(list.status(), StatusCode::OK);
+    let body: serde_json::Value = list.json().unwrap();
+    assert!(body["tokens"].as_array().unwrap().iter().any(|t| {
+        t["token"].as_str() == Some(tok.as_str()) && t["label"].as_str() == Some("manual")
+    }));
+
+    // Revoke.
+    let del = client
+        .delete(format!("{base}/api/auth/tokens"))
+        .json(&serde_json::json!({"token": tok}))
+        .send()
+        .unwrap();
+    assert_eq!(del.status(), StatusCode::OK);
+    let list2 = client.get(format!("{base}/api/auth/tokens")).send().unwrap();
+    let body2: serde_json::Value = list2.json().unwrap();
+    assert!(!body2["tokens"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|t| t["token"].as_str() == Some(tok.as_str())));
 }

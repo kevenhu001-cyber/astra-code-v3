@@ -140,7 +140,7 @@ fn serve_page(content: &'static str) -> Response {
         .into_response()
 }
 
-fn redirect_permanent(location: &str) -> Response {
+fn redirect_permanent(location: &'static str) -> Response {
     (
         StatusCode::MOVED_PERMANENTLY,
         [(header::LOCATION, HeaderValue::from_static(location))],
@@ -293,10 +293,8 @@ async fn handlers_register(
     struct Body {
         email: String,
         password: String,
-        #[serde(rename = "display_name")]
-        display_name: Option<String>,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -316,7 +314,7 @@ async fn handlers_register(
     };
     let token = password::random_hex(16);
     let now = Utc::now();
-    if let Err(e) = s.store.upsert_pending(&PendingRegistration {
+    if let Err(_) = s.store.upsert_pending(&PendingRegistration {
         email: email.clone(),
         password_hash: hash,
         token: token.clone(),
@@ -344,7 +342,7 @@ async fn handlers_resend(
     struct Body {
         email: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -393,7 +391,7 @@ async fn handlers_verify(State(s): State<Server>, Query(q): Query<VerifyQuery>) 
                 created_at: Utc::now(),
                 verified_at: Some(Utc::now()),
             };
-            if let Err(e) = s.store.create_user(&u) {
+            if let Err(_) = s.store.create_user(&u) {
                 return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
             }
             u
@@ -427,7 +425,7 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
         email: String,
         password: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -537,7 +535,7 @@ async fn handlers_device_approve(
         #[serde(rename = "user_code")]
         user_code: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -555,7 +553,7 @@ async fn handlers_device_approve(
         created_at: Utc::now(),
         expires_at: Utc::now() + Duration::days(TOKEN_TTL_DAYS),
     };
-    if let Err(e) = s.store.create_token(&token) {
+    if let Err(_) = s.store.create_token(&token) {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     let now = Utc::now();
@@ -584,7 +582,7 @@ async fn handlers_device_token(
         #[serde(rename = "device_code")]
         device_code: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -648,7 +646,7 @@ async fn handlers_tokens_post(State(s): State<Server>, req: axum::extract::Reque
         created_at: Utc::now(),
         expires_at: Utc::now() + Duration::days(TOKEN_TTL_DAYS),
     };
-    if let Err(e) = s.store.create_token(&tok) {
+    if let Err(_) = s.store.create_token(&tok) {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     json_response(StatusCode::OK, json!({ "token": tok.token }))
@@ -670,7 +668,7 @@ async fn handlers_tokens_delete(
     struct Body {
         token: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
@@ -694,14 +692,14 @@ async fn handlers_account(State(s): State<Server>, req: axum::extract::Request) 
         #[serde(rename = "display_name")]
         display_name: String,
     }
-    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes) {
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]) {
         Ok(b) => b,
         Err(r) => return r,
     };
     let name = body.display_name.trim();
     let name: String = name.chars().take(60).collect();
     let user_id = user.id.clone();
-    if let Err(e) = s.store.update_user(&user_id, |u| {
+    if let Err(_) = s.store.update_user(&user_id, |u| {
         u.display_name = Some(name.clone());
     }) {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "update failed");

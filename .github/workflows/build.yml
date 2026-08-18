@@ -70,6 +70,7 @@ jobs:
       - name: Cargo test (sampling-types + agent prompt)
         # Tests are host-platform (wire types are platform-agnostic), so run
         # them once on Linux only — duplicating across the matrix is waste.
+        # (astra-auth's own tests run in the `astra-auth` job below.)
         if: matrix.os == 'ubuntu-latest'
         run: |
           cargo test -p xai-grok-sampling-types --lib
@@ -103,8 +104,70 @@ jobs:
             target/${{ matrix.target }}/release/astra-code-*.sha256
           if-no-files-found: error
 
+  # astra-auth: the official site + account/auth API server (Rust port of the
+  # Go astra-auth). Deployed on the site's Linux host, so we only build the
+  # Linux targets — the CLI matrix above covers the desktop platforms.
+  astra-auth:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            binary: astra-auth
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            archive: tar.gz
+            binary: astra-auth
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.94.0"
+          components: rustfmt, clippy
+          targets: ${{ matrix.target }}
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Cargo check (fast validation)
+        run: cargo check -p astra-auth --target ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build -p astra-auth --release --target ${{ matrix.target }}
+
+      - name: Cargo test (auth server)
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo test -p astra-auth
+
+      - name: Package archive + checksum
+        working-directory: target/${{ matrix.target }}/release
+        shell: bash
+        run: |
+          set -euo pipefail
+          REF_NAME="${GITHUB_REF_NAME:-dev}"
+          ARTIFACT="astra-auth-${REF_NAME}-${{ matrix.target }}"
+          cp "${{ matrix.binary }}" astra-auth
+          tar -czf "${ARTIFACT}.tar.gz" astra-auth
+          sha256sum "${ARTIFACT}.tar.gz" > "${ARTIFACT}.tar.gz.sha256"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: astra-auth-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/astra-auth-*.tar.gz
+            target/${{ matrix.target }}/release/astra-auth-*.sha256
+          if-no-files-found: error
+
   release:
-    needs: build
+    needs: [build, astra-auth]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:

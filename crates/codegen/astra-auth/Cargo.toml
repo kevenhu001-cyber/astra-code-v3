@@ -20,7 +20,6 @@ base64 = { workspace = true }
 # mutually compatible across the old and new servers.
 bcrypt = "0.16"
 chrono = { workspace = true }
-http = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -32,7 +31,6 @@ tokio = { workspace = true, features = [
     "io-util",
     "time",
 ] }
-tokio-rustls = "0.26"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 webpki-roots = "0.26"
@@ -45,7 +43,9 @@ rustls = { version = "0.23", default-features = false, features = [
 
 [dev-dependencies]
 tempfile = { workspace = true }
-reqwest = { workspace = true }
+# blocking + cookies for the end-to-end auth-flow tests (cookie jar,
+# redirect policy). Workspace reqwest has `blocking`; `cookies` is additive.
+reqwest = { workspace = true, features = ["cookies"] }
 
 [lints]
 workspace = true

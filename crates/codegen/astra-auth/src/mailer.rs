@@ -123,19 +123,21 @@ impl SMTPMailer {
 pub trait ReadWrite: Read + Write + Send {}
 impl<T: Read + Write + Send> ReadWrite for T {}
 
-/// Minimal blocking SMTP connection with reply-line parsing.
+/// Minimal blocking SMTP connection with reply-line parsing. SMTP is strictly
+/// request-response and every reply is consumed in full (multi-line replies
+/// end at the "NNN " line), so a fresh `BufReader` per command never loses
+/// data; the STARTTLS handshake happens only after the 220 reply, when the
+/// server sends nothing unsolicited.
 struct SmtpConn {
     rw: Box<dyn ReadWrite>,
 }
 
 impl SmtpConn {
-    fn new(mut raw: Box<dyn ReadWrite>, host: &str, port: &str) -> Result<Self, String> {
+    fn new(raw: Box<dyn ReadWrite>, host: &str, port: &str) -> Result<Self, String> {
         if port == "465" {
             // Implicit TLS: wrap the tunnel before SMTP hello.
             let stream = tls_stream(raw, host)?;
-            Ok(SmtpConn {
-                rw: Box::new(stream),
-            })
+            Ok(SmtpConn { rw: Box::new(stream) })
         } else {
             // Plain SMTP hello first, then STARTTLS.
             let mut conn = SmtpConn { rw: raw };
@@ -145,9 +147,7 @@ impl SmtpConn {
                 return Err(format!("smtp STARTTLS: {resp}"));
             }
             let stream = tls_stream(conn.rw, host)?;
-            Ok(SmtpConn {
-                rw: Box::new(stream),
-            })
+            Ok(SmtpConn { rw: Box::new(stream) })
         }
     }
 
@@ -182,7 +182,13 @@ impl SmtpConn {
 fn tls_stream(raw: Box<dyn ReadWrite>, host: &str) -> Result<rustls::StreamOwned<rustls::ClientConnection, Box<dyn ReadWrite>>, String> {
     let mut roots = rustls::RootCertStore::empty();
     roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-    let config = rustls::ClientConfig::builder()
+    // `builder_with_provider` (not `builder`) so no process-level default
+    // provider install is required; the ring provider is enabled via the
+    // crate's `ring` feature.
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let config = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|e| format!("smtp tls config: {e}"))?
         .with_root_certificates(roots)
         .with_no_client_auth();
     let name = rustls::pki_types::ServerName::try_from(host.to_string())
