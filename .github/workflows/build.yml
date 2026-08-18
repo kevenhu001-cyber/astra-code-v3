@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: astra-code-linux-x86_64
-          path: target/release/xai-grok-pager-bin
+          path: target/release/xai-grok-pager
           if-no-files-found: error
 
   release:
@@ -67,8 +67,8 @@ jobs:
       - name: Package tarball + checksum
         working-directory: dist
         run: |
-          chmod +x astra-code-linux-x86_64
-          mv astra-code-linux-x86_64 astra-code
+          chmod +x xai-grok-pager
+          mv xai-grok-pager astra-code
           tar -czf "astra-code-${GITHUB_REF_NAME}-linux-x86_64.tar.gz" astra-code
           sha256sum "astra-code-${GITHUB_REF_NAME}-linux-x86_64.tar.gz" \
             > "astra-code-${GITHUB_REF_NAME}-linux-x86_64.tar.gz.sha256"
