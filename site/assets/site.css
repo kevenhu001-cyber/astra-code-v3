@@ -465,6 +465,7 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   border-radius: 14px;
 }
 .code-chip.is-ok { border-style: solid; border-color: var(--ok); color: var(--ok); }
+.code-chip.is-muted { color: var(--text-30); border-style: dotted; }
 .code-chip-input {
   width: 100%;
   margin: 6px 0 4px;

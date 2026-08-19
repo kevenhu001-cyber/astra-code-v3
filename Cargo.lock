@@ -378,15 +378,19 @@ dependencies = [
  "base64",
  "bcrypt",
  "chrono",
+ "jsonwebtoken 9.3.1",
  "rand 0.9.5",
  "reqwest 0.12.24",
  "rustls",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
+ "urlencoding",
  "webpki-roots 0.26.11",
 ]
 
@@ -3824,7 +3828,7 @@ dependencies = [
  "hex",
  "hmac",
  "home",
- "jsonwebtoken",
+ "jsonwebtoken 10.3.0",
  "path-clean",
  "percent-encoding",
  "reqwest 0.13.4",
@@ -5813,6 +5817,21 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid-simd",
+]
+
+[[package]]
+name = "jsonwebtoken"
+version = "9.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
+dependencies = [
+ "base64",
+ "js-sys",
+ "pem",
+ "ring",
+ "serde",
+ "serde_json",
+ "simple_asn1",
 ]
 
 [[package]]
@@ -14254,7 +14273,7 @@ dependencies = [
  "indexmap",
  "infer 0.15.0",
  "jsonschema",
- "jsonwebtoken",
+ "jsonwebtoken 10.3.0",
  "kanal",
  "libc",
  "moka",

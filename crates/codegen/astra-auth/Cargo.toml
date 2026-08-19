@@ -24,6 +24,10 @@ chrono = { workspace = true, features = ["serde"] }
 rand = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+jsonwebtoken = "9"
+sha2 = "0.10"
+url = "2"
+urlencoding = "2"
 tokio = { workspace = true, features = [
     "net",
     "rt",

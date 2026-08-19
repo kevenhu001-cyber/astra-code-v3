@@ -18,10 +18,17 @@ use crate::mailer::Mailer;
 use crate::password;
 use crate::store::{ApiToken, DeviceGrant, PendingRegistration, Session, Store, User};
 
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+use base64::Engine as _;
+use sha2::{Digest, Sha256};
+
 // Device-flow constants (RFC 8628 style), matching the Go server.
 const DEVICE_EXPIRY_SECS: i64 = 10 * 60;
 const DEVICE_INTERVAL: i64 = 5;
 const TOKEN_TTL_DAYS: i64 = 30;
+const DEVICE_GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:device_code";
 const SESSION_TTL_DAYS: i64 = 30;
 
 /// Options configure the server.
@@ -46,12 +53,29 @@ impl Default for Options {
     }
 }
 
+#[derive(Debug, Clone)]
+struct OidcCode {
+    code: String,
+    user_id: String,
+    client_id: String,
+    redirect_uri: String,
+    code_challenge: String,
+    code_challenge_method: String,
+    nonce: String,
+    scope: String,
+    state: String,
+    created_at: chrono::DateTime<Utc>,
+    expires_at: chrono::DateTime<Utc>,
+}
+
 /// Shared server state.
 #[derive(Clone)]
 pub struct Server {
     store: Arc<Store>,
     mailer: Arc<dyn Mailer>,
     opts: Options,
+    oidc_codes: Arc<Mutex<HashMap<String, OidcCode>>>,
+    oidc_jwt_secret: Arc<String>,
 }
 
 impl Server {
@@ -62,10 +86,13 @@ impl Server {
     /// Construct from a shared store handle, so callers that hold the store
     /// (e.g. tests) observe mutations made by the server.
     pub fn from_arc(store: Arc<Store>, mailer: Arc<dyn Mailer>, opts: Options) -> Self {
+        let secret = password::random_hex(32);
         Server {
             store,
             mailer,
             opts,
+            oidc_codes: Arc::new(Mutex::new(HashMap::new())),
+            oidc_jwt_secret: Arc::new(secret),
         }
     }
 
@@ -92,12 +119,14 @@ impl Server {
             )
             .route("/api/auth/account", post(handlers_account))
             .route("/.well-known/openid-configuration", get(Self::handlers_oidc_discovery))
+            .route("/.well-known/jwks.json", get(Self::handlers_jwks))
+            .route("/authorize", get(Self::handlers_authorize))
+            .route("/token", post(Self::handlers_token))
+            .route("/userinfo", get(Self::handlers_userinfo))
             .fallback(Self::static_site)
             .with_state(state)
     }
 
-    /// Minimal OIDC discovery for legacy CLI probes. Prevents
-    /// `error sending request for url (https://auth.x.ai/.well-known/openid-configuration)`.
     async fn handlers_oidc_discovery(State(s): State<Server>) -> Response {
         let base = s.opts.base_url.trim_end_matches('/').to_string();
         let base = if base.is_empty() { "http://localhost:8080".to_string() } else { base };
@@ -106,12 +135,296 @@ impl Server {
             json!({
                 "issuer": base,
                 "authorization_endpoint": format!("{base}/authorize"),
-                "token_endpoint": format!("{base}/api/auth/device/token"),
-                "userinfo_endpoint": format!("{base}/api/auth/me"),
-                "scopes_supported": ["openid","profile","email","offline_access"],
+                "token_endpoint": format!("{base}/token"),
+                "userinfo_endpoint": format!("{base}/userinfo"),
+                "jwks_uri": format!("{base}/.well-known/jwks.json"),
+                "scopes_supported": ["openid","profile","email","offline_access","api:access","grok-cli:access"],
                 "response_types_supported": ["code"],
                 "grant_types_supported": ["authorization_code","refresh_token","urn:ietf:params:oauth:grant-type:device_code"],
-                "code_challenge_methods_supported": ["S256"]
+                "code_challenge_methods_supported": ["S256", "plain"],
+                "id_token_signing_alg_values_supported": ["RS256", "HS256"]
+            }),
+        )
+    }
+
+    async fn handlers_jwks() -> Response {
+        json_response(
+            StatusCode::OK,
+            json!({
+                "keys": []
+            }),
+        )
+    }
+
+    async fn handlers_userinfo(State(s): State<Server>, req: axum::extract::Request) -> Response {
+        let headers = req.headers().clone();
+        let user = current_user(&s.store, &headers);
+        match user {
+            Some(u) => json_response(
+                StatusCode::OK,
+                json!({
+                    "sub": u.id,
+                    "email": u.email,
+                    "email_verified": true,
+                    "name": u.display_name,
+                }),
+            ),
+            None => write_err(StatusCode::UNAUTHORIZED, "not authenticated"),
+        }
+    }
+
+    async fn handlers_authorize(
+        State(s): State<Server>,
+        Query(params): Query<HashMap<String, String>>,
+        headers: HeaderMap,
+        req: axum::extract::Request,
+    ) -> Response {
+        let has_oidc = params.contains_key("response_type")
+            || params.contains_key("client_id")
+            || params.contains_key("code_challenge");
+        if !has_oidc {
+            let path = req.uri().path().to_string();
+            if path == "/authorize" {
+                if let Some(code) = params.get("code") {
+                    if !code.is_empty() {
+                        return serve_page(crate::assets::AUTHORIZE_HTML);
+                    }
+                }
+                return serve_page(crate::assets::AUTHORIZE_HTML);
+            }
+            return StatusCode::NOT_FOUND.into_response();
+        }
+        let client_id = params.get("client_id").cloned().unwrap_or_default();
+        let redirect_uri = params.get("redirect_uri").cloned().unwrap_or_default();
+        let state = params.get("state").cloned().unwrap_or_default();
+        let code_challenge = params.get("code_challenge").cloned().unwrap_or_default();
+        let code_challenge_method = params
+            .get("code_challenge_method")
+            .cloned()
+            .unwrap_or_else(|| "plain".to_string());
+        let scope = params.get("scope").cloned().unwrap_or_default();
+        let nonce = params.get("nonce").cloned().unwrap_or_default();
+        if client_id.is_empty() || redirect_uri.is_empty() {
+            return write_err(StatusCode::BAD_REQUEST, "missing client_id or redirect_uri");
+        }
+        if !Self::is_loopback_redirect(&redirect_uri) {
+            return write_err(StatusCode::BAD_REQUEST, "invalid redirect_uri");
+        }
+        let user = current_user(&s.store, &headers).or_else(|| {
+            params
+                .get("sid")
+                .or_else(|| params.get("token"))
+                .and_then(|sid| s.store.find_session(sid).and_then(|sess| s.store.find_user_by_id(&sess.user_id)))
+        });
+        let Some(user) = user else {
+            let original = req.uri().to_string();
+            let next = urlencoding::encode(&original);
+            return (
+                StatusCode::FOUND,
+                [
+                    (
+                        header::LOCATION,
+                        HeaderValue::from_str(&format!("/login?next={next}")).unwrap(),
+                    ),
+                ],
+            )
+                .into_response();
+        };
+        let code = password::random_hex(16);
+        let oidc_code = OidcCode {
+            code: code.clone(),
+            user_id: user.id.clone(),
+            client_id: client_id.clone(),
+            redirect_uri: redirect_uri.clone(),
+            code_challenge: code_challenge.clone(),
+            code_challenge_method: code_challenge_method.clone(),
+            nonce: nonce.clone(),
+            scope: scope.clone(),
+            created_at: Utc::now(),
+            expires_at: Utc::now() + Duration::minutes(10),
+            state: state.clone(),
+        };
+        s.oidc_codes
+            .lock()
+            .unwrap()
+            .insert(code.clone(), oidc_code);
+        let mut redirect = format!("{}?code={}", redirect_uri, code);
+        if !state.is_empty() {
+            redirect.push_str(&format!("&state={}", urlencoding::encode(&state)));
+        }
+        (
+            StatusCode::FOUND,
+            [(header::LOCATION, HeaderValue::from_str(&redirect).unwrap())],
+        )
+            .into_response()
+    }
+
+    async fn handlers_token(State(s): State<Server>, req: axum::extract::Request) -> Response {
+        let (_parts, body) = req.into_parts();
+        let bytes = axum::body::to_bytes(body, 64 << 10).await.unwrap_or_default();
+        let body_str = String::from_utf8_lossy(&bytes).to_string();
+        let params: HashMap<String, String> = url::form_urlencoded::parse(body_str.as_bytes())
+            .into_owned()
+            .collect();
+        let grant_type = params.get("grant_type").cloned().unwrap_or_default();
+        if grant_type == "authorization_code" {
+            return Self::handle_token_authorization_code(s, params).await;
+        } else if grant_type == "refresh_token" {
+            return Self::handle_token_refresh(s, params).await;
+        } else if grant_type == DEVICE_GRANT_TYPE {
+            return write_err(StatusCode::BAD_REQUEST, "use /api/auth/device/token for device flow");
+        }
+        write_err(StatusCode::BAD_REQUEST, "unsupported grant_type")
+    }
+
+    fn is_loopback_redirect(uri: &str) -> bool {
+        if let Ok(u) = url::Url::parse(uri) {
+            matches!(u.host_str(), Some("127.0.0.1") | Some("localhost") | Some("::1"))
+                && u.scheme() == "http"
+        } else {
+            false
+        }
+    }
+
+    async fn handle_token_authorization_code(
+        s: Server,
+        params: HashMap<String, String>,
+    ) -> Response {
+        let code = params.get("code").cloned().unwrap_or_default();
+        let code_verifier = params.get("code_verifier").cloned().unwrap_or_default();
+        let client_id = params.get("client_id").cloned().unwrap_or_default();
+        let redirect_uri = params.get("redirect_uri").cloned().unwrap_or_default();
+        if code.is_empty() || client_id.is_empty() || redirect_uri.is_empty() {
+            return write_err(StatusCode::BAD_REQUEST, "missing code/client_id/redirect_uri");
+        }
+        let stored = {
+            let mut map = s.oidc_codes.lock().unwrap();
+            match map.remove(&code) {
+                Some(c) => c,
+                None => return write_err(StatusCode::BAD_REQUEST, "invalid or expired code"),
+            }
+        };
+        if stored.expires_at < Utc::now() {
+            return write_err(StatusCode::BAD_REQUEST, "code expired");
+        }
+        if stored.client_id != client_id || stored.redirect_uri != redirect_uri {
+            return write_err(StatusCode::BAD_REQUEST, "client_id or redirect_uri mismatch");
+        }
+        if !stored.code_challenge.is_empty() {
+            let computed = if stored.code_challenge_method == "S256" {
+                let hash = Sha256::digest(code_verifier.as_bytes());
+                base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hash)
+            } else {
+                code_verifier.clone()
+            };
+            if computed != stored.code_challenge {
+                return write_err(StatusCode::BAD_REQUEST, "code_verifier mismatch");
+            }
+        }
+        let user = match s.store.find_user_by_id(&stored.user_id) {
+            Some(u) => u,
+            None => return write_err(StatusCode::BAD_REQUEST, "user not found"),
+        };
+        let base = s.opts.base_url.trim_end_matches('/').to_string();
+        let base = if base.is_empty() { "https://astracode.topodrive.top".to_string() } else { base };
+        let now = Utc::now();
+        let exp = now + Duration::days(30);
+        let header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256);
+        let claims = serde_json::json!({
+            "sub": user.id,
+            "iss": base,
+            "aud": client_id,
+            "exp": exp.timestamp(),
+            "iat": now.timestamp(),
+            "email": user.email,
+            "principal_type": "Team",
+            "principal_id": user.id,
+            "nonce": stored.nonce,
+        });
+        let access_token = match jsonwebtoken::encode(
+            &header,
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(s.oidc_jwt_secret.as_bytes()),
+        ) {
+            Ok(t) => t,
+            Err(_) => return write_err(StatusCode::INTERNAL_SERVER_ERROR, "token generation failed"),
+        };
+        let refresh_token = password::random_hex(24);
+        let _ = s.store.create_token(&ApiToken {
+            token: access_token.clone(),
+            user_id: user.id.clone(),
+            label: Some("oidc".to_string()),
+            created_at: now,
+            expires_at: exp,
+        });
+        let _ = s.store.create_token(&ApiToken {
+            token: refresh_token.clone(),
+            user_id: user.id.clone(),
+            label: Some("refresh".to_string()),
+            created_at: now,
+            expires_at: now + Duration::days(60),
+        });
+        json_response(
+            StatusCode::OK,
+            json!({
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "Bearer",
+                "expires_in": 30*24*3600,
+            }),
+        )
+    }
+
+    async fn handle_token_refresh(s: Server, params: HashMap<String, String>) -> Response {
+        let refresh_token = params.get("refresh_token").cloned().unwrap_or_default();
+        let client_id = params.get("client_id").cloned().unwrap_or_default();
+        if refresh_token.is_empty() {
+            return write_err(StatusCode::BAD_REQUEST, "missing refresh_token");
+        }
+        let tok = match s.store.find_token(&refresh_token) {
+            Some(t) => t,
+            None => return write_err(StatusCode::BAD_REQUEST, "invalid refresh_token"),
+        };
+        let user = match s.store.find_user_by_id(&tok.user_id) {
+            Some(u) => u,
+            None => return write_err(StatusCode::BAD_REQUEST, "user not found"),
+        };
+        let base = s.opts.base_url.trim_end_matches('/').to_string();
+        let base = if base.is_empty() { "https://astracode.topodrive.top".to_string() } else { base };
+        let now = Utc::now();
+        let exp = now + Duration::days(30);
+        let header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256);
+        let claims = serde_json::json!({
+            "sub": user.id,
+            "iss": base,
+            "aud": if client_id.is_empty() { "unknown".to_string() } else { client_id },
+            "exp": exp.timestamp(),
+            "iat": now.timestamp(),
+            "email": user.email,
+            "principal_type": "Team",
+            "principal_id": user.id,
+        });
+        let access_token = match jsonwebtoken::encode(
+            &header,
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(s.oidc_jwt_secret.as_bytes()),
+        ) {
+            Ok(t) => t,
+            Err(_) => return write_err(StatusCode::INTERNAL_SERVER_ERROR, "token generation failed"),
+        };
+        let _ = s.store.create_token(&ApiToken {
+            token: access_token.clone(),
+            user_id: user.id.clone(),
+            label: Some("oidc".to_string()),
+            created_at: now,
+            expires_at: exp,
+        });
+        json_response(
+            StatusCode::OK,
+            json!({
+                "access_token": access_token,
+                "token_type": "Bearer",
+                "expires_in": 30*24*3600,
             }),
         )
     }

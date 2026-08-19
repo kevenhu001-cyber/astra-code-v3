@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Authorize device &mdash; Astra</title>
-  <meta name="description" content="Approve the Astra CLI device login.">
+  <title>Connect your CLI &mdash; Astra</title>
+  <meta name="description" content="Authorize the Astra CLI by signing in and pasting the one-time code into your terminal.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,8 +37,8 @@
             <circle cx="10" cy="15.5" r="1.2"/>
           </svg>
         </div>
-        <h1>Authorize this device</h1>
-        <p class="sub">The Astra CLI is waiting for your approval. Sign in, then confirm the code below.</p>
+        <h1 id="pageTitle">Connect your CLI</h1>
+        <p class="sub" id="pageSub">The Astra CLI is waiting. Sign in here, copy the one-time code below, and paste it into your terminal.</p>
 
         <div class="msg err" id="formErr" role="alert"></div>
         <div class="msg ok" id="formOk"></div>
@@ -57,19 +57,21 @@
             <label for="authPassword">Password</label>
             <input id="authPassword" type="password" autocomplete="current-password" required>
           </div>
-          <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+          <button class="btn btn-primary btn-block" type="submit">Sign in &amp; generate code</button>
           <p class="hint" style="text-align:center;margin-top:12px">No account? <a href="/login" style="color:var(--text-70)">Create one</a> &mdash; you will be brought back here.</p>
         </form>
 
         <div id="approveBox" hidden>
           <div class="code-box">
-            <p class="code-uri-note" id="codeNote">Confirm this code matches your terminal:</p>
+            <p class="code-uri-note" id="codeNote">Your one-time code:</p>
             <input class="code-chip-input" id="codeInput" type="text" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX" hidden>
             <div class="code-chip" id="codeChip">&middot;&middot;&middot;&middot;&middot;&middot;</div>
+            <p class="hint" id="codeExpiry" style="margin:6px 0 0;color:var(--text-30);font-size:12.5px"></p>
           </div>
-          <button class="btn btn-primary btn-block" id="approveBtn" type="button">Approve login</button>
-          <button class="btn btn-primary btn-block" id="genBtn" type="button" hidden>Generate code for terminal</button>
-          <p class="hint" id="hintText" style="text-align:center;margin-top:10px">The CLI will receive a bearer token tied to your account. You can revoke it from <a href="/account" style="color:var(--text-70)">your account</a>.</p>
+          <button class="btn btn-primary btn-block" id="approveBtn" type="button" hidden>Approve login</button>
+          <button class="btn btn-primary btn-block" id="genBtn" type="button">Generate code for terminal</button>
+          <button class="btn btn-quiet btn-block" id="copyBtn" type="button" hidden>Copy code</button>
+          <p class="hint" id="hintText" style="text-align:center;margin-top:10px">Paste this code into your terminal where you ran <code>astra login</code>. The CLI will receive a bearer token tied to your account; you can revoke it from <a href="/account" style="color:var(--text-70)">your account</a>.</p>
         </div>
       </div>
     </div>
@@ -106,46 +108,145 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=4"></script>
+  <script src="/assets/auth.js?v=5"></script>
   <script>
     (function () {
       var A = window.Astra;
-      var code = A.qs('code') || '';
+      var code = (A.qs('code') || '').trim();
       var chip = document.getElementById('codeChip');
       var codeInput = document.getElementById('codeInput');
       var codeNote = document.getElementById('codeNote');
+      var codeExpiry = document.getElementById('codeExpiry');
       var approveBox = document.getElementById('approveBox');
       var loginForm = document.getElementById('loginForm');
       var sessionBox = document.getElementById('sessionBox');
-
       var approveBtn = document.getElementById('approveBtn');
       var genBtn = document.getElementById('genBtn');
+      var copyBtn = document.getElementById('copyBtn');
       var hintText = document.getElementById('hintText');
-      if (code) {
+      var pageTitle = document.getElementById('pageTitle');
+      var pageSub = document.getElementById('pageSub');
+
+      // Mode A — forward flow (rare): CLI passed ?code=XXXX-XXXX in the URL.
+      //   The user just confirms that the code in their terminal matches.
+      // Mode B — reverse flow (default, what `astra login` actually does today):
+      //   The CLI has no code in the URL; it sits in the terminal waiting for the
+      //   user to paste a code that we generate here on the website.
+      var isForward = !!code;
+      if (isForward) {
+        pageTitle.textContent = 'Confirm device login';
+        pageSub.textContent = 'Sign in, then confirm the code below matches what your terminal is showing.';
         chip.textContent = code;
         codeNote.textContent = 'Confirm this code matches your terminal:';
-        approveBtn.hidden = false; genBtn.hidden = true;
+        approveBtn.hidden = false;
+        genBtn.hidden = true;
+        copyBtn.hidden = true;
       } else {
-        // Reverse flow: no ?code — user generates a code here to paste into `astra login`.
+        pageTitle.textContent = 'Connect your CLI';
+        pageSub.textContent = 'Sign in here, copy the one-time code below, and paste it into your terminal where you ran `astra login`.';
         chip.hidden = true;
         codeInput.hidden = true;
-        codeNote.textContent = 'Generate a one-time code to paste into your terminal:';
-        hintText.innerHTML = 'Run <code>astra login</code> and paste the code when prompted. Valid for 10 minutes.';
-        approveBtn.hidden = true; genBtn.hidden = false;
-        genBtn.addEventListener('click', async function(){
-          A.setErr(''); A.setOk('');
-          try {
-            var d = await A.api('/device/generate', { method: 'POST', body: {} });
-            chip.hidden = false; chip.textContent = d.user_code; codeNote.textContent = 'Paste this code in your terminal:';
-            genBtn.textContent = 'Generated — copy and paste in terminal'; genBtn.disabled = true;
-            A.setOk('Code ' + d.user_code + ' ready. Paste it in astra login.');
-            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(d.user_code).catch(function(){});
-          } catch (err) {
-            if (err.status === 401) A.setErr('Please sign in first.');
-            else A.setErr(err.message);
-          }
-        });
+        codeNote.textContent = 'Your one-time code:';
+        hintText.innerHTML = 'Paste this code into your terminal where you ran <code>astra login</code>. Valid for 10 minutes.';
+        approveBtn.hidden = true;
+        genBtn.hidden = false;
+        copyBtn.hidden = true;
       }
+
+      var expiryTimer = null;
+      function startExpiryCountdown(secs) {
+        if (expiryTimer) { clearInterval(expiryTimer); expiryTimer = null; }
+        var end = Date.now() + secs * 1000;
+        function tick() {
+          var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+          var m = Math.floor(left / 60), s = left % 60;
+          codeExpiry.textContent = left > 0
+            ? 'Expires in ' + m + ':' + (s < 10 ? '0' : '') + s
+            : 'Expired — click "Generate code" for a fresh one.';
+          if (left <= 0) {
+            chip.classList.add('is-muted');
+            genBtn.disabled = false;
+            genBtn.textContent = 'Generate code for terminal';
+            if (expiryTimer) { clearInterval(expiryTimer); expiryTimer = null; }
+          }
+        }
+        tick();
+        expiryTimer = setInterval(tick, 1000);
+      }
+
+      async function autoGenerateCode() {
+        A.setErr(''); A.setOk('');
+        genBtn.disabled = true;
+        genBtn.textContent = 'Generating…';
+        try {
+          var d = await A.api('/device/generate', { method: 'POST', body: {} });
+          chip.classList.remove('is-muted');
+          chip.hidden = false;
+          chip.textContent = d.user_code;
+          codeNote.textContent = 'Paste this code into your terminal:';
+          copyBtn.hidden = false;
+          genBtn.textContent = 'Generate a new code';
+          genBtn.disabled = false;
+          A.setOk('Code ' + d.user_code + ' ready. Paste it into your terminal.');
+          startExpiryCountdown(d.expires_in || 600);
+          // Best-effort clipboard copy — if it works, surface that to the user;
+          // if it doesn't (Brave/ITP/permissions), the manual Copy button still works.
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(d.user_code).then(function () {
+              A.setOk('Code ' + d.user_code + ' copied to clipboard. Paste it into your terminal.');
+            }, function () {
+              /* leave the existing ok message in place; Copy button is still available */
+            });
+          }
+        } catch (err) {
+          genBtn.disabled = false;
+          genBtn.textContent = 'Generate code for terminal';
+          if (err.status === 401) A.setErr('Please sign in first.');
+          else A.setErr(err.message);
+        }
+      }
+
+      function currentCode() {
+        if (isForward) return code;
+        return (codeInput.value || '').trim().toUpperCase();
+      }
+
+      async function tryApprove() {
+        if (!isForward) return; // reverse-flow caller should never end up here
+        A.setErr(''); A.setOk('');
+        var userCode = currentCode();
+        if (!userCode) {
+          A.setErr('Confirm the code shown in your terminal to continue.');
+          return;
+        }
+        try {
+          await A.api('/device/approve', { body: { user_code: userCode } });
+          chip.classList.remove('is-muted');
+          chip.textContent = 'Approved';
+          chip.classList.add('is-ok');
+          approveBtn.disabled = true;
+          approveBtn.textContent = 'Approved — return to your terminal';
+          A.setOk('The CLI will pick up the token within a few seconds.');
+        } catch (err) {
+          if (err.status === 401) { A.setErr('Please sign in first.'); return; }
+          A.setErr(err.message === 'invalid or expired code' ? 'Code is invalid or expired. Request a new login in your terminal.' : err.message);
+        }
+      }
+
+      approveBtn.addEventListener('click', tryApprove);
+      genBtn.addEventListener('click', autoGenerateCode);
+      copyBtn.addEventListener('click', function () {
+        var v = chip.textContent || '';
+        if (!v || v.indexOf('·') !== -1) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(v).then(function () {
+            A.setOk('Copied ' + v + ' to clipboard.');
+          }, function () {
+            A.setErr('Could not copy automatically. Press Ctrl/Cmd-C to copy.');
+          });
+        }
+      });
+      codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); tryApprove(); } });
 
       function showSignedIn(user) {
         sessionBox.classList.add('show');
@@ -155,35 +256,6 @@
         approveBox.hidden = false;
       }
 
-      function currentCode() {
-        if (code) return code;
-        return (codeInput.value || '').trim().toUpperCase();
-      }
-
-      async function tryApprove() {
-        A.setErr(''); A.setOk('');
-        var userCode = currentCode();
-        if (!userCode) {
-          A.setErr('Enter the code shown in your terminal.');
-          codeInput.focus();
-          return;
-        }
-        try {
-          await A.api('/device/approve', { body: { user_code: userCode } });
-          chip.textContent = 'Approved';
-          chip.classList.add('is-ok');
-          document.getElementById('approveBtn').disabled = true;
-          document.getElementById('approveBtn').textContent = 'Approved — return to your terminal';
-          A.setOk('The CLI will pick up the token within a few seconds.');
-        } catch (err) {
-          if (err.status === 401) { A.setErr('Please sign in first.'); return; }
-          A.setErr(err.message === 'invalid or expired code' ? 'Code is invalid or expired. Request a new login in your terminal.' : err.message);
-        }
-      }
-
-      document.getElementById('approveBtn').addEventListener('click', tryApprove);
-      codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); tryApprove(); } });
-
       loginForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         A.setErr(''); A.setOk('');
@@ -192,15 +264,23 @@
             body: { email: document.getElementById('authEmail').value, password: document.getElementById('authPassword').value }
           });
           var user = await A.me();
-          if (user) { showSignedIn(user); tryApprove(); }
-          else { A.setErr('Signed in, but your browser blocked the session cookie. Allow cookies for this site, then try again.'); }
+          if (user) {
+            showSignedIn(user);
+            if (isForward) tryApprove();
+            else autoGenerateCode();
+          } else {
+            A.setErr('Signed in, but your browser blocked the session cookie. Allow cookies for this site, then try again.');
+          }
         } catch (err) {
           A.setErr(err.message === 'invalid email or password' ? 'Invalid email or password' : err.message);
         }
       });
 
       A.me().then(function (user) {
-        if (user) showSignedIn(user);
+        if (user) {
+          showSignedIn(user);
+          if (!isForward) autoGenerateCode();
+        }
       });
     })();
   </script>
