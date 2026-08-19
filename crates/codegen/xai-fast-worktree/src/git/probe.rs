@@ -255,6 +255,7 @@ pub(crate) fn run_with_timeout(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use super::*;
 
     #[cfg(unix)]

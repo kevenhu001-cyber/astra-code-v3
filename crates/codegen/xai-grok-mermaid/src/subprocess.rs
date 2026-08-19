@@ -181,11 +181,10 @@ fn reap_process_group(_child: &Child) {
     // `child.kill()` still terminates the direct child process.
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::process::Stdio;
-    use std::time::Instant;
 
     fn detached(mut cmd: Command) -> Command {
         cmd.stdin(Stdio::null())

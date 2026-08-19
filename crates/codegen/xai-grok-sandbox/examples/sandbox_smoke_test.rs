@@ -17,18 +17,9 @@
 use std::path::Path;
 use xai_grok_sandbox::{ProfileName, SandboxManager};
 
-fn main() {
-    // Parse profile from args (default: workspace).
-    let profile_name = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| "workspace".to_string());
-
-    let profile: ProfileName = profile_name.parse().unwrap_or_else(|e| {
-        eprintln!("Error: {e}");
-        std::process::exit(1);
-    });
-
-    // Check platform support before applying
+/// Print whether the current platform supports kernel sandboxing.
+#[cfg(all(feature = "enforce", unix))]
+fn print_platform_support() {
     let support = SandboxManager::support_info();
     println!(
         "Platform support: {}",
@@ -42,6 +33,36 @@ fn main() {
         println!("   On Linux: Landlock requires kernel ≥ 5.13");
         println!("\n   Tests will show what WOULD happen, but won't enforce.");
     }
+}
+
+/// Stub on platforms without kernel sandboxing (e.g. Windows).
+#[cfg(not(all(feature = "enforce", unix)))]
+fn print_platform_support() {
+    println!("\n⚠️  Sandbox not supported on this platform.");
+    println!("   On macOS: Seatbelt should be available (10.5+)");
+    println!("   On Linux: Landlock requires kernel ≥ 5.13");
+    println!("\n   Tests will show what WOULD happen, but won't enforce.");
+}
+
+/// True when an I/O error is a permission-denied block (cross-platform
+/// replacement for raw `libc::EACCES`/`libc::EPERM` errno checks).
+fn is_blocked(e: &std::io::Error) -> bool {
+    e.kind() == std::io::ErrorKind::PermissionDenied
+}
+
+fn main() {
+    // Parse profile from args (default: workspace).
+    let profile_name = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "workspace".to_string());
+
+    let profile: ProfileName = profile_name.parse().unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
+
+    // Check platform support before applying
+    print_platform_support();
 
     let workspace = std::env::current_dir().expect("failed to get cwd");
     println!("\nProfile:      {profile}");
@@ -128,10 +149,7 @@ fn test_read(label: &str, path: &Path) {
     if path.is_file() {
         match std::fs::read(path) {
             Ok(_) => println!("  ✅ {label}: OK (read)"),
-            Err(e)
-                if e.raw_os_error() == Some(libc::EACCES)
-                    || e.raw_os_error() == Some(libc::EPERM) =>
-            {
+            Err(e) if is_blocked(&e) => {
                 println!("  🔒 {label}: BLOCKED ({e})");
             }
             Err(e) => println!("  ❌ {label}: ERROR ({e})"),
@@ -144,7 +162,7 @@ fn test_read(label: &str, path: &Path) {
             println!("  ✅ {label}: OK ({count} entries)");
         }
         Err(e) => {
-            if e.raw_os_error() == Some(libc::EACCES) || e.raw_os_error() == Some(libc::EPERM) {
+            if is_blocked(&e) {
                 println!("  🔒 {label}: BLOCKED ({e})");
             } else {
                 println!("  ❌ {label}: ERROR ({e})");
@@ -159,7 +177,7 @@ fn test_write(label: &str, path: &Path) {
             println!("  ✅ {label}: OK (written)");
         }
         Err(e) => {
-            if e.raw_os_error() == Some(libc::EACCES) || e.raw_os_error() == Some(libc::EPERM) {
+            if is_blocked(&e) {
                 println!("  🔒 {label}: BLOCKED ({e})");
             } else {
                 println!("  ❌ {label}: ERROR ({e})");

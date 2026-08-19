@@ -37,6 +37,7 @@ pub(crate) fn execute_plan(plan: WorktreePlan) -> Result<CreateWorktreeResult> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use super::*;
     use crate::{IgnoredFilesMode, WorkingTreeMode, WorktreeBuilder};
     use tempfile::TempDir;

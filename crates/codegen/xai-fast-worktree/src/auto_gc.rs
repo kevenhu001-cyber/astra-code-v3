@@ -688,6 +688,7 @@ fn run_orphan_cleaners(
 mod tests {
     use super::*;
     use crate::db::WorktreeRecord;
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     use crate::test_support::deletable_linked_worktree;
     use std::path::Path;
     use std::sync::{Mutex, MutexGuard};
