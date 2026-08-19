@@ -1,5 +1,5 @@
-//! Astra logo — a 5-letter pixel-block "ASTRA" rendered with braille-dot
-//! pixel characters in the user-requested orange palette.
+//! Astra logo — a 5-letter pixel-block "ASTRA" rendered with Unicode block
+//! characters in the user-requested orange palette.
 //!
 //! Used by the welcome screen's top bar. Each letter is 5 columns wide and 5
 //! rows tall, separated by single-column gaps, for a total of 5×5 + 4×1 = 29
@@ -24,10 +24,9 @@ const ORANGE: Color = Color::Rgb(0xFF, 0x6A, 0x00);
 /// highlights / secondary accents.
 const ORANGE_DIM: Color = Color::Rgb(0xCC, 0x55, 0x00);
 
-/// Braille-dot pixel character used to draw the pixel letters. `⠿` is a
-/// braille full-dot pattern (lit); the `S`/`D` glyph markers select primary
-/// vs dim orange at render time.
-const LIT: &str = "⠿";
+/// Block character used to draw the pixel letters. `█` is a full block
+/// (lit); the `S`/`D` glyph markers select primary vs dim orange at render time.
+const LIT: &str = "█";
 
 /// Total visual width of the ASTRA wordmark (5 letters × 5 cols + 4 gaps).
 const TOTAL_COLS: usize = 29;
@@ -99,37 +98,47 @@ fn boost(base: Color, amount: f32) -> Color {
 /// 5-row, 5-column pixel-art glyphs for A, S, T, R, A. `L` = lit, `S` =
 /// shaded, `D` = dim, ` ` = blank. The renderer maps `L→ORANGE`, `S→ORANGE`,
 /// `D→ORANGE_DIM`, ` `→nothing.
-const LETTERS: [&str; 5] = [
+const LETTERS: [&[&str; 5]; 5] = [
     // A (5 cols × 5 rows)
-    " L  \n\
-     L L \n\
-     LLL \n\
-     L L \n\
-     L L ",
+    &[
+        " LLL ",
+        "L   L",
+        "LLLLL",
+        "L   L",
+        "L   L",
+    ],
     // S (5 cols × 5 rows)
-    " SSS \n\
-     S   \n\
-     SSS \n\
-       S \n\
-     SSS ",
+    &[
+        "LLLLL",
+        "L    ",
+        "LLLLL",
+        "    L",
+        "LLLLL",
+    ],
     // T (5 cols × 5 rows)
-    "LLLLL\n\
-      L  \n\
-      L  \n\
-      L  \n\
-      L  ",
+    &[
+        "LLLLL",
+        "  L  ",
+        "  L  ",
+        "  L  ",
+        "  L  ",
+    ],
     // R (5 cols × 5 rows)
-    "LLL  \n\
-     L L \n\
-     LLL \n\
-     L L \n\
-     L L ",
-    // A (5 cols × 5 rows) — same as the first A
-    " L  \n\
-     L L \n\
-     LLL \n\
-     L L \n\
-     L L ",
+    &[
+        "LLLL ",
+        "L   L",
+        "LLLL ",
+        "L  L ",
+        "L   L",
+    ],
+    // A (5 cols × 5 rows)
+    &[
+        " LLL ",
+        "L   L",
+        "LLLLL",
+        "L   L",
+        "L   L",
+    ],
 ];
 
 /// Compose the 5 letters into one `Vec<Line<'static>>` with no animation.
@@ -150,13 +159,6 @@ fn astra_logo_lines_with<F>(mut shine_at_col: F) -> Vec<Line<'static>>
 where
     F: FnMut(usize) -> f32,
 {
-    // Pull each letter into a `Vec<Vec<char>>` so we can walk rows × cols and
-    // build one Span per visual run.
-    let letters: Vec<Vec<Vec<char>>> = LETTERS
-        .iter()
-        .map(|l| l.lines().map(|row| row.chars().collect()).collect())
-        .collect();
-
     let rows = 5usize;
     let mut out: Vec<Line<'static>> = Vec::with_capacity(rows);
     // Track the running column index across the row so the wave knows
@@ -166,7 +168,7 @@ where
     for row in 0..rows {
         let mut spans: Vec<Span<'static>> = Vec::new();
         let mut col: usize = 0;
-        for (i, letter) in letters.iter().enumerate() {
+        for (i, letter) in LETTERS.iter().enumerate() {
             if i > 0 {
                 // 1-column gap between letters.
                 spans.push(Span::raw(" "));
@@ -174,7 +176,7 @@ where
             }
             let mut run = String::new();
             let mut run_color: Option<Color> = None;
-            for ch in letter[row].iter() {
+            for ch in letter[row].chars() {
                 let (base_color, push) = match ch {
                     'L' => (Some(ORANGE), true),
                     'S' => (Some(ORANGE), true),
