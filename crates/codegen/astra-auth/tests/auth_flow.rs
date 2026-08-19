@@ -303,13 +303,13 @@ fn reverse_device_flow_end_to_end() {
     assert_eq!(login.status(), StatusCode::OK);
 
     // Browser asks for a one-time code (the reverse endpoint).
-    let gen = browser
+    let gen_resp = browser
         .post(format!("{base}/api/auth/device/generate"))
         .header("Origin", base.clone())
         .send()
         .unwrap();
-    assert_eq!(gen.status(), StatusCode::OK);
-    let gen_body: serde_json::Value = gen.json().unwrap();
+    assert_eq!(gen_resp.status(), StatusCode::OK);
+    let gen_body: serde_json::Value = gen_resp.json().unwrap();
     let user_code = gen_body["user_code"].as_str().unwrap().to_string();
     let device_code = gen_body["device_code"].as_str().unwrap().to_string();
     assert_eq!(user_code.len(), 9, "K7Q2-XM9D shape");

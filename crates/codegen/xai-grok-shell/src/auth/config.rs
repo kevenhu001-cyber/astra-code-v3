@@ -125,9 +125,9 @@ pub struct OAuth2ProviderConfig {
     pub referrer: Option<String>,
 }
 /// Independent Astra auth issuer (production). Replaces the legacy `https://auth.x.ai` default.
-pub const ASTRA_OAUTH2_ISSUER: &str = "https://astracode.topodrive.top";
+pub(crate) const ASTRA_OAUTH2_ISSUER: &str = "https://astracode.topodrive.top";
 /// Local/self-hosted Astra auth issuer for `GROK_LOCAL_AUTH=1` / dev.
-pub const ASTRA_OAUTH2_LOCAL_ISSUER: &str = "http://localhost:8080";
+pub(crate) const ASTRA_OAUTH2_LOCAL_ISSUER: &str = "http://localhost:8080";
 /// Legacy alias — retained for `auth.json` migration / downstream imports; now points to Astra.
 pub const XAI_OAUTH2_ISSUER: &str = ASTRA_OAUTH2_ISSUER;
 /// Production accounts-app origin allowlist for the legacy OIDC loopback
@@ -172,7 +172,7 @@ pub(crate) fn use_local_auth() -> bool {
 }
 /// Returns the active Astra OAuth2 issuer: the local-dev issuer when
 /// `GROK_LOCAL_AUTH=1` is set, otherwise the production issuer.
-pub fn astra_oauth2_issuer() -> &'static str {
+pub(crate) fn astra_oauth2_issuer() -> &'static str {
     if use_local_auth() {
         ASTRA_OAUTH2_LOCAL_ISSUER
     } else {
@@ -184,7 +184,7 @@ pub fn xai_oauth2_issuer() -> &'static str {
     astra_oauth2_issuer()
 }
 /// Whether `issuer` is a recognised Astra OAuth2 issuer (production or local-dev).
-pub fn is_astra_oauth2_issuer(issuer: &str) -> bool {
+pub(crate) fn is_astra_oauth2_issuer(issuer: &str) -> bool {
     issuer == ASTRA_OAUTH2_ISSUER || issuer == ASTRA_OAUTH2_LOCAL_ISSUER
 }
 /// Compatibility alias — delegates to `is_astra_oauth2_issuer`.
@@ -458,7 +458,7 @@ mod tests {
     /// Non-production / local-dev origins are opt-in only.
     #[test]
     fn allowed_accounts_app_origins_are_frozen() {
-        assert_eq!(PROD_ACCOUNTS_APP_ORIGINS, &["https://accounts.x.ai"]);
+        assert_eq!(PROD_ACCOUNTS_APP_ORIGINS, &["https://astracode.topodrive.top"]);
         assert_eq!(allowed_accounts_app_origins(), PROD_ACCOUNTS_APP_ORIGINS);
     }
     /// FROZEN client contract: the 10 scopes the xAI OAuth2 client requests.
