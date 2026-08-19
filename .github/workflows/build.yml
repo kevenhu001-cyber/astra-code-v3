@@ -79,6 +79,20 @@ jobs:
       - name: Build release binary
         run: cargo build -p xai-grok-pager-bin --release --target ${{ matrix.target }}
 
+      - name: Compute release tag
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+            echo "RELEASE_TAG=${{ github.ref_name }}" >> "$GITHUB_ENV"
+          else
+            BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' crates/codegen/xai-grok-pager-bin/Cargo.toml | head -1)"
+            if [ -z "$BASE_VERSION" ]; then
+              BASE_VERSION="0.0.0"
+            fi
+            echo "RELEASE_TAG=v${BASE_VERSION}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          fi
+
       - name: Cargo test (sampling-types + agent prompt)
         # Tests are host-platform (wire types are platform-agnostic), so run
         # them once on Linux only — duplicating across the matrix is waste.
@@ -93,7 +107,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REF_NAME="${GITHUB_REF_NAME:-dev}"
+          REF_NAME="${RELEASE_TAG:-${GITHUB_REF_NAME:-dev}}"
           ARTIFACT="astra-${REF_NAME}-${{ matrix.target }}"
           if [ "${{ matrix.archive }}" = "tar.gz" ]; then
             # The matrix binary is already named `astra`; only rename when
@@ -163,6 +177,20 @@ jobs:
       - name: Build release binary
         run: cargo build -p astra-auth --release --target ${{ matrix.target }}
 
+      - name: Compute release tag
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+            echo "RELEASE_TAG=${{ github.ref_name }}" >> "$GITHUB_ENV"
+          else
+            BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' crates/codegen/xai-grok-pager-bin/Cargo.toml | head -1)"
+            if [ -z "$BASE_VERSION" ]; then
+              BASE_VERSION="0.0.0"
+            fi
+            echo "RELEASE_TAG=v${BASE_VERSION}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          fi
+
       - name: Cargo test (auth server)
         if: matrix.os == 'ubuntu-latest'
         run: cargo test -p astra-auth
@@ -172,7 +200,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REF_NAME="${GITHUB_REF_NAME:-dev}"
+          REF_NAME="${RELEASE_TAG:-${GITHUB_REF_NAME:-dev}}"
           ARTIFACT="astra-auth-${REF_NAME}-${{ matrix.target }}"
           # The matrix binary is already named `astra-auth`; only rename when
           # it differs (cp refuses source == destination).
@@ -194,7 +222,9 @@ jobs:
   release:
     needs: [build, astra-auth]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Auto-publish a new release after every successful CI run on main, and
+    # keep the manual tag-push flow (`v*`) working unchanged.
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && needs.build.result == 'success' && needs.astra-auth.result == 'success'
     permissions:
       contents: write
     steps:
@@ -203,10 +233,25 @@ jobs:
         with:
           path: dist
 
+      - name: Compute release tag
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' crates/codegen/xai-grok-pager-bin/Cargo.toml | head -1)"
+            if [ -z "$BASE_VERSION" ]; then
+              BASE_VERSION="0.0.0"
+            fi
+            echo "tag=v${BASE_VERSION}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ github.ref_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
           files: |
             dist/**/*.tar.gz
