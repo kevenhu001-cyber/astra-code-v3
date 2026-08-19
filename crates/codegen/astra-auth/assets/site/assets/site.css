@@ -100,12 +100,17 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   font-size: 15px; font-weight: 500; letter-spacing: -.02em;
   white-space: nowrap;
 }
-.brand-mark {
-  width: 24px; height: 24px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: #fff; color: #000;
-  border-radius: 7px;
-  font-size: 13px; font-weight: 600;
+.brand-logo {
+  display: inline-flex;
+  width: 96px; height: 17px;
+  flex: none;
+}
+.brand-logo svg {
+  display: block;
+  width: 100%; height: 100%;
+}
+.brand-logo path {
+  fill: var(--accent);
 }
 .nav { display: flex; align-items: center; gap: 2px; margin-left: auto; margin-right: 18px; }
 .nav a {
