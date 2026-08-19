@@ -22,14 +22,29 @@ mod rosepine;
 pub mod system_appearance;
 mod terminal_default;
 pub mod tokyonight;
+pub mod transition;
 
 pub use color_support::quantize;
 pub use tokyonight::{Theme, pulse_brightness, wave_brightness};
 
 /// Available theme variants.
+///
+/// **Brand note:** the `GrokNight` / `GrokDay` variants are the
+/// post-rebrand canonical names (Astra uses these as its dark /
+/// light defaults). They predate the public [`AstraNight`] /
+/// [`AstraDay`] constant aliases added during the Grok→Astra
+/// rebrand — the variants themselves are kept for backwards
+/// compatibility with persisted `~/.astra/config.toml` values
+/// and historical on-disk cache encodings. New code should
+/// prefer the `Astra*` constants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ThemeKind {
+    /// Astra Night — default dark theme (black/white canvas with
+    /// an orange accent). Pre-rebrand name retained for config
+    /// compatibility; prefer [`AstraNight`].
     GrokNight = 0,
+    /// Astra Day — default light theme. Pre-rebrand name retained
+    /// for config compatibility; prefer [`AstraDay`].
     GrokDay = 1,
     TokyoNight = 2,
     RosePineMoon = 3,
@@ -43,6 +58,27 @@ pub enum ThemeKind {
     /// Excluded from [`ALL`] and [`available()`].
     Auto = 4,
 }
+
+// -- Public rebrand aliases -------------------------------------------------
+//
+// The Astra rebrand renamed "Grok Night / Day" to "Astra Night / Day" in
+// the user-facing `display_name` output, but the underlying variant names
+// stayed `GrokNight` / `GrokDay` to avoid invalidating persisted config
+// values (`theme = "astranight"` resolves to the same `u8` discriminant
+// either way). These constants let new code reference the theme by its
+// current brand name while sharing the variant identity with legacy code.
+
+/// Astra Night — public alias for [`ThemeKind::GrokNight`]. The default
+/// dark theme since the Grok→Astra rebrand. New code should prefer this
+/// constant over the legacy `ThemeKind::GrokNight` variant.
+#[allow(non_upper_case_globals)]
+pub const AstraNight: ThemeKind = ThemeKind::GrokNight;
+
+/// Astra Day — public alias for [`ThemeKind::GrokDay`]. The default
+/// light theme since the Grok→Astra rebrand. New code should prefer
+/// this constant over the legacy `ThemeKind::GrokDay` variant.
+#[allow(non_upper_case_globals)]
+pub const AstraDay: ThemeKind = ThemeKind::GrokDay;
 
 impl ThemeKind {
     /// All theme kinds (including those that may not work on the current terminal).
@@ -72,6 +108,10 @@ impl ThemeKind {
     }
 
     /// Human-readable display name.
+    ///
+    /// The dark and light defaults are surfaced under their post-rebrand
+    /// names (`"astranight"`, `"astraday"`); see [`AstraNight`] /
+    /// [`AstraDay`] for the public constant aliases.
     pub fn display_name(self) -> &'static str {
         match self {
             Self::GrokNight => "astranight",
@@ -314,6 +354,24 @@ impl Theme {
         }
     }
 
+    /// Get the live theme for the render path, applying any in-flight
+    /// crossfade from a recent theme switch. When no transition is
+    /// running this is exactly equivalent to the pre-transition
+    /// theme — the atomic loads inside [`transition::sample_live`]
+    /// short-circuit on the "no transition" sentinel and return the
+    /// input unchanged, so the steady-state cost is one atomic load
+    /// and a couple of integer compares.
+    ///
+    /// **Render path only.** The configuration layer
+    /// (`appearance::config`, `live::compute_accent_default`, etc.)
+    /// must keep calling [`Self::current`] — those paths read a
+    /// single field as a fallback value, and reading a mid-fade
+    /// color would lock the user's saved preference to whatever
+    /// shade happened to be in flight when the write happened.
+    pub fn current_live() -> Self {
+        transition::sample_live(Self::current())
+    }
+
     /// Get the currently active theme kind.
     pub fn current_kind() -> ThemeKind {
         cache::current_kind()
@@ -332,14 +390,46 @@ impl Theme {
     /// Used by the dispatcher, live-preview, and the appearance watcher.
     ///
     /// No-op while the terminal-native lock is engaged.
+    ///
+    /// Triggers a 200 ms crossfade when the effective kind actually
+    /// changes; the in-flight fade is read by [`Theme::current`] via
+    /// [`transition::sample_live`]. Bouncing the picker (clicking the
+    /// already-active theme) intentionally restarts the fade — that
+    /// gives the live-preview the same feedback as a real switch.
     pub fn apply_kind(kind: ThemeKind) -> ThemeKind {
         if cache::terminal_native_locked() {
             return cache::current_kind();
         }
+        let prev_kind = cache::current_kind();
         let effective = Self::clamp_to_terminal(kind);
+        if effective != prev_kind {
+            // Snapshot the previous theme *as currently quantized* so the
+            // crossfade interpolates between the user's actual visible
+            // colors, not the raw palette. A theme that quantizes its
+            // accent to a named ANSI color would otherwise look like it's
+            // lerping from a color the user never sees.
+            let prev_theme = Self::raw_for_kind(prev_kind);
+            transition::start(&prev_theme);
+        }
         cache::set(effective);
         apply_cursor_color();
         effective
+    }
+
+    /// Build the raw (unquantized, un-Windows-boosted) theme for a kind.
+    /// Used by [`apply_kind`] to snapshot the previous theme before a
+    /// crossfade so the interpolation lands on the right colors.
+    fn raw_for_kind(kind: ThemeKind) -> Self {
+        match kind {
+            ThemeKind::GrokNight => Self::groknight(),
+            ThemeKind::TokyoNight => Self::tokyonight(),
+            ThemeKind::GrokDay => Self::grokday(),
+            ThemeKind::RosePineMoon => Self::rosepine_moon(),
+            ThemeKind::OscuraMidnight => Self::oscura_midnight(),
+            // `Auto` is resolved before `apply_kind` is ever called, so
+            // this branch is defensive only.
+            ThemeKind::Auto => Self::groknight(),
+        }
     }
 
     /// Clamp a theme kind to what the terminal supports.

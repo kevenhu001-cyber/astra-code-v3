@@ -53,11 +53,17 @@ fn welcome_in_vscode_family() -> bool {
 /// narrower than the logo's [`astra_logo::LOGO_WIDTH`] — falls back silently
 /// so a too-narrow terminal still renders cleanly. Spans are already
 /// styled with the brand orange by [`astra_logo::astra_logo_lines`].
+///
+/// The logo carries a slow center→edge sheen wave so it feels alive on the
+/// welcome screen without being distracting (3.2s period). The phase is
+/// driven by the same monotonic time source the Braille hero logo uses
+/// (see `super::logo::anim_phase_secs`), so the two logos stay in sync if
+/// the layout ever shows both.
 fn render_astra_logo(area: Rect, buf: &mut Buffer) {
     if area.width < astra_logo::LOGO_WIDTH || area.height < astra_logo::LOGO_HEIGHT {
         return;
     }
-    let lines = astra_logo::astra_logo_lines();
+    let lines = astra_logo::astra_logo_lines_anim(logo::anim_phase_secs());
     Paragraph::new(lines).render(area, buf);
 }
 
@@ -450,6 +456,57 @@ pub(super) enum VersionBadgeMode<'a> {
     HeroInline,
 }
 
+/// Extract a short commit hash from [`xai_grok_version::full_version`].
+///
+/// `full_version` is the runtime-injected `"<semver> (<shortcommit>)"`
+/// string stamped by the release binary's build.rs. In dev builds it
+/// falls back to plain `VERSION` with no commit suffix, so we return
+/// `None` there to keep the hero version line clean.
+///
+/// We take the first 7 ASCII hex characters of the commit and ignore
+/// any `-dirty` / `-modified` suffix the build pipeline might append.
+fn hero_inline_short_commit() -> Option<&'static str> {
+    let full = xai_grok_version::full_version();
+    let open = full.find('(')?;
+    let close_rel = full[open + 1..].find(')')?;
+    let inside = &full[open + 1..open + 1 + close_rel];
+    // Walk up to 7 hex chars; bail if no hex is found at all.
+    let mut idx = 0;
+    for (i, ch) in inside.char_indices() {
+        if !ch.is_ascii_hexdigit() {
+            break;
+        }
+        idx = i + 1;
+        if idx == 7 {
+            break;
+        }
+    }
+    if idx == 0 {
+        return None;
+    }
+    Some(&inside[..idx])
+}
+
+/// Format the local time as `HH:MM` (UTC) for the hero version line.
+///
+/// We deliberately use UTC instead of local time: the welcome screen
+/// should be deterministic across machines, and converting to local
+/// time would require pulling in `chrono` (or `time`) just for the
+/// offset — the HH:MM display still reads as a wall clock to the
+/// user, just one anchored to UTC. Rendered fresh on every frame so
+/// the welcome screen has a quiet heartbeat alongside the logo sheen.
+fn hero_inline_clock() -> Option<String> {
+    use std::time::SystemTime;
+    let secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .ok()?
+        .as_secs();
+    let total_minutes = (secs / 60) % (24 * 60);
+    let hours = (total_minutes / 60) as u32;
+    let minutes = (total_minutes % 60) as u32;
+    Some(format!("{hours:02}:{minutes:02}"))
+}
+
 pub(super) fn render_version_badge(
     version_rect: Rect,
     buf: &mut Buffer,
@@ -496,7 +553,7 @@ pub(super) fn render_version_badge(
             "Logged in with API key",
             Style::default().fg(theme.gray),
         ));
-        spans.push(sep);
+        spans.push(sep.clone());
     }
 
     let channel = xai_grok_update::channel_label();
@@ -525,6 +582,30 @@ pub(super) fn render_version_badge(
                 xai_grok_version::VERSION,
                 Style::default().fg(theme.gray),
             ));
+            // In the hero box we have spare width, so augment the
+            // version line with a short commit hash and the local
+            // time. Both are kept compact (4-byte hash + HH:MM) so the
+            // line never overflows on the 90-col minimum hero width.
+            // The time re-renders every frame so the welcome screen
+            // has a subtle heartbeat alongside the logo sheen.
+            if let Some(commit) = hero_inline_short_commit() {
+                spans.push(sep.clone());
+                spans.push(Span::styled(
+                    format!("build {commit}"),
+                    Style::default()
+                        .fg(theme.gray)
+                        .add_modifier(Modifier::DIM),
+                ));
+            }
+            if let Some(clock) = hero_inline_clock() {
+                spans.push(sep);
+                spans.push(Span::styled(
+                    clock,
+                    Style::default()
+                        .fg(theme.gray)
+                        .add_modifier(Modifier::DIM),
+                ));
+            }
         }
     }
 

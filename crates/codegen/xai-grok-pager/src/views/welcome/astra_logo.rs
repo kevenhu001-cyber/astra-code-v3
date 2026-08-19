@@ -28,6 +28,73 @@ const ORANGE_DIM: Color = Color::Rgb(0xCC, 0x55, 0x00);
 /// the `S`/`D` glyph markers select primary vs dim orange at render time.
 const LIT: &str = "█";
 
+/// Total visual width of the ASTRA wordmark (5 letters × 5 cols + 4 gaps).
+const TOTAL_COLS: usize = 29;
+/// Center column of the wordmark — the "R" sits at index 15 (0-based).
+const CENTER_COL: f32 = (TOTAL_COLS as f32 - 1.0) / 2.0;
+/// Animation period in seconds — one full center→edge→center sweep.
+const PULSE_PERIOD_SECS: f32 = 3.2;
+/// Half-width of the highlight band in columns. Glyphs within this many
+/// columns of the moving front get a brightness boost.
+const BAND_HALF_WIDTH: f32 = 5.0;
+/// How much brighter the peak of the wave is vs the resting orange. 0.0
+/// keeps the logo static; 1.0 makes the band reach pure white.
+const SHINE_STRENGTH: f32 = 0.65;
+
+/// Animated variant of [`astra_logo_lines`] — same glyphs and layout,
+/// but each pixel pulses in brightness with a wave that sweeps outward
+/// from the center column. `phase_secs` is the same monotonically
+/// increasing time source the rest of the welcome animation uses
+/// (see `logo::anim_phase_secs`).
+///
+/// The wave is a half-cosine band: at any column `c` the brightness
+/// boost is `SHINE_STRENGTH * (1 + cos(π d / BAND)) / 2`, where `d` is
+/// the distance from the current wave front. The front oscillates
+/// between column 0 and the rightmost column, so the sheen appears to
+/// breathe from the middle outward, then settle, then breathe again.
+pub fn astra_logo_lines_anim(phase_secs: f32) -> Vec<Line<'static>> {
+    // Wave front position oscillates between -BAND_HALF_WIDTH (just past
+    // the left edge) and TOTAL_COLS + BAND_HALF_WIDTH (just past the
+    // right edge), so the band enters and exits cleanly.
+    let cycle = (phase_secs / PULSE_PERIOD_SECS).fract();
+    // Triangle wave: 0→1 in the first half of the cycle, 1→0 in the second.
+    let tri = if cycle < 0.5 { cycle * 2.0 } else { 2.0 - cycle * 2.0 };
+    let front = -BAND_HALF_WIDTH + tri * (TOTAL_COLS as f32 + 2.0 * BAND_HALF_WIDTH);
+    astra_logo_lines_with(|col| shine_at(col as f32, front))
+}
+
+/// Static helper used by both [`astra_logo_lines`] (passing `|_| 0.0`)
+/// and [`astra_logo_lines_anim`]. `brightness` is the additive boost
+/// to apply to a glyph's orange; 0.0 leaves it resting, 1.0 saturates
+/// to white.
+fn shine_at(col: f32, front: f32) -> f32 {
+    let d = (col - front).abs();
+    if d >= BAND_HALF_WIDTH {
+        0.0
+    } else {
+        SHINE_STRENGTH * 0.5 * (1.0 + (std::f32::consts::PI * d / BAND_HALF_WIDTH).cos())
+    }
+}
+
+/// Boost a base orange by `amount` (clamped to `[0, 1]`). Amount 0
+/// returns the base; amount 1 returns white. We lerp in linear sRGB
+/// because the logo lives at small dot density and the difference is
+/// imperceptible vs gamma-correct blending.
+fn boost(base: Color, amount: f32) -> Color {
+    if amount <= 0.0 {
+        return base;
+    }
+    let Color::Rgb(r, g, b) = base else {
+        return base;
+    };
+    let a = amount.clamp(0.0, 1.0) as f32;
+    let lerp = |channel: u8| -> u8 {
+        let c = channel as f32 + (255.0 - channel as f32) * a;
+        c.round().clamp(0.0, 255.0) as u8
+    };
+    Color::Rgb(lerp(r), lerp(g), lerp(b))
+}
+
 /// 5-row, 5-column pixel-art glyphs for A, S, T, R, A. `L` = lit, `S` =
 /// shaded, `D` = dim, ` ` = blank. The renderer maps `L→ORANGE`, `S→ORANGE`,
 /// `D→ORANGE_DIM`, ` `→nothing.
@@ -64,9 +131,24 @@ const LETTERS: [&str; 5] = [
      L L ",
 ];
 
-/// Compose the 5 letters into one `Vec<Line<'static>>`. Each line spans 29
-/// columns: 5 (letter) + 1 (gap) + 5 + 1 + 5 + 1 + 5 + 1 + 5 = 29.
+/// Compose the 5 letters into one `Vec<Line<'static>>` with no animation.
+/// Each line spans 29 columns: 5 (letter) + 1 (gap) + 5 + 1 + 5 + 1 + 5 + 1
+/// + 5 = 29.
+///
+/// New code that wants the breathing effect should call
+/// [`astra_logo_lines_anim`] instead.
 pub fn astra_logo_lines() -> Vec<Line<'static>> {
+    astra_logo_lines_with(|_| 0.0)
+}
+
+/// Inner builder shared by [`astra_logo_lines`] and [`astra_logo_lines_anim`].
+/// `shine_at_col` returns the brightness boost (0..=1) for the given
+/// column index of the rendered wordmark; it is called per non-blank glyph
+/// to decide the actual color to paint.
+fn astra_logo_lines_with<F>(mut shine_at_col: F) -> Vec<Line<'static>>
+where
+    F: FnMut(usize) -> f32,
+{
     // Pull each letter into a `Vec<Vec<char>>` so we can walk rows × cols and
     // build one Span per visual run.
     let letters: Vec<Vec<Vec<char>>> = LETTERS
@@ -76,17 +158,23 @@ pub fn astra_logo_lines() -> Vec<Line<'static>> {
 
     let rows = 5usize;
     let mut out: Vec<Line<'static>> = Vec::with_capacity(rows);
+    // Track the running column index across the row so the wave knows
+    // where each glyph sits. Letters contribute 5 cols + a 1-col gap (no
+    // gap after the last letter); blanks between letters are still real
+    // columns from the sheen wave's perspective.
     for row in 0..rows {
         let mut spans: Vec<Span<'static>> = Vec::new();
+        let mut col: usize = 0;
         for (i, letter) in letters.iter().enumerate() {
             if i > 0 {
                 // 1-column gap between letters.
                 spans.push(Span::raw(" "));
+                col += 1;
             }
             let mut run = String::new();
             let mut run_color: Option<Color> = None;
             for ch in letter[row].iter() {
-                let (color, push) = match ch {
+                let (base_color, push) = match ch {
                     'L' => (Some(ORANGE), true),
                     'S' => (Some(ORANGE), true),
                     'D' => (Some(ORANGE_DIM), true),
@@ -99,17 +187,20 @@ pub fn astra_logo_lines() -> Vec<Line<'static>> {
                         }
                     }
                     spans.push(Span::raw(" "));
+                    col += 1;
                     continue;
                 }
-                if run_color != color {
+                let boosted = boost(base_color.unwrap_or(ORANGE), shine_at_col(col));
+                if run_color != Some(boosted) {
                     if !run.is_empty() {
                         if let Some(c) = run_color {
                             spans.push(Span::styled(std::mem::take(&mut run), Style::default().fg(c)));
                         }
                     }
-                    run_color = color;
+                    run_color = Some(boosted);
                 }
                 run.push_str(LIT);
+                col += 1;
             }
             if !run.is_empty() {
                 if let Some(c) = run_color {

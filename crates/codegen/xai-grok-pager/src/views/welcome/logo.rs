@@ -57,7 +57,11 @@ fn visual_width(logo: &str) -> u16 {
 
 /// Animation phase in seconds since the first render. Wall-clock based so the
 /// shimmer speed is independent of the frame rate.
-fn anim_phase_secs() -> f32 {
+///
+/// `pub(crate)` so the pixel-block ASTRA logo (see `super::astra_logo`)
+/// can share the same clock — the two welcome logos stay in lockstep
+/// whenever both are on screen.
+pub(crate) fn anim_phase_secs() -> f32 {
     use std::sync::OnceLock;
     use std::time::Instant;
     static START: OnceLock<Instant> = OnceLock::new();

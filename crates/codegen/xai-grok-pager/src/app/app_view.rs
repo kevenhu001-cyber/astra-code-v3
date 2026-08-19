@@ -4745,7 +4745,7 @@ impl AppView {
                         self.welcome_announcement.rect = result.announcement_rect;
                         self.session_picker_state.hit_areas = result.session_picker_hit_areas;
                         if let Some(modal) = self.import_claude_modal.as_mut() {
-                            let theme = crate::theme::Theme::current();
+                            let theme = crate::theme::Theme::current_live();
                             crate::views::import_claude_modal::render_import_claude_modal(
                                 f.buffer_mut(),
                                 view_area,
@@ -4770,7 +4770,7 @@ impl AppView {
                             ..
                         }) = self.welcome_doc_viewer
                         {
-                            let theme = crate::theme::Theme::current();
+                            let theme = crate::theme::Theme::current_live();
                             crate::views::modal::render_doc_viewer_overlay(
                                 f.buffer_mut(),
                                 view_area,
@@ -4867,7 +4867,7 @@ impl AppView {
                             };
                         let overlay_can_cycle = position.is_some_and(|(_, n)| n > 1);
                         let (agent_area, header) = if overlay_active {
-                            let theme = crate::theme::Theme::current();
+                            let theme = crate::theme::Theme::current_live();
                             let title = agents
                                 .get(&id)
                                 .map(crate::views::session_title::entry_title)
@@ -4965,7 +4965,7 @@ impl AppView {
                                 },
                             );
                             if let Some(modal) = self.import_claude_modal.as_mut() {
-                                let theme = crate::theme::Theme::current();
+                                let theme = crate::theme::Theme::current_live();
                                 crate::views::import_claude_modal::render_import_claude_modal(
                                     f.buffer_mut(),
                                     view_area,
@@ -5049,7 +5049,7 @@ impl AppView {
                             );
                             let (popup_cursor, popup_post_flush, drawn_popup_agent) =
                                 if let Some(agent_id) = dashboard.attached_agent {
-                                    let theme = crate::theme::Theme::current();
+                                    let theme = crate::theme::Theme::current_live();
                                     let popup_area = crate::views::dashboard::popup_rect(view_area);
                                     let title = agents
                                         .get(&agent_id)
@@ -5998,7 +5998,7 @@ fn render_astra_brand(buf: &mut ratatui::buffer::Buffer, area: ratatui::layout::
     use ratatui::text::{Line, Span};
     use ratatui::widgets::{Paragraph, Widget};
 
-    let theme = crate::theme::Theme::current();
+    let theme = crate::theme::Theme::current_live();
     let orange = Style::default()
         .fg(theme.accent_model)
         .add_modifier(Modifier::BOLD);
