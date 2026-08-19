@@ -40,8 +40,16 @@ try {
   $extractDir = Join-Path $tmp "extract"
   Expand-Archive -Path (Join-Path $tmp "astra.zip") -DestinationPath $extractDir -Force
 
-  # Find the .exe — accept the underlying pager binary or the renamed wrapper
-  $exe = Get-ChildItem -Path $extractDir -Filter "*.exe" -Recurse | Where-Object { $_.Name -match "xai-grok-pager|^astra(\.exe|$)" } | Select-Object -First 1
+  # Verify the download against the published SHA-256 checksum.
+  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$asset.sha256" -OutFile (Join-Path $tmp "astra.zip.sha256")
+  $expected = (Get-Content (Join-Path $tmp "astra.zip.sha256") -Raw).Split(' ')[0].Trim()
+  $actual = (Get-FileHash (Join-Path $tmp "astra.zip") -Algorithm SHA256).Hash.ToLower()
+  if ($expected.ToLower() -ne $actual) {
+    throw "Checksum verification failed for $asset"
+  }
+
+  # Find the astra.exe inside the archive.
+  $exe = Get-ChildItem -Path $extractDir -Filter "astra.exe" -Recurse | Select-Object -First 1
   if (-not $exe) {
     throw "Executable not found in the archive"
   }
