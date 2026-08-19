@@ -76,6 +76,23 @@
 
             <div class="divider"></div>
 
+            <p class="section-title">Device authorization</p>
+            <p class="section-help">Generate a one-time code here, then paste it in your terminal when <code>astra login</code> asks for it. Valid for 10 minutes.</p>
+            <div style="display:flex;gap:8px;align-items:center;margin:10px 0">
+              <button class="btn btn-primary" id="genCodeBtn" type="button">Generate device code</button>
+              <span id="genCodeHint" style="color:var(--text-30);font-size:12.5px"></span>
+            </div>
+            <div class="code-box" id="genCodeBox" hidden style="display:flex;flex-direction:column;gap:8px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:12px;background:#0b0b0b">
+              <div class="code-chip" id="genCodeChip" style="font-size:22px;letter-spacing:3px;font-weight:700;color:var(--text-90)">····-····</div>
+              <p class="hint" id="genCodeExpiry" style="margin:0;color:var(--text-30)"></p>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-quiet" id="copyCodeBtn" type="button">Copy code</button>
+                <a class="btn btn-quiet" href="/authorize" target="_blank">Open authorize page</a>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
             <p class="section-title">Session</p>
             <div class="actions-row">
               <button class="btn btn-quiet" id="logoutBtn" type="button">Sign out of this browser</button>
@@ -118,7 +135,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=3"></script>
+  <script src="/assets/auth.js?v=4"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -209,6 +226,43 @@
           hideNameEditor();
           A.setOk('Display name updated.');
         } catch (err) { A.setErr(err.message); }
+      });
+
+      // Reverse device code: generate on this page, consume in CLI `astra login`.
+      var genTimer = null;
+      function startExpiryCountdown(expiresIn) {
+        var expiryEl = document.getElementById('genCodeExpiry');
+        var end = Date.now() + expiresIn * 1000;
+        if (genTimer) clearInterval(genTimer);
+        function tick() {
+          var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+          var m = Math.floor(left / 60), s = left % 60;
+          expiryEl.textContent = left > 0 ? 'Expires in ' + m + ':' + (s < 10 ? '0' : '') + s : 'Expired — generate again';
+          if (left <= 0) { clearInterval(genTimer); genTimer = null; }
+        }
+        tick();
+        genTimer = setInterval(tick, 1000);
+      }
+      document.getElementById('genCodeBtn').addEventListener('click', async function () {
+        var btn = document.getElementById('genCodeBtn');
+        btn.disabled = true; A.setErr(''); A.setOk('');
+        try {
+          var d = await A.api('/device/generate', { method: 'POST', body: {} });
+          document.getElementById('genCodeChip').textContent = d.user_code;
+          document.getElementById('genCodeBox').hidden = false;
+          document.getElementById('genCodeBox').style.display = 'flex';
+          document.getElementById('genCodeHint').textContent = 'Code ready — paste in terminal';
+          A.setOk('Code ' + d.user_code + ' generated. Paste it in astra login.');
+          startExpiryCountdown(d.expires_in || 600);
+        } catch (err) { A.setErr(err.message); }
+        btn.disabled = false;
+      });
+      document.getElementById('copyCodeBtn').addEventListener('click', function () {
+        var code = document.getElementById('genCodeChip').textContent;
+        if (!code || code.indexOf('·') !== -1) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(function(){ A.setOk('Copied ' + code); }, function(){ A.setErr('Copy failed'); });
+        }
       });
 
       document.getElementById('logoutBtn').addEventListener('click', async function () {

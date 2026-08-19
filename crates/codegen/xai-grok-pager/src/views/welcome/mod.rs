@@ -354,13 +354,9 @@ impl WelcomeLayout {
             None => changelog_height,
         };
 
-        // Stacked layout: skip the logo in compact mode (the session picker
-        // needs the space); otherwise pick small/full/none by height.
-        let logo_rows = if compact {
-            0
-        } else {
-            logo_line_count(content_area.height)
-        };
+        // Stacked layout: central braille Grok logo removed per design — never allocate logo rows.
+        // The sole brand mark is the top ASTRA pixel wordmark painted in render_welcome.
+        let logo_rows = 0u16;
 
         let gap_after_logo = if error_height > 0 { 1 } else { 0 };
         let tip_gap = if tip_height > 0 { 1u16 } else { 0 };
@@ -382,7 +378,7 @@ impl WelcomeLayout {
         };
         let eff_changelog_gap = if eff_changelog_height > 0 { 1u16 } else { 0 };
         // Compute top_pad using the *default* menu height (4 items = 7 rows) so
-        // the logo position stays constant regardless of picker/focus state.
+        // the menu position stays constant regardless of picker/focus state.
         let top_pad = if compact {
             0
         } else {
@@ -394,7 +390,7 @@ impl WelcomeLayout {
                 .saturating_sub(fixed_below)
                 / 3
         };
-        let logo_gap = 1u16;
+        let logo_gap = if logo_rows > 0 { 1u16 } else { 0 };
         let flex_gap = 1u16;
         let [
             _,
@@ -448,11 +444,11 @@ impl WelcomeLayout {
 
 /// Controls what the version badge renders.
 pub(super) enum VersionBadgeMode<'a> {
-    /// Full badge: team | tier | api_key | **Astra** VERSION+channel (right-aligned).
+    /// Full badge: team | tier | api_key | VERSION+channel (right-aligned). No "Astra" wordmark — the pixel logo is the sole brand.
     Full { subscription_tier: Option<&'a str> },
     /// Hero footer: team | api_key | channel (right-aligned, gray).
     HeroFooter,
-    /// Hero inline: **Astra**  VERSION (left-aligned).
+    /// Hero inline: VERSION (left-aligned). No "Astra" wordmark.
     HeroInline,
 }
 
@@ -557,12 +553,8 @@ pub(super) fn render_version_badge(
     }
 
     let channel = xai_grok_update::channel_label();
-    let brand_style = Style::default()
-        .fg(theme.accent_user)
-        .add_modifier(Modifier::BOLD);
     match &mode {
         VersionBadgeMode::Full { .. } => {
-            spans.push(Span::styled("Astra  ", brand_style));
             spans.push(Span::styled(
                 format!("{}{}", xai_grok_version::VERSION, channel),
                 Style::default().fg(theme.gray),
@@ -577,7 +569,6 @@ pub(super) fn render_version_badge(
             }
         }
         VersionBadgeMode::HeroInline => {
-            spans.push(Span::styled("Astra  ", brand_style));
             spans.push(Span::styled(
                 xai_grok_version::VERSION,
                 Style::default().fg(theme.gray),
@@ -801,13 +792,11 @@ pub fn render_welcome(
 
     buf.set_style(area, Style::default().bg(theme.bg_base));
 
-    // Announcements only render inside the hero box. The layout is:
-    //   v_margin (1) | astra-logo (5 rows) | gap (1) | top_bar (1) | content | v_margin
-    // The logo is centered horizontally and painted with the brand-orange
-    // ASTRA pixel-block glyphs from [`astra_logo`]. It replaces the single
-    // `grok` / `astra` text that used to live at the top of the welcome screen.
-    let [_, top_bar_area, content_area, _] = Layout::vertical([
+    // Fixed top stack: v_margin | ASTRA pixel logo (5 rows, centered, no overlap) | top_bar (1) | content | v_margin
+    // Replaces the previous overlay trick (logo_area.y = top_bar.y - H) which caused the left-truncated orange pixels.
+    let [_, logo_area_outer, top_bar_area, content_area, _] = Layout::vertical([
         Constraint::Length(v_margin),
+        Constraint::Length(astra_logo::LOGO_HEIGHT),
         Constraint::Length(1),
         Constraint::Min(10),
         Constraint::Length(v_margin),
@@ -822,14 +811,16 @@ pub fn render_welcome(
     };
     render_top_bar(top_bar_inner, buf, &theme, None);
 
-    // The brand ASTRA logo sits in the v_margin row directly above the top
-    // bar — only the first 5 columns of v_margin actually get used (logo is
-    // 29 wide × 5 tall, painted inline; the rest of v_margin stays blank).
-    let logo_area = Rect {
-        x: top_bar_area.x + h_margin,
-        y: top_bar_area.y.saturating_sub(astra_logo::LOGO_HEIGHT),
-        width: astra_logo::LOGO_WIDTH.min(top_bar_area.width.saturating_sub(h_margin * 2)),
-        height: astra_logo::LOGO_HEIGHT,
+    // Center the 29-col pixel wordmark; narrow terminals (<29) gracefully no-op via render_astra_logo's guard.
+    let logo_area = {
+        let [_, centered, _] = Layout::horizontal([
+            Constraint::Min(0),
+            Constraint::Length(astra_logo::LOGO_WIDTH),
+            Constraint::Min(0),
+        ])
+        .flex(Flex::Center)
+        .areas(logo_area_outer);
+        centered
     };
     render_astra_logo(logo_area, buf);
 
@@ -996,7 +987,8 @@ fn render_welcome_blocked(
         ..Default::default()
     });
 
-    render_logo(layout.logo, buf, &theme, content_area.height);
+    // Central Grok logo removed — top ASTRA pixel wordmark is sole brand.
+    let _ = layout.logo;
 
     if let Some((text, color)) = message {
         let line =
@@ -1101,7 +1093,7 @@ fn render_welcome_trust(
         ..Default::default()
     });
 
-    render_logo(layout.logo, buf, theme, content_area.height);
+    let _ = layout.logo; // central Grok logo removed
     Paragraph::new(lines).render(layout.error, buf);
 
     let menu_area = inset_horizontal(layout.menu, prompt::prompt_inset(compact));

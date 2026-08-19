@@ -30,12 +30,12 @@ To switch accounts or resolve an authentication problem, run:
 astra login
 ```
 
-Running `astra login` starts the sign-in flow again, replacing your cached session. By default, it opens your browser and signs in through Astra OAuth at `auth.x.ai`. Pass a flag to select a different flow:
+Running `astra login` starts the sign-in flow again, replacing your cached session. By default, it opens your browser and signs in through Astra's independent auth service at `https://astracode.topodrive.top`. Pass a flag to select a different flow:
 
 | Flag | Description |
 |------|-------------|
-| `--oauth` | Sign in through Astra OAuth at `auth.x.ai`. This is the default, so the flag is optional. |
-| `--device-auth` (alias `--device-code`) | Sign in with the device-code flow for headless or remote environments. |
+| `--oauth` | Sign in through Astra auth at `https://astracode.topodrive.top`. This is the default, so the flag is optional. |
+| `--device-auth` (alias `--device-code`) | Sign in with the device-code flow for headless or remote environments. Generate a code in your browser at `/account` or `/authorize`, then paste it when `astra login` prompts. |
 
 To sign out, run `astra logout`. It takes no flags and clears your cached credentials.
 

@@ -124,7 +124,12 @@ pub struct OAuth2ProviderConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub referrer: Option<String>,
 }
-pub const XAI_OAUTH2_ISSUER: &str = "https://auth.x.ai";
+/// Independent Astra auth issuer (production). Replaces the legacy `https://auth.x.ai` default.
+pub const ASTRA_OAUTH2_ISSUER: &str = "https://astracode.topodrive.top";
+/// Local/self-hosted Astra auth issuer for `GROK_LOCAL_AUTH=1` / dev.
+pub const ASTRA_OAUTH2_LOCAL_ISSUER: &str = "http://localhost:8080";
+/// Legacy alias — retained for `auth.json` migration / downstream imports; now points to Astra.
+pub const XAI_OAUTH2_ISSUER: &str = ASTRA_OAUTH2_ISSUER;
 /// Production accounts-app origin allowlist. Its own const so the frozen
 /// contract test pins the production allowlist even when the non-production
 /// feature adds staging/local origins.
@@ -154,7 +159,7 @@ pub(crate) fn accounts_app_cors_layer(method: axum::http::Method) -> tower_http:
         .allow_methods([method])
 }
 /// Local-dev OAuth2 issuer (accounts-app running on localhost).
-const XAI_OAUTH2_LOCAL_ISSUER: &str = "http://localhost:22255";
+const XAI_OAUTH2_LOCAL_ISSUER: &str = ASTRA_OAUTH2_LOCAL_ISSUER;
 const DEFAULT_OAUTH2_REFERRER: &str = "grok-build";
 /// Returns `true` when `GROK_LOCAL_AUTH=1` is set,
 /// indicating the local accounts-app should be used as the OAuth2 issuer.
@@ -163,20 +168,26 @@ pub(crate) fn use_local_auth() -> bool {
         .map(|v| !v.is_empty() && v != "0")
         .unwrap_or(false)
 }
-/// Returns the active xAI OAuth2 issuer: the local-dev issuer when
+/// Returns the active Astra OAuth2 issuer: the local-dev issuer when
 /// `GROK_LOCAL_AUTH=1` is set, otherwise the production issuer.
-pub fn xai_oauth2_issuer() -> &'static str {
+pub fn astra_oauth2_issuer() -> &'static str {
     if use_local_auth() {
-        XAI_OAUTH2_LOCAL_ISSUER
+        ASTRA_OAUTH2_LOCAL_ISSUER
     } else {
-        XAI_OAUTH2_ISSUER
+        ASTRA_OAUTH2_ISSUER
     }
 }
-/// Whether `issuer` is a recognised xAI OAuth2 issuer (production or local-dev).
-/// Use this instead of comparing to [`XAI_OAUTH2_ISSUER`] so local-dev counts as
-/// first-party xAI auth.
+/// Compatibility alias — now delegates to `astra_oauth2_issuer`.
+pub fn xai_oauth2_issuer() -> &'static str {
+    astra_oauth2_issuer()
+}
+/// Whether `issuer` is a recognised Astra OAuth2 issuer (production or local-dev).
+pub fn is_astra_oauth2_issuer(issuer: &str) -> bool {
+    issuer == ASTRA_OAUTH2_ISSUER || issuer == ASTRA_OAUTH2_LOCAL_ISSUER
+}
+/// Compatibility alias — delegates to `is_astra_oauth2_issuer`.
 pub fn is_xai_oauth2_issuer(issuer: &str) -> bool {
-    issuer == XAI_OAUTH2_ISSUER || issuer == XAI_OAUTH2_LOCAL_ISSUER
+    is_astra_oauth2_issuer(issuer)
 }
 /// auth.json scope key used by the pre-OIDC `grok login --legacy` flow.
 /// Matches the key format produced by the original `accounts.x.ai` relay auth.

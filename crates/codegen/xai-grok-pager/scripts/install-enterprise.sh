@@ -122,7 +122,7 @@ read_astra_token() {
 }
 
 # Resolve auth: ASTRA_DEPLOYMENT_KEY > OIDC token > legacy token
-OIDC_SCOPE="https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828"
+OIDC_SCOPE="https://astracode.topodrive.top::b1a00492-073a-47ea-816f-4c329264a828"
 LEGACY_SCOPE="https://accounts.x.ai/sign-in"
 AUTH_SOURCE=""
 

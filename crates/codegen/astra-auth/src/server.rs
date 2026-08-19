@@ -80,8 +80,10 @@ impl Server {
             .route("/api/auth/logout", post(handlers_logout))
             .route("/api/auth/me", get(handlers_me))
             .route("/api/auth/device", post(handlers_device_create))
+            .route("/api/auth/device/generate", post(handlers_device_generate))
             .route("/api/auth/device/approve", post(handlers_device_approve))
             .route("/api/auth/device/token", post(handlers_device_token))
+            .route("/api/auth/device/consume", post(handlers_device_consume))
             .route(
                 "/api/auth/tokens",
                 axum::routing::get(handlers_tokens_get)
@@ -89,8 +91,29 @@ impl Server {
                     .delete(handlers_tokens_delete),
             )
             .route("/api/auth/account", post(handlers_account))
+            .route("/.well-known/openid-configuration", get(Self::handlers_oidc_discovery))
             .fallback(Self::static_site)
             .with_state(state)
+    }
+
+    /// Minimal OIDC discovery for legacy CLI probes. Prevents
+    /// `error sending request for url (https://auth.x.ai/.well-known/openid-configuration)`.
+    async fn handlers_oidc_discovery(State(s): State<Server>) -> Response {
+        let base = s.opts.base_url.trim_end_matches('/').to_string();
+        let base = if base.is_empty() { "http://localhost:8080".to_string() } else { base };
+        json_response(
+            StatusCode::OK,
+            json!({
+                "issuer": base,
+                "authorization_endpoint": format!("{base}/authorize"),
+                "token_endpoint": format!("{base}/api/auth/device/token"),
+                "userinfo_endpoint": format!("{base}/api/auth/me"),
+                "scopes_supported": ["openid","profile","email","offline_access"],
+                "response_types_supported": ["code"],
+                "grant_types_supported": ["authorization_code","refresh_token","urn:ietf:params:oauth:grant-type:device_code"],
+                "code_challenge_methods_supported": ["S256"]
+            }),
+        )
     }
 
     /// Serve the embedded static site pages. Unknown paths 404.
@@ -617,6 +640,96 @@ async fn handlers_device_token(
         }
         _ => json_response(StatusCode::OK, json!({ "status": "expired" })),
     }
+}
+
+/// Reverse flow: authenticated user generates a one-time code on the device/browser;
+/// CLI consumes it by POSTing the `user_code`. Separated from the RFC8628 forward flow.
+async fn handlers_device_generate(State(s): State<Server>, req: axum::extract::Request) -> Response {
+    let user = current_user(&s.store, req.headers());
+    let Some(user) = user else {
+        return write_err(StatusCode::UNAUTHORIZED, "please log in first");
+    };
+    let g = DeviceGrant {
+        device_code: password::random_hex(16),
+        user_code: password::random_user_code(),
+        status: "pending".to_string(),
+        user_id: Some(user.id.clone()),
+        token: None,
+        created_at: Utc::now(),
+        expires_at: Utc::now() + Duration::seconds(DEVICE_EXPIRY_SECS),
+        approved_at: None,
+    };
+    if s.store.create_device(&g).is_err() {
+        return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
+    }
+    let base = {
+        let b = s.opts.base_url.trim_end_matches('/');
+        if b.is_empty() { "http://localhost:8080" } else { b }
+    };
+    json_response(
+        StatusCode::OK,
+        json!({
+            "device_code": g.device_code,
+            "user_code": g.user_code,
+            "verification_uri": format!("{base}/authorize?code={}", g.user_code),
+            "expires_in": DEVICE_EXPIRY_SECS,
+            "interval": DEVICE_INTERVAL,
+        }),
+    )
+}
+
+async fn handlers_device_consume(State(s): State<Server>, req: axum::extract::Request) -> Response {
+    let (parts, body) = req.into_parts();
+    let bytes = axum::body::to_bytes(body, 64 << 10).await.unwrap_or_default();
+    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    #[derive(Deserialize)]
+    struct Body {
+        #[serde(rename = "user_code")]
+        user_code: String,
+    }
+    let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
+        Ok(b) => b,
+        Err(r) => return r,
+    };
+    let code = body.user_code.trim().to_uppercase();
+    let Some(g) = s.store.find_device_by_user_code(&code) else {
+        return write_err(StatusCode::BAD_REQUEST, "invalid or expired code");
+    };
+    if g.status != "pending" || g.expires_at < Utc::now() {
+        return write_err(StatusCode::BAD_REQUEST, "invalid or expired code");
+    }
+    // Reverse flow grants are pre-bound to a user; forward-flow grants (user_id==None) are rejected here.
+    let Some(user_id) = g.user_id.clone() else {
+        return write_err(StatusCode::BAD_REQUEST, "invalid or expired code");
+    };
+    let Some(user) = s.store.find_user_by_id(&user_id) else {
+        return write_err(StatusCode::BAD_REQUEST, "invalid or expired code");
+    };
+    let token = ApiToken {
+        token: password::random_hex(24),
+        user_id: user.id.clone(),
+        label: Some("device".to_string()),
+        created_at: Utc::now(),
+        expires_at: Utc::now() + Duration::days(TOKEN_TTL_DAYS),
+    };
+    if s.store.create_token(&token).is_err() {
+        return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
+    }
+    let now = Utc::now();
+    let token_str = token.token.clone();
+    let _ = s.store.update_device(&g.device_code, |d| {
+        d.status = "approved".to_string();
+        d.token = Some(token_str.clone());
+        d.approved_at = Some(now);
+    });
+    json_response(
+        StatusCode::OK,
+        json!({
+            "status": "approved",
+            "access_token": token.token,
+            "user": to_public(&user),
+        }),
+    )
 }
 
 // --- api tokens (account page) ---

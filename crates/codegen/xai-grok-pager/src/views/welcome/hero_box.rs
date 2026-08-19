@@ -57,7 +57,8 @@ pub(super) fn min_content_height(
     tip_height: u16,
     info_height: u16,
 ) -> u16 {
-    let inner = super::logo::full_logo_line_count().max(right_col_height(menu_height, info_height));
+    // Central Grok braille logo removed — hero inner height driven solely by right column.
+    let inner = right_col_height(menu_height, info_height);
     let hero_box_height = 2 + V_PAD * 2 + inner;
     let gap_after_error = if error_height > 0 { 1u16 } else { 0 };
     gap_after_error + error_height + hero_box_height + 1 + WelcomeLayout::fixed_below(tip_height)
@@ -82,13 +83,9 @@ pub(super) fn clamp_info_height(
 
 /// Width (cols) of the hero box's left (logo) column, including padding.
 /// Collapses to a small inset when the logo is hidden.
+/// Grok central logo removed — left column always collapsed.
 fn left_col_width() -> u16 {
-    let logo_width = super::logo::full_logo_visual_width();
-    if logo_width == 0 {
-        H_INSET
-    } else {
-        logo_width + LOGO_H_PAD.saturating_sub(1) + LOGO_H_PAD
-    }
+    H_INSET
 }
 
 /// Compute the hero box layout: bordered box with logo left, version + menu right.
@@ -129,18 +126,18 @@ pub(super) fn compute_hero_box(
         None => changelog_height,
     };
 
-    let logo_rows = super::logo::full_logo_line_count();
+    let logo_rows = 0u16;
     let info_gap = if info_height > 0 { 1u16 } else { 0 };
-    let inner_height = logo_rows.max(right_col_height(menu_height, info_height));
+    let inner_height = right_col_height(menu_height, info_height);
     let hero_box_height = 2 + V_PAD * 2 + inner_height;
 
     let gap_after_error = if error_height > 0 { 1 } else { 0 };
     let fixed_above = gap_after_error + error_height;
 
     // Top padding for vertical centering (use the default menu height so the
-    // logo position stays constant regardless of picker/focus state).
+    // position stays constant regardless of picker/focus state).
     let default_menu_height = 4u16;
-    let default_inner = logo_rows.max(right_col_height(default_menu_height, info_height));
+    let default_inner = right_col_height(default_menu_height, info_height);
     let default_hero = 2 + V_PAD * 2 + default_inner;
     let remaining = content_area.height.saturating_sub(fixed_above);
     let top_pad = remaining
@@ -323,7 +320,8 @@ pub(super) fn render_hero_box(
         .border_style(Style::default().fg(border_color));
     border_block.render(layout.hero_box, buf);
 
-    super::logo::render_full_logo(layout.hero_logo, buf, theme);
+    // Central Grok logo removed — hero left column collapsed; version badge is the only header.
+    let _ = layout.hero_logo;
 
     super::render_version_badge(
         layout.hero_version,

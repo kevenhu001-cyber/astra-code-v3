@@ -284,6 +284,110 @@ fn account_update_display_name() {
 }
 
 #[test]
+fn reverse_device_flow_end_to_end() {
+    // Authenticated browser user generates a code; the anonymous CLI
+    // consumes it and receives a bearer bound to that user — no manual
+    // approve step in between.
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "rev@b.co", "password123");
+
+    let browser = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap();
+    let login = browser
+        .post(format!("{base}/api/auth/login"))
+        .json(&serde_json::json!({"email": "rev@b.co", "password": "password123"}))
+        .send()
+        .unwrap();
+    assert_eq!(login.status(), StatusCode::OK);
+
+    // Browser asks for a one-time code (the reverse endpoint).
+    let gen = browser
+        .post(format!("{base}/api/auth/device/generate"))
+        .header("Origin", base.clone())
+        .send()
+        .unwrap();
+    assert_eq!(gen.status(), StatusCode::OK);
+    let gen_body: serde_json::Value = gen.json().unwrap();
+    let user_code = gen_body["user_code"].as_str().unwrap().to_string();
+    let device_code = gen_body["device_code"].as_str().unwrap().to_string();
+    assert_eq!(user_code.len(), 9, "K7Q2-XM9D shape");
+    assert!(user_code.contains('-'));
+
+    // The grant is pre-bound to the user (no manual approve).
+    let grant = store.find_device_by_code(&device_code).expect("grant stored");
+    assert_eq!(grant.user_id.as_deref(), Some("u1"));
+    assert_eq!(grant.status, "pending");
+
+    // CLI consumes the code (no cookie, no auth header). Mixed-case input
+    // is normalised server-side, so a lowercase paste still works.
+    let cli = reqwest::blocking::Client::new();
+    let consume = cli
+        .post(format!("{base}/api/auth/device/consume"))
+        .json(&serde_json::json!({"user_code": user_code.to_lowercase()}))
+        .send()
+        .unwrap();
+    assert_eq!(consume.status(), StatusCode::OK);
+    let body: serde_json::Value = consume.json().unwrap();
+    assert_eq!(body["status"], "approved");
+    let token = body["access_token"].as_str().unwrap().to_string();
+    assert_eq!(body["user"]["id"], "u1");
+
+    // The minted token authenticates /me.
+    let me = cli
+        .get(format!("{base}/api/auth/me"))
+        .bearer_auth(&token)
+        .send()
+        .unwrap();
+    assert_eq!(me.status(), StatusCode::OK);
+    assert!(me.text().unwrap().contains("rev@b.co"));
+
+    // The same code cannot be redeemed twice.
+    let second = cli
+        .post(format!("{base}/api/auth/device/consume"))
+        .json(&serde_json::json!({"user_code": user_code}))
+        .send()
+        .unwrap();
+    assert_eq!(second.status(), StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn reverse_device_consume_rejects_unbound_grant() {
+    // A grant created via the forward `/api/auth/device` endpoint has no
+    // bound user; the reverse consume endpoint must refuse it (otherwise an
+    // attacker could race the forward flow and hijack the approval).
+    let (base, _store) = test_server();
+
+    // Forward flow: anonymous grant, never approved.
+    let (_, out) = post_json(
+        &format!("{base}/api/auth/device"),
+        serde_json::json!({}),
+    );
+    let user_code = out["user_code"].as_str().unwrap().to_string();
+
+    let cli = reqwest::blocking::Client::new();
+    let r = cli
+        .post(format!("{base}/api/auth/device/consume"))
+        .json(&serde_json::json!({"user_code": user_code}))
+        .send()
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn device_generate_requires_login() {
+    let (base, _store) = test_server();
+
+    // Anonymous: must be rejected by the auth gate before any code is minted.
+    let r = reqwest::blocking::Client::new()
+        .post(format!("{base}/api/auth/device/generate"))
+        .send()
+        .unwrap();
+    assert_eq!(r.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[test]
 fn tokens_crud() {
     let (base, store) = test_server();
     seed_user(&store, "u1", "t@b.co", "password123");

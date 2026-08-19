@@ -15,7 +15,7 @@
 
   <header class="site-header">
     <div class="shell-wide header-inner">
-      <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+      <a class="brand" href="/"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
       <nav class="nav" aria-label="Primary">
         <a href="/">Home</a>
         <a href="/login">Sign in</a>
@@ -68,7 +68,8 @@
             <div class="code-chip" id="codeChip">&middot;&middot;&middot;&middot;&middot;&middot;</div>
           </div>
           <button class="btn btn-primary btn-block" id="approveBtn" type="button">Approve login</button>
-          <p class="hint" style="text-align:center;margin-top:10px">The CLI will receive a bearer token tied to your account. You can revoke it from <a href="/account" style="color:var(--text-70)">your account</a>.</p>
+          <button class="btn btn-primary btn-block" id="genBtn" type="button" hidden>Generate code for terminal</button>
+          <p class="hint" id="hintText" style="text-align:center;margin-top:10px">The CLI will receive a bearer token tied to your account. You can revoke it from <a href="/account" style="color:var(--text-70)">your account</a>.</p>
         </div>
       </div>
     </div>
@@ -78,7 +79,7 @@
     <div class="shell-wide">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a class="brand" href="/"><span class="brand-mark">A</span><span>Astra</span></a>
+          <a class="brand" href="/"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
           <p>An uncertainty-driven engineering runtime for the terminal.</p>
         </div>
         <div class="footer-col">
@@ -105,7 +106,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=3"></script>
+  <script src="/assets/auth.js?v=4"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -117,13 +118,33 @@
       var loginForm = document.getElementById('loginForm');
       var sessionBox = document.getElementById('sessionBox');
 
+      var approveBtn = document.getElementById('approveBtn');
+      var genBtn = document.getElementById('genBtn');
+      var hintText = document.getElementById('hintText');
       if (code) {
         chip.textContent = code;
+        codeNote.textContent = 'Confirm this code matches your terminal:';
+        approveBtn.hidden = false; genBtn.hidden = true;
       } else {
+        // Reverse flow: no ?code — user generates a code here to paste into `astra login`.
         chip.hidden = true;
-        codeInput.hidden = false;
-        codeNote.textContent = 'Enter the code shown in your terminal:';
-        codeInput.focus();
+        codeInput.hidden = true;
+        codeNote.textContent = 'Generate a one-time code to paste into your terminal:';
+        hintText.innerHTML = 'Run <code>astra login</code> and paste the code when prompted. Valid for 10 minutes.';
+        approveBtn.hidden = true; genBtn.hidden = false;
+        genBtn.addEventListener('click', async function(){
+          A.setErr(''); A.setOk('');
+          try {
+            var d = await A.api('/device/generate', { method: 'POST', body: {} });
+            chip.hidden = false; chip.textContent = d.user_code; codeNote.textContent = 'Paste this code in your terminal:';
+            genBtn.textContent = 'Generated — copy and paste in terminal'; genBtn.disabled = true;
+            A.setOk('Code ' + d.user_code + ' ready. Paste it in astra login.');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(d.user_code).catch(function(){});
+          } catch (err) {
+            if (err.status === 401) A.setErr('Please sign in first.');
+            else A.setErr(err.message);
+          }
+        });
       }
 
       function showSignedIn(user) {

@@ -169,9 +169,9 @@ pub fn logo_visual_width(window_height: u16) -> u16 {
 }
 
 pub fn render_logo(area: Rect, buf: &mut Buffer, theme: &Theme, window_height: u16) {
-    if let Some(logo) = pick_logo(window_height) {
-        render_into(area, buf, theme, logo);
-    }
+    // Central braille Grok removed per design — top ASTRA pixel wordmark is the sole brand.
+    // Keep pick_logo helpers for tests/hero metrics but never paint here.
+    let _ = (area, buf, theme, window_height);
 }
 
 /// The hero box always shows the full logo: it is laid out beside the menu, so
@@ -195,9 +195,8 @@ fn full_logo_visual_width_for(hidden: bool) -> u16 {
 }
 
 pub fn render_full_logo(area: Rect, buf: &mut Buffer, theme: &Theme) {
-    if !logo_hidden() {
-        render_into(area, buf, theme, LOGO);
-    }
+    // Grok hero logo removed — collapsed left column, no braille paint.
+    let _ = (area, buf, theme);
 }
 
 /// Line count of the small logo used in minimal's committed welcome card
