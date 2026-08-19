@@ -50,6 +50,22 @@ trap "rm -rf \"\$tmpdir\"" EXIT HUP INT TERM
 
 echo "Downloading $asset ..."
 curl -fsSL "$BASE_URL/$asset" -o "$tmpdir/$asset"
+curl -fsSL "$BASE_URL/$asset.sha256" -o "$tmpdir/$asset.sha256"
+
+# Verify the download against the published SHA-256 checksum.
+if command -v sha256sum >/dev/null 2>&1; then
+  (cd "$tmpdir" && sha256sum -c "$asset.sha256") || {
+    echo "error: checksum verification failed for $asset" >&2
+    exit 1
+  }
+elif command -v shasum >/dev/null 2>&1; then
+  (cd "$tmpdir" && shasum -a 256 -c "$asset.sha256") || {
+    echo "error: checksum verification failed for $asset" >&2
+    exit 1
+  }
+else
+  echo "warning: no sha256 tool found; skipping checksum verification" >&2
+fi
 
 tar -xzf "$tmpdir/$asset" -C "$tmpdir"
 mkdir -p "$INSTALL_DIR"
