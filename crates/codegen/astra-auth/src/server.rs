@@ -435,7 +435,11 @@ struct VerifyQuery {
     token: String,
 }
 
-async fn handlers_verify(State(s): State<Server>, Query(q): Query<VerifyQuery>) -> Response {
+async fn handlers_verify(
+    State(s): State<Server>,
+    Query(q): Query<VerifyQuery>,
+    headers: HeaderMap,
+) -> Response {
     let token = &q.token;
     let p = match s.store.find_pending_by_token(token) {
         Some(p) => p,
@@ -477,11 +481,10 @@ async fn handlers_verify(State(s): State<Server>, Query(q): Query<VerifyQuery>) 
         Ok(v) => v,
         Err(r) => return r,
     };
-    let wants_html = req
-        .headers()
+    let wants_html = headers
         .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .map(|a| a.contains("text/html"))
+        .and_then(|v: &HeaderValue| v.to_str().ok())
+        .map(|a: &str| a.contains("text/html"))
         .unwrap_or(false);
     if wants_html {
         let html = format!(
