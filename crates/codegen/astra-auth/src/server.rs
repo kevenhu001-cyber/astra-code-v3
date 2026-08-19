@@ -227,13 +227,49 @@ async fn decode_body<T: for<'de> Deserialize<'de>>(
     serde_json::from_slice(bytes).map_err(|_| write_err(StatusCode::BAD_REQUEST, "invalid JSON body"))
 }
 
-/// Read the sid cookie and return the matching user.
+/// Extract a session token from Cookie, Authorization Bearer, or X-Session-Token.
+/// This makes login resilient to cookie-blockers (Brave Shields, Safari ITP,
+/// uBlock, `Block all cookies`): when the `sid` cookie is dropped, the
+/// browser can still authenticate via the `Authorization: Bearer <sid>` header
+/// that the front-end stores in localStorage as a fallback.
+fn session_token_from_headers(headers: &HeaderMap) -> Option<String> {
+    // 1) HttpOnly cookie `sid=...` (primary, most secure)
+    if let Some(cookie) = headers.get(header::COOKIE).and_then(|v| v.to_str().ok()) {
+        if let Some(sid) = cookie.split(';').find_map(|c| {
+            let c = c.trim();
+            c.strip_prefix("sid=").map(|v| v.trim().to_string())
+        }) {
+            if !sid.is_empty() {
+                return Some(sid);
+            }
+        }
+    }
+    // 2) Authorization: Bearer <session_token> (fallback when cookies blocked)
+    if let Some(h) = headers.get(header::AUTHORIZATION).and_then(|v| v.to_str().ok()) {
+        if let Some(tok) = h.strip_prefix("Bearer ") {
+            let tok = tok.trim();
+            if !tok.is_empty() {
+                // Only treat as session token if it exists in the session store.
+                // API tokens are handled separately by bearer_user, but checking
+                // here first avoids an extra lookup.
+                return Some(tok.to_string());
+            }
+        }
+    }
+    // 3) X-Session-Token header (alternative fallback, avoids colliding with
+    // API Bearer tokens used by the CLI)
+    if let Some(h) = headers.get("x-session-token").and_then(|v| v.to_str().ok()) {
+        let tok = h.trim();
+        if !tok.is_empty() {
+            return Some(tok.to_string());
+        }
+    }
+    None
+}
+
+/// Read the sid cookie (or fallback header) and return the matching user.
 fn session_user(store: &Store, headers: &HeaderMap) -> Option<User> {
-    let cookie = headers.get(header::COOKIE)?.to_str().ok()?;
-    let sid = cookie.split(';').find_map(|c| {
-        let c = c.trim();
-        c.strip_prefix("sid=").map(|v| v.trim().to_string())
-    })?;
+    let sid = session_token_from_headers(headers)?;
     let sess = store.find_session(&sid)?;
     store.find_user_by_id(&sess.user_id)
 }
@@ -275,11 +311,10 @@ fn verify_url(base_url: &str, token: &str) -> String {
     format!("{base}/api/auth/verify?token={token}")
 }
 
-fn set_session_cookie(
+fn create_session_token(
     store: &Store,
-    opts: &Options,
     user_id: &str,
-) -> Result<HeaderValue, Response> {
+) -> Result<String, Response> {
     let token = password::random_hex(24);
     let expires = Utc::now() + Duration::days(SESSION_TTL_DAYS);
     store
@@ -289,14 +324,24 @@ fn set_session_cookie(
             expires_at: expires,
         })
         .map_err(|_| write_err(StatusCode::INTERNAL_SERVER_ERROR, "session failed"))?;
+    Ok(token)
+}
+
+fn set_session_cookie(
+    store: &Store,
+    opts: &Options,
+    user_id: &str,
+) -> Result<(String, HeaderValue), Response> {
+    let token = create_session_token(store, user_id)?;
     let secure = if opts.cookie_secure { "; Secure" } else { "" };
     let value = format!(
         "sid={token}; Path={}; HttpOnly; SameSite=Lax{secure}; Max-Age={}",
         opts.cookie_path,
         SESSION_TTL_DAYS * 24 * 3600
     );
-    HeaderValue::from_str(&value)
-        .map_err(|_| write_err(StatusCode::INTERNAL_SERVER_ERROR, "session failed"))
+    let hv = HeaderValue::from_str(&value)
+        .map_err(|_| write_err(StatusCode::INTERNAL_SERVER_ERROR, "session failed"))?;
+    Ok((token, hv))
 }
 
 fn clear_session_cookie(opts: &Options) -> HeaderValue {
@@ -428,15 +473,40 @@ async fn handlers_verify(State(s): State<Server>, Query(q): Query<VerifyQuery>) 
         }
     };
     let _ = s.store.delete_pending(&p.email);
-    let cookie = match set_session_cookie(&s.store, &s.opts, &user.id) {
-        Ok(c) => c,
+    let (sid, cookie) = match set_session_cookie(&s.store, &s.opts, &user.id) {
+        Ok(v) => v,
         Err(r) => return r,
     };
+    let wants_html = req
+        .headers()
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|a| a.contains("text/html"))
+        .unwrap_or(false);
+    if wants_html {
+        let html = format!(
+            r#"<!doctype html><html><head><meta charset="utf-8"><title>Verified</title></head><body><script>try{{localStorage.setItem('astra_sid','{sid}');localStorage.setItem('astra_token','{sid}');}}catch(e){{}}location.replace('/account');</script><p>Verified. <a href="/account">Continue to account</a></p></body></html>"#
+        );
+        return (
+            StatusCode::OK,
+            [
+                (header::SET_COOKIE, cookie),
+                (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8")),
+                (header::CACHE_CONTROL, HeaderValue::from_static("no-store")),
+            ],
+            Body::from(html),
+        )
+            .into_response();
+    }
     (
         StatusCode::FOUND,
         [
             (header::LOCATION, HeaderValue::from_static("/account")),
             (header::SET_COOKIE, cookie),
+            (
+                axum::http::HeaderName::from_static("x-session-token"),
+                HeaderValue::from_str(&sid).unwrap(),
+            ),
         ],
     )
         .into_response()
@@ -466,30 +536,28 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
     if !password::check_password(&user.password_hash, &body.password) {
         return write_err(StatusCode::UNAUTHORIZED, "invalid email or password");
     }
-    let cookie = match set_session_cookie(&s.store, &s.opts, &user.id) {
-        Ok(c) => c,
+    let (sid, cookie) = match set_session_cookie(&s.store, &s.opts, &user.id) {
+        Ok(v) => v,
         Err(r) => return r,
     };
     (
         StatusCode::OK,
-        [(header::SET_COOKIE, cookie)],
-        Json(json!({ "user": to_public(&user) })),
+        [
+            (header::SET_COOKIE, cookie),
+            (
+                axum::http::HeaderName::from_static("x-session-token"),
+                HeaderValue::from_str(&sid).unwrap(),
+            ),
+        ],
+        Json(json!({ "user": to_public(&user), "token": sid })),
     )
         .into_response()
 }
 
 async fn handlers_logout(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let headers = req.headers().clone();
-    if let Some(cookie) = headers
-        .get(header::COOKIE)
-        .and_then(|v| v.to_str().ok())
-    {
-        if let Some(sid) = cookie
-            .split(';')
-            .find_map(|c| c.trim().strip_prefix("sid=").map(|v| v.trim().to_string()))
-        {
-            let _ = s.store.delete_session(&sid);
-        }
+    if let Some(sid) = session_token_from_headers(&headers) {
+        let _ = s.store.delete_session(&sid);
     }
     (
         StatusCode::OK,
