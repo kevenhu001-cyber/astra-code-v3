@@ -1,5 +1,5 @@
-//! Astra logo — a 5-letter pixel-block "ASTRA" rendered with Unicode block
-//! characters in the user-requested orange palette.
+//! Astra logo — a 5-letter pixel-block "ASTRA" rendered with braille-dot
+//! pixel characters in the user-requested orange palette.
 //!
 //! Used by the welcome screen's top bar. Each letter is 5 columns wide and 5
 //! rows tall, separated by single-column gaps, for a total of 5×5 + 4×1 = 29
@@ -24,9 +24,10 @@ const ORANGE: Color = Color::Rgb(0xFF, 0x6A, 0x00);
 /// highlights / secondary accents.
 const ORANGE_DIM: Color = Color::Rgb(0xCC, 0x55, 0x00);
 
-/// Block character used to draw the pixel letters. `█` is full block (lit);
-/// the `S`/`D` glyph markers select primary vs dim orange at render time.
-const LIT: &str = "█";
+/// Braille-dot pixel character used to draw the pixel letters. `⠿` is a
+/// braille full-dot pattern (lit); the `S`/`D` glyph markers select primary
+/// vs dim orange at render time.
+const LIT: &str = "⠿";
 
 /// Total visual width of the ASTRA wordmark (5 letters × 5 cols + 4 gaps).
 const TOTAL_COLS: usize = 29;

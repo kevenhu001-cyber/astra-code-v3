@@ -130,10 +130,12 @@ pub const ASTRA_OAUTH2_ISSUER: &str = "https://astracode.topodrive.top";
 pub const ASTRA_OAUTH2_LOCAL_ISSUER: &str = "http://localhost:8080";
 /// Legacy alias — retained for `auth.json` migration / downstream imports; now points to Astra.
 pub const XAI_OAUTH2_ISSUER: &str = ASTRA_OAUTH2_ISSUER;
-/// Production accounts-app origin allowlist. Its own const so the frozen
-/// contract test pins the production allowlist even when the non-production
-/// feature adds staging/local origins.
-const PROD_ACCOUNTS_APP_ORIGINS: &[&str] = &["https://accounts.x.ai"];
+/// Production accounts-app origin allowlist for the legacy OIDC loopback
+/// callback CORS layer. Points at the independent Astra auth origin (the
+/// project no longer depends on `accounts.x.ai`). Its own const so the
+/// frozen contract test pins the production allowlist even when the
+/// non-production feature adds staging/local origins.
+const PROD_ACCOUNTS_APP_ORIGINS: &[&str] = &["https://astracode.topodrive.top"];
 /// Production build: accepts only the production accounts app.
 pub(crate) fn allowed_accounts_app_origins() -> Vec<String> {
     PROD_ACCOUNTS_APP_ORIGINS
@@ -189,8 +191,10 @@ pub fn is_astra_oauth2_issuer(issuer: &str) -> bool {
 pub fn is_xai_oauth2_issuer(issuer: &str) -> bool {
     is_astra_oauth2_issuer(issuer)
 }
-/// auth.json scope key used by the pre-OIDC `grok login --legacy` flow.
-/// Matches the key format produced by the original `accounts.x.ai` relay auth.
+/// auth.json scope key used by historical x.ai / `grok login --legacy` flows.
+/// Retained so the manager can scrub stale entries from `auth.json` on every
+/// load — users migrating from the old `accounts.x.ai` relay auth still need
+/// these removed from their on-disk credentials. Never used as a URL or issuer.
 pub(crate) const LEGACY_AUTH_SCOPE: &str = "https://accounts.x.ai/sign-in";
 impl GrokComConfig {
     /// Whether `xai.api_key` auth is disabled. Pinning a team

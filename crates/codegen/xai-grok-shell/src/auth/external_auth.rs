@@ -128,12 +128,12 @@ mod tests {
             stderr: vec![],
         };
 
-        // x.ai issuer claim → first-party session (relay-eligible).
+        // Astra issuer claim → first-party session (relay-eligible).
         let auth = parse_output(&ok(
-            r#"{"access_token":"t","expires_in":900,"issuer":"https://auth.x.ai"}"#,
+            r#"{"access_token":"t","expires_in":900,"issuer":"https://astracode.topodrive.top"}"#,
         ))
         .unwrap();
-        assert_eq!(auth.oidc_issuer.as_deref(), Some("https://auth.x.ai"));
+        assert_eq!(auth.oidc_issuer.as_deref(), Some("https://astracode.topodrive.top"));
         assert!(auth.is_xai_auth());
 
         // Non-x.ai issuer is stored but stays third-party.

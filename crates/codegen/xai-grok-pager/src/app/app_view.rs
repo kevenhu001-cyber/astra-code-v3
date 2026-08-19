@@ -424,6 +424,8 @@ pub enum AuthMode {
     Loopback,
     /// RFC 8628 device flow: device code + copyable URL, no paste box.
     Device,
+    /// Reverse device flow: user generates code at the web UI, pastes at CLI.
+    ReverseDevice,
 }
 /// Folder-trust state for the welcome screen.
 ///

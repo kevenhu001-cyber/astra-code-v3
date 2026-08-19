@@ -173,6 +173,9 @@ pub enum AuthUrlMode {
     Command,
     /// RFC 8628 device flow — TUI shows the device code + copyable URL, no paste box.
     Device,
+    /// Reverse device flow — TUI shows the authorize URL and a paste box for
+    /// the user to enter a code they generated at `{issuer}/authorize`.
+    ReverseDevice,
 }
 
 impl AuthUrlMode {
@@ -182,6 +185,7 @@ impl AuthUrlMode {
             Self::Loopback => "loopback",
             Self::Command => "command",
             Self::Device => "device",
+            Self::ReverseDevice => "reverse_device",
         }
     }
 
@@ -697,29 +701,25 @@ async fn run_auth_flow_steps(
 
     if let Some(ref oauth2_cfg) = grok_com_config.oauth2 {
         if should_use_device_flow(login_override).await {
-            // On `NotEnabled` (no device endpoint) `channels` is untouched,
-            // so we can fall back to loopback below.
-            match crate::auth::device_code::run_device_code_login_channels(
-                &oauth2_cfg.issuer,
-                &oauth2_cfg.client_id,
-                &oauth2_cfg.scopes,
-                auth_manager,
-                &mut channels,
-            )
-            .await
-            {
-                Err(e)
-                    if matches!(
-                        e.downcast_ref::<crate::auth::device_code::DeviceCodeError>(),
-                        Some(crate::auth::device_code::DeviceCodeError::NotEnabled)
-                    ) =>
-                {
-                    tracing::warn!(
-                        "auth: device flow unavailable (404), falling back to loopback login"
-                    );
+            // Reverse device flow (replaces the RFC 8628 forward flow that
+            // required `accounts.x.ai`'s `/oauth2/device/code` endpoint).
+            return match channels.take() {
+                Some(channels) => {
+                    crate::auth::device_code::run_reverse_device_login_channels(
+                        &oauth2_cfg.issuer,
+                        auth_manager,
+                        channels,
+                    )
+                    .await
                 }
-                other => return other,
-            }
+                None => {
+                    crate::auth::device_code::run_reverse_device_login_cli(
+                        &oauth2_cfg.issuer,
+                        auth_manager,
+                    )
+                    .await
+                }
+            };
         }
         return crate::auth::oidc::run_login_flow_with_config(
             &oauth2_cfg.as_oidc(),

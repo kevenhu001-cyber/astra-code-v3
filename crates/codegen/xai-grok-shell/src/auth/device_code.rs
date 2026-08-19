@@ -526,6 +526,183 @@ fn validate_verification_uri(uri: &str) -> anyhow::Result<()> {
     }
 }
 
+// --- Reverse device flow ---
+//
+// Inverse of the RFC 8628 forward flow above: the user generates a one-time
+// code on another device (browser at `{issuer}/authorize`) and pastes the
+// code at the CLI. The server's `/api/auth/device/consume` returns a bearer
+// token immediately on success — no polling needed. This is the primary
+// interactive login path now that the project no longer relies on
+// `accounts.x.ai` / `auth.x.ai` OIDC discovery.
+
+#[derive(Deserialize)]
+struct DeviceConsumeUser {
+    id: String,
+    #[serde(default)]
+    email: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct DeviceConsumeResponse {
+    #[allow(dead_code)]
+    status: String,
+    access_token: String,
+    user: DeviceConsumeUser,
+}
+
+const USER_CODE_FORMAT_DESC: &str = "expected XXXX-XXXX (4 alphanumeric, dash, 4 alphanumeric)";
+
+fn is_valid_user_code_format(code: &str) -> bool {
+    let bytes = code.as_bytes();
+    bytes.len() == 9
+        && bytes[4] == b'-'
+        && bytes[..4].iter().all(u8::is_ascii_alphanumeric)
+        && bytes[5..].iter().all(u8::is_ascii_alphanumeric)
+}
+
+pub(crate) async fn consume_reverse_device_code(
+    issuer: &str,
+    user_code: &str,
+    auth_manager: &Arc<AuthManager>,
+) -> anyhow::Result<(GrokAuth, bool)> {
+    let url = format!("{}/api/auth/device/consume", issuer.trim_end_matches('/'));
+    let client = crate::http::shared_client();
+
+    let resp = client
+        .post(&url)
+        .header("x-grok-client-version", xai_grok_version::VERSION)
+        .form(&[("user_code", user_code)])
+        .timeout(std::time::Duration::from_secs(15))
+        .send()
+        .await?;
+
+    let status = resp.status();
+    let body = resp.text().await.unwrap_or_default();
+
+    if !status.is_success() {
+        anyhow::bail!("Device code rejected (HTTP {status}): {body}");
+    }
+
+    let parsed: DeviceConsumeResponse = serde_json::from_str(&body)
+        .map_err(|e| anyhow::anyhow!("Invalid response from server: {e}"))?;
+
+    if parsed.status != "approved" {
+        anyhow::bail!("Device code not approved (status: {})", parsed.status);
+    }
+
+    let auth = build_auth_from_reverse_device(
+        parsed.access_token,
+        parsed.user.id,
+        parsed.user.email,
+        issuer,
+        auth_manager,
+    )
+    .await?;
+
+    Ok((auth, true))
+}
+
+async fn build_auth_from_reverse_device(
+    access_token: String,
+    user_id: String,
+    email: Option<String>,
+    issuer: &str,
+    auth_manager: &Arc<AuthManager>,
+) -> anyhow::Result<GrokAuth> {
+    let now = Utc::now();
+    let mut auth = GrokAuth {
+        key: access_token,
+        auth_mode: AuthMode::Oidc,
+        create_time: now,
+        user_id,
+        email,
+        first_name: None,
+        last_name: None,
+        profile_image_asset_id: None,
+        principal_type: None,
+        principal_id: None,
+        organization_id: None,
+        organization_name: None,
+        organization_role: None,
+        team_id: None,
+        team_name: None,
+        team_role: None,
+        user_blocked_reason: None,
+        team_blocked_reasons: vec![],
+        coding_data_retention_opt_out: crate::auth::default_coding_data_retention_opt_out(),
+        has_grok_code_access: None,
+        refresh_token: None,
+        expires_at: Some(now + Duration::days(30)),
+        oidc_issuer: Some(issuer.to_owned()),
+        oidc_client_id: None,
+    };
+
+    auth_manager.enrich_auth_inline(&mut auth).await;
+
+    auth_manager
+        .update(auth)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to save credentials: {e}"))
+}
+
+pub(crate) async fn run_reverse_device_login_channels(
+    issuer: &str,
+    auth_manager: &Arc<AuthManager>,
+    mut channels: AuthChannels,
+) -> anyhow::Result<(GrokAuth, bool)> {
+    let url = format!("{}/authorize", issuer.trim_end_matches('/'));
+
+    if let Some(tx) = channels.url_tx.take() {
+        let _ = tx.send(AuthUrlInfo {
+            url: url.clone(),
+            mode: AuthUrlMode::ReverseDevice,
+        });
+    }
+
+    let Some(user_code) = channels.code_rx.recv().await else {
+        anyhow::bail!("Device code entry cancelled");
+    };
+
+    let normalized = user_code.trim().to_uppercase();
+    if !is_valid_user_code_format(&normalized) {
+        anyhow::bail!("Invalid device code format ({USER_CODE_FORMAT_DESC})");
+    }
+
+    consume_reverse_device_code(issuer, &normalized, auth_manager).await
+}
+
+pub(crate) async fn run_reverse_device_login_cli(
+    issuer: &str,
+    auth_manager: &Arc<AuthManager>,
+) -> anyhow::Result<(GrokAuth, bool)> {
+    use std::io::{BufRead, Write};
+
+    let url = format!("{}/authorize", issuer.trim_end_matches('/'));
+    eprintln!();
+    eprintln!("Open this URL in your browser, sign in, and generate a device code:");
+    eprintln!();
+    eprintln!("  {url}");
+    eprintln!();
+    eprint!("Paste the code here: ");
+    let _ = std::io::stderr().flush();
+    let _ = std::io::stdout().flush();
+
+    let stdin = std::io::stdin();
+    let line = stdin
+        .lock()
+        .lines()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("No input"))?
+        .map_err(|e| anyhow::anyhow!("Failed to read input: {e}"))?;
+
+    let normalized = line.trim().to_uppercase();
+    if !is_valid_user_code_format(&normalized) {
+        anyhow::bail!("Invalid device code format ({USER_CODE_FORMAT_DESC})");
+    }
+
+    consume_reverse_device_code(issuer, &normalized, auth_manager).await
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use std::sync::Arc;

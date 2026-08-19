@@ -1631,6 +1631,97 @@ fn render_welcome_authenticating(
 
             (None, None)
         }
+
+        AuthMode::ReverseDevice => {
+            // User pastes a code from the web UI: show URL + paste box,
+            // same layout as Loopback but with reverse-device copy.
+            let h_pad: u16 = content_area.width / 6;
+            let inner_width = content_area.width.saturating_sub(h_pad * 2).max(1);
+
+            if show_raw_url {
+                return render_raw_url_mode(
+                    content_area,
+                    buf,
+                    theme,
+                    top_pad,
+                    logo_line_count,
+                    auth_url,
+                );
+            }
+
+            let header = "Open this URL, sign in, and paste the code below.";
+            let header_rows = (header.len() as u16).div_ceil(inner_width);
+            let copy_extra = if auth_url.is_some() {
+                auth_copy_block_rows(inner_width)
+            } else {
+                0
+            };
+            let msg_height = header_rows + copy_extra + 5;
+            let [_, logo_area, _, msg_area, _, prompt_area, _, hint_area, _] = Layout::vertical([
+                Constraint::Length(top_pad),
+                Constraint::Length(logo_line_count),
+                Constraint::Length(1),
+                Constraint::Length(msg_height),
+                Constraint::Min(1),
+                Constraint::Length(5),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Min(0),
+            ])
+            .areas(content_area);
+
+            render_logo(logo_area, buf, theme, content_area.height);
+
+            let mut lines: Vec<Line> = vec![Line::from(Span::styled(
+                header,
+                Style::default().fg(theme.gray_bright),
+            ))
+            .alignment(Alignment::Center)];
+            if auth_url.is_some() {
+                push_auth_copy_block(&mut lines, theme, clipboard_delivery);
+            }
+            Paragraph::new(lines)
+                .wrap(Wrap { trim: false })
+                .block(Block::default().padding(Padding::horizontal(h_pad)))
+                .render(msg_area, buf);
+
+            let (click_rect, fallback_rect) = if auth_url.is_some() {
+                auth_hit_rects(msg_area, h_pad, inner_width, header, 0)
+            } else {
+                (None, None)
+            };
+
+            let prompt_width = content_area.width;
+            let [_, prompt_centered, _] = Layout::horizontal([
+                Constraint::Min(0),
+                Constraint::Length(prompt_width),
+                Constraint::Min(0),
+            ])
+            .flex(Flex::Center)
+            .areas(prompt_area);
+            render_auth_input_box(
+                prompt_centered,
+                buf,
+                theme,
+                auth_code_input,
+                auth_code_cursor_byte,
+            );
+
+            let hint_spans = vec![
+                Span::styled(
+                    "enter",
+                    Style::default()
+                        .fg(theme.accent_user)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled("  submit    ", Style::default().fg(theme.gray)),
+            ];
+            hint_spans.extend(quit_hint_spans(theme));
+            let hints = Line::from(hint_spans).alignment(Alignment::Center);
+            Paragraph::new(hints).render(hint_area, buf);
+
+            (click_rect, fallback_rect)
+        }
     }
 }
 
@@ -2179,7 +2270,7 @@ fn render_welcome_done(
             let gate_link = p
                 .gate
                 .and_then(|g| g.url.as_deref())
-                .unwrap_or("https://grok.com/supergrok?referrer=grok-build");
+                .unwrap_or("https://astracode.topodrive.top/upgrade?referrer=astra-build");
             let url = Line::from(Span::styled(
                 gate_link,
                 Style::default()

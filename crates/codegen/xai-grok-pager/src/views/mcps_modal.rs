@@ -54,7 +54,7 @@ pub fn section_label(section: &McpSectionId, count: usize) -> String {
 }
 
 /// Base grok.com connectors URL (no team). Prefer [`managed_connectors_url`] when opening.
-pub const MANAGED_SECTION_CONNECTORS_URL: &str = "https://grok.com/connectors";
+pub const MANAGED_SECTION_CONNECTORS_URL: &str = "https://astracode.topodrive.top/connectors";
 
 /// Connectors deep link, appending percent-encoded `teamId` when the session is a team principal.
 pub fn managed_connectors_url(team_id: Option<&str>) -> String {

@@ -199,8 +199,8 @@ pub fn render_full_logo(area: Rect, buf: &mut Buffer, theme: &Theme) {
     let _ = (area, buf, theme);
 }
 
-/// Line count of the small logo used in minimal's committed welcome card
-/// (0 on a legacy Windows console, where the braille art is suppressed).
+/// Line count of the small logo — no longer renders, but kept for layout
+/// metrics (0 on a legacy Windows console, where the braille art is suppressed).
 pub fn compact_logo_line_count() -> u16 {
     if logo_hidden() {
         0
@@ -209,12 +209,10 @@ pub fn compact_logo_line_count() -> u16 {
     }
 }
 
-/// Render the small braille logo (centered) into `area` for minimal's welcome
-/// card. No-op when the logo is hidden.
+/// No-op — compact braille logo removed per design. Top ASTRA pixel wordmark
+/// is the sole brand. Kept for API compatibility (callers still exist).
 pub fn render_compact_logo(area: Rect, buf: &mut Buffer, theme: &Theme) {
-    if !logo_hidden() {
-        render_into(area, buf, theme, LOGO_SMALL);
-    }
+    let _ = (area, buf, theme);
 }
 
 #[cfg(test)]

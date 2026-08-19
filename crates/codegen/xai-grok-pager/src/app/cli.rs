@@ -29,7 +29,10 @@ pub enum Command {
         /// Use Astra OAuth via auth.x.ai.
         #[arg(long = "oauth", alias = "oidc", conflicts_with_all = ["device_auth"])]
         oauth: bool,
-        /// Use device-code authentication for headless/remote environments.
+        /// Use device-code authentication: open {issuer}/authorize in your
+        /// browser, sign in, generate a code, and paste it here. Works on
+        /// headless/remote machines where the loopback redirect cannot
+        /// reach the CLI.
         #[arg(
             long = "device-auth",
             visible_alias = "device-code",

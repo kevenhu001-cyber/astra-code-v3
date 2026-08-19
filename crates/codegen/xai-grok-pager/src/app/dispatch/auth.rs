@@ -457,6 +457,7 @@ pub(super) fn handle_auth_url_ready(
         // the background poll still completes).
         *current_mode = match mode.as_deref() {
             Some("device") => AuthMode::Device,
+            Some("reverse_device") => AuthMode::ReverseDevice,
             Some("command") => AuthMode::Command,
             Some("loopback") => AuthMode::Loopback,
             _ if external => AuthMode::Command,

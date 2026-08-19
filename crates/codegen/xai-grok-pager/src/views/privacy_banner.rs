@@ -16,8 +16,8 @@ const PRIVACY_BANNER_DESC: &str = "Off by default. Opt-in to allow Astra to reta
      data, e.g., prompts, traces, & metrics, for training and debugging purposes. Change \
      anytime via settings.";
 
-pub(crate) const PRIVACY_BANNER_TERMS_URL: &str = "https://x.ai/legal/terms-of-service";
-pub(crate) const PRIVACY_BANNER_POLICY_URL: &str = "https://x.ai/legal/privacy-policy";
+pub(crate) const PRIVACY_BANNER_TERMS_URL: &str = "https://astracode.topodrive.top/legal/terms-of-service";
+pub(crate) const PRIVACY_BANNER_POLICY_URL: &str = "https://astracode.topodrive.top/legal/privacy-policy";
 
 /// `(text, url_when_link)`.
 type LegalSegment = (&'static str, Option<&'static str>);
