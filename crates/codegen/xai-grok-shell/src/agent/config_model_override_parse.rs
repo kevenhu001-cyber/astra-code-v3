@@ -727,6 +727,7 @@ mod tests {
             compaction_at_tokens: Some(CompactionAtTokens::Fixed(100_000)),
             show_model_fingerprint: Some(true),
             stream_tool_calls: Some(false),
+            injects_think_tags_in_content: Some(true),
         }
     }
 

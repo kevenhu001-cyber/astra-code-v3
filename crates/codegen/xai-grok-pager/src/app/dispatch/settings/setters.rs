@@ -2001,6 +2001,13 @@ fn canonical_custom_model_provider(value: &str) -> &'static str {
         "openai" => "openai",
         "openai_responses" => "openai_responses",
         "anthropic" => "anthropic",
+        "xai" => "xai",
+        "deepseek" => "deepseek",
+        "zhipu" => "zhipu",
+        "xiaomi" => "xiaomi",
+        "minimax_cn" => "minimax_cn",
+        "zai" => "zai",
+        "custom" => "custom",
         _ => "openai",
     }
 }
@@ -2088,9 +2095,85 @@ pub(in crate::app::dispatch) fn set_custom_model_api_key(
     }]
 }
 
-// `web_search_model`, `session_summary_model`, and
-// `default_reasoning_effort` setters were removed alongside their
-// registry entries. Mirror fields and TOML schema stay for compat.
+/// Persist an explicit custom-model base URL (`base_url`). Empty clears the field.
+pub(in crate::app::dispatch) fn set_custom_model_base_url(
+    app: &mut AppView,
+    value: String,
+) -> Vec<Effect> {
+    refresh_open_settings_modals(app);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model_base_url",
+        value = %value,
+        "setting changed",
+    );
+    app.show_toast("\u{2713} Custom model endpoint updated (restart to apply)");
+    vec![Effect::PersistSetting {
+        key: "custom_model_base_url",
+        value: crate::settings::SettingValue::String(value.clone()),
+        rollback_value: crate::settings::SettingValue::String(value),
+    }]
+}
+
+/// Configure a custom model end-to-end via the `/connect` command. Persists
+/// the full `[model.astra-custom]` block: provider (api_backend + base_url),
+/// model id, display name, API key, and the think-tag injection flag. The
+/// `custom` preset carries no baked-in endpoint, so `base_url` must be set
+/// by the caller; the helper still writes it verbatim.
+pub(in crate::app::dispatch) fn connect_custom_model(
+    app: &mut AppView,
+    provider: String,
+    model_id: String,
+    display_name: String,
+    api_key: String,
+    base_url: String,
+    injects_think_tags: bool,
+) -> Vec<Effect> {
+    refresh_open_settings_modals(app);
+    let canonical = canonical_custom_model_provider(&provider);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model",
+        provider = canonical,
+        model_id = %model_id,
+        "connect custom model",
+    );
+    app.show_toast(format!(
+        "\u{2713} Connected {display_name} ({model_id}) — restart to apply"
+    ));
+    vec![
+        Effect::PersistSetting {
+            key: "custom_model_provider",
+            value: crate::settings::SettingValue::Enum(canonical),
+            rollback_value: crate::settings::SettingValue::Enum("openai"),
+        },
+        Effect::PersistSetting {
+            key: "custom_model_base_url",
+            value: crate::settings::SettingValue::String(base_url.clone()),
+            rollback_value: crate::settings::SettingValue::String(base_url),
+        },
+        Effect::PersistSetting {
+            key: "custom_model_id",
+            value: crate::settings::SettingValue::String(model_id.clone()),
+            rollback_value: crate::settings::SettingValue::String(model_id),
+        },
+        Effect::PersistSetting {
+            key: "custom_model_display_name",
+            value: crate::settings::SettingValue::String(display_name.clone()),
+            rollback_value: crate::settings::SettingValue::String(display_name),
+        },
+        Effect::PersistSetting {
+            key: "custom_model_api_key",
+            value: crate::settings::SettingValue::String(api_key.clone()),
+            rollback_value: crate::settings::SettingValue::String(api_key),
+        },
+        Effect::PersistSetting {
+            key: "custom_model_injects_think_tags",
+            value: crate::settings::SettingValue::Bool(injects_think_tags),
+            rollback_value: crate::settings::SettingValue::Bool(injects_think_tags),
+        },
+    ]
+}
 
 // ---------------------------------------------------------------------------
 // max_thoughts_width — Int-valued setting. Registry surface is `i64`;

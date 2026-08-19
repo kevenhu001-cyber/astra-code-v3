@@ -185,6 +185,7 @@ fn test_config(base_url: &str) -> SamplerConfig {
         force_http1: false,
         max_retries: None,
         stream_tool_calls: false,
+        injects_think_tags_in_content: false,
         idle_timeout_secs: None,
         client_identifier: None,
         reasoning_effort: None,

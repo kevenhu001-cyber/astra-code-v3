@@ -395,6 +395,13 @@ struct ClientDefaults {
     api_backend: ApiBackend,
     auth_scheme: AuthScheme,
     stream_tool_calls: bool,
+    /// When true, the Chat Completions L2 stream transformer scans
+    /// `delta.content` for `<think>…</think>` tags and routes the
+    /// inside-tag text to the reasoning channel. Mirrors
+    /// `SamplerConfig::injects_think_tags_in_content`. Default is
+    /// `false` so the splitter is a no-op passthrough on providers
+    /// that already expose a native `reasoning_content` delta.
+    injects_think_tags_in_content: bool,
     extra_response_includes: Vec<String>,
     doom_loop_recovery: Option<xai_grok_sampling_types::DoomLoopRecoveryPolicy>,
 }
@@ -704,6 +711,7 @@ impl SamplingClient {
             api_backend: config.api_backend,
             auth_scheme: config.auth_scheme,
             stream_tool_calls: config.stream_tool_calls,
+            injects_think_tags_in_content: config.injects_think_tags_in_content,
             extra_response_includes: config.extra_response_includes,
             doom_loop_recovery: config.doom_loop_recovery,
         };
@@ -725,6 +733,13 @@ impl SamplingClient {
     /// The configured API backend for this client.
     pub fn api_backend(&self) -> ApiBackend {
         self.defaults.api_backend.clone()
+    }
+
+    /// Whether the Chat Completions L2 transform scans `delta.content` for
+    /// `<think>…</think>` tags and routes the inside-tag text to the reasoning
+    /// channel. Mirrors [`SamplerConfig::injects_think_tags_in_content`].
+    pub fn injects_think_tags_in_content(&self) -> bool {
+        self.defaults.injects_think_tags_in_content
     }
 
     /// POST with default headers, returning the builder coupled to the tail
@@ -2094,8 +2109,13 @@ impl SamplingClient {
         let result = match self.api_backend() {
             ApiBackend::ChatCompletions => {
                 let (raw, meta) = self.conversation_stream(request).await?;
-                let events =
-                    crate::stream::stream_chat_completions(raw, meta, request_id, idle_timeout);
+                let events = crate::stream::stream_chat_completions(
+                    raw,
+                    meta,
+                    request_id,
+                    idle_timeout,
+                    self.injects_think_tags_in_content(),
+                );
                 crate::stream::collect_response(events).await
             }
             ApiBackend::Responses => {

@@ -399,24 +399,159 @@ pub async fn set_auto_update(value: bool) -> Result<()> {
     update_config(|cfg| cfg.cli.auto_update = Some(value)).await
 }
 
-/// Custom-model provider canonical → (`api_backend`, `base_url`).
-fn custom_model_provider_backend(provider: &str) -> Option<(&'static str, &'static str)> {
-    match provider {
-        "openai" => Some(("chat_completions", "https://api.openai.com/v1")),
-        "openai_responses" => Some(("responses", "https://api.openai.com/v1")),
-        "anthropic" => Some(("messages", "https://api.anthropic.com/v1")),
-        _ => None,
+/// A preset vendor the `/connect` command and the settings modal know about.
+///
+/// `api_backend` selects the protocol (`chat_completions` = OpenAI
+/// `/v1/chat/completions`, `responses` = OpenAI `/v1/responses`, `messages` =
+/// Anthropic `/v1/messages`). `base_url` is the preset's default endpoint.
+/// `injects_think_tags` flips the L2 stream transformer into
+/// `<think>…</think>` content-scanning mode for providers that embed
+/// reasoning in the content field instead of a native `reasoning_content`
+/// delta. The official endpoints of the preset vendors below all expose a
+/// native `reasoning_content` (or Anthropic `thinking`) field, so they default
+/// to `injects_think_tags = false`. The splitter is opt-in for endpoints that
+/// lack a native reasoning channel (some OpenAI-compatible proxies / Qwen-style
+/// or self-hosted setups that embed thinking as `<think>` tags).
+pub struct CustomModelProviderPreset {
+    /// Canonical preset id (stable, written to `config.toml`).
+    pub id: &'static str,
+    /// Human-readable label for dropdowns.
+    pub label: &'static str,
+    /// `api_backend` written to `[model.astra-custom]`.
+    pub api_backend: &'static str,
+    /// Default `base_url` written to `[model.astra-custom]`.
+    pub base_url: &'static str,
+    /// Whether the provider injects `<think>…</think>` tags into `content`.
+    pub injects_think_tags: bool,
+}
+
+/// Preset vendors advertised by `/connect` and the settings modal. The
+/// `custom` entry is special-cased by callers: it carries no baked-in
+/// endpoint and requires an explicit base URL from the user.
+pub const CUSTOM_MODEL_PROVIDER_PRESETS: &[CustomModelProviderPreset] = &[
+    CustomModelProviderPreset {
+        id: "openai",
+        label: "OpenAI (Chat Completions)",
+        api_backend: "chat_completions",
+        base_url: "https://api.openai.com/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "openai_responses",
+        label: "OpenAI (Responses)",
+        api_backend: "responses",
+        base_url: "https://api.openai.com/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "anthropic",
+        label: "Anthropic (Messages)",
+        api_backend: "messages",
+        base_url: "https://api.anthropic.com/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "xai",
+        label: "xAI (Grok)",
+        api_backend: "chat_completions",
+        base_url: "https://api.x.ai/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "deepseek",
+        label: "DeepSeek",
+        api_backend: "chat_completions",
+        base_url: "https://api.deepseek.com/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "zhipu",
+        label: "智谱 Zhipu AI",
+        api_backend: "chat_completions",
+        base_url: "https://open.bigmodel.cn/api/paas/v4",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "xiaomi",
+        label: "小米 Xiaomi (MiMo)",
+        api_backend: "chat_completions",
+        base_url: "https://api.xiaomimimo.com/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "minimax_cn",
+        label: "MiniMax CN",
+        api_backend: "chat_completions",
+        base_url: "https://api.minimaxi.com/v1",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "zai",
+        label: "zAI (Zhipu International)",
+        api_backend: "chat_completions",
+        base_url: "https://api.z.ai/api/paas/v4",
+        injects_think_tags: false,
+    },
+    CustomModelProviderPreset {
+        id: "custom",
+        label: "Other (custom URL)",
+        api_backend: "chat_completions",
+        base_url: "",
+        injects_think_tags: false,
+    },
+];
+
+/// Custom-model provider canonical → (`api_backend`, `base_url`,
+/// `injects_think_tags_in_content`). Returns `None` for unknown ids.
+pub fn custom_model_provider_backend(
+    provider: &str,
+) -> Option<(&'static str, &'static str, bool)> {
+    let preset = CUSTOM_MODEL_PROVIDER_PRESETS.iter().find(|p| p.id == provider)?;
+    // The `custom` preset has no baked-in endpoint; callers must supply one.
+    if preset.base_url.is_empty() {
+        return None;
     }
+    Some((preset.api_backend, preset.base_url, preset.injects_think_tags))
+}
+
+/// Resolve a preset by canonical id (case-insensitive), including `custom`.
+pub fn find_custom_model_provider(provider: &str) -> Option<&'static CustomModelProviderPreset> {
+    let provider = provider.trim();
+    CUSTOM_MODEL_PROVIDER_PRESETS
+        .iter()
+        .find(|p| p.id.eq_ignore_ascii_case(provider))
 }
 
 /// Persist the custom-model provider. Writes `api_backend` + `base_url` on the
-/// `[model.astra-custom]` block. Unknown values are a no-op.
+/// `[model.astra-custom]` block. The `custom` preset leaves `base_url`
+/// unset — callers must follow up with [`set_custom_model_base_url`]. Unknown
+/// values are a no-op.
 pub async fn set_custom_model_provider(value: String) -> Result<()> {
-    let Some((backend, base_url)) = custom_model_provider_backend(&value) else {
-        return Ok(());
+    let Some((backend, base_url, injects)) = custom_model_provider_backend(&value) else {
+        // `custom` or unknown: leave `base_url` untouched (the explicit
+        // `custom_model_base_url` setting owns it) and only reset the
+        // protocol + think flag to defaults so a stale preset value from a
+        // previous connection doesn't leak into the new one.
+        super::persist::set_custom_model_field("api_backend", "chat_completions").await?;
+        return super::persist::set_custom_model_field(
+            "injects_think_tags_in_content",
+            "false",
+        )
+        .await;
     };
     super::persist::set_custom_model_field("api_backend", backend).await?;
-    super::persist::set_custom_model_field("base_url", base_url).await
+    super::persist::set_custom_model_field("base_url", base_url).await?;
+    super::persist::set_custom_model_field(
+        "injects_think_tags_in_content",
+        if injects { "true" } else { "false" },
+    )
+    .await
+}
+
+/// Persist an explicit custom-model base URL (`base_url` on
+/// `[model.astra-custom]`). Empty clears.
+pub async fn set_custom_model_base_url(value: String) -> Result<()> {
+    super::persist::set_custom_model_field("base_url", &value).await
 }
 
 /// Persist the custom-model id (`model` on `[model.astra-custom]`). Empty clears.
@@ -432,4 +567,14 @@ pub async fn set_custom_model_display_name(value: String) -> Result<()> {
 /// Persist the custom-model API key (`api_key` on `[model.astra-custom]`). Empty clears.
 pub async fn set_custom_model_api_key(value: String) -> Result<()> {
     super::persist::set_custom_model_field("api_key", &value).await
+}
+
+/// Persist the custom-model think-tag injection flag
+/// (`injects_think_tags_in_content` on `[model.astra-custom]`). Empty clears.
+pub async fn set_custom_model_injects_think_tags(value: bool) -> Result<()> {
+    super::persist::set_custom_model_field(
+        "injects_think_tags_in_content",
+        if value { "true" } else { "false" },
+    )
+    .await
 }

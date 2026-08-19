@@ -1071,6 +1071,17 @@ pub struct SamplingConfig {
     /// API request body so the upstream emits per-chunk argument deltas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream_tool_calls: Option<bool>,
+    /// When true, the Chat Completions L2 stream transformer scans
+    /// `delta.content` for `<think>…</think>` tags and routes the
+    /// inside-tag text to `SamplingChannel::Reasoning` while the
+    /// outside-tag text goes to `SamplingChannel::Text`. Used for
+    /// OpenAI-compatible providers (DeepSeek, Qwen, Zhipu, zAI, …)
+    /// that don't expose a native `reasoning_content` delta and
+    /// instead embed thinking as `<think>` tags in the content
+    /// stream. Default is `false` so the existing reasoning path
+    /// is unchanged for providers that already do the right thing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub injects_think_tags_in_content: bool,
 }
 
 // ============ Responses API wrapper ============

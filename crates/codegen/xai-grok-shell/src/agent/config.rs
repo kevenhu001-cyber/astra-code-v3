@@ -3970,6 +3970,16 @@ pub struct ModelEntryConfig {
     /// the all-disabled state via `#[serde(default)]`.
     #[serde(default, skip_serializing_if = "is_default_laziness_detector")]
     pub laziness_detector: LazinessDetectorPerModelConfig,
+    /// When true, the Chat Completions L2 stream transformer scans
+    /// `delta.content` for `<think>…</think>` tags and routes the
+    /// inside-tag text to the reasoning channel while the
+    /// outside-tag text goes to the regular text channel. Used for
+    /// OpenAI-compatible providers (DeepSeek, Qwen, Zhipu, zAI, …)
+    /// that don't expose a native `reasoning_content` delta and
+    /// instead embed thinking as `<think>` tags in the content
+    /// stream. Default is `false`.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub injects_think_tags_in_content: bool,
 }
 /// True when `cfg` equals the all-disabled default. Derives `PartialEq`
 /// on `f32`, which is fine for the current shape because both `f32`
@@ -4038,6 +4048,13 @@ pub struct ConfigModelOverride {
     pub compaction_at_tokens: Option<CompactionAtTokens>,
     pub show_model_fingerprint: Option<bool>,
     pub stream_tool_calls: Option<bool>,
+    /// When true, the Chat Completions L2 stream transformer scans
+    /// `delta.content` for `<think>…</think>` tags and routes the
+    /// inside-tag text to the reasoning channel. Mirrors
+    /// [`ModelEntryConfig::injects_think_tags_in_content`]. Default
+    /// is `false`.
+    #[serde(default)]
+    pub injects_think_tags_in_content: Option<bool>,
 }
 impl ConfigModelOverride {
     pub(crate) fn apply(
@@ -4134,6 +4151,9 @@ impl ConfigModelOverride {
         }
         if self.stream_tool_calls.is_some() {
             entry.info.stream_tool_calls = self.stream_tool_calls;
+        }
+        if self.injects_think_tags_in_content.unwrap_or(false) {
+            entry.info.injects_think_tags_in_content = true;
         }
         if self.api_key.is_some() {
             entry.api_key.clone_from(&self.api_key);
@@ -4232,6 +4252,11 @@ pub struct ModelInfo {
     /// injecting nudges. See [`LazinessDetectorPerModelConfig`].
     #[serde(default)]
     pub laziness_detector: LazinessDetectorPerModelConfig,
+    /// When true, the Chat Completions L2 stream transformer scans
+    /// `delta.content` for `<think>…</think>` tags and routes the
+    /// inside-tag text to the reasoning channel. Mirrors
+    /// [`ModelEntryConfig::injects_think_tags_in_content`].
+    pub injects_think_tags_in_content: bool,
 }
 impl ModelInfo {
     /// Minimal fallback descriptor for an unknown model slug.
@@ -4271,6 +4296,7 @@ impl ModelInfo {
             show_model_fingerprint: false,
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
+            injects_think_tags_in_content: false,
         }
     }
     /// Extract shared model metadata from a flat config entry.
@@ -4309,6 +4335,7 @@ impl ModelInfo {
             show_model_fingerprint: entry.show_model_fingerprint,
             stream_tool_calls: entry.stream_tool_calls,
             laziness_detector: entry.laziness_detector.clone(),
+            injects_think_tags_in_content: entry.injects_think_tags_in_content,
         }
     }
     /// Derive the legacy effort gate/default from `reasoning_efforts` so the
@@ -5225,6 +5252,7 @@ pub(crate) fn sampling_config_for_model(
         force_http1: false,
         max_retries: info.max_retries,
         stream_tool_calls: info.stream_tool_calls.unwrap_or(false),
+        injects_think_tags_in_content: info.injects_think_tags_in_content,
         idle_timeout_secs: None,
         client_identifier: None,
         deployment_id,

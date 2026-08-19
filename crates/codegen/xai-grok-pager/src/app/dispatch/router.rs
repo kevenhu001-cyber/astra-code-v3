@@ -79,8 +79,9 @@ use super::settings::setters::{
     set_combine_queued_prompts, set_compact_mode, set_confirm_before_rewind,
     set_contextual_hint_image_input, set_contextual_hint_plan_mode, set_contextual_hint_send_now,
     set_contextual_hint_small_screen, set_contextual_hint_ssh_wrap, set_contextual_hint_undo,
-    set_contextual_hint_word_select, set_custom_model_api_key, set_custom_model_display_name,
-    set_custom_model_id, set_custom_model_provider, set_default_model,
+    set_contextual_hint_word_select,     set_custom_model_api_key, set_custom_model_base_url, set_custom_model_display_name,
+    set_custom_model_id, set_custom_model_injects_think_tags, set_custom_model_provider,
+    set_default_model, connect_custom_model,
     set_default_selected_permission,
     set_display_refresh_auto_cadence, set_follow_up_behavior, set_fork_secondary_model,
     set_group_tool_verbs, set_hunk_tracker_mode, set_invert_scroll, set_keep_text_selection,
@@ -1096,6 +1097,26 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::SetCustomModelId(v) => set_custom_model_id(app, v),
         Action::SetCustomModelDisplayName(v) => set_custom_model_display_name(app, v),
         Action::SetCustomModelApiKey(v) => set_custom_model_api_key(app, v),
+        Action::SetCustomModelBaseUrl(v) => set_custom_model_base_url(app, v),
+        Action::SetCustomModelInjectsThinkTags(v) => {
+            set_custom_model_injects_think_tags(app, v)
+        }
+        Action::ConnectCustomModel {
+            provider,
+            model_id,
+            display_name,
+            api_key,
+            base_url,
+            injects_think_tags,
+        } => connect_custom_model(
+            app,
+            provider,
+            model_id,
+            display_name,
+            api_key,
+            base_url,
+            injects_think_tags,
+        ),
         Action::SetMaxThoughtsWidth(v) => set_max_thoughts_width(app, v),
         Action::SetShowTips(v) => set_show_tips(app, v),
         Action::SetAutoUpdate(v) => set_auto_update(app, v),

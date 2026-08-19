@@ -11,6 +11,7 @@ pub mod cd;
 pub mod compact;
 pub mod compact_mode;
 pub mod config_agents;
+pub mod connect;
 pub mod context;
 pub mod copy;
 pub mod dashboard;
@@ -144,6 +145,7 @@ pub fn builtin_commands() -> Vec<Arc<dyn SlashCommand>> {
         Arc::new(tasks::TasksCommand),
         Arc::new(release_notes::ReleaseNotesCommand),
         Arc::new(tutorial::TutorialCommand),
+        Arc::new(connect::ConnectCommand),
         Arc::new(config_agents::ConfigAgentsCommand),
         Arc::new(personas::PersonasCommand),
         // Hidden easter egg: never listed, runs on bare `/gboom`.

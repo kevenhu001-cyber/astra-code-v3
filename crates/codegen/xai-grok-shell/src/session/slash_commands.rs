@@ -439,6 +439,7 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "compact-mode",
     "config",
     "config-agents",
+    "connect",
     "context",
     "copy",
     "cost",

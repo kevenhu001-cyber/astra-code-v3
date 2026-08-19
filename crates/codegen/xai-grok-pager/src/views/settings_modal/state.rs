@@ -1025,6 +1025,10 @@ pub(super) fn action_for_string(
         "custom_model_id" => Some(Action::SetCustomModelId(value)),
         "custom_model_display_name" => Some(Action::SetCustomModelDisplayName(value)),
         "custom_model_api_key" => Some(Action::SetCustomModelApiKey(value)),
+        "custom_model_base_url" => Some(Action::SetCustomModelBaseUrl(value)),
+        "custom_model_injects_think_tags" => {
+            Some(Action::SetCustomModelInjectsThinkTags(!value.is_empty()))
+        }
 
         _ => {
             let _ = value;

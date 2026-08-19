@@ -77,6 +77,14 @@ pub struct SamplerConfig {
     pub force_http1: bool,
     pub max_retries: Option<u32>,
     pub stream_tool_calls: bool,
+    /// When true, the Chat Completions L2 stream transformer scans
+    /// `delta.content` for `<think>…</think>` tags and routes the
+    /// inside-tag text to the reasoning channel. Mirrors
+    /// `xai_grok_sampling_types::SamplingConfig::injects_think_tags_in_content`.
+    /// Default is `false` so the splitter is a no-op passthrough on
+    /// providers that already expose a native `reasoning_content` delta.
+    #[serde(default)]
+    pub injects_think_tags_in_content: bool,
     pub idle_timeout_secs: Option<u64>,
 
     // Reasoning effort
@@ -157,6 +165,7 @@ impl Default for SamplerConfig {
             force_http1: false,
             max_retries: None,
             stream_tool_calls: false,
+            injects_think_tags_in_content: false,
             idle_timeout_secs: None,
             reasoning_effort: None,
             origin_client: None,

@@ -2050,6 +2050,7 @@ fn make_entry_config_with_id(
         compaction_at_tokens: None,
         show_model_fingerprint: false,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
         laziness_detector: config::LazinessDetectorPerModelConfig::default(),
     }
 }

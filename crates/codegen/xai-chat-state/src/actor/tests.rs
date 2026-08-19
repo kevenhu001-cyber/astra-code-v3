@@ -31,6 +31,7 @@ fn test_config_with_window(context_window: u64) -> SamplingConfig {
             .expect("test context_window must be non-zero"),
         reasoning_effort: None,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
     }
 }
 
@@ -1336,6 +1337,7 @@ async fn update_sampling_config_is_queryable() {
         context_window: NonZeroU64::new(200_000).unwrap(),
         reasoning_effort: None,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
     };
     h.handle.update_sampling_config(new_config.clone());
 
@@ -1751,6 +1753,7 @@ async fn build_request_uses_sampling_config() {
         context_window: NonZeroU64::new(128_000).unwrap(),
         reasoning_effort: None,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
     };
     let h = TestHarness::with_config(vec![ConversationItem::user("hi")], config);
 

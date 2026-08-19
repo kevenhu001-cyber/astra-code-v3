@@ -800,6 +800,7 @@ async fn read_parent_sampling_config(
                 force_http1: false,
                 max_retries: None,
                 stream_tool_calls: cfg.stream_tool_calls.unwrap_or(false),
+                injects_think_tags_in_content: cfg.injects_think_tags_in_content,
                 idle_timeout_secs: None,
                 client_identifier: ctx.sampling_config.client_identifier.clone(),
                 deployment_id: ctx.sampling_config.deployment_id.clone(),

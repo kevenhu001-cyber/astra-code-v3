@@ -16,7 +16,68 @@ astra models
 
 ---
 
-## Selecting a Model
+## Connecting a Custom Model with `/connect`
+
+The `/connect` slash command is a guided shortcut for writing the
+`[model.astra-custom]` block described below. It knows the preset vendors and
+pre-fills the protocol + base URL so you only supply a model id and key.
+
+```text
+/connect                              # open the guided preset picker
+/connect <preset> <model_id> <key>    # one-shot connect (URL omitted for presets)
+/connect custom <model_id> <key> <base_url>   # explicit endpoint
+```
+
+Supported presets:
+
+| Preset | Protocol | Base URL |
+|--------|----------|----------|
+| `openai` | Chat Completions | `https://api.openai.com/v1` |
+| `openai_responses` | Responses | `https://api.openai.com/v1` |
+| `anthropic` | Messages | `https://api.anthropic.com/v1` |
+| `xai` | Chat Completions | `https://api.x.ai/v1` |
+| `deepseek` | Chat Completions | `https://api.deepseek.com/v1` |
+| `zhipu` | Chat Completions | `https://open.bigmodel.cn/api/paas/v4` |
+| `xiaomi` | Chat Completions | `https://api.xiaomimimo.com/v1` |
+| `minimax_cn` | Chat Completions | `https://api.minimaxi.com/v1` |
+| `zai` | Chat Completions | `https://api.z.ai/api/paas/v4` |
+| `custom` | Chat Completions | (you provide it) |
+
+For every preset the **model id is supplied by you** at connect time (the
+preset only fixes the protocol + base URL). The guided help (`/connect` with
+no arguments) advertises example model IDs per preset — for example
+`gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` (GPT 5.6 Luna/Terra/Sol) for
+OpenAI, and `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5` (Claude
+Fable 5/Opus 5/Sonnet 5) for Anthropic. **These are suggestions only** — the
+model ID field is free-form, so any model ID the provider serves is accepted,
+including ones not listed. Model IDs change frequently; **always verify
+against the vendor's live `/v1/models` endpoint**.
+
+| Preset | How to discover current model IDs |
+|--------|-----------------------------------|
+| `openai` | `GET https://api.openai.com/v1/models` |
+| `openai_responses` | `GET https://api.openai.com/v1/models` |
+| `anthropic` | `GET https://api.anthropic.com/v1/models` |
+| `xai` | `GET https://api.x.ai/v1/models` |
+| `deepseek` | `GET https://api.deepseek.com/v1/models` |
+| `zhipu` | `GET https://open.bigmodel.cn/api/paas/v4/models` |
+| `xiaomi` | `GET https://api.xiaomimimo.com/v1/models` |
+| `minimax_cn` | `GET https://api.minimaxi.com/v1/models` |
+| `zai` | `GET https://api.z.ai/api/paas/v4/models` |
+
+These official endpoints expose a **native** reasoning channel
+(`reasoning_content` / Anthropic `thinking`), so the preset vendors do **not**
+set `injects_think_tags_in_content`. Some OpenAI-compatible gateways and
+self-hosted models instead embed reasoning as `<think>…</think>` tags inside
+the `content` field; for those, connect with `custom` and the thinking-tag
+parser (gated by `injects_think_tags_in_content`) will strip the tags and
+route the inner text to the thinking/reasoning panel automatically.
+
+A restart is required after `/connect` for the new endpoint to take effect; it
+becomes the default model for new sessions.
+
+---
+
 
 ### CLI Flag
 
@@ -198,9 +259,9 @@ Use Claude models directly via the Anthropic Messages API:
 
 ```toml
 [model.claude-opus]
-model = "claude-opus-4-6"
+model = "claude-opus-5"
 base_url = "https://api.anthropic.com/v1"
-name = "Claude Opus 4.6"
+name = "Claude Opus 5"
 api_backend = "messages"
 context_window = 200000
 extra_headers = { "x-api-key" = "sk-ant-...", "anthropic-version" = "2023-06-01" }
@@ -211,10 +272,10 @@ The `messages` backend uses the Anthropic Messages protocol. Anthropic authentic
 ### OpenAI (Chat Completions)
 
 ```toml
-[model.gpt-4o]
-model = "gpt-4o"
+[model.gpt-5.6-luna]
+model = "gpt-5.6-luna"
 base_url = "https://api.openai.com/v1"
-name = "GPT-4o"
+name = "GPT 5.6 Luna"
 env_key = "OPENAI_API_KEY"
 ```
 
@@ -225,10 +286,10 @@ env_key = "OPENAI_API_KEY"
 If your provider supports the newer Responses API:
 
 ```toml
-[model.gpt-4o-responses]
-model = "gpt-4o"
+[model.gpt-5.6-luna-responses]
+model = "gpt-5.6-luna"
 base_url = "https://api.openai.com/v1"
-name = "GPT-4o (Responses)"
+name = "GPT 5.6 Luna (Responses)"
 api_backend = "responses"
 env_key = "OPENAI_API_KEY"
 ```

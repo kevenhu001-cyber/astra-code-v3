@@ -2266,6 +2266,7 @@ async fn retry_after_lost_ack_converges_memory_and_disk_to_authoritative_item() 
             context_window: std::num::NonZeroU64::new(128_000).unwrap(),
             reasoning_effort: None,
             stream_tool_calls: None,
+            injects_think_tags_in_content: false,
         },
         Box::new(persistence),
         event_tx,

@@ -333,7 +333,8 @@ const SCREEN_MODE_CHOICES: &[EnumChoice] = &[
 
 // Custom-model provider presets. Each maps to `api_backend` + a baked-in
 // `base_url` on `[model.astra-custom]` (see the shell's
-// `set_custom_model_provider`). OpenAI Chat Completions is the default.
+// `find_custom_model_provider` / `set_custom_model_provider`). OpenAI Chat
+// Completions is the default.
 const CUSTOM_MODEL_PROVIDER_CHOICES: &[EnumChoice] = &[
     EnumChoice {
         canonical: "openai",
@@ -349,6 +350,41 @@ const CUSTOM_MODEL_PROVIDER_CHOICES: &[EnumChoice] = &[
         canonical: "anthropic",
         display: "Anthropic (Messages)",
         description: "Anthropic /v1/messages endpoint.",
+    },
+    EnumChoice {
+        canonical: "xai",
+        display: "xAI (Grok)",
+        description: "xAI /v1/chat/completions endpoint.",
+    },
+    EnumChoice {
+        canonical: "deepseek",
+        display: "DeepSeek",
+        description: "DeepSeek /v1/chat/completions endpoint.",
+    },
+    EnumChoice {
+        canonical: "zhipu",
+        display: "智谱 Zhipu AI",
+        description: "Zhipu /api/paas/v4 endpoint.",
+    },
+    EnumChoice {
+        canonical: "xiaomi",
+        display: "小米 Xiaomi (MiMo)",
+        description: "Xiaomi MiMo /v1/chat/completions endpoint.",
+    },
+    EnumChoice {
+        canonical: "minimax_cn",
+        display: "MiniMax CN",
+        description: "MiniMax /v1/chat/completions endpoint.",
+    },
+    EnumChoice {
+        canonical: "zai",
+        display: "zAI (Zhipu International)",
+        description: "Z.AI /api/paas/v4 endpoint.",
+    },
+    EnumChoice {
+        canonical: "custom",
+        display: "Other (custom URL)",
+        description: "Any OpenAI-compatible endpoint; you supply the base URL.",
     },
 ];
 
@@ -965,8 +1001,9 @@ pub fn default_settings() -> Vec<SettingMeta> {
             category: SettingCategory::Models,
             owner: SettingOwner::Shell,
             label: "Custom model ID",
-            description: "Model identifier sent to the provider API (e.g. `gpt-4o`, \
-                          `claude-opus-4-6`). Writes [model.astra-custom] `model`. Restart required.",
+            description: "Model identifier sent to the provider API (e.g. `gpt-5.6-luna`, \
+                          `claude-opus-5`). Any model ID the provider serves is accepted. \
+                          Writes [model.astra-custom] `model`. Restart required.",
             keywords: &["model", "custom", "id", "provider", "endpoint"],
             kind: SettingKind::String {
                 default: "",

@@ -429,6 +429,7 @@ impl SessionActor {
                 context_window: std::num::NonZeroU64::new(256_000).unwrap(),
                 reasoning_effort: None,
                 stream_tool_calls: None,
+                injects_think_tags_in_content: false,
             });
         let creds = self.chat_state_handle.get_credentials().await;
         let model_facts = self.model_auth_facts(cfg.model.as_str());
@@ -502,6 +503,7 @@ impl SessionActor {
             force_http1: false,
             max_retries: Some(self.max_retries),
             stream_tool_calls: cfg.stream_tool_calls.unwrap_or(false),
+            injects_think_tags_in_content: cfg.injects_think_tags_in_content,
             idle_timeout_secs: None,
             client_identifier: self.client_identifier.clone(),
             deployment_id: crate::managed_config::resolve_deployment_id(

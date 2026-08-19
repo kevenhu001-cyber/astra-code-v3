@@ -727,6 +727,8 @@ pub fn current_value_for(
         "custom_model_id" => Some(SettingValue::String(String::new())),
         "custom_model_display_name" => Some(SettingValue::String(String::new())),
         "custom_model_api_key" => Some(SettingValue::String(String::new())),
+        "custom_model_base_url" => Some(SettingValue::String(String::new())),
+        "custom_model_injects_think_tags" => Some(SettingValue::Bool(false)),
 
         _ => None,
     }

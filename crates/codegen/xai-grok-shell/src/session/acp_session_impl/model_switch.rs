@@ -59,6 +59,7 @@ impl SessionActor {
                 context_window: new_context_window,
                 reasoning_effort: sampling_config.reasoning_effort,
                 stream_tool_calls: Some(sampling_config.stream_tool_calls),
+                injects_think_tags_in_content: sampling_config.injects_think_tags_in_content,
             });
         let existing = self.chat_state_handle.get_credentials().await;
         let session_key = self

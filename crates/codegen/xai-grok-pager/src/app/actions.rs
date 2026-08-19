@@ -615,6 +615,31 @@ pub enum Action {
     /// Commit the custom-model API key. Persists `[model.astra-custom]`
     /// `api_key`. Empty clears the field. Restart-required.
     SetCustomModelApiKey(String),
+    /// Commit an explicit custom-model base URL. Persists `[model.astra-custom]`
+    /// `base_url`. Empty clears the field. Restart-required.
+    SetCustomModelBaseUrl(String),
+    /// Commit the custom-model think-tag injection flag. Persists
+    /// `[model.astra-custom]` `injects_think_tags_in_content`.
+    /// Restart-required.
+    SetCustomModelInjectsThinkTags(bool),
+    /// Configure a custom model end-to-end via `/connect`. Writes the full
+    /// `[model.astra-custom]` block (provider → api_backend + base_url,
+    /// model id, display name, API key, think-tag injection) through the
+    /// shell's config persist path. Restart-required.
+    ConnectCustomModel {
+        /// Preset id or `custom` (`custom` requires `base_url`).
+        provider: String,
+        /// Model identifier sent to the provider API.
+        model_id: String,
+        /// Human-readable name shown in the model picker.
+        display_name: String,
+        /// API key for the provider.
+        api_key: String,
+        /// Explicit base URL (required for the `custom` preset).
+        base_url: String,
+        /// Whether the provider injects `<think>…</think>` tags into content.
+        injects_think_tags: bool,
+    },
     /// Commit the `show_tips` preference. Persisted to `[cli].show_tips`.
     /// Restart-required — tips are resolved once at startup.
     SetShowTips(bool),
