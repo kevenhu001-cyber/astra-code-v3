@@ -1707,7 +1707,7 @@ fn render_welcome_authenticating(
                 auth_code_cursor_byte,
             );
 
-            let hint_spans = vec![
+            let mut hint_spans = vec![
                 Span::styled(
                     "enter",
                     Style::default()
