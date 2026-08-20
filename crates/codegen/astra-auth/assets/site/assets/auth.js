@@ -140,25 +140,27 @@
   function redirectLogin() {
     var here = window.location.pathname.replace(/\/+$/, '') || '/';
     var dest = here === '/login' ? '' : 'login';
-    if (dest && lastBounce() === dest) {
+    if (!dest) return;
+    if (lastBounce() === dest) {
       // We just bounced here — don't redirect again, the cookie is
       // genuinely missing. Leave the user on this page so they can sign
       // in manually instead of being trapped in a reload loop.
       clearBounce();
       return;
     }
-    markBounce('login');
+    markBounce(dest);
     window.location.replace(dest);
   }
 
   function redirectAccount() {
     var here = window.location.pathname.replace(/\/+$/, '') || '/';
     var dest = here === '/account' ? '' : 'account';
-    if (dest && lastBounce() === dest) {
+    if (!dest) return;
+    if (lastBounce() === dest) {
       clearBounce();
       return;
     }
-    markBounce('account');
+    markBounce(dest);
     window.location.replace(dest);
   }
 

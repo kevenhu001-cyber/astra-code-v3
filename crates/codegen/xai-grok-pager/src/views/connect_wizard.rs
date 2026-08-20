@@ -124,14 +124,6 @@ pub struct ConnectWizardState {
     /// Inline validation error (`""` = no error). Displayed beneath the
     /// focused field. Prevents submission while non-empty.
     pub error: String,
-    /// Transient submit-state: when the user presses Enter and validation
-    /// passes, we mark `submit_pending = true` and the dispatch path turns
-    /// the values into an `Action::ConnectCustomModel`. We do not close the
-    /// modal in the renderer — the dispatcher does.
-    pub submit_pending: bool,
-    /// Scroll offset for the rendered wizard (lines), used when the layout
-    /// shrinks and the form doesn't fit.
-    pub scroll: u16,
 }
 
 impl Default for ConnectWizardState {
@@ -147,10 +139,9 @@ impl Default for ConnectWizardState {
             cursor_model: 0,
             cursor_key: 0,
             error: String::new(),
-            submit_pending: false,
-            scroll: 0,
         };
-        // Start the cursor past the pre-filled URL.
+        // Place the URL cursor at the end of the pre-filled URL so the user
+        // can immediately append or backspace-edit.
         s
     }
 }
@@ -160,20 +151,6 @@ impl ConnectWizardState {
     /// (`"openai"`, `"custom"`, etc.).
     pub fn current_preset_id(&self) -> &'static str {
         PRESETS[self.preset_idx.min(PRESETS.len() - 1)].0
-    }
-
-    /// Whether the URL field should be auto-synced from the preset. The rule
-    /// is: the URL was never edited, OR the URL still equals the previous
-    /// preset's URL exactly. Once the user types into it we leave the text
-    /// alone and stop overwriting.
-    fn url_should_sync_with_preset(&self) -> bool {
-        // Empty URL → always sync (initial state for `custom`).
-        if self.base_url.is_empty() {
-            return true;
-        }
-        // If the URL matches *any* preset's URL, treat it as the preset's URL
-        // and re-sync when the preset changes.
-        PRESETS.iter().any(|(_, url)| *url == self.base_url)
     }
 
     fn set_preset(&mut self, idx: usize) {
@@ -404,7 +381,6 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
         KeyCode::Esc => return WizardOutcome::Closed,
         KeyCode::Enter => {
             if let Some(result) = state.validate_and_build() {
-                state.submit_pending = true;
                 return WizardOutcome::Submitted(result);
             }
             return WizardOutcome::Changed;

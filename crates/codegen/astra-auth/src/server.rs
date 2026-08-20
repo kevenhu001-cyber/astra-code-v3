@@ -891,11 +891,27 @@ async fn handlers_logout(State(s): State<Server>, req: axum::extract::Request) -
 async fn handlers_me(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let headers = req.headers().clone();
     let user = current_user(&s.store, &headers);
-    match user {
-        Some(u) => json_response(StatusCode::OK, json!({ "user": to_public(&u) })),
+    let body = match user {
+        Some(u) => json!({ "user": to_public(&u) }),
         // 200 + user:null instead of 401 (the login/account pages rely on it).
-        None => json_response(StatusCode::OK, json!({ "user": null })),
-    }
+        None => json!({ "user": null }),
+    };
+    // Cache-Control: no-store + Vary mirrors the /login response so
+    // shared HTTP caches cannot serve a stale `/me` body to a different
+    // session after a sign-in/sign-out round trip (the same bfcache
+    // redirect-loop class of bug the /login headers prevent).
+    (
+        StatusCode::OK,
+        [
+            (header::CACHE_CONTROL, HeaderValue::from_static("no-store")),
+            (
+                header::VARY,
+                HeaderValue::from_static("Cookie, Authorization, X-Session-Token"),
+            ),
+        ],
+        Json(body),
+    )
+        .into_response()
 }
 
 // --- device flow ---
