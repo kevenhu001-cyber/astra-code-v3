@@ -1,7 +1,7 @@
 //! Changelog fetching from CDN with local disk cache.
 //!
 //! Both markdown (`*.external.md`) and JSON (`*.external.json`) changelogs
-//! are published per-version to the CDN at `x.ai/cli/changelogs/`.
+//! are published per-version to the CDN at `astracode.topodrive.top/cli/changelogs/`.
 //!
 //! `ChangelogManager::fetch()` retrieves both formats in parallel and
 //! returns a `Changelog` with optional markdown + structured entries.
@@ -11,8 +11,10 @@
 
 use std::path::PathBuf;
 
-/// CDN base for all changelogs (proxies to GCS, cache-friendly).
-const CHANGELOG_BASE: &str = "https://x.ai/cli/changelogs";
+// 2026-Q2 rebrand: changelog CDN moved off x.ai. Infra publishes per-version
+// `{version}.external.md` and `{version}.external.json` files to this base;
+// local-disk cache under `$ASTRA_HOME` keeps offline / PTY tests unchanged.
+const CHANGELOG_BASE: &str = "https://astracode.topodrive.top/cli/changelogs";
 const FETCH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 /// A single structured changelog entry from the published JSON changelog.
@@ -345,6 +347,22 @@ mod tests {
         ];
         let bullets = bullets_from_entries(&entries, 10);
         assert_eq!(bullets, vec!["Good entry", "Another good one"]);
+    }
+
+    #[test]
+    fn changelog_base_points_at_astracode_topodrive() {
+        // 2026-Q2 rebrand: the changelog CDN moved off x.ai. This guard
+        // catches any drift back to the old host (or to a similarly-named
+        // typo) without depending on network. Any change here must also
+        // update the comment block above `CHANGELOG_BASE`.
+        assert!(
+            CHANGELOG_BASE.starts_with("https://astracode.topodrive.top/"),
+            "CHANGELOG_BASE must point at astracode.topodrive.top, got: {CHANGELOG_BASE}",
+        );
+        assert!(
+            !CHANGELOG_BASE.contains("x.ai"),
+            "CHANGELOG_BASE must not reference x.ai (rebrand regression), got: {CHANGELOG_BASE}",
+        );
     }
 
     #[test]

@@ -400,6 +400,43 @@ impl AgentView {
             }
         }
 
+        // Connect wizard: handles Esc/Enter/Tab directly. On Submit, close the
+        // modal and emit `InputOutcome::Action(ConnectCustomModel)` so the
+        // action loop dispatches it through the same persistence path the
+        // one-shot `/connect <preset> <model> <key>` slash command uses.
+        // On Close, just drop the modal.
+        if let ActiveModal::ConnectWizard { state } = modal {
+            use crate::views::connect_wizard::{WizardOutcome, handle_wizard_key};
+            match handle_wizard_key(state, key) {
+                WizardOutcome::Closed => {
+                    self.active_modal = None;
+                    return InputOutcome::Changed;
+                }
+                WizardOutcome::Submitted(result) => {
+                    // Close the wizard before re-dispatching so the user
+                    // sees the modal disappear immediately.
+                    self.active_modal = None;
+                    let display_name = format!(
+                        "{} \u00b7 {}",
+                        result.provider, result.model_id
+                    );
+                    return InputOutcome::Action(
+                        crate::app::actions::Action::ConnectCustomModel {
+                            provider: result.provider,
+                            model_id: result.model_id,
+                            display_name,
+                            api_key: result.api_key,
+                            base_url: result.base_url,
+                            injects_think_tags: result.injects_think_tags,
+                        },
+                    );
+                }
+                WizardOutcome::Changed | WizardOutcome::Unhandled => {
+                    return InputOutcome::Changed;
+                }
+            }
+        }
+
         // Settings: route through ModalWindow chrome, then delegate.
         if let ActiveModal::Settings { state } = modal {
             // Sub-mode short-circuit: FilterFocused, PickingEnum, PickingGroup,
@@ -520,7 +557,8 @@ impl AgentView {
             | ActiveModal::Settings { .. }
             | ActiveModal::UsageInfo { .. }
             | ActiveModal::ResetSettingsConfirm { .. }
-            | ActiveModal::RememberNoteReview { .. } => unreachable!(),
+            | ActiveModal::RememberNoteReview { .. }
+            | ActiveModal::ConnectWizard { .. } => unreachable!(),
         }
     }
 
@@ -2473,6 +2511,8 @@ impl AgentView {
                 );
             } else if let modal::ActiveModal::MemoryBrowser { state: mem_state } = active_modal {
                 crate::views::memory_modal::render_memory_modal(buf, area, mem_state, compact);
+            } else if let modal::ActiveModal::ConnectWizard { state: wiz_state } = active_modal {
+                crate::views::connect_wizard::render_wizard(buf, area, wiz_state);
             } else if let modal::ActiveModal::Settings {
                 state: settings_state,
             } = active_modal

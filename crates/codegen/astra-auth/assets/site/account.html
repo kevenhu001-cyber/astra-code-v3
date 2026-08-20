@@ -267,7 +267,10 @@
 
       document.getElementById('logoutBtn').addEventListener('click', async function () {
         try { await A.api('/logout'); } catch (e) { /* ignore */ }
-        window.location.href = 'login';
+        // replace() so the back button cannot return to account.html with
+        // a half-cleared session, which is the second half of the login↔
+        // account loop on Edge.
+        window.location.replace('login');
       });
     })();
   </script>

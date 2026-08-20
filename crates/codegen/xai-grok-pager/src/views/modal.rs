@@ -321,6 +321,14 @@ pub enum ActiveModal {
         /// different note's review modal.
         rewrite_nonce: u64,
     },
+    /// Guided `/connect` wizard. Three fields (URL, model id, API key) plus a
+    /// preset selector at the top. Submits the same
+    /// [`crate::app::actions::Action::ConnectCustomModel`] action as the
+    /// one-shot command path so persistence + restart semantics are shared.
+    /// Boxed — keeps `ActiveModal` compact.
+    ConnectWizard {
+        state: Box<crate::views::connect_wizard::ConnectWizardState>,
+    },
 }
 /// Snapshot of the command palette state, saved when opening an arg picker
 /// and restored on Esc.

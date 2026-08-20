@@ -123,7 +123,7 @@
 
         <div class="cli" aria-label="terminal usage">
           <span class="label">terminal</span>
-          <div><span class="prompt">$</span> <span class="cmd">go install github.com/kevenhu001-cyber/astra-harness/cmd/astra@latest</span></div>
+          <div><span class="prompt">$</span> <span class="cmd">curl -fsSL https://astracode.topodrive.top/install/install.sh | sh</span></div>
           <div><span class="prompt">$</span> <span class="cmd">astra login</span></div>
           <div class="out">  Open: http://localhost:8080/authorize?code=K7Q2-XM9D</div>
           <div class="out">  Code: K7Q2-XM9D</div>
@@ -131,6 +131,10 @@
           <div class="out-ok">  logged in as you@example.com</div>
           <div><span class="prompt">$</span> <span class="cmd">astra "design a query layer for the events store"</span></div>
         </div>
+        <p class="cli-note" style="color:var(--text-30);font-size:12.5px;margin-top:10px">
+          Astra is a single Rust binary &mdash; no runtime, no Go toolchain, no build step on the host.
+          For source builds see the <a href="https://github.com/kevenhu001-cyber/astra-harness/blob/main/README.md#building-from-source" style="color:var(--text-70)">build instructions</a>.
+        </p>
       </div>
     </section>
 

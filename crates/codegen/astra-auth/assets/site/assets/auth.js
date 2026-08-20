@@ -118,12 +118,48 @@
     el.classList.toggle('show', !!msg);
   }
 
+  // Sentinel used to break the login↔account bounce loop on browsers
+  // (Edge in particular) that replay bfcached pages and re-run their
+  // /me poll even when the user just landed here. Without this guard,
+  // a session whose cookie was dropped mid-flight can ping-pong between
+  // the two pages forever because each one immediately redirects to the
+  // other. Tracking the last page we redirected *to* in sessionStorage
+  // lets us short-circuit a redirect whose destination matches where we
+  // already are.
+  var BOUNCE_KEY = 'astra_bounce';
+  function markBounce(dest) {
+    try { sessionStorage.setItem(BOUNCE_KEY, dest); } catch (e) {}
+  }
+  function lastBounce() {
+    try { return sessionStorage.getItem(BOUNCE_KEY) || ''; } catch (e) { return ''; }
+  }
+  function clearBounce() {
+    try { sessionStorage.removeItem(BOUNCE_KEY); } catch (e) {}
+  }
+
   function redirectLogin() {
-    window.location.href = 'login';
+    var here = window.location.pathname.replace(/\/+$/, '') || '/';
+    var dest = here === '/login' ? '' : 'login';
+    if (dest && lastBounce() === dest) {
+      // We just bounced here — don't redirect again, the cookie is
+      // genuinely missing. Leave the user on this page so they can sign
+      // in manually instead of being trapped in a reload loop.
+      clearBounce();
+      return;
+    }
+    markBounce('login');
+    window.location.replace(dest);
   }
 
   function redirectAccount() {
-    window.location.href = 'account';
+    var here = window.location.pathname.replace(/\/+$/, '') || '/';
+    var dest = here === '/account' ? '' : 'account';
+    if (dest && lastBounce() === dest) {
+      clearBounce();
+      return;
+    }
+    markBounce('account');
+    window.location.replace(dest);
   }
 
   async function logout() {
