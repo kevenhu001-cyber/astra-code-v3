@@ -915,9 +915,7 @@ pub(crate) async fn run(
     );
     app.pending_startup = Some(pending_startup);
     app.tracing_rx = Some(tracing_handle.rx);
-    // Startup terminal height for the auto-compact derivation; kept fresh by
-    // `Event::Resize` from here on. 0 (probe failure) never forces compact.
-    app.last_known_terminal_rows = crossterm::terminal::size().map(|(_, r)| r).unwrap_or(0);
+    app.last_known_terminal_rows = 0;
     // Leader mode: a live `leader_status_rx` means the pager is connected via a
     // leader. The dashboard itself is NOT gated on this flag (it renders local
     // sessions regardless); `leader_mode` only controls whether we additionally
@@ -961,8 +959,10 @@ pub(crate) async fn run(
     }
     // One effective-config read for launch-mode ownership + the display
     // resolve below (the launch resolvers above keep their own internal read).
-    let launch_effective_ui = xai_grok_shell::config::load_effective_config()
-        .ok()
+    let effective_root = xai_grok_shell::config::load_effective_config().ok();
+    prime_initial_ui_from_root(effective_root.as_ref());
+    let launch_effective_ui = effective_root
+        .as_ref()
         .and_then(|root| root.get("ui").cloned());
     // Soft-default owns the mode only when neither CLI nor effective TOML
     // claimed it; while owned, `settings/update` pushes may re-arm it.
@@ -3183,14 +3183,30 @@ pub(crate) async fn run(
     Ok(finish_run(&mut app))
 }
 
-/// `[ui]` as it was on disk at startup, or the default if it could not be read.
-/// Read once for the process: the status line capability is advertised from this
-/// at connect and the row is rendered from it later, and a second read could
-/// answer the two differently.
+static INITIAL_UI: std::sync::OnceLock<xai_grok_shell::agent::config::UiConfig> =
+    std::sync::OnceLock::new();
+static EFFECTIVE_ROOT_CACHE: std::sync::OnceLock<toml::Value> = std::sync::OnceLock::new();
+
+fn prime_initial_ui_from_root(root: Option<&toml::Value>) {
+    if let Some(r) = root {
+        let _ = EFFECTIVE_ROOT_CACHE.set(r.clone());
+    }
+    if INITIAL_UI.get().is_some() {
+        return;
+    }
+    if let Some(r) = root {
+        if let Some(ui_value) = r.get("ui").cloned() {
+            if let Ok(cfg) = ui_value.try_into::<xai_grok_shell::agent::config::UiConfig>() {
+                let _ = INITIAL_UI.set(cfg);
+                return;
+            }
+        }
+    }
+    let _ = INITIAL_UI.set(xai_grok_shell::agent::config::UiConfig::default());
+}
+
 pub(crate) fn load_initial_ui_config() -> xai_grok_shell::agent::config::UiConfig {
     use xai_grok_shell::agent::config::UiConfig;
-    static INITIAL_UI: std::sync::OnceLock<UiConfig> = std::sync::OnceLock::new();
-
     INITIAL_UI
         .get_or_init(|| {
             let Ok(root) = xai_grok_shell::config::load_effective_config() else {
@@ -3214,8 +3230,13 @@ struct InitialConfigSessionBools {
 }
 
 fn load_initial_config_session_bools() -> InitialConfigSessionBools {
-    let Ok(root) = xai_grok_shell::config::load_effective_config() else {
-        return InitialConfigSessionBools::default();
+    let root = if let Some(cached) = EFFECTIVE_ROOT_CACHE.get() {
+        cached.clone()
+    } else {
+        match xai_grok_shell::config::load_effective_config() {
+            Ok(v) => v,
+            Err(_) => return InitialConfigSessionBools::default(),
+        }
     };
     let cli_bool = |key: &str| -> Option<bool> { root.get("cli")?.get(key)?.as_bool() };
     InitialConfigSessionBools {
