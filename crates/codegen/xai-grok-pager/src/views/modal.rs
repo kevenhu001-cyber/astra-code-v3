@@ -1269,14 +1269,21 @@ pub fn render_doc_viewer_overlay_with_shortcuts(
         let max_scroll = all_lines.len().saturating_sub(content_area.height as usize);
         *scroll = (*scroll as usize).min(max_scroll) as u16;
         let start = *scroll as usize;
-        let visible: Vec<ratatui::text::Line> = all_lines
-            .iter()
-            .skip(start)
-            .take(content_area.height as usize)
-            .cloned()
-            .collect();
-        let para = Paragraph::new(visible).wrap(Wrap { trim: false });
-        para.render(content_area, buf);
+
+        let bg_style = ratatui::style::Style::default().bg(theme.bg_base);
+        for row_idx in 0..content_area.height {
+            let y = content_area.y + row_idx;
+            for x in content_area.x..content_area.x + content_area.width {
+                if let Some(cell) = buf.cell_mut((x, y)) {
+                    cell.reset();
+                    cell.set_style(bg_style);
+                }
+            }
+            let line_idx = start + row_idx as usize;
+            if line_idx < all_lines.len() {
+                buf.set_line(content_area.x, y, &all_lines[line_idx], content_area.width);
+            }
+        }
     }
 }
 #[cfg(test)]

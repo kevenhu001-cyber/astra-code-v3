@@ -1444,6 +1444,32 @@ impl AgentView {
         use crate::views::modal_window::{self as mw, ModalWindowOutcome};
         use crossterm::event::MouseEventKind;
 
+        if let Some(ActiveModal::ConnectWizard { state }) = self.active_modal.as_mut() {
+            use crate::views::connect_wizard::{WizardOutcome, handle_wizard_mouse};
+            match handle_wizard_mouse(state, mouse.kind, mouse.column, mouse.row) {
+                WizardOutcome::Closed => {
+                    self.active_modal = None;
+                    return InputOutcome::Changed;
+                }
+                WizardOutcome::Submitted(result) => {
+                    self.active_modal = None;
+                    return InputOutcome::Action(
+                        crate::app::actions::Action::ConnectCustomModel {
+                            provider: result.provider,
+                            model_id: result.model_id,
+                            display_name: result.display_name,
+                            api_key: result.api_key,
+                            base_url: result.base_url,
+                            injects_think_tags: result.injects_think_tags,
+                        },
+                    );
+                }
+                WizardOutcome::Changed | WizardOutcome::Unhandled => {
+                    return InputOutcome::Changed;
+                }
+            }
+        }
+
         // Picker-based modals: route through ModalWindow chrome first,
         // then delegate content events to the picker input handler.
         if matches!(
@@ -2440,15 +2466,21 @@ impl AgentView {
                     let max_scroll = all_lines.len().saturating_sub(content_area.height as usize);
                     *scroll = (*scroll as usize).min(max_scroll) as u16;
                     let start = *scroll as usize;
-                    let visible: Vec<Line> = all_lines
-                        .iter()
-                        .skip(start)
-                        .take(content_area.height as usize)
-                        .cloned()
-                        .collect();
-                    let para = ratatui::widgets::Paragraph::new(visible)
-                        .wrap(ratatui::widgets::Wrap { trim: false });
-                    para.render(content_area, buf);
+
+                    let bg_style = ratatui::style::Style::default().bg(theme.bg_base);
+                    for row_idx in 0..content_area.height {
+                        let y = content_area.y + row_idx;
+                        for x in content_area.x..content_area.x + content_area.width {
+                            if let Some(cell) = buf.cell_mut((x, y)) {
+                                cell.reset();
+                                cell.set_style(bg_style);
+                            }
+                        }
+                        let line_idx = start + row_idx as usize;
+                        if line_idx < all_lines.len() {
+                            buf.set_line(content_area.x, y, &all_lines[line_idx], content_area.width);
+                        }
+                    }
                 }
             } else if let modal::ActiveModal::ShortcutsHelp {
                 entries,
@@ -2512,7 +2544,7 @@ impl AgentView {
             } else if let modal::ActiveModal::MemoryBrowser { state: mem_state } = active_modal {
                 crate::views::memory_modal::render_memory_modal(buf, area, mem_state, compact);
             } else if let modal::ActiveModal::ConnectWizard { state: wiz_state } = active_modal {
-                crate::views::connect_wizard::render_wizard(buf, area, wiz_state);
+                crate::views::connect_wizard::render_wizard(buf, area, wiz_state, &theme, compact);
             } else if let modal::ActiveModal::Settings {
                 state: settings_state,
             } = active_modal

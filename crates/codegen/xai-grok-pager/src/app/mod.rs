@@ -521,7 +521,7 @@ pub fn join_early_prefetch(
     std::thread::spawn(move || {
         let _ = tx.send(handle.join());
     });
-    match rx.recv_timeout(std::time::Duration::from_secs(2)) {
+    match rx.recv_timeout(std::time::Duration::from_millis(50)) {
         Ok(Ok(r)) => r.settings,
         _ => None,
     }
@@ -635,12 +635,24 @@ pub async fn run(
             xai_grok_shell::auth::GrokComConfig::default()
         }
     };
-    let refreshed_auth = tokio::time::timeout(
-        xai_grok_shell::http::STARTUP_AUTH_REFRESH_TIMEOUT,
-        xai_grok_shell::auth::try_ensure_fresh_auth(&grok_com_config),
-    )
-    .await
-    .unwrap_or(None);
+    let grok_home_path = xai_grok_shell::util::grok_home::grok_home();
+    let local_auth = xai_grok_shell::auth::AuthManager::new(&grok_home_path, grok_com_config.clone()).current();
+    let refreshed_auth = if let Some(auth) = local_auth {
+        // Local cached auth available immediately: spawn background refresh and proceed instantly
+        let cfg = grok_com_config.clone();
+        tokio::spawn(async move {
+            let _ = xai_grok_shell::auth::try_ensure_fresh_auth(&cfg).await;
+        });
+        Some(auth)
+    } else {
+        // Cold start without cached auth: short 80ms bounded check so UI doesn't freeze
+        tokio::time::timeout(
+            std::time::Duration::from_millis(80),
+            xai_grok_shell::auth::try_ensure_fresh_auth(&grok_com_config),
+        )
+        .await
+        .unwrap_or(None)
+    };
     let early_prefetch = match refreshed_auth {
         Some(auth) => xai_grok_shell::agent::models::start_early_prefetch_with_auth(Some(auth)),
         None => xai_grok_shell::agent::models::start_early_prefetch(Some(grok_com_config.clone())),

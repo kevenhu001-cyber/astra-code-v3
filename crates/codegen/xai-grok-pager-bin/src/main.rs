@@ -1866,7 +1866,10 @@ fn main() {
         release: env!("VERSION_WITH_COMMIT"),
         disabled: xai_grok_shell::agent::config::is_error_reporting_disabled_sync(),
     });
-    xai_grok_pager::docs::extract_user_guide_docs(&xai_grok_shell::util::grok_home::grok_home());
+    let grok_home_for_docs = xai_grok_shell::util::grok_home::grok_home();
+    std::thread::spawn(move || {
+        xai_grok_pager::docs::extract_user_guide_docs(&grok_home_for_docs);
+    });
     xai_crash_handler::install_terminal_restore_only();
     if xai_grok_shell::util::config::load_crash_handler_enabled_sync() {
         let crash_dir = xai_grok_shell::util::grok_home::grok_home().join("crash");

@@ -788,7 +788,7 @@ impl AuthManager {
     }
 
     /// Cached in-memory token if outside the early-invalidation buffer.
-    pub(crate) fn current(&self) -> Option<GrokAuth> {
+    pub fn current(&self) -> Option<GrokAuth> {
         let auth = self
             .inner
             .read()
