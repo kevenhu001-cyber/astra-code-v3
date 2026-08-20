@@ -483,7 +483,12 @@ pub const CUSTOM_MODEL_PROVIDER_PRESETS: &[CustomModelProviderPreset] = &[
         label: "MiniMax CN",
         api_backend: "chat_completions",
         base_url: "https://api.minimaxi.com/v1",
-        injects_think_tags: false,
+        // MiniMax's OpenAI-compatible endpoint does not expose a native
+        // `reasoning_content` delta; thinking is embedded in `content` as
+        // `<thinking>…</thinking>` tags. The splitter is a no-op when the
+        // stream carries no such tags, so enabling it is safe for both
+        // this endpoint and the Anthropic-compatible one.
+        injects_think_tags: true,
     },
     CustomModelProviderPreset {
         id: "zai",

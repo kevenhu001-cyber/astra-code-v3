@@ -199,11 +199,19 @@ pub fn stream_chat_completions<'a>(
                                 chunk_index,
                             };
                         }
-                    } else if !first_token_emitted {
-                        first_token_emitted = true;
-                        yield SamplingEvent::FirstToken {
-                            request_id: request_id.clone(),
-                        };
+                    } else {
+                        // Plain text path (no think-tag splitter). Emit
+                        // FirstToken on the first content chunk; emit a
+                        // ChannelToken for EVERY content chunk so the
+                        // downstream sees the full text, not just the
+                        // first one. The earlier `else if !first_token_emitted`
+                        // guard wrongly dropped every chunk past the first.
+                        if !first_token_emitted {
+                            first_token_emitted = true;
+                            yield SamplingEvent::FirstToken {
+                                request_id: request_id.clone(),
+                            };
+                        }
                         chunk_has_content = true;
                         chunk_timestamps.push(Instant::now());
                         chunk_index += 1;
@@ -381,17 +389,17 @@ fn split_think_runs(chunk: &str, in_think: &mut bool, tag_buf: &mut String) -> V
         }
     }
 
-    // Drain any buffered partial tag from a previous chunk: try to complete it
-    // against the start of this chunk before scanning fresh content.
-    let mut idx = 0;
+    // Try to complete any partial tag buffered from a previous chunk against
+    // the start of this chunk before scanning fresh content. `tag_buf` holds
+    // whole chars, so the candidate stays a valid UTF-8 prefix.
+    let mut chars = chunk.char_indices().peekable();
     if !tag_buf.is_empty() {
-        while idx < chunk.len() {
-            let c = chunk.as_bytes()[idx] as char;
+        while let Some((_, c)) = chars.peek() {
             let candidate = format!("{tag_buf}{c}");
             if OPEN_TAG.starts_with(candidate.as_str()) || CLOSE_TAG.starts_with(candidate.as_str())
             {
-                tag_buf.push(c);
-                idx += 1;
+                tag_buf.push(*c);
+                chars.next();
                 if *tag_buf == OPEN_TAG {
                     flush(&mut cur, *in_think, &mut runs);
                     *in_think = true;
@@ -408,7 +416,7 @@ fn split_think_runs(chunk: &str, in_think: &mut bool, tag_buf: &mut String) -> V
                 break;
             }
         }
-        // Buffered bytes that can no longer form a tag become plain content.
+        // Buffered chars that can no longer form a tag become plain content.
         if !tag_buf.is_empty()
             && !OPEN_TAG.starts_with(tag_buf.as_str())
             && !CLOSE_TAG.starts_with(tag_buf.as_str())
@@ -419,16 +427,15 @@ fn split_think_runs(chunk: &str, in_think: &mut bool, tag_buf: &mut String) -> V
         }
     }
 
-    // Main scan over the remaining bytes.
-    while idx < chunk.len() {
-        let c = chunk.as_bytes()[idx] as char;
+    // Main scan over the remaining chars, honouring char (not byte) boundaries
+    // so multi-byte UTF-8 content is preserved verbatim.
+    for (_, c) in chars {
         // Extend a pending partial tag (or start one on '<').
         if !tag_buf.is_empty() || c == '<' {
             let candidate = format!("{tag_buf}{c}");
             if OPEN_TAG.starts_with(candidate.as_str()) || CLOSE_TAG.starts_with(candidate.as_str())
             {
                 tag_buf.push(c);
-                idx += 1;
                 if *tag_buf == OPEN_TAG {
                     flush(&mut cur, *in_think, &mut runs);
                     *in_think = true;
@@ -440,15 +447,15 @@ fn split_think_runs(chunk: &str, in_think: &mut bool, tag_buf: &mut String) -> V
                 }
                 continue;
             }
-            // Not a tag: emit the buffered partial bytes as content first.
+            // Not a tag: emit the buffered partial chars as content first.
             cur.push_str(tag_buf);
             flush(&mut cur, *in_think, &mut runs);
             tag_buf.clear();
         }
         cur.push(c);
-        idx += 1;
     }
 
+    // Any trailing partial tag stays buffered for the next chunk.
     flush(&mut cur, *in_think, &mut runs);
     runs
 }
@@ -520,8 +527,8 @@ mod tests {
             None,
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         assert_eq!(events.len(), 2);
@@ -547,8 +554,8 @@ mod tests {
             None,
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         // Expected sequence: StreamStarted, FirstToken, ChannelToken(Text)
@@ -602,8 +609,8 @@ mod tests {
             None,
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         // FirstToken should appear exactly once.
@@ -689,8 +696,8 @@ mod tests {
             None,
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         let deltas: Vec<_> = events
@@ -747,8 +754,8 @@ mod tests {
             None,
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         assert!(
@@ -774,6 +781,7 @@ mod tests {
             None,
             rid(),
             Duration::from_millis(100),
+            false,
         ))
         .await;
 
@@ -800,8 +808,8 @@ mod tests {
             Some(metadata.clone()),
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         assert!(matches!(events[0], SamplingEvent::StreamStarted { .. }));
@@ -837,8 +845,8 @@ mod tests {
             None,
             rid(),
             Duration::from_secs(60),
-                false,
-            ))
+            false,
+        ))
         .await;
 
         match events.last().unwrap() {
@@ -967,7 +975,10 @@ mod tests {
         let mut reasoning = String::new();
         let mut text = String::new();
         for e in &events {
-            if let SamplingEvent::ChannelToken { channel, text: t, .. } = e {
+            if let SamplingEvent::ChannelToken {
+                channel, text: t, ..
+            } = e
+            {
                 match channel {
                     SamplingChannel::Reasoning => reasoning.push_str(t),
                     SamplingChannel::Text => text.push_str(t),
@@ -1009,11 +1020,7 @@ mod tests {
     fn split_think_runs_unit_basic() {
         let mut in_think = false;
         let mut tag_buf = String::new();
-        let runs = split_think_runs(
-            "a<think>b</think>c",
-            &mut in_think,
-            &mut tag_buf,
-        );
+        let runs = split_think_runs("a<think>b</think>c", &mut in_think, &mut tag_buf);
         assert_eq!(
             runs,
             vec![
@@ -1034,11 +1041,61 @@ mod tests {
         let runs = split_think_runs("x<think>still thinking", &mut in_think, &mut tag_buf);
         assert_eq!(
             runs,
-            vec![ThinkRun::Text("x".into()), ThinkRun::Reasoning("still thinking".into())]
+            vec![
+                ThinkRun::Text("x".into()),
+                ThinkRun::Reasoning("still thinking".into())
+            ]
         );
         assert!(in_think);
     }
-#[tokio::test]
+
+    #[test]
+    fn split_think_runs_preserves_multibyte_utf8() {
+        // Regression: the byte-wise scanner mangled multi-byte UTF-8. Whole
+        // chars must survive inside both reasoning and text runs.
+        let mut in_think = false;
+        let mut tag_buf = String::new();
+        let runs = split_think_runs(
+            "思考一下：<think>中文推理过程</think>好的，回答你。",
+            &mut in_think,
+            &mut tag_buf,
+        );
+        assert_eq!(
+            runs,
+            vec![
+                ThinkRun::Text("思考一下：".into()),
+                ThinkRun::Reasoning("中文推理过程".into()),
+                ThinkRun::Text("好的，回答你。".into()),
+            ]
+        );
+        assert!(!in_think);
+        assert!(tag_buf.is_empty());
+    }
+
+    #[test]
+    fn split_think_runs_multibyte_across_chunk_boundary() {
+        // A multi-byte char may straddle two chunks; the buffered partial tag
+        // path must not corrupt surrounding UTF-8 content.
+        let mut in_think = false;
+        let mut tag_buf = String::new();
+        // First chunk ends mid-way through 思考 and with a partial opener.
+        let first = split_think_runs("前段<thi", &mut in_think, &mut tag_buf);
+        assert_eq!(first, vec![ThinkRun::Text("前段".into())]);
+        assert!(tag_buf == "<thi");
+        // Second chunk completes the tag, carries 思考+reasoning+closer+text.
+        let second = split_think_runs("nk>思考过程</think>后段", &mut in_think, &mut tag_buf);
+        assert_eq!(
+            second,
+            vec![
+                ThinkRun::Reasoning("思考过程".into()),
+                ThinkRun::Text("后段".into())
+            ]
+        );
+        assert!(!in_think);
+        assert!(tag_buf.is_empty());
+    }
+
+    #[tokio::test]
     async fn later_missing_cost_does_not_clobber_earlier_ticks() {
         let mut first = make_chunk(vec![ChatChunkDelta::default()]);
         first.usage = Some(Usage {
@@ -1071,7 +1128,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             false,
-            ))
+        ))
         .await;
         match events.last().unwrap() {
             SamplingEvent::Completed { response, .. } => {

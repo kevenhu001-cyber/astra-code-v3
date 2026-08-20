@@ -2267,6 +2267,7 @@ mod tests {
             compaction_at_tokens: None,
             doom_loop_recovery: None,
             header_injector: None,
+            injects_think_tags_in_content: false,
         }
     }
 

@@ -1068,6 +1068,7 @@ fn test_model_entry(
             show_model_fingerprint: false,
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
+            injects_think_tags_in_content: false,
         },
         api_key: api_key.map(|s| s.to_string()),
         env_key: env_key.map(EnvKeys::single),

@@ -70,7 +70,11 @@ fn preset_example_models(provider: &str) -> &'static [&'static str] {
 /// reasoning channel, so this list is intentionally empty — the think-tag
 /// splitter is opt-in for endpoints (custom proxies / self-hosted) that don't
 /// surface a native reasoning field.
-const THINK_TAG_PRESETS: &[&str] = &[];
+/// `minimax_cn` is the exception: its OpenAI-compatible /v1/chat/completions
+/// endpoint does not expose a native reasoning_content delta - MiniMax
+/// embeds thinking in content as <thinking>...</thinking> tags. The splitter
+/// is a no-op when the stream carries no such tags, so it is safe to enable.
+const THINK_TAG_PRESETS: &[&str] = &["minimax_cn"];
 
 pub struct ConnectCommand;
 
@@ -267,6 +271,7 @@ mod tests {
     use crate::acp::model_state::ModelState;
     use crate::app::actions::Action;
     use crate::slash::command::{AppCtx, CommandExecCtx, CommandResult};
+    use std::sync::OnceLock;
 
     static EMPTY_BUNDLE: crate::app::bundle::BundleState = crate::app::bundle::BundleState {
         has_cache: false,
@@ -279,9 +284,16 @@ mod tests {
         role_details: Vec::new(),
     };
 
+    /// Shared empty `ModelState` for tests. `Default` is not const, so the
+    /// instance is lazily initialized once and borrowed for `'static`.
+    fn empty_models() -> &'static ModelState {
+        static MODELS: OnceLock<ModelState> = OnceLock::new();
+        MODELS.get_or_init(ModelState::default)
+    }
+
     fn ctx() -> CommandExecCtx<'static> {
         CommandExecCtx {
-            models: &ModelState::default(),
+            models: empty_models(),
             session_id: None,
             bundle_state: &EMPTY_BUNDLE,
             screen_mode: crate::app::ScreenMode::Inline,
@@ -357,6 +369,29 @@ mod tests {
     }
 
     #[test]
+    fn minimax_preset_enables_think_tags() {
+        // MiniMax's OpenAI-compatible endpoint embeds thinking in `content` as
+        // `<thinking>…</thinking>` tags (no native reasoning_content delta), so
+        // the preset must enable the tag splitter.
+        let res = run("minimax_cn MiniMax-M3 sk-mm");
+        match res {
+            CommandResult::Action(Action::ConnectCustomModel {
+                provider,
+                base_url,
+                injects_think_tags,
+                model_id,
+                ..
+            }) => {
+                assert_eq!(provider, "minimax_cn");
+                assert_eq!(model_id, "MiniMax-M3");
+                assert_eq!(base_url, "https://api.minimaxi.com/v1");
+                assert!(injects_think_tags);
+            }
+            other => panic!("expected ConnectCustomModel, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn custom_requires_base_url() {
         // Missing URL → error, since the preset has no baked-in endpoint.
         assert!(matches!(
@@ -426,7 +461,7 @@ mod tests {
         let c = ctx();
         let items = ConnectCommand
             .suggest_args(&crate::slash::command::AppCtx {
-                models: &ModelState::default(),
+                models: empty_models(),
                 cwd: std::path::Path::new("."),
                 has_session_announcements: false,
                 billing_surface_visible: true,
