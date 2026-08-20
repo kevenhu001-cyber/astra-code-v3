@@ -986,6 +986,11 @@ pub(crate) fn parse_remote_model_value(
                 }
             })
             .unwrap_or_default(),
+        injects_think_tags_in_content: obj
+            .get("injectsThinkTagsInContent")
+            .or_else(|| obj.get("injects_think_tags_in_content"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
     })
 }
 fn get_string(obj: &serde_json::Map<String, serde_json::Value>, key: &str) -> Option<String> {

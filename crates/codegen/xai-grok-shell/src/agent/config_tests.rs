@@ -2142,6 +2142,7 @@ fn model_info_from_config_propagates_use_concise() {
         show_model_fingerprint: false,
         stream_tool_calls: None,
         laziness_detector: LazinessDetectorPerModelConfig::default(),
+        injects_think_tags_in_content: false,
     };
     let info = ModelInfo::from_config(&entry);
     assert!(info.use_concise);
@@ -2302,6 +2303,7 @@ fn model_info_from_config_propagates_agent_type() {
         show_model_fingerprint: false,
         stream_tool_calls: None,
         laziness_detector: LazinessDetectorPerModelConfig::default(),
+        injects_think_tags_in_content: false,
     };
     let info = ModelInfo::from_config(&entry);
     assert_eq!(info.agent_type, "codex");
@@ -2754,6 +2756,7 @@ fn inference_idle_timeout_propagates_to_model_info() {
         show_model_fingerprint: false,
         stream_tool_calls: None,
         laziness_detector: LazinessDetectorPerModelConfig::default(),
+        injects_think_tags_in_content: false,
     };
     let info = ModelInfo::from_config(&entry);
     assert_eq!(info.inference_idle_timeout_secs, Some(120));
@@ -6728,6 +6731,7 @@ fn prefetch_model_entry(slug: &str, context_window: u64, api_backend: ApiBackend
             show_model_fingerprint: false,
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
+            injects_think_tags_in_content: false,
             auto_compact_threshold_percent: None,
             system_prompt_label: None,
         },

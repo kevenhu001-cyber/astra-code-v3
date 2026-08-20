@@ -3844,6 +3844,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 show_model_fingerprint: m.show_model_fingerprint,
                 stream_tool_calls: None,
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
+                injects_think_tags_in_content: false,
             };
             (key, config)
         })
@@ -5104,6 +5105,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 show_model_fingerprint: false,
                 stream_tool_calls: None,
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
+                injects_think_tags_in_content: false,
             },
             api_key: Some(bearer),
             env_key: None,
@@ -5342,6 +5344,7 @@ fn resolve_hidden_default_web_search_sampling_config(
             show_model_fingerprint: false,
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
+            injects_think_tags_in_content: false,
         },
         api_key: None,
         env_key: None,
