@@ -2115,6 +2115,32 @@ pub(in crate::app::dispatch) fn set_custom_model_base_url(
     }]
 }
 
+/// Persist the custom-model think-tag injection flag. When enabled, the Chat
+/// Completions stream transformer routes ` thinking…`-tagged content deltas
+/// to the reasoning channel (OpenAI-compatible BYOK providers).
+pub(in crate::app::dispatch) fn set_custom_model_injects_think_tags(
+    app: &mut AppView,
+    value: bool,
+) -> Vec<Effect> {
+    refresh_open_settings_modals(app);
+    tracing::info!(
+        target: "settings",
+        key = "custom_model_injects_think_tags",
+        value = value,
+        "setting changed",
+    );
+    app.show_toast(if value {
+        "\u{2713} Think-tag splitting enabled (restart to apply)"
+    } else {
+        "\u{2713} Think-tag splitting disabled (restart to apply)"
+    });
+    vec![Effect::PersistSetting {
+        key: "custom_model_injects_think_tags",
+        value: crate::settings::SettingValue::Bool(value),
+        rollback_value: crate::settings::SettingValue::Bool(!value),
+    }]
+}
+
 /// Configure a custom model end-to-end via the `/connect` command. Persists
 /// the full `[model.astra-custom]` block: provider (api_backend + base_url),
 /// model id, display name, API key, and the think-tag injection flag. The
@@ -2138,7 +2164,7 @@ pub(in crate::app::dispatch) fn connect_custom_model(
         model_id = %model_id,
         "connect custom model",
     );
-    app.show_toast(format!(
+    app.show_toast(&format!(
         "\u{2713} Connected {display_name} ({model_id}) — restart to apply"
     ));
     vec![

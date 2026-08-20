@@ -55,16 +55,12 @@ impl Default for Options {
 
 #[derive(Debug, Clone)]
 struct OidcCode {
-    code: String,
     user_id: String,
     client_id: String,
     redirect_uri: String,
     code_challenge: String,
     code_challenge_method: String,
     nonce: String,
-    scope: String,
-    state: String,
-    created_at: chrono::DateTime<Utc>,
     expires_at: chrono::DateTime<Utc>,
 }
 
@@ -202,7 +198,6 @@ impl Server {
             .get("code_challenge_method")
             .cloned()
             .unwrap_or_else(|| "plain".to_string());
-        let scope = params.get("scope").cloned().unwrap_or_default();
         let nonce = params.get("nonce").cloned().unwrap_or_default();
         if client_id.is_empty() || redirect_uri.is_empty() {
             return write_err(StatusCode::BAD_REQUEST, "missing client_id or redirect_uri");
@@ -232,17 +227,13 @@ impl Server {
         };
         let code = password::random_hex(16);
         let oidc_code = OidcCode {
-            code: code.clone(),
             user_id: user.id.clone(),
             client_id: client_id.clone(),
             redirect_uri: redirect_uri.clone(),
             code_challenge: code_challenge.clone(),
             code_challenge_method: code_challenge_method.clone(),
             nonce: nonce.clone(),
-            scope: scope.clone(),
-            created_at: Utc::now(),
             expires_at: Utc::now() + Duration::minutes(10),
-            state: state.clone(),
         };
         s.oidc_codes
             .lock()
