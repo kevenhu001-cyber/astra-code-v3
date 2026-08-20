@@ -520,7 +520,11 @@ impl<'a> EntryRenderer<'a> {
     /// `desired_height` and `estimate_height` so the assembly stays canonical.
     fn assemble_height(&self, content_width: u16, content_lines: u16) -> u16 {
         let vpad: u16 = if self.entry.block.has_vpad_for(self.appearance()) {
-            2
+            if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
+                4
+            } else {
+                2
+            }
         } else {
             0
         };
@@ -557,7 +561,11 @@ impl<'a> EntryRenderer<'a> {
             .entry
             .context(content_width, self.appearance(), self.cwd);
         let vpad_top: u16 = if self.entry.block.has_vpad(&ctx) {
-            1
+            if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
+                2
+            } else {
+                1
+            }
         } else {
             0
         };
@@ -892,27 +900,26 @@ impl Renderable for EntryRenderer<'_> {
         let cached_ref = self.entry.cached_output_ref();
         let output: &BlockOutput = &cached_ref;
         let has_vpad = self.entry.block.has_vpad(&ctx);
-        // Determine how many rows of vpad/content to skip.
-        // Layout is: [vpad_top?] [content lines...] [vpad_bottom?]
-        let vpad_top = if has_vpad { 1u16 } else { 0 };
-        let skip_remaining = skip_rows;
-
-        // Skip vpad_top (0 or 1 row)
-        let vpad_top_visible = if skip_remaining < vpad_top {
-            // Partial skip into vpad — vpad is still visible
-            // (vpad is 0 or 1 row, so this means skip_rows == 0)
-            true
+        let vpad_top = if has_vpad {
+            if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
+                2
+            } else {
+                1
+            }
         } else {
-            false
+            0
         };
+        let skip_remaining = skip_rows;
+        let visible_top = vpad_top.saturating_sub(skip_remaining);
+        let vpad_top_visible = visible_top > 0;
         let content_skip = skip_remaining.saturating_sub(vpad_top);
 
         let mut row = content_area.y;
         let max_row = content_area.y + content_area.height;
 
-        // Top vpad (only if not skipped)
-        if vpad_top_visible && row < max_row {
-            row += 1;
+        if visible_top > 0 && row < max_row {
+            let add = visible_top.min(max_row - row);
+            row += add;
         }
 
         // Own the timestamp gutter per row (no-bg blocks skip the full-area fill)
@@ -963,7 +970,7 @@ impl Renderable for EntryRenderer<'_> {
             && self.should_show_timestamp()
             && let Some(ts) = self.entry.created_at
         {
-            let first_content_y = content_area.y + if vpad_top_visible { 1 } else { 0 };
+            let first_content_y = content_area.y + visible_top;
             // Check if mouse is hovering the timestamp zone (rightmost 10 cols
             // of the first content row).
             let ts_hovered = self.mouse_pos.is_some_and(|(mx, my)| {
@@ -996,7 +1003,7 @@ impl Renderable for EntryRenderer<'_> {
         // The bullet is the first character on the first content row.
         if skip_rows == 0 && self.entry.block.has_bullet(&ctx) {
             let bullet_style = self.entry.block.bullet(&ctx);
-            let bullet_y = content_area.y + if has_vpad { 1 } else { 0 };
+            let bullet_y = content_area.y + vpad_top;
 
             if bullet_y >= max_row {
                 // bullet not visible — skip post-pass

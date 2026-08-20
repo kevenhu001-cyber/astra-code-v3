@@ -209,8 +209,8 @@ impl BlockContent for AgentMessageBlock {
         None
     }
 
-    fn has_vpad_for(&self, _appearance: &AppearanceConfig) -> bool {
-        false
+    fn has_vpad_for(&self, appearance: &AppearanceConfig) -> bool {
+        appearance.scrollback.blocks.prompt.vpad && !appearance.prompt.compact
     }
 
     fn has_raw_mode(&self) -> bool {
