@@ -417,7 +417,7 @@ impl AgentView {
                     // sees the modal disappear immediately.
                     self.active_modal = None;
                     let display_name = format!(
-                        "{} \u00b7 {}",
+                        "{} · {}",
                         result.provider, result.model_id
                     );
                     return InputOutcome::Action(

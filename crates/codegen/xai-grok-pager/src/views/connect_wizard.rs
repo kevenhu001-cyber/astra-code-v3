@@ -638,13 +638,13 @@ fn render_preset(buf: &mut Buffer, area: Rect, state: &mut ConnectWizardState) {
     }
     let mut list_state = ListState::default();
     list_state.select(Some(state.preset_idx));
-    List::new(items)
+    let list = List::new(items)
         .highlight_style(
             Style::default()
                 .bg(Color::Rgb(40, 40, 40))
                 .add_modifier(Modifier::BOLD),
-        )
-        .render(inner, buf, &mut list_state);
+        );
+    StatefulWidget::render(list, inner, buf, &mut list_state);
 }
 
 fn render_text_field(
