@@ -521,12 +521,12 @@ impl<'a> EntryRenderer<'a> {
     fn assemble_height(&self, content_width: u16, content_lines: u16) -> u16 {
         let vpad: u16 = if self.entry.block.has_vpad_for(self.appearance()) {
             if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
-                4
+                4u16
             } else {
-                2
+                2u16
             }
         } else {
-            0
+            0u16
         };
         content_lines
             .saturating_add(vpad)
@@ -562,9 +562,9 @@ impl<'a> EntryRenderer<'a> {
             .context(content_width, self.appearance(), self.cwd);
         let vpad_top: u16 = if self.entry.block.has_vpad(&ctx) {
             if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
-                2
+                2u16
             } else {
-                1
+                1u16
             }
         } else {
             0
@@ -900,18 +900,17 @@ impl Renderable for EntryRenderer<'_> {
         let cached_ref = self.entry.cached_output_ref();
         let output: &BlockOutput = &cached_ref;
         let has_vpad = self.entry.block.has_vpad(&ctx);
-        let vpad_top = if has_vpad {
+        let vpad_top: u16 = if has_vpad {
             if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
-                2
+                2u16
             } else {
-                1
+                1u16
             }
         } else {
-            0
+            0u16
         };
         let skip_remaining = skip_rows;
         let visible_top = vpad_top.saturating_sub(skip_remaining);
-        let vpad_top_visible = visible_top > 0;
         let content_skip = skip_remaining.saturating_sub(vpad_top);
 
         let mut row = content_area.y;
