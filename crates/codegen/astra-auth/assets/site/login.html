@@ -153,7 +153,9 @@
           await A.api('/login', { body: { email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value } });
           var user = await A.me();
           if (user) {
-            window.location.href = 'account';
+            // replace() — not href= — so Edge's bfcache cannot replay this
+            // page after success and re-enter the login↔account loop.
+            window.location.replace('account');
           } else {
             A.setErr('Signed in, but your browser blocked the session cookie. Allow cookies for this site, then try again.');
           }
@@ -192,7 +194,13 @@
         } catch (err) { A.setErr(err.message); }
       });
 
-      A.me().then(function (user) { if (user) window.location.href = 'account'; });
+      A.me().then(function (user) {
+        // Use replace() (not href=) so Edge's bfcache cannot replay this
+        // page after a successful login — that replay path is what used to
+        // bounce login.html ↔ account.html indefinitely when the `sid`
+        // cookie got dropped mid-flight.
+        if (user) window.location.replace('account');
+      });
     })();
   </script>
 </body>

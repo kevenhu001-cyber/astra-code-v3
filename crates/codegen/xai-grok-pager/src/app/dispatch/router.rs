@@ -4,6 +4,7 @@ use super::auth::{
     dispatch_switch_account,
 };
 use super::billing::dispatch_open_supergrok_url;
+use super::connect_wizard::dispatch_open_connect_wizard;
 use super::ctx::{
     active_agent_session_id, get_active_agent_mut, navigate_clearing_selection, open_url_or_show,
     sync_sleep_inhibitor, with_active_agent, with_scrollback,
@@ -1333,6 +1334,7 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             }
             vec![]
         }
+        Action::OpenConnectWizard => dispatch_open_connect_wizard(app),
         Action::OpenGboom => dispatch_open_gboom(app),
         Action::SuspendForEditor {
             path,

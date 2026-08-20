@@ -1036,6 +1036,15 @@ pub enum Action {
     },
     /// Open the memory browser modal.
     OpenMemoryModal,
+    /// Open the `/connect` guided wizard modal.
+    ///
+    /// The wizard walks the user through three fields — base URL, model ID,
+    /// API key — and submits the same [`Action::ConnectCustomModel`] action
+    /// the one-shot command path uses, so the persistence + restart
+    /// semantics stay identical. The wizard is also where the user lands
+    /// when `/connect` is run with too few args to one-shot (empty, just a
+    /// preset, or a preset + model id with no key).
+    OpenConnectWizard,
     /// Open the hidden `/gboom` easter egg (DOOM-style raycaster modal).
     OpenGboom,
     /// Suspend the TUI and open a configuration file in `$EDITOR`.

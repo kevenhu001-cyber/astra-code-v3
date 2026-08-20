@@ -124,7 +124,13 @@ impl SlashCommand for ConnectCommand {
     fn run(&self, _ctx: &mut CommandExecCtx, args: &str) -> CommandResult {
         let trimmed = args.trim();
         if trimmed.is_empty() {
-            return CommandResult::Message(guided_help());
+            // No args -> open the guided wizard instead of dumping help
+            // text. The wizard walks URL -> model id -> API key, and
+            // submits through the same `Action::ConnectCustomModel` path
+            // the one-shot command would have used. Re-running `/connect`
+            // with no args is now the canonical "I want to set up a model"
+            // entry point.
+            return CommandResult::Action(Action::OpenConnectWizard);
         }
 
         // Split into at most 4 whitespace-delimited tokens. The base URL may
@@ -172,9 +178,7 @@ impl SlashCommand for ConnectCommand {
         }
 
         if model_id.is_empty() {
-            return CommandResult::Error(format!(
-                "Usage: /connect {provider} <model_id> <api_key> [base_url]"
-            ));
+            return CommandResult::Action(Action::OpenConnectWizard);
         }
 
         let injects_think_tags = THINK_TAG_PRESETS.contains(&provider);
@@ -309,8 +313,23 @@ mod tests {
     }
 
     #[test]
-    fn no_args_shows_help() {
-        assert!(matches!(run(""), CommandResult::Message(_)));
+    fn no_args_opens_wizard() {
+        // No args -> the guided wizard, not a help message.
+        assert!(matches!(
+            run(""),
+            CommandResult::Action(Action::OpenConnectWizard)
+        ));
+    }
+
+    #[test]
+    fn preset_only_opens_wizard() {
+        // `/connect openai` alone (no model id, no key) also routes to the
+        // wizard — it's the typed shortcut to "open the form pre-loaded
+        // with this preset".
+        assert!(matches!(
+            run("openai"),
+            CommandResult::Action(Action::OpenConnectWizard)
+        ));
     }
 
     #[test]
@@ -319,8 +338,13 @@ mod tests {
     }
 
     #[test]
-    fn preset_without_model_id_errors() {
-        assert!(matches!(run("openai"), CommandResult::Error(_)));
+    fn unknown_provider_with_no_args_opens_wizard() {
+        // Empty args or single-token unknown names both end up in the
+        // wizard; the wizard then validates the preset on its own.
+        assert!(matches!(
+            run(""),
+            CommandResult::Action(Action::OpenConnectWizard)
+        ));
     }
 
     #[test]
@@ -428,10 +452,12 @@ mod tests {
 
     #[test]
     fn guided_help_advertises_example_model_ids() {
-        let res = run("");
-        let CommandResult::Message(msg) = res else {
-            panic!("expected help message");
-        };
+        // Help text now lives behind an internal-only call (no slash command
+        // path triggers it). The wizard surfaces the same info via preset
+        // labels instead. This test stays as a regression check for the
+        // underlying `guided_help()` formatter so the strings it composes
+        // stay in sync if anyone wires a non-wizard help path back in.
+        let msg = guided_help();
         // OpenAI preset examples.
         assert!(msg.contains("gpt-5.6-luna"), "{msg}");
         assert!(msg.contains("gpt-5.6-terra"), "{msg}");

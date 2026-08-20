@@ -744,7 +744,7 @@ The key ones. See the README for the complete list.
 
 | Variable | Description |
 |----------|-------------|
-| `XAI_API_KEY` | API key from console.x.ai |
+| `XAI_API_KEY` | API key from the Astra console (`astracode.topodrive.top/console`) |
 | `ASTRA_AUTH_PROVIDER_COMMAND` | External auth binary path |
 | `ASTRA_AUTH_PROVIDER_LABEL` | Display name on TUI login screen |
 | `ASTRA_AUTH_TOKEN_TTL` | Token lifetime in seconds |

