@@ -11,6 +11,7 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::prelude::{StatefulWidget, Widget};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
@@ -248,17 +249,16 @@ impl ConnectWizardState {
         if self.focused == Field::Preset {
             return;
         }
-        let buf = self.focused_text_mut().expect("text field focused");
+        // Snapshot `cur` before taking the mutable borrow on the focused
+        // field — `self.focused_cursor()` and `self.focused_text_mut()` would
+        // otherwise conflict.
         let cur = self.focused_cursor();
+        let buf = self.focused_text_mut().expect("text field focused");
         let cur = cur.min(buf.len());
-        // Use char-aware insertion (Rust String supports it natively).
         buf.insert(cur, c);
-        self.set_focused_cursor(cur + c.len_utf8());
-        // Editing the URL field drops the preset-sync so the user's text
-        // stays put if they later change the preset.
-        if self.focused == Field::Url {
-            self.base_url = buf.clone();
-        }
+        let new_cur = cur + c.len_utf8();
+        // NLL releases `buf` here; the next line needs a fresh `&mut self`.
+        self.set_focused_cursor(new_cur);
         self.error.clear();
     }
 
@@ -266,11 +266,11 @@ impl ConnectWizardState {
         if self.focused == Field::Preset {
             return;
         }
-        let buf = self.focused_text_mut().expect("text field focused");
         let cur = self.focused_cursor();
         if cur == 0 {
             return;
         }
+        let buf = self.focused_text_mut().expect("text field focused");
         // Find the previous char boundary.
         let mut start = cur - 1;
         while !buf.is_char_boundary(start) {
@@ -285,8 +285,8 @@ impl ConnectWizardState {
         if self.focused == Field::Preset {
             return;
         }
-        let buf = self.focused_text_mut().expect("text field focused");
         let cur = self.focused_cursor();
+        let buf = self.focused_text_mut().expect("text field focused");
         if cur >= buf.len() {
             return;
         }
@@ -437,7 +437,7 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
 
     // Text-field handling.
     match key.code {
-        KeyCode::BackSpace => {
+        KeyCode::Backspace => {
             state.backspace();
             WizardOutcome::Changed
         }
@@ -467,15 +467,6 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
                 return WizardOutcome::Unhandled;
             }
             state.insert_char(c);
-            WizardOutcome::Changed
-        }
-        KeyCode::Paste(s) => {
-            for c in s.chars() {
-                if c.is_control() && c != '\t' {
-                    continue;
-                }
-                state.insert_char(c);
-            }
             WizardOutcome::Changed
         }
         _ => WizardOutcome::Unhandled,

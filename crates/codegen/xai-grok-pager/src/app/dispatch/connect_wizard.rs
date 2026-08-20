@@ -5,6 +5,7 @@
 //! so the dispatcher can close the modal before emitting the
 //! `Action::ConnectCustomModel`.
 
+use crate::app::actions::Effect;
 use crate::app::app_view::{ActiveView, AppView};
 use crate::views::connect_wizard::ConnectWizardState;
 use crate::views::modal::ActiveModal;

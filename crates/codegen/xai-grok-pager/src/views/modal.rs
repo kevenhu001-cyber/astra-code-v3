@@ -661,7 +661,8 @@ impl ActiveModal {
             | ActiveModal::MemoryBrowser { .. }
             | ActiveModal::Settings { .. }
             | ActiveModal::UsageInfo { .. }
-            | ActiveModal::RememberNoteReview { .. } => vec![],
+            | ActiveModal::RememberNoteReview { .. }
+            | ActiveModal::ConnectWizard { .. } => vec![],
         }
     }
     pub fn message(&self, drain_blocked: bool) -> &str {
@@ -693,6 +694,7 @@ impl ActiveModal {
             ActiveModal::ResetSettingsConfirm { .. } => "Reset setting?",
             ActiveModal::RememberNoteReview { .. } => "Memory Note",
             ActiveModal::UsageInfo { .. } => "Usage",
+            ActiveModal::ConnectWizard { .. } => "Connect",
         }
     }
 }
