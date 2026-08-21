@@ -519,15 +519,7 @@ impl<'a> EntryRenderer<'a> {
     /// ceiling can't overflow and corrupt `virtual_y` / `total_height`. Shared by
     /// `desired_height` and `estimate_height` so the assembly stays canonical.
     fn assemble_height(&self, content_width: u16, content_lines: u16) -> u16 {
-        let vpad: u16 = if self.entry.block.has_vpad_for(self.appearance()) {
-            if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
-                4u16
-            } else {
-                2u16
-            }
-        } else {
-            0u16
-        };
+        let vpad: u16 = self.entry.block.vpad_rows_for(self.appearance());
         content_lines
             .saturating_add(vpad)
             .saturating_add(self.inline_media_rows(content_width))
@@ -560,15 +552,7 @@ impl<'a> EntryRenderer<'a> {
         let ctx = self
             .entry
             .context(content_width, self.appearance(), self.cwd);
-        let vpad_top: u16 = if self.entry.block.has_vpad(&ctx) {
-            if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
-                2u16
-            } else {
-                1u16
-            }
-        } else {
-            0
-        };
+        let vpad_top: u16 = self.entry.block.vpad_top_rows_for(&ctx.appearance);
         self.entry
             .ensure_cached(content_width, self.appearance(), false, self.cwd);
         let output = self.entry.cached_output_ref();
@@ -900,15 +884,7 @@ impl Renderable for EntryRenderer<'_> {
         let cached_ref = self.entry.cached_output_ref();
         let output: &BlockOutput = &cached_ref;
         let has_vpad = self.entry.block.has_vpad(&ctx);
-        let vpad_top: u16 = if has_vpad {
-            if matches!(self.entry.block, RenderBlock::UserPrompt(_)) {
-                2u16
-            } else {
-                1u16
-            }
-        } else {
-            0u16
-        };
+        let vpad_top: u16 = self.entry.block.vpad_top_rows_for(&ctx.appearance);
         let skip_remaining = skip_rows;
         let visible_top = vpad_top.saturating_sub(skip_remaining);
         let content_skip = skip_remaining.saturating_sub(vpad_top);
@@ -1230,11 +1206,12 @@ mod tests {
         let mut buf = Buffer::empty(area);
         renderer.render(area, &mut buf);
 
-        // UserPrompt has vpad=true, first content row is y=1.
+        // UserPrompt carries the taller chat-bubble band (vpad_top=2),
+        // first content row is y=2.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
-        let content_row = 1u16;
+        let content_row = 2u16;
 
         let rendered = collect_row_symbols(&buf, content_row, ts_x, ts_x + ts_width);
         assert_eq!(
@@ -1255,15 +1232,15 @@ mod tests {
         let mut buf = Buffer::empty(area);
         renderer.render(area, &mut buf);
 
-        // AgentMessage has vpad=false, first content row is y=0.
+        // AgentMessage has vpad (1 top row), first content row is y=1.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
 
-        let rendered = collect_row_symbols(&buf, 0, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 1, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
-            "Expected short timestamp '{expected}' at row 0"
+            "Expected short timestamp '{expected}' at row 1"
         );
     }
 
@@ -1273,10 +1250,10 @@ mod tests {
         let entry = ScrollbackEntry::new(RenderBlock::agent_message("hello"));
         let width: u16 = 80;
 
-        // AgentMessage has no vpad → first content row at y=0.
+        // AgentMessage has vpad → first content row at y=1.
         // Hover the rightmost 10 cols of that row to trigger expansion.
         let hover_x = width - 2 - 5; // inside the timestamp zone
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 0)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 1)));
 
         let height = renderer.desired_height(width);
         let area = Rect::new(0, 0, width, height);
@@ -1294,7 +1271,7 @@ mod tests {
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
 
-        let rendered = collect_row_symbols(&buf, 0, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 1, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
             "Mouse-hovered timestamp should show expanded format '{expected}'"
@@ -1309,28 +1286,28 @@ mod tests {
 
         // Render with mouse hovering timestamp → expanded
         let hover_x = width - 2 - 3;
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 0)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 1)));
         let height = renderer.desired_height(width);
         let area = Rect::new(0, 0, width, height);
         let mut buf_hover = Buffer::empty(area);
         renderer.render(area, &mut buf_hover);
 
         // Render with mouse far from timestamp → short
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((5, 0)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((5, 1)));
         let mut buf_away = Buffer::empty(area);
         renderer.render(area, &mut buf_away);
 
         // Hovered should have pipe separator (expanded format)
-        let row_hover = collect_row_symbols(&buf_hover, 0, 0, width);
+        let row_hover = collect_row_symbols(&buf_hover, 1, 0, width);
         assert!(
             row_hover.contains('|'),
             "Hovered should show expanded format with '|'"
         );
 
         // Away should have AM/PM but NO pipe
-        let row_away = collect_row_symbols(&buf_away, 0, 0, width);
+        let row_away = collect_row_symbols(&buf_away, 1, 0, width);
         assert!(
-            has_ampm_timestamp(&buf_away, 0, width),
+            has_ampm_timestamp(&buf_away, 1, width),
             "Non-hovered should show short AM/PM timestamp"
         );
         assert!(
@@ -1391,8 +1368,8 @@ mod tests {
 
         // Blocks that SHOULD show timestamps
         let positive_blocks = vec![
-            ("UserPrompt", RenderBlock::user_prompt("test"), 1u16),
-            ("AgentMessage", RenderBlock::agent_message("test"), 0),
+            ("UserPrompt", RenderBlock::user_prompt("test"), 2u16),
+            ("AgentMessage", RenderBlock::agent_message("test"), 1),
             ("Btw", RenderBlock::Btw(BtwBlock::new("q", "a")), 0),
         ];
 
@@ -1513,14 +1490,14 @@ mod tests {
         let mut buf = Buffer::empty(area);
         // Seed a ghost in the gutter on the first content row too.
         let ghost_x = gutter_band(&renderer, width).start + 2;
-        buf.set_string(ghost_x, 0, "X", Style::default());
+        buf.set_string(ghost_x, 1, "X", Style::default());
         renderer.render(area, &mut buf);
 
-        // AgentMessage has no vpad → first content row is y=0.
+        // AgentMessage has vpad → first content row is y=1.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
-        let rendered = collect_row_symbols(&buf, 0, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 1, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
             "timestamp must survive the gutter clear on the first row"
@@ -1547,12 +1524,19 @@ mod tests {
         renderer.render(area, &mut buf);
 
         // Gutter cell carries the block background, proving the block fill
-        // (not the bg_base clear) owns it. UserPrompt has vpad → content on row 1.
+        // (not the bg_base clear) owns it. UserPrompt's taller band means
+        // row 1 is band padding and row 2 the first content row — both are
+        // covered by the full-area block fill.
         let gutter_x = gutter_band(&renderer, width).start + 2;
         let gutter_cell = buf.cell((gutter_x, 1)).unwrap();
         assert_eq!(
             gutter_cell.bg, theme.bg_light,
             "background block gutter must use the block bg fill"
+        );
+        let content_gutter_cell = buf.cell((gutter_x, 2)).unwrap();
+        assert_eq!(
+            content_gutter_cell.bg, theme.bg_light,
+            "content-row gutter must use the block bg fill too"
         );
     }
 

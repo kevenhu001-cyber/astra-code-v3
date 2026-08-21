@@ -678,13 +678,11 @@ impl ScrollbackPane {
 
         let layout = HorizontalLayout::new(area, &appearance.scrollback.layout);
 
-        // Compute content lines from render_height
-        // The block adds vpad (2 rows) if has_vpad is true
+        // Compute content lines from render_height.
+        // The block adds its vpad rows (user prompts: 2+2 band; others 1+1) —
+        // shared helper keeps this budget in sync with EntryRenderer heights.
         let cwd = state.cwd();
-        let has_vpad = entry
-            .block
-            .has_vpad(&entry.context(area.width, appearance, cwd));
-        let vpad_rows = if has_vpad { 2 } else { 0 };
+        let vpad_rows = entry.block.vpad_rows_for(appearance);
         let content_lines = render_height.saturating_sub(vpad_rows);
 
         // User prompts use their actual display mode so collapsed prompts

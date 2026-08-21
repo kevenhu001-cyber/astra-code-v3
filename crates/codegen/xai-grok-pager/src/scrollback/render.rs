@@ -485,8 +485,9 @@ pub(crate) fn render_scrolled_entries_with_selection_boundaries(
             });
 
         let ctx = entry.context(content_width, appearance, cwd);
-        let has_vpad = entry.block.has_vpad(&ctx);
-        let vpad_top = if has_vpad { 1u16 } else { 0 };
+        // Must match EntryRenderer's top padding (user prompts: 2 rows) or the
+        // selection/search/hyperlink row mapping drifts one row off the paint.
+        let vpad_top = entry.block.vpad_top_rows_for(&ctx.appearance);
         let content_skip = skip_rows.saturating_sub(vpad_top) as usize;
         let first_visible_content_y = render_y + if skip_rows < vpad_top { 1 } else { 0 };
         let max_y = render_y + render_height;

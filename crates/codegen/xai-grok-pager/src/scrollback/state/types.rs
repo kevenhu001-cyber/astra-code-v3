@@ -76,8 +76,8 @@ pub struct ViewportSnapshot {
 }
 
 /// Maximum truncated header height for AllTurns sticky headers.
-/// (vpad + 3 content lines + ellipsis if needed + vpad)
-pub(super) const MAX_TRUNCATED_HEADER_HEIGHT: u16 = 6;
+/// (prompt band vpad 2+2 + 3 content lines + ellipsis if needed)
+pub(super) const MAX_TRUNCATED_HEADER_HEIGHT: u16 = 8;
 
 /// Duration (ms) an entry's accent stays bright after finishing.
 /// Used by the renderer to flash the accent on recently-finished entries.
