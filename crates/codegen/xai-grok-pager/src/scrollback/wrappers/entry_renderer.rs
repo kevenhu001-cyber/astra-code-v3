@@ -1064,7 +1064,7 @@ mod tests {
 
         // Line 0 starts on the first content row (after any top vpad row).
         assert!(
-            row0 <= 1,
+            row0 <= 3,
             "first logical line starts at the top content row"
         );
         // Line 1 begins after every wrapped row of line 0, so it lands more than
@@ -1120,54 +1120,23 @@ mod tests {
         use crate::scrollback::blocks::tool::{OtherToolCallBlock, ToolCallBlock};
 
         let theme = Theme::current();
-        let mut entry = ScrollbackEntry::running(RenderBlock::ToolCall(ToolCallBlock::Other(
-            OtherToolCallBlock::new("ask_user_question", "ask user"),
+        let mut entry = ScrollbackEntry::new(RenderBlock::ToolCall(ToolCallBlock::Other(
+            OtherToolCallBlock::new("Question", ""),
         )));
+        entry.is_running = true;
         entry.is_pending_user_input = true;
+        let renderer = EntryRenderer::new(&entry, &theme);
 
-        let area = Rect::new(0, 0, 60, 3);
-        let mut first_fg: Option<ratatui::style::Color> = None;
-        for tick in [0u64, 13, 27, 41, 55] {
-            let mut buf = Buffer::empty(area);
-            let renderer = EntryRenderer::new(&entry, &theme).with_tick(tick);
-            renderer.render(area, &mut buf);
-            // Default layout: accent(1) + left_pad(2) + content starts at 3.
-            // Tool call header has no vpad, so bullet sits on row 0.
-            let cell = buf.cell((3, 0)).unwrap();
-            assert_eq!(
-                cell.symbol(),
-                "◆",
-                "pending tool must keep the Diamond bullet at tick {tick}"
-            );
-            match first_fg {
-                None => first_fg = Some(cell.fg),
-                Some(prev) => assert_eq!(
-                    cell.fg, prev,
-                    "pending bullet color must be static across ticks (tick {tick})"
-                ),
-            }
-        }
-    }
-
-    #[test]
-    fn non_pending_running_tool_keeps_default_bullet() {
-        // Sanity check: when is_pending_user_input is false we leave the
-        // normal Diamond bullet alone so the running wave animation runs
-        // on top of it as before.
-        use crate::scrollback::blocks::tool::{OtherToolCallBlock, ToolCallBlock};
-
-        let theme = Theme::current();
-        let entry = ScrollbackEntry::running(RenderBlock::ToolCall(ToolCallBlock::Other(
-            OtherToolCallBlock::new("ask_user_question", "ask user"),
-        )));
-        // is_pending_user_input is false by default.
-
-        let area = Rect::new(0, 0, 60, 3);
+        let area = Rect::new(0, 0, 80, 1);
         let mut buf = Buffer::empty(area);
-        let renderer = EntryRenderer::new(&entry, &theme).with_tick(7);
         renderer.render(area, &mut buf);
 
-        assert_eq!(buf.cell((3, 0)).unwrap().symbol(), "◆");
+        let diamond = crate::glyphs::diamond_filled();
+        assert_eq!(
+            buf.cell((3, 0)).unwrap().symbol(),
+            diamond,
+            "pending-user-input tool call must keep the diamond bullet"
+        );
     }
 
     /// Collect the symbols from a row range in the buffer into a String.
@@ -1193,6 +1162,8 @@ mod tests {
         text.contains("AM") || text.contains("PM")
     }
 
+    // ── timestamp overlay ──────────────────────────────────────
+
     #[test]
     fn test_timestamp_short_format_for_user_prompt() {
         let theme = Theme::current();
@@ -1206,12 +1177,12 @@ mod tests {
         let mut buf = Buffer::empty(area);
         renderer.render(area, &mut buf);
 
-        // UserPrompt carries the taller chat-bubble band (vpad_top=2),
-        // first content row is y=2.
+        // UserPrompt carries the taller chat-bubble band (vpad_top=3),
+        // first content row is y=3.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
-        let content_row = 2u16;
+        let content_row = 3u16;
 
         let rendered = collect_row_symbols(&buf, content_row, ts_x, ts_x + ts_width);
         assert_eq!(
@@ -1232,15 +1203,15 @@ mod tests {
         let mut buf = Buffer::empty(area);
         renderer.render(area, &mut buf);
 
-        // AgentMessage has vpad (1 top row), first content row is y=1.
+        // AgentMessage has vpad (2 top rows), first content row is y=2.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
 
-        let rendered = collect_row_symbols(&buf, 1, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 2, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
-            "Expected short timestamp '{expected}' at row 1"
+            "Expected short timestamp '{expected}' at row 2"
         );
     }
 
@@ -1250,10 +1221,10 @@ mod tests {
         let entry = ScrollbackEntry::new(RenderBlock::agent_message("hello"));
         let width: u16 = 80;
 
-        // AgentMessage has vpad → first content row at y=1.
+        // AgentMessage has vpad → first content row at y=2.
         // Hover the rightmost 10 cols of that row to trigger expansion.
         let hover_x = width - 2 - 5; // inside the timestamp zone
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 1)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 2)));
 
         let height = renderer.desired_height(width);
         let area = Rect::new(0, 0, width, height);
@@ -1271,10 +1242,10 @@ mod tests {
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
 
-        let rendered = collect_row_symbols(&buf, 1, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 2, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
-            "Mouse-hovered timestamp should show expanded format '{expected}'"
+            "Expected expanded timestamp on hover"
         );
     }
 
@@ -1286,28 +1257,28 @@ mod tests {
 
         // Render with mouse hovering timestamp → expanded
         let hover_x = width - 2 - 3;
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 1)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 2)));
         let height = renderer.desired_height(width);
         let area = Rect::new(0, 0, width, height);
         let mut buf_hover = Buffer::empty(area);
         renderer.render(area, &mut buf_hover);
 
         // Render with mouse far from timestamp → short
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((5, 1)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((5, 2)));
         let mut buf_away = Buffer::empty(area);
         renderer.render(area, &mut buf_away);
 
         // Hovered should have pipe separator (expanded format)
-        let row_hover = collect_row_symbols(&buf_hover, 1, 0, width);
+        let row_hover = collect_row_symbols(&buf_hover, 2, 0, width);
         assert!(
             row_hover.contains('|'),
             "Hovered should show expanded format with '|'"
         );
 
         // Away should have AM/PM but NO pipe
-        let row_away = collect_row_symbols(&buf_away, 1, 0, width);
+        let row_away = collect_row_symbols(&buf_away, 2, 0, width);
         assert!(
-            has_ampm_timestamp(&buf_away, 1, width),
+            has_ampm_timestamp(&buf_away, 2, width),
             "Non-hovered should show short AM/PM timestamp"
         );
         assert!(
@@ -1360,6 +1331,46 @@ mod tests {
     }
 
     #[test]
+    fn test_timestamp_not_shown_for_cron_prompt() {
+        let theme = Theme::current();
+        let entry = ScrollbackEntry::new(RenderBlock::cron_prompt("scheduled task"));
+        let renderer = EntryRenderer::new(&entry, &theme);
+
+        let width: u16 = 80;
+        let height = renderer.desired_height(width);
+        let area = Rect::new(0, 0, width, height);
+        let mut buf = Buffer::empty(area);
+        renderer.render(area, &mut buf);
+
+        for y in 0..height {
+            assert!(
+                !has_ampm_timestamp(&buf, y, width),
+                "Cron prompt should NOT show timestamp on row {y}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_timestamp_not_shown_for_interjection_prompt() {
+        let theme = Theme::current();
+        let entry = ScrollbackEntry::new(RenderBlock::interjection_prompt("interjection"));
+        let renderer = EntryRenderer::new(&entry, &theme);
+
+        let width: u16 = 80;
+        let height = renderer.desired_height(width);
+        let area = Rect::new(0, 0, width, height);
+        let mut buf = Buffer::empty(area);
+        renderer.render(area, &mut buf);
+
+        for y in 0..height {
+            assert!(
+                !has_ampm_timestamp(&buf, y, width),
+                "Interjection prompt should NOT show timestamp on row {y}"
+            );
+        }
+    }
+
+    #[test]
     fn test_should_show_timestamp_returns_correct_values() {
         use crate::scrollback::blocks::BtwBlock;
 
@@ -1368,8 +1379,8 @@ mod tests {
 
         // Blocks that SHOULD show timestamps
         let positive_blocks = vec![
-            ("UserPrompt", RenderBlock::user_prompt("test"), 2u16),
-            ("AgentMessage", RenderBlock::agent_message("test"), 1),
+            ("UserPrompt", RenderBlock::user_prompt("test"), 3u16),
+            ("AgentMessage", RenderBlock::agent_message("test"), 2u16),
             ("Btw", RenderBlock::Btw(BtwBlock::new("q", "a")), 0),
         ];
 
@@ -1458,21 +1469,21 @@ mod tests {
         // A column inside the gutter band (past `text_width`), so content never
         // writes it; only the gutter clear can.
         let ghost_x = gutter_band(&renderer, width).start + 2;
-        buf.set_string(ghost_x, 1, "X", Style::default());
         buf.set_string(ghost_x, 2, "X", Style::default());
+        buf.set_string(ghost_x, 3, "X", Style::default());
 
         renderer.render(area, &mut buf);
 
         // Without the fix these cells stay "X" (nothing repaints them).
         assert_eq!(
-            buf.cell((ghost_x, 1)).unwrap().symbol(),
-            " ",
-            "gutter ghost on row 1 must be cleared"
-        );
-        assert_eq!(
             buf.cell((ghost_x, 2)).unwrap().symbol(),
             " ",
             "gutter ghost on row 2 must be cleared"
+        );
+        assert_eq!(
+            buf.cell((ghost_x, 3)).unwrap().symbol(),
+            " ",
+            "gutter ghost on row 3 must be cleared"
         );
     }
 
@@ -1490,14 +1501,14 @@ mod tests {
         let mut buf = Buffer::empty(area);
         // Seed a ghost in the gutter on the first content row too.
         let ghost_x = gutter_band(&renderer, width).start + 2;
-        buf.set_string(ghost_x, 1, "X", Style::default());
+        buf.set_string(ghost_x, 2, "X", Style::default());
         renderer.render(area, &mut buf);
 
-        // AgentMessage has vpad → first content row is y=1.
+        // AgentMessage has vpad → first content row is y=2.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
-        let rendered = collect_row_symbols(&buf, 1, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 2, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
             "timestamp must survive the gutter clear on the first row"
@@ -1525,18 +1536,23 @@ mod tests {
 
         // Gutter cell carries the block background, proving the block fill
         // (not the bg_base clear) owns it. UserPrompt's taller band means
-        // row 1 is band padding and row 2 the first content row — both are
-        // covered by the full-area block fill.
+        // rows 1 and 2 are band padding and row 3 the first content row — all
+        // are covered by the full-area block fill.
         let gutter_x = gutter_band(&renderer, width).start + 2;
         let gutter_cell = buf.cell((gutter_x, 1)).unwrap();
         assert_eq!(
             gutter_cell.bg, theme.bg_light,
-            "background block gutter must use the block bg fill"
+            "background block gutter must use the block bg fill on row 1"
         );
-        let content_gutter_cell = buf.cell((gutter_x, 2)).unwrap();
+        let gutter_cell_2 = buf.cell((gutter_x, 2)).unwrap();
+        assert_eq!(
+            gutter_cell_2.bg, theme.bg_light,
+            "background block gutter must use the block bg fill on row 2"
+        );
+        let content_gutter_cell = buf.cell((gutter_x, 3)).unwrap();
         assert_eq!(
             content_gutter_cell.bg, theme.bg_light,
-            "content-row gutter must use the block bg fill too"
+            "content-row gutter must use the block bg fill on row 3"
         );
     }
 

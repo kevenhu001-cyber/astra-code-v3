@@ -889,13 +889,20 @@ impl RenderBlock {
     ///
     /// Single source of truth for every consumer (EntryRenderer heights,
     /// sticky-header budgets, selection/hyperlink row mapping) so the paths
-    /// can't drift. User prompts carry a taller band (2 rows above / below)
-    /// so turns read as chat bubbles; every other vpad block keeps 1+1.
+    /// can't drift. User prompts carry a taller band (3 rows above / below)
+    /// so turns read as chat bubbles; AI agent messages carry 2+2 rows for
+    /// comfortable reading; every other vpad block keeps 1+1.
     pub fn vpad_top_rows_for(&self, appearance: &AppearanceConfig) -> u16 {
         if !self.has_vpad_for(appearance) {
             return 0;
         }
-        if self.is_user_prompt() { 2 } else { 1 }
+        if self.is_user_prompt() {
+            3
+        } else if self.is_agent_message() {
+            2
+        } else {
+            1
+        }
     }
 
     /// Total vertical padding rows (top + bottom) under `appearance`.

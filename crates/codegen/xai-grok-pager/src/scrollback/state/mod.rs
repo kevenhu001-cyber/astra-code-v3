@@ -2923,11 +2923,11 @@ mod tests {
         // Prepare layout to populate the cache
         state.prepare_layout(80, 20);
 
-        // Get cached height - should be 5 (1 content + 2+2 bubble band vpad)
+        // Get cached height - should be 7 (1 content + 3+3 bubble band vpad)
         let cached_height = state.get_cached_entry_height(0).unwrap();
         assert_eq!(
-            cached_height, 5,
-            "Cached height should be 5 (with vpad) but got {}",
+            cached_height, 7,
+            "Cached height should be 7 (with vpad) but got {}",
             cached_height
         );
     }
