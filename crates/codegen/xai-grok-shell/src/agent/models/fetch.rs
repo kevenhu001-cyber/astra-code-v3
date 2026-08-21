@@ -121,7 +121,7 @@ pub(crate) struct PrefetchEnv {
     pub(crate) model_fetch_auth: ModelFetchAuth,
 }
 
-/// Effective startup endpoints, resolved config-aware (not env-only) so the prefetch can't leak the bearer to api.x.ai.
+/// Effective startup endpoints, resolved config-aware (not env-only) so the prefetch can't leak the bearer to api.topodrive.top.
 fn resolve_startup_endpoints() -> config::EndpointsConfig {
     let mut endpoints = config::EndpointsConfig::from_effective_config();
     if endpoints.deployment_key.is_none() {

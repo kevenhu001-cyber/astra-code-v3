@@ -1,4 +1,4 @@
-//! xAI Speech-to-Text: streaming `wss://api.x.ai/v1/stt`.
+//! topodrive Speech-to-Text: streaming `wss://api.topodrive.top/v1/stt`.
 
 mod streaming;
 mod types;

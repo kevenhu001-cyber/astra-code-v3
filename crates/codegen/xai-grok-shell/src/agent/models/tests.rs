@@ -633,11 +633,11 @@ fn default_model_honors_allowlist_when_no_default_set() {
             allowed_models = ["keep-*"]
             [model.zzz-first]
             model = "zzz-first"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             [model.keep-one]
             model = "keep-one"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             "#,
     );
@@ -659,11 +659,11 @@ fn validate_selectable_rejects_bad_allowlists() {
             allowed_models = ["grok-4*"]
             [model.astra-3]
             model = "grok-3"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             [model.astra-4]
             model = "grok-4"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             "#,
     );
@@ -680,7 +680,7 @@ fn validate_selectable_rejects_bad_allowlists() {
             allowed_models = ["nomatch-*"]
             [model.astra-4]
             model = "grok-4"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             "#,
     );

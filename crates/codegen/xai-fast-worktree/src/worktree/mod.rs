@@ -1236,7 +1236,7 @@ mod tests {
                 "remote",
                 "add",
                 "origin",
-                "https://github.com/xai-org/xai.git",
+                "https://github.com/topodrive-ai/xai.git",
             ],
         );
         xai_test_utils::git::run_git(
@@ -1268,7 +1268,7 @@ mod tests {
         );
         assert_eq!(
             xai_test_utils::git::run_git(&worktree_path, &["config", "--get", "remote.origin.url"]),
-            "https://github.com/xai-org/xai.git"
+            "https://github.com/topodrive-ai/xai.git"
         );
     }
 
@@ -1337,7 +1337,7 @@ mod tests {
                 "remote",
                 "add",
                 "origin",
-                "https://github.com/xai-org/xai.git",
+                "https://github.com/topodrive-ai/xai.git",
             ],
         );
         xai_test_utils::git::run_git(
@@ -1426,7 +1426,7 @@ mod tests {
                 "remote",
                 "add",
                 "origin",
-                "https://github.com/xai-org/xai.git",
+                "https://github.com/topodrive-ai/xai.git",
             ],
         );
         xai_test_utils::git::run_git(

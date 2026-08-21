@@ -396,7 +396,7 @@ If you've authenticated with `grok login`, you can use the stored credentials to
 ```bash
 curl -s -N -X POST "https://cli-chat-proxy.grok.com/v1/chat/completions" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $(jq -r '."https://accounts.x.ai/sign-in".key' ~/.astra/auth.json)" \
+  -H "Authorization: Bearer $(jq -r '."https://accounts.topodrive.top/sign-in".key' ~/.astra/auth.json)" \
   -H "X-XAI-Token-Auth: xai-grok-cli" \
   -H "x-grok-model-override: grok-build" \
   -d '{

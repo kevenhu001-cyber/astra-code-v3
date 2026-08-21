@@ -35,7 +35,7 @@ pub struct VoiceConfig {
 impl Default for VoiceConfig {
     fn default() -> Self {
         Self {
-            api_base: "https://api.x.ai".into(),
+            api_base: "https://api.topodrive.top".into(),
             stt_ws_path: "/v1/stt".into(),
             language: "en".into(),
             sample_rate: DEFAULT_SAMPLE_RATE,
@@ -54,7 +54,7 @@ impl VoiceConfig {
     }
 
     /// `api_base`: non-empty `[voice].api_base`, else `[endpoints].xai_api_base_url`
-    /// from `root`, else `resolved_endpoints_base`, else `https://api.x.ai`.
+    /// from `root`, else `resolved_endpoints_base`, else `https://api.topodrive.top`.
     ///
     /// `resolved_endpoints_base` carries the caller's env / CLI overrides; it
     /// ranks below the raw table so config keeps beating env (shell precedence).
@@ -65,7 +65,7 @@ impl VoiceConfig {
             .unwrap_or_default();
 
         // Read `[voice].api_base` from the raw table, not `cfg`: serde default
-        // makes "unset" and an explicit `https://api.x.ai` indistinguishable.
+        // makes "unset" and an explicit `https://api.topodrive.top` indistinguishable.
         cfg.api_base = non_empty_str(
             voice_table
                 .and_then(|t| t.get("api_base"))
@@ -126,18 +126,18 @@ mod tests {
     fn default_stt_ws_uses_wss() {
         assert_eq!(
             VoiceConfig::default().stt_ws_url().unwrap(),
-            "wss://api.x.ai/v1/stt"
+            "wss://api.topodrive.top/v1/stt"
         );
     }
 
     #[test]
     fn scheme_less_and_wss_bases() {
-        for base in ["api.x.ai", "wss://api.x.ai", "HTTPS://api.x.ai"] {
+        for base in ["api.topodrive.top", "wss://api.topodrive.top", "HTTPS://api.topodrive.top"] {
             let cfg = VoiceConfig {
                 api_base: base.into(),
                 ..VoiceConfig::default()
             };
-            assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.x.ai/v1/stt");
+            assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.topodrive.top/v1/stt");
         }
     }
 
@@ -223,7 +223,7 @@ api_base = "  "
         .unwrap();
         let cfg = VoiceConfig::from_config_table(&table, None);
         assert_eq!(cfg.api_base, VoiceConfig::default().api_base);
-        assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.x.ai/v1/stt");
+        assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.topodrive.top/v1/stt");
     }
 
     #[test]
@@ -261,15 +261,15 @@ xai_api_base_url = "https://config.example.com"
 [endpoints]
 xai_api_base_url = "https://proxy.example.com/xai/v1"
 [voice]
-api_base = "https://api.x.ai"
+api_base = "https://api.topodrive.top"
 language = "es"
 "#,
         )
         .unwrap();
         let cfg = VoiceConfig::from_config_table(&table, None);
-        assert_eq!(cfg.api_base, "https://api.x.ai");
+        assert_eq!(cfg.api_base, "https://api.topodrive.top");
         assert_eq!(cfg.language, "es");
-        assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.x.ai/v1/stt");
+        assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.topodrive.top/v1/stt");
     }
 
     #[test]

@@ -11,7 +11,7 @@ const DEFAULT_EARLY_INVALIDATION_SECS: u64 = 300; // 5 minutes
 /// Legacy auth.json scope key. Retained for cleanup of stale `auth.json`
 /// entries from historical x.ai / `grok login --legacy` installations.
 /// Never used as a URL or issuer.
-pub(super) const LEGACY_SCOPE: &str = "https://accounts.x.ai/sign-in";
+pub(super) const LEGACY_SCOPE: &str = "https://accounts.topodrive.top/sign-in";
 
 /// auth.json scope key for plain API key auth (desktop login, `grok login --api-key`).
 pub(super) const API_KEY_SCOPE: &str = "xai::api_key";

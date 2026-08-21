@@ -188,7 +188,7 @@ fn inject_url_derived_headers_adds_proxy_headers_for_cli_chat_proxy_url() {
 #[test]
 fn inject_url_derived_headers_skips_proxy_headers_for_external_url() {
     let mut headers = IndexMap::new();
-    inject_url_derived_headers(&mut headers, None, "https://api.x.ai/v1");
+    inject_url_derived_headers(&mut headers, None, "https://api.topodrive.top/v1");
     assert!(headers.get("X-XAI-Token-Auth").is_none());
     assert!(headers.get("x-authenticateresponse").is_none());
     assert_eq!(
@@ -763,7 +763,7 @@ fn web_search_disable_api_key_auth_swaps_first_party_key_for_session() {
         "ws-model".to_string(),
         test_model_entry(
             "ws-model",
-            "https://api.x.ai/v1",
+            "https://api.topodrive.top/v1",
             Some("first-party-key"),
             None,
             None,
@@ -1151,12 +1151,12 @@ fn sampling_config_scopes_no_inline_citations_include() {
             crate::env::PROD_CLI_CHAT_PROXY_BASE_URL,
             true,
         ),
-        (true, ApiBackend::Responses, "https://api.x.ai/v1", true),
-        (false, ApiBackend::Responses, "https://api.x.ai/v1", false),
+        (true, ApiBackend::Responses, "https://api.topodrive.top/v1", true),
+        (false, ApiBackend::Responses, "https://api.topodrive.top/v1", false),
         (
             true,
             ApiBackend::ChatCompletions,
-            "https://api.x.ai/v1",
+            "https://api.topodrive.top/v1",
             false,
         ),
         (
@@ -1215,7 +1215,7 @@ fn default_models_dual_endpoint_routing() {
         };
         assert_eq!(
             api_key_creds.base_url, endpoints.xai_api_base_url,
-            "{model_id}: ExternalApiKey must route to api.x.ai"
+            "{model_id}: ExternalApiKey must route to api.topodrive.top"
         );
     }
 }
@@ -1503,15 +1503,15 @@ fn api_key_creds(base_url: &str) -> ResolvedCredentials {
 #[test]
 fn enforce_disable_api_key_auth_blocks_first_party_only() {
     use xai_chat_state::AuthType;
-    let mut creds = api_key_creds("https://api.x.ai/v1");
+    let mut creds = api_key_creds("https://api.topodrive.top/v1");
     enforce_disable_api_key_auth(&mut creds, false, Some("session-jwt"));
     assert_eq!(creds.auth_type, AuthType::ApiKey);
     assert_eq!(creds.api_key.as_deref(), Some("xai-secret"));
-    let mut creds = api_key_creds("https://api.x.ai/v1");
+    let mut creds = api_key_creds("https://api.topodrive.top/v1");
     enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
     assert_eq!(creds.auth_type, AuthType::SessionToken);
     assert_eq!(creds.api_key.as_deref(), Some("session-jwt"));
-    let mut creds = api_key_creds("https://api.x.ai/v1");
+    let mut creds = api_key_creds("https://api.topodrive.top/v1");
     enforce_disable_api_key_auth(&mut creds, true, None);
     assert_eq!(creds.auth_type, AuthType::SessionToken);
     assert_eq!(creds.api_key, None);
@@ -1521,7 +1521,7 @@ fn enforce_disable_api_key_auth_blocks_first_party_only() {
     assert_eq!(creds.api_key.as_deref(), Some("xai-secret"));
     let mut creds = ResolvedCredentials {
         auth_type: AuthType::SessionToken,
-        ..api_key_creds("https://api.x.ai/v1")
+        ..api_key_creds("https://api.topodrive.top/v1")
     };
     enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
     assert_eq!(creds.auth_type, AuthType::SessionToken);
@@ -1537,7 +1537,7 @@ fn try_resolve_model_credentials_swaps_first_party_own_key_under_kill_switch() {
     use xai_chat_state::AuthType;
     let entry = test_model_entry(
         "m",
-        "https://api.x.ai/v1",
+        "https://api.topodrive.top/v1",
         Some("xai-model-key"),
         None,
         None,
@@ -1650,7 +1650,7 @@ fn byok_from_lookup_classifies_all_states() {
         byok_from_lookup(&ModelLookup::Loaded(Some(&byok))),
         ModelByok::Byok,
     );
-    let session = test_model_entry("m", "https://api.x.ai/v1", None, None, None);
+    let session = test_model_entry("m", "https://api.topodrive.top/v1", None, None, None);
     assert_eq!(
         byok_from_lookup(&ModelLookup::Loaded(Some(&session))),
         ModelByok::NotByok,
@@ -1916,7 +1916,7 @@ fn parses_model_context_window() {
 }
 #[test]
 fn sampling_config_context_window_from_entry_or_default() {
-    let model = test_model_entry("any-model", "https://api.x.ai/v1", None, None, None);
+    let model = test_model_entry("any-model", "https://api.topodrive.top/v1", None, None, None);
     let config = sampling_config_for_model(
         &model,
         resolve_credentials(&model, None),
@@ -1926,7 +1926,7 @@ fn sampling_config_context_window_from_entry_or_default() {
         None,
     );
     assert_eq!(config.context_window, 200_000);
-    let mut model = test_model_entry("any-model", "https://api.x.ai/v1", None, None, None);
+    let mut model = test_model_entry("any-model", "https://api.topodrive.top/v1", None, None, None);
     model.info.context_window = NonZeroU64::new(256_000).unwrap();
     let config = sampling_config_for_model(
         &model,
@@ -2514,12 +2514,12 @@ fn hidden_model_excluded_from_acp_but_kept_in_catalog() {
         r#"
             [model.visible-model]
             model = "visible-model"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
 
             [model.hidden-model]
             model = "hidden-model"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             hidden = true
             "#,
@@ -2554,7 +2554,7 @@ fn disabled_models_removed_from_catalog() {
             disabled_models = ["to-disable"]
             [model.to-disable]
             model = "to-disable"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             "#,
     )
@@ -2571,7 +2571,7 @@ fn hidden_models_kept_in_catalog_but_not_in_acp() {
             hidden_models = ["to-hide"]
             [model.to-hide]
             model = "to-hide"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             "#,
     )
@@ -2591,15 +2591,15 @@ fn allowed_models_marks_selectable_by_wildcard_key_or_model() {
             allowed_models = ["keep-*", "explicit-key", "explicit-model-id"]
             [model.to-drop]
             model = "to-drop"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             [model.keep-one]
             model = "keep-one"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             [model.explicit-key]
             model = "explicit-model-id"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             "#,
     )
@@ -2624,7 +2624,7 @@ fn allowed_models_empty_is_unrestricted() {
             allowed_models = []
             [model.foo]
             model = "foo"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 256000
             "#,
     )
@@ -2662,13 +2662,13 @@ fn supported_in_api_false_hides_from_api_key_users() {
         r#"
             [model.oauth-only-model]
             model = "oauth-only-model"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             supported_in_api = false
 
             [model.public-model]
             model = "public-model"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             "#,
     )
@@ -2694,7 +2694,7 @@ fn inference_idle_timeout_secs_round_trip() {
         r#"
             [model.slow-model]
             model = "grok-4.5"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             inference_idle_timeout_secs = 600
             "#,
@@ -2711,7 +2711,7 @@ fn inference_idle_timeout_secs_absent_defaults_to_none() {
         r#"
             [model.default-model]
             model = "grok-fast"
-            base_url = "https://api.x.ai/v1"
+            base_url = "https://api.topodrive.top/v1"
             context_window = 200000
             "#,
     )
@@ -3041,7 +3041,7 @@ fn e2e_user_overrides_default_model_key_with_custom_endpoint() {
     );
     assert_eq!(
         sampling.base_url, "https://inference.example.com/v1",
-        "should route to the user's custom endpoint, not api.x.ai"
+        "should route to the user's custom endpoint, not api.topodrive.top"
     );
     unsafe { std::env::remove_var("ENTERPRISE_AUTH_TOKEN") };
 }
@@ -3162,7 +3162,7 @@ fn e2e_default_model_with_session_routes_to_proxy() {
     assert_eq!(sampling.api_key.as_deref(), Some("session-token-123"));
     assert_eq!(
         sampling.base_url, "https://cli-chat-proxy.grok.com/v1",
-        "session auth should route to cli-chat-proxy, not api.x.ai"
+        "session auth should route to cli-chat-proxy, not api.topodrive.top"
     );
 }
 #[test]
@@ -3176,8 +3176,8 @@ fn e2e_default_model_with_external_api_key_routes_to_api_xai() {
     let sampling = resolve_sampling(model, None);
     assert_eq!(sampling.api_key.as_deref(), Some("xai-external-key"));
     assert_eq!(
-        sampling.base_url, "https://api.x.ai/v1",
-        "external API key should route to api.x.ai via api_base_url"
+        sampling.base_url, "https://api.topodrive.top/v1",
+        "external API key should route to api.topodrive.top via api_base_url"
     );
     unsafe { std::env::remove_var("XAI_API_KEY") };
 }
@@ -3240,7 +3240,7 @@ fn e2e_credential_priority_model_key_beats_session_beats_env() {
         "https://proxy.api/v1",
         None,
         None,
-        Some("https://api.x.ai/v1"),
+        Some("https://api.topodrive.top/v1"),
     );
     let sampling = resolve_sampling(&model_no_key, Some("session-key"));
     assert_eq!(
@@ -3259,7 +3259,7 @@ fn e2e_credential_priority_model_key_beats_session_beats_env() {
         "env key should be used when no session and no model credentials"
     );
     assert_eq!(
-        sampling.base_url, "https://api.x.ai/v1",
+        sampling.base_url, "https://api.topodrive.top/v1",
         "env key should route to api_base_url"
     );
     unsafe { std::env::remove_var("XAI_API_KEY") };
@@ -3348,7 +3348,7 @@ fn e2e_acp_model_info_no_dedup_on_model_field() {
             "https://cli-chat-proxy.grok.com/v1",
             None,
             None,
-            Some("https://api.x.ai/v1"),
+            Some("https://api.topodrive.top/v1"),
         ),
     );
     models.insert(
@@ -5228,7 +5228,7 @@ fn web_search_domain_keys_are_not_reported_unused() {
         let unused = unused_keys_from_toml(&format!(
             r#"
                 [toolset.web_search]
-                {key} = ["docs.x.ai"]
+                {key} = ["docs.topodrive.top"]
                 not_a_real_key = true
             "#
         ));

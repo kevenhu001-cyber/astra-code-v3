@@ -462,10 +462,10 @@ mod web_search_options_tests {
     #[test]
     fn to_tool_entry_allowlist_only() {
         assert_eq!(
-            opts(Some(&["docs.x.ai", "arxiv.org"]), None).to_tool_entry(),
+            opts(Some(&["docs.topodrive.top", "arxiv.org"]), None).to_tool_entry(),
             json!({
                 "type": "web_search",
-                "filters": { "allowed_domains": ["docs.x.ai", "arxiv.org"] }
+                "filters": { "allowed_domains": ["docs.topodrive.top", "arxiv.org"] }
             })
         );
     }

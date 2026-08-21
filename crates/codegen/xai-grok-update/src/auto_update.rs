@@ -75,8 +75,8 @@ fn manual_install_cmd(channel: &str) -> String {
 /// Build a reinstall hint for a known installer type.
 fn reinstall_hint(installer: &str, channel: &str) -> String {
     match installer {
-        "npm" => "Please reinstall via npm:\n  npm i -g @xai-official/grok".to_string(),
-        "gh-release" => "Please reinstall via GitHub Releases:\n  gh release download --repo xai-org-shared/grok-build --pattern 'astra-*' --output grok && chmod +x grok".to_string(),
+        "npm" => "Please reinstall via npm:\n  npm i -g @topodrive-ai-official/grok".to_string(),
+        "gh-release" => "Please reinstall via GitHub Releases:\n  gh release download --repo topodrive-ai-shared/grok-build --pattern 'astra-*' --output grok && chmod +x grok".to_string(),
         _ => format!("Please reinstall via:\n  {}", manual_install_cmd(channel)),
     }
 }
@@ -2389,7 +2389,7 @@ async fn gh_release_download(tag: &str, pattern: &str, dest: &std::path::Path) -
     Ok(())
 }
 
-/// Download and install grok from GitHub Releases (xai-org-shared/grok-build).
+/// Download and install grok from GitHub Releases (topodrive-ai-shared/grok-build).
 ///
 /// Uses `gh release download` to fetch the binary matching the current platform.
 /// This works anywhere the `gh` CLI is authenticated, without needing npm or
@@ -2560,7 +2560,7 @@ fn install_npm(target: Option<&str>, channel: &str, npm_registry: Option<&str>) 
     warn_if_other_grok_processes_running();
 
     let version_arg = match target {
-        Some(ver) => format!("@xai-official/grok@{ver}"),
+        Some(ver) => format!("@topodrive-ai-official/grok@{ver}"),
         None => {
             // All current callers resolve the version via get_latest_version
             // (which applies max(stable, alpha) for the alpha channel) before
@@ -2571,7 +2571,7 @@ fn install_npm(target: Option<&str>, channel: &str, npm_registry: Option<&str>) 
                 "install_npm called without a resolved version, falling back to dist-tag"
             );
             format!(
-                "@xai-official/grok@{}",
+                "@topodrive-ai-official/grok@{}",
                 if channel == "alpha" {
                     "alpha"
                 } else {

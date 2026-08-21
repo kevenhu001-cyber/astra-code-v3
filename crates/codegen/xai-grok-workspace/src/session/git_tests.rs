@@ -2,31 +2,31 @@ use super::*;
 
 #[test]
 fn strip_url_credentials_removes_token() {
-    let url_with_token = "https://x-access-token:secret-token@github.com/xai-org/example.git";
+    let url_with_token = "https://x-access-token:secret-token@github.com/topodrive-ai/example.git";
     assert_eq!(
         strip_url_credentials(url_with_token),
-        "https://github.com/xai-org/example.git"
+        "https://github.com/topodrive-ai/example.git"
     );
 }
 
 #[test]
 fn strip_url_credentials_preserves_clean_https_url() {
-    let clean_url = "https://github.com/xai-org/example.git";
+    let clean_url = "https://github.com/topodrive-ai/example.git";
     assert_eq!(strip_url_credentials(clean_url), clean_url);
 }
 
 #[test]
 fn strip_url_credentials_preserves_ssh_url() {
-    let ssh_url = "git@github.com:xai-org/example.git";
+    let ssh_url = "git@github.com:topodrive-ai/example.git";
     assert_eq!(strip_url_credentials(ssh_url), ssh_url);
 }
 
 #[test]
 fn strip_url_credentials_removes_username_password() {
-    let url_with_creds = "https://alice:secret@github.com/xai-org/example.git";
+    let url_with_creds = "https://alice:secret@github.com/topodrive-ai/example.git";
     assert_eq!(
         strip_url_credentials(url_with_creds),
-        "https://github.com/xai-org/example.git"
+        "https://github.com/topodrive-ai/example.git"
     );
 }
 
@@ -237,14 +237,14 @@ fn test_resolve_persisted_session_git_metadata_collects_sorted_unique_remotes() 
     let repo = git2::Repository::init(tmp.path()).unwrap();
     repo.remote(
         "origin",
-        "https://x-access-token:secret-token@github.com/xai-org/example.git",
+        "https://x-access-token:secret-token@github.com/topodrive-ai/example.git",
     )
     .unwrap();
     // Use a different host to avoid CI insteadOf rules collapsing URLs.
-    repo.remote("backup", "https://gitlab.com/xai-org/example.git")
+    repo.remote("backup", "https://gitlab.com/topodrive-ai/example.git")
         .unwrap();
     // Same effective URL as origin after credential stripping — tests dedup.
-    repo.remote("duplicate", "https://github.com/xai-org/example.git")
+    repo.remote("duplicate", "https://github.com/topodrive-ai/example.git")
         .unwrap();
 
     let metadata = resolve_persisted_session_git_metadata_sync(tmp.path());
@@ -257,8 +257,8 @@ fn test_resolve_persisted_session_git_metadata_collects_sorted_unique_remotes() 
     assert_eq!(
         metadata.git_remotes,
         vec![
-            "https://github.com/xai-org/example.git".to_string(),
-            "https://gitlab.com/xai-org/example.git".to_string(),
+            "https://github.com/topodrive-ai/example.git".to_string(),
+            "https://gitlab.com/topodrive-ai/example.git".to_string(),
         ]
     );
 }
@@ -267,7 +267,7 @@ fn test_resolve_persisted_session_git_metadata_collects_sorted_unique_remotes() 
 fn test_resolve_persisted_session_git_metadata_captures_head() {
     let tmp = tempfile::tempdir().unwrap();
     let repo = git2::Repository::init(tmp.path()).unwrap();
-    repo.remote("origin", "https://github.com/xai-org/example.git")
+    repo.remote("origin", "https://github.com/topodrive-ai/example.git")
         .unwrap();
 
     // Before any commit, HEAD is unborn — fields should be None.
@@ -341,7 +341,7 @@ fn test_resolve_persisted_session_git_metadata_worktree_resolves_remotes() {
     std::fs::create_dir_all(&main_path).unwrap();
 
     let repo = git2::Repository::init(&main_path).unwrap();
-    repo.remote("origin", "https://github.com/xai-org/example.git")
+    repo.remote("origin", "https://github.com/topodrive-ai/example.git")
         .unwrap();
 
     // Create an initial commit so we can create a worktree.
@@ -383,7 +383,7 @@ fn test_resolve_persisted_session_git_metadata_worktree_resolves_remotes() {
     );
     assert_eq!(
         metadata.git_remotes,
-        vec!["https://github.com/xai-org/example.git".to_string()],
+        vec!["https://github.com/topodrive-ai/example.git".to_string()],
     );
 }
 
@@ -1272,95 +1272,95 @@ async fn test_status_double_failure_preserves_original_error() {
 #[test]
 fn normalize_ssh_scp_url() {
     assert_eq!(
-        normalize_repo_url("git@github.com:xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("git@github.com:topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_https_url() {
     assert_eq!(
-        normalize_repo_url("https://github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("https://github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_ssh_and_https_produce_same_result() {
-    let ssh = normalize_repo_url("git@github.com:xai-org/example.git");
-    let https = normalize_repo_url("https://github.com/xai-org/example.git");
+    let ssh = normalize_repo_url("git@github.com:topodrive-ai/example.git");
+    let https = normalize_repo_url("https://github.com/topodrive-ai/example.git");
     assert_eq!(ssh, https);
 }
 
 #[test]
 fn normalize_https_without_git_suffix() {
     assert_eq!(
-        normalize_repo_url("https://github.com/xai-org/example"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("https://github.com/topodrive-ai/example"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_https_with_credentials() {
     assert_eq!(
-        normalize_repo_url("https://x-access-token:secret@github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("https://x-access-token:secret@github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_ssh_scheme_url() {
     assert_eq!(
-        normalize_repo_url("ssh://git@github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("ssh://git@github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_ssh_scheme_with_port() {
     assert_eq!(
-        normalize_repo_url("ssh://git@github.com:22/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("ssh://git@github.com:22/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_git_scheme_url() {
     assert_eq!(
-        normalize_repo_url("git://github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("git://github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_http_url() {
     assert_eq!(
-        normalize_repo_url("http://github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("http://github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_strips_trailing_slash() {
     assert_eq!(
-        normalize_repo_url("https://github.com/xai-org/example/"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("https://github.com/topodrive-ai/example/"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_strips_dot_git_with_trailing_slash() {
     assert_eq!(
-        normalize_repo_url("https://github.com/xai-org/example.git/"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("https://github.com/topodrive-ai/example.git/"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_lowercases_host() {
     assert_eq!(
-        normalize_repo_url("git@GitHub.COM:xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("git@GitHub.COM:topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
@@ -1382,24 +1382,24 @@ fn normalize_whitespace_only_returns_none() {
 #[test]
 fn normalize_git_plus_ssh_scheme() {
     assert_eq!(
-        normalize_repo_url("git+ssh://git@github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("git+ssh://git@github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_git_plus_https_scheme() {
     assert_eq!(
-        normalize_repo_url("git+https://github.com/xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("git+https://github.com/topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
 #[test]
 fn normalize_scp_no_user() {
     assert_eq!(
-        normalize_repo_url("github.com:xai-org/example.git"),
-        Some("github.com/xai-org/example".into()),
+        normalize_repo_url("github.com:topodrive-ai/example.git"),
+        Some("github.com/topodrive-ai/example".into()),
     );
 }
 
@@ -1449,14 +1449,14 @@ fn normalize_scp_leading_slash_in_path() {
 fn resolve_normalized_remote_urls_deduplicates_across_transports() {
     let tmp = tempfile::tempdir().unwrap();
     let repo = git2::Repository::init(tmp.path()).unwrap();
-    repo.remote("origin", "git@github.com:xai-org/example.git")
+    repo.remote("origin", "git@github.com:topodrive-ai/example.git")
         .unwrap();
-    repo.remote("https-mirror", "https://github.com/xai-org/example.git")
+    repo.remote("https-mirror", "https://github.com/topodrive-ai/example.git")
         .unwrap();
 
     let urls = resolve_normalized_remote_urls(tmp.path());
     // Both should normalize to the same value and dedup.
-    assert_eq!(urls, vec!["github.com/xai-org/example"]);
+    assert_eq!(urls, vec!["github.com/topodrive-ai/example"]);
 }
 
 // A well-formed OID that no fresh repo has an object for.

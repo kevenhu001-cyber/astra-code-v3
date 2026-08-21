@@ -54,10 +54,10 @@ pub const PRESET_DEFS: &[ProviderPresetDef] = &[
         injects_think_tags: false,
     },
     ProviderPresetDef {
-        id: "xai",
-        label: "xAI (Grok)",
+        id: "topodrive",
+        label: "topodrive",
         protocol: ProtocolBackend::ChatCompletions,
-        base_url: "https://api.x.ai/v1",
+        base_url: "https://api.topodrive.top/v1",
         injects_think_tags: false,
     },
     ProviderPresetDef {
@@ -109,7 +109,7 @@ pub const PRESETS: &[(&str, &str)] = &[
     ("openai", "https://api.openai.com/v1"),
     ("openai_responses", "https://api.openai.com/v1"),
     ("anthropic", "https://api.anthropic.com/v1"),
-    ("xai", "https://api.x.ai/v1"),
+    ("xai", "https://api.topodrive.top/v1"),
     ("deepseek", "https://api.deepseek.com/v1"),
     ("zhipu", "https://open.bigmodel.cn/api/paas/v4"),
     ("xiaomi", "https://api.xiaomimimo.com/v1"),
@@ -1573,7 +1573,7 @@ mod tests {
         let mut s = ConnectWizardState::default();
         s.set_preset(3); // xai
         assert_eq!(s.current_preset_id(), "xai");
-        assert_eq!(s.base_url, "https://api.x.ai/v1");
+        assert_eq!(s.base_url, "https://api.topodrive.top/v1");
     }
 
     #[test]

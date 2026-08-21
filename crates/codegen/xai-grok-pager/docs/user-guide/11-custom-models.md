@@ -35,7 +35,7 @@ Supported presets:
 | `openai` | Chat Completions | `https://api.openai.com/v1` |
 | `openai_responses` | Responses | `https://api.openai.com/v1` |
 | `anthropic` | Messages | `https://api.anthropic.com/v1` |
-| `xai` | Chat Completions | `https://api.x.ai/v1` |
+| `topodrive` | Chat Completions | `https://api.topodrive.top/v1` |
 | `deepseek` | Chat Completions | `https://api.deepseek.com/v1` |
 | `zhipu` | Chat Completions | `https://open.bigmodel.cn/api/paas/v4` |
 | `xiaomi` | Chat Completions | `https://api.xiaomimimo.com/v1` |
@@ -58,7 +58,7 @@ against the vendor's live `/v1/models` endpoint**.
 | `openai` | `GET https://api.openai.com/v1/models` |
 | `openai_responses` | `GET https://api.openai.com/v1/models` |
 | `anthropic` | `GET https://api.anthropic.com/v1/models` |
-| `xai` | `GET https://api.x.ai/v1/models` |
+| `topodrive` | `GET https://api.topodrive.top/v1/models` |
 | `deepseek` | `GET https://api.deepseek.com/v1/models` |
 | `zhipu` | `GET https://open.bigmodel.cn/api/paas/v4/models` |
 | `xiaomi` | `GET https://api.xiaomimimo.com/v1/models` |

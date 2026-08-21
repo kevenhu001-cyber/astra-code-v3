@@ -23,16 +23,16 @@ pub use error::MarketplaceError;
 pub use scanner::scan_marketplace;
 pub use types::*;
 
-/// Display name of the official xAI marketplace source.
-pub const OFFICIAL_SOURCE_NAME: &str = "Astra Official";
+/// Display name of the official topodrive-ai marketplace source.
+pub const OFFICIAL_SOURCE_NAME: &str = "topodrive Official";
 
-/// Git URL of the official xAI marketplace source. Auto-registered on first run.
-pub const OFFICIAL_SOURCE_GIT_URL: &str = "https://github.com/xai-org/plugin-marketplace.git";
+/// Git URL of the official topodrive-ai marketplace source. Auto-registered on first run.
+pub const OFFICIAL_SOURCE_GIT_URL: &str = "https://github.com/topodrive-ai/plugin-marketplace.git";
 
-/// Whether `url` is the official xAI marketplace source, normalizing case, a
+/// Whether `url` is the official topodrive-ai marketplace source, normalizing case, a
 /// `www.` prefix, a trailing `/` or `.git`, and HTTPS/SSH forms before comparing.
 pub fn is_official_source_url(url: &str) -> bool {
-    canonical_github_owner_repo(url).as_deref() == Some("xai-org/plugin-marketplace")
+    canonical_github_owner_repo(url).as_deref() == Some("topodrive-ai/plugin-marketplace")
 }
 
 /// Normalized lowercase `owner/repo` from a GitHub URL (HTTPS/http/ssh/scp,
@@ -67,23 +67,23 @@ mod tests {
     fn is_official_matches_canonical_https() {
         assert!(is_official_source_url(OFFICIAL_SOURCE_GIT_URL));
         assert!(is_official_source_url(
-            "https://github.com/xai-org/plugin-marketplace"
+            "https://github.com/topodrive-ai/plugin-marketplace"
         ));
     }
 
     #[test]
     fn is_official_matches_ssh_form() {
         assert!(is_official_source_url(
-            "git@github.com:xai-org/plugin-marketplace.git"
+            "git@github.com:topodrive-ai/plugin-marketplace.git"
         ));
         assert!(is_official_source_url(
-            "git@github.com:xai-org/plugin-marketplace"
+            "git@github.com:topodrive-ai/plugin-marketplace"
         ));
         assert!(is_official_source_url(
-            "ssh://git@github.com/xai-org/plugin-marketplace.git"
+            "ssh://git@github.com/topodrive-ai/plugin-marketplace.git"
         ));
         assert!(is_official_source_url(
-            "ssh://git@github.com/xai-org/plugin-marketplace"
+            "ssh://git@github.com/topodrive-ai/plugin-marketplace"
         ));
     }
 
@@ -93,7 +93,7 @@ mod tests {
             "https://github.com/anthropics/claude-plugins-official.git"
         ));
         assert!(!is_official_source_url(
-            "https://github.com/xai-org/some-other-repo.git"
+            "https://github.com/topodrive-ai/some-other-repo.git"
         ));
         assert!(!is_official_source_url(""));
     }
@@ -101,22 +101,22 @@ mod tests {
     #[test]
     fn is_official_matches_noncanonical_forms() {
         assert!(is_official_source_url(
-            "https://GitHub.com/XAI-org/Plugin-Marketplace"
+            "https://GitHub.com/TOPODRIVE-AI/Plugin-Marketplace"
         ));
         assert!(is_official_source_url(
-            "https://github.com/xai-org/plugin-marketplace/"
+            "https://github.com/topodrive-ai/plugin-marketplace/"
         ));
         assert!(is_official_source_url(
-            "https://github.com/xai-org/plugin-marketplace.git/"
+            "https://github.com/topodrive-ai/plugin-marketplace.git/"
         ));
         assert!(is_official_source_url(
-            "http://github.com/xai-org/plugin-marketplace"
+            "http://github.com/topodrive-ai/plugin-marketplace"
         ));
         assert!(is_official_source_url(
-            "https://www.github.com/xai-org/plugin-marketplace.git"
+            "https://www.github.com/topodrive-ai/plugin-marketplace.git"
         ));
         assert!(is_official_source_url(
-            "git@github.com:XAI-org/plugin-marketplace.git"
+            "git@github.com:TOPODRIVE-AI/plugin-marketplace.git"
         ));
     }
 }

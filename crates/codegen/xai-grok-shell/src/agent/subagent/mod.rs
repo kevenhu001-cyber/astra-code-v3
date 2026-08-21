@@ -709,7 +709,7 @@ fn session_bearer_resolver(
     auth_method::session_token_auth_gate(
         auth_method::is_session_based_method(&ctx.auth_method_id),
         byok,
-        crate::util::is_xai_api_url(base_url),
+        crate::util::is_topodrive_api_url(base_url),
     )
     .then(|| {
         crate::auth::credential_provider::WireValidBearerResolver::shared(ctx.auth_manager.clone())

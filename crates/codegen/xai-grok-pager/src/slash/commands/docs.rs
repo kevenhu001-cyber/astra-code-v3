@@ -8,7 +8,7 @@ use crate::app::actions::Action;
 use crate::docs::{all_titles, find_doc};
 use crate::slash::command::{AppCtx, ArgItem, CommandExecCtx, CommandResult, SlashCommand};
 
-/// Online Build docs landing page (hardcoded like other TUI deep-links; docs.x.ai can redirect if the path moves).
+/// Online Build docs landing page (hardcoded like other TUI deep-links; docs.topodrive.top can redirect if the path moves).
 pub const BUILD_DOCS_URL: &str = "https://astracode.topodrive.top/docs/build/overview";
 
 /// Open How-to Guides or online Build docs.
@@ -55,7 +55,7 @@ impl SlashCommand for DocsCommand {
                 display: "web".into(),
                 match_text: "web".into(),
                 insert_text: "web".into(),
-                description: "Open docs.x.ai/build in the browser".into(),
+                description: "Open docs.topodrive.top/build in the browser".into(),
             },
         ];
         items.extend(all_titles().map(|title| ArgItem {

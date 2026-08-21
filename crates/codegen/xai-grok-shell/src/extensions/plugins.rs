@@ -233,18 +233,18 @@ mod tests {
     #[test]
     fn info_carries_origin_and_marketplace_display_name() {
         let plugin = make_loaded_plugin(AgentOrigin::MarketplaceInstall {
-            source_name: Some("Astra Official".to_string()),
+            source_name: Some("topodrive Official".to_string()),
             git_url: Some("https://example.com/mp.git".to_string()),
         });
         let info = loaded_plugin_to_info(&plugin);
         assert_eq!(
             info.origin,
             Some(PluginOrigin::MarketplaceInstall {
-                source_name: Some("Astra Official".to_string()),
+                source_name: Some("topodrive Official".to_string()),
                 git_url: Some("https://example.com/mp.git".to_string()),
             })
         );
-        assert_eq!(info.marketplace_source.as_deref(), Some("Astra Official"));
+        assert_eq!(info.marketplace_source.as_deref(), Some("topodrive Official"));
     }
 
     #[test]

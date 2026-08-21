@@ -1,6 +1,6 @@
 //! Bridge the shell's `AuthManager` onto the voice crate's bearer provider.
 //!
-//! voice-api accepts both API keys and OAuth2 tokens directly at `api.x.ai`
+//! voice-api accepts both API keys and OAuth2 tokens directly at `api.topodrive.top`
 //! and attributes per-user billing for OAuth, so the voice channel just reuses
 //! the same bearer the agent uses for chat — no separate env var.
 //!

@@ -122,7 +122,7 @@ pub(crate) fn embedding_session_credentials(
     });
     xai_grok_memory::EndpointScopedCredentials::for_endpoint(
         embed_base_url,
-        crate::util::is_xai_api_bearer_url,
+        crate::util::is_topodrive_api_bearer_url,
         auth_credentials,
         api_key_provider,
     )
@@ -652,7 +652,7 @@ mod tests {
         );
         let api_key_provider: xai_grok_tools::types::SharedApiKeyProvider =
             Arc::new(crate::auth::manager::SharedAuthKeyProvider(mgr.clone()));
-        for denied in ["https://byok.attacker.example/v1", "http://api.x.ai/v1"] {
+        for denied in ["https://byok.attacker.example/v1", "http://api.topodrive.top/v1"] {
             let resolved =
                 embedding_session_credentials(denied, Some(&mgr), Some(api_key_provider.clone()));
             assert!(
@@ -661,7 +661,7 @@ mod tests {
             );
         }
         let resolved = embedding_session_credentials(
-            "https://api.x.ai/v1",
+            "https://api.topodrive.top/v1",
             Some(&mgr),
             Some(api_key_provider),
         );

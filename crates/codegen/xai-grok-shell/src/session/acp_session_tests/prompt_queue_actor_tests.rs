@@ -2917,7 +2917,7 @@ async fn per_turn_tool_overrides_win_over_the_config_web_search_policy() {
             );
 
             let per_turn = xai_grok_sampling_types::WebSearchOptions {
-                allowed_domains: Some(vec!["docs.x.ai".to_string()]),
+                allowed_domains: Some(vec!["docs.topodrive.top".to_string()]),
                 excluded_domains: None,
             };
             actor.apply_tool_overrides_update(Some(xai_grok_sampling_types::ToolOverridesUpdate {

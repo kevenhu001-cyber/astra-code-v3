@@ -2392,7 +2392,7 @@ fn format_session_info_session_auth_ignores_api_key_env() {
     assert!(text.contains("Auth method: OAuth"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
     assert!(!text.contains("Also present: XAI_API_KEY"), "{text}");
-    assert!(!text.contains("console.x.ai"), "{text}");
+    assert!(!text.contains("console.topodrive.top"), "{text}");
     assert!(!text.contains("grok login"), "{text}");
 }
 #[test]
@@ -2419,7 +2419,7 @@ fn format_session_info_api_key_auth_suggests_grok_login() {
             "{text}"
         );
     assert!(!text.contains("Also present: XAI_API_KEY"), "{text}");
-    assert!(!text.contains("console.x.ai"), "{text}");
+    assert!(!text.contains("console.topodrive.top"), "{text}");
     assert!(!text.contains("grok.com"), "{text}");
 }
 #[test]
@@ -2429,7 +2429,7 @@ fn format_session_info_session_only_shows_oauth() {
     assert!(text.contains("Auth method: OAuth"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
     assert!(!text.contains("Also present: XAI_API_KEY"), "{text}");
-    assert!(!text.contains("console.x.ai"), "{text}");
+    assert!(!text.contains("console.topodrive.top"), "{text}");
     assert!(!text.contains("grok login"), "{text}");
 }
 #[test]

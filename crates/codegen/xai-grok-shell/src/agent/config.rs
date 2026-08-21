@@ -3585,11 +3585,11 @@ pub(crate) fn resolve_model_list(
         });
         let effective = with_provider.as_ref().unwrap_or(model_override);
         let mut entry = effective.apply(key, base, &cfg.endpoints);
-        let session_bearer_unsafe = !crate::util::is_xai_api_bearer_url(&entry.info.base_url)
+        let session_bearer_unsafe = !crate::util::is_topodrive_api_bearer_url(&entry.info.base_url)
             || entry
                 .api_base_url
                 .as_deref()
-                .is_some_and(|url| !crate::util::is_xai_api_bearer_url(url));
+                .is_some_and(|url| !crate::util::is_topodrive_api_bearer_url(url));
         if let Some(pid) = model_override.model_provider.as_deref()
             && entry.auth_provider.is_none()
             && session_bearer_unsafe
@@ -3879,7 +3879,7 @@ pub struct ModelEntryConfig {
     /// See [`ModelInfo::model_family`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model_family: Option<String>,
-    /// The base URL of the model. e.g. "https://api.x.ai/v1"
+    /// The base URL of the model. e.g. "https://api.topodrive.top/v1"
     pub base_url: String,
     /// Human-readable display name of the model.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -4924,7 +4924,7 @@ pub(crate) fn enforce_disable_api_key_auth(
 ) {
     if disable_api_key_auth
         && creds.auth_type == xai_chat_state::AuthType::ApiKey
-        && crate::util::is_xai_api_url(&creds.base_url)
+        && crate::util::is_topodrive_api_url(&creds.base_url)
     {
         creds.auth_type = xai_chat_state::AuthType::SessionToken;
         creds.api_key = session_key.map(str::to_owned);
@@ -5163,7 +5163,7 @@ pub(crate) fn stamp_session_local_sampler_fields(
 ) {
     cfg.client_identifier = client_identifier;
     cfg.attribution_callback = active_session_config.attribution_callback.clone();
-    if crate::util::is_xai_api_bearer_url(&cfg.base_url) {
+    if crate::util::is_topodrive_api_bearer_url(&cfg.base_url) {
         cfg.bearer_resolver = active_session_config.bearer_resolver.clone();
     }
     cfg.max_retries = max_retries;
@@ -5221,7 +5221,7 @@ pub(crate) fn response_include_extensions(
     base_url: &str,
 ) -> Vec<String> {
     let is_trusted_route = crate::util::is_trusted_cli_chat_proxy_url(base_url)
-        || crate::util::is_trusted_xai_https_url(base_url);
+        || crate::util::is_trusted_topodrive_https_url(base_url);
     if supports_backend_search && api_backend == &ApiBackend::Responses && is_trusted_route {
         vec![NO_INLINE_CITATIONS_RESPONSE_INCLUDE.to_owned()]
     } else {

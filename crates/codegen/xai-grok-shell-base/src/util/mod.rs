@@ -88,27 +88,27 @@ pub fn is_cli_chat_proxy_url(url: &str) -> bool {
     }
     false
 }
-/// True for xAI-operated endpoints (`*.x.ai`, cli-chat-proxy, and optional
-/// non-production xAI hosts when that feature is enabled).
+/// True for topodrive-operated endpoints (`*.topodrive.top`, cli-chat-proxy, and optional
+/// non-production topodrive hosts when that feature is enabled).
 /// `disable_api_key_auth` refuses keys only for these; other hosts are BYOK and
-/// exempt. Safe against invalid URLs and suffix attacks (`evil-x.ai.example`).
+/// exempt. Safe against invalid URLs and suffix attacks (`evil-topodrive.top.example`).
 ///
 /// Scheme-agnostic so credential *refusal* fails closed. To decide where to
-/// *attach* a credential, use [`is_xai_api_bearer_url`].
-pub fn is_xai_api_url(url: &str) -> bool {
-    is_xai_api_url_impl(url, false)
+/// *attach* a credential, use [`is_topodrive_api_bearer_url`].
+pub fn is_topodrive_api_url(url: &str) -> bool {
+    is_topodrive_api_url_impl(url, false)
 }
-/// Like [`is_xai_api_url`], but requires `https` on every arm, so a
+/// Like [`is_topodrive_api_url`], but requires `https` on every arm, so a
 /// session bearer is never attached to a cleartext endpoint, including loopback
 /// (a co-located process could otherwise read a token sent to `http://localhost`).
-pub fn is_xai_api_bearer_url(url: &str) -> bool {
-    if is_trusted_xai_https_url(url) {
+pub fn is_topodrive_api_bearer_url(url: &str) -> bool {
+    if is_trusted_topodrive_https_url(url) {
         return true;
     }
     false
 }
-/// True for trusted first-party xAI HTTPS routes, excluding arbitrary loopback URLs.
-pub fn is_trusted_xai_https_url(url: &str) -> bool {
+/// True for trusted first-party topodrive HTTPS routes, excluding arbitrary loopback URLs.
+pub fn is_trusted_topodrive_https_url(url: &str) -> bool {
     let Ok(parsed) = reqwest::Url::parse(url) else {
         return false;
     };
@@ -123,11 +123,11 @@ pub fn is_trusted_xai_https_url(url: &str) -> bool {
     }
     parsed
         .host_str()
-        .is_some_and(|host| host == "x.ai" || host.ends_with(".x.ai"))
+        .is_some_and(|host| host == "topodrive.top" || host.ends_with(".topodrive.top"))
 }
-fn is_xai_api_url_impl(url: &str, require_https: bool) -> bool {
+fn is_topodrive_api_url_impl(url: &str, require_https: bool) -> bool {
     if require_https {
-        return is_xai_api_bearer_url(url);
+        return is_topodrive_api_bearer_url(url);
     }
     if is_cli_chat_proxy_url(url) {
         return true;
@@ -135,7 +135,7 @@ fn is_xai_api_url_impl(url: &str, require_https: bool) -> bool {
     reqwest::Url::parse(url)
         .ok()
         .and_then(|url| url.host_str().map(str::to_owned))
-        .is_some_and(|host| host == "x.ai" || host.ends_with(".x.ai"))
+        .is_some_and(|host| host == "topodrive.top" || host.ends_with(".topodrive.top"))
 }
 fn is_loopback_host(parsed: &reqwest::Url) -> bool {
     match parsed.host() {
@@ -335,7 +335,7 @@ mod tests {
     }
     #[test]
     fn test_is_cli_chat_proxy_url_rejects_public_api() {
-        assert!(!is_cli_chat_proxy_url("https://api.x.ai/v1"));
+        assert!(!is_cli_chat_proxy_url("https://api.topodrive.top/v1"));
     }
     #[test]
     fn test_is_cli_chat_proxy_url_rejects_spoofed_hostname() {
@@ -350,39 +350,39 @@ mod tests {
         ));
     }
     #[test]
-    fn test_is_xai_api_url() {
-        assert!(is_xai_api_url("https://api.x.ai/v1"));
-        assert!(is_xai_api_url("https://api.x.ai/v1/chat/completions"));
-        assert!(is_xai_api_url("https://x.ai"));
-        assert!(is_xai_api_url(
+    fn test_is_topodrive_api_url() {
+        assert!(is_topodrive_api_url("https://api.topodrive.top/v1"));
+        assert!(is_topodrive_api_url("https://api.topodrive.top/v1/chat/completions"));
+        assert!(is_topodrive_api_url("https://topodrive.top"));
+        assert!(is_topodrive_api_url(
             "https://cli-chat-proxy.grok.com/v1/chat/completions"
         ));
-        assert!(!is_xai_api_url("https://api.openai.com/v1"));
-        assert!(!is_xai_api_url("https://api.anthropic.com/v1"));
-        assert!(!is_xai_api_url("https://generativelanguage.googleapis.com"));
-        assert!(!is_xai_api_url("https://api.x.ai.evil.example/v1"));
-        assert!(!is_xai_api_url("https://evil-x.ai.attacker.com/v1"));
-        assert!(!is_xai_api_url("https://prefixx.ai/v1"));
-        assert!(!is_xai_api_url("not-a-url"));
-        assert!(!is_xai_api_url(""));
-        assert!(is_xai_api_url("http://api.x.ai/v1"));
-        assert!(is_xai_api_url("http://localhost:11434/v1"));
+        assert!(!is_topodrive_api_url("https://api.openai.com/v1"));
+        assert!(!is_topodrive_api_url("https://api.anthropic.com/v1"));
+        assert!(!is_topodrive_api_url("https://generativelanguage.googleapis.com"));
+        assert!(!is_topodrive_api_url("https://api.topodrive.top.evil.example/v1"));
+        assert!(!is_topodrive_api_url("https://evil-topodrive.top.attacker.com/v1"));
+        assert!(!is_topodrive_api_url("https://prefixtopodrive.top/v1"));
+        assert!(!is_topodrive_api_url("not-a-url"));
+        assert!(!is_topodrive_api_url(""));
+        assert!(is_topodrive_api_url("http://api.topodrive.top/v1"));
+        assert!(is_topodrive_api_url("http://localhost:11434/v1"));
     }
     #[test]
-    fn test_is_xai_api_bearer_url() {
-        assert!(is_xai_api_bearer_url("https://api.x.ai/v1"));
-        assert!(!is_xai_api_bearer_url("http://api.x.ai/v1"));
-        assert!(!is_xai_api_bearer_url("http://localhost:11434/v1"));
+    fn test_is_topodrive_api_bearer_url() {
+        assert!(is_topodrive_api_bearer_url("https://api.topodrive.top/v1"));
+        assert!(!is_topodrive_api_bearer_url("http://api.topodrive.top/v1"));
+        assert!(!is_topodrive_api_bearer_url("http://localhost:11434/v1"));
         {
-            assert!(!is_xai_api_bearer_url("https://localhost:11434/v1"));
-            assert!(!is_xai_api_bearer_url("https://127.0.0.2:11434/v1"));
-            assert!(!is_xai_api_bearer_url("https://[::1]:11434/v1"));
+            assert!(!is_topodrive_api_bearer_url("https://localhost:11434/v1"));
+            assert!(!is_topodrive_api_bearer_url("https://127.0.0.2:11434/v1"));
+            assert!(!is_topodrive_api_bearer_url("https://[::1]:11434/v1"));
         }
-        assert!(is_xai_api_bearer_url("https://API.X.AI/v1"));
-        assert!(!is_xai_api_bearer_url(
-            "https://api.x.ai@attacker.example/v1"
+        assert!(is_topodrive_api_bearer_url("https://API.TOPODRIVE.TOP/v1"));
+        assert!(!is_topodrive_api_bearer_url(
+            "https://api.topodrive.top@attacker.example/v1"
         ));
-        assert!(!is_xai_api_bearer_url("https://х.ai/v1"));
+        assert!(!is_topodrive_api_bearer_url("https://х.topodrive.top/v1"));
     }
     #[test]
     fn test_truncate() {

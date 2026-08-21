@@ -3,8 +3,8 @@
 //! Expected format:
 //! ```toml
 //! [[marketplace.sources]]
-//! name = "Astra Official"
-//! git = "https://github.com/xai-org/xai-plugin-marketplace.git"
+//! name = "topodrive Official"
+//! git = "https://github.com/topodrive-ai/plugin-marketplace.git"
 //!
 //! [[marketplace.sources]]
 //! name = "Local Dev"
@@ -295,17 +295,17 @@ mod tests {
         let config: toml::Value = toml::from_str(
             r#"
             [[marketplace.sources]]
-            name = "Astra Official"
-            git = "https://github.com/xai-org/xai-plugin-marketplace.git"
+            name = "topodrive Official"
+            git = "https://github.com/topodrive-ai/plugin-marketplace.git"
             branch = "main"
             "#,
         )
         .unwrap();
         let sources = load_sources(&config);
         assert_eq!(sources.len(), 1);
-        assert_eq!(sources[0].name, "Astra Official");
+        assert_eq!(sources[0].name, "topodrive Official");
         assert!(
-            matches!(&sources[0].kind, SourceKind::Git { url, branch } if url.contains("xai-org") && branch.as_deref() == Some("main"))
+            matches!(&sources[0].kind, SourceKind::Git { url, branch } if url.contains("topodrive-ai") && branch.as_deref() == Some("main"))
         );
     }
 

@@ -6512,12 +6512,12 @@ mod tests {
             ),
             (
                 PluginOrigin::MarketplaceInstall {
-                    source_name: Some("Astra Official".into()),
+                    source_name: Some("topodrive Official".into()),
                     git_url: Some("https://example.com/r.git".into()),
                 },
                 5,
-                "grok-mp:Astra Official",
-                "Astra Official",
+                "grok-mp:topodrive Official",
+                "topodrive Official",
             ),
             (
                 PluginOrigin::MarketplaceInstall {
@@ -6574,10 +6574,10 @@ mod tests {
         assert_eq!(plugin_group(&config).key, "origin:config");
 
         let mut mp = make_plugin("mp-tool");
-        mp.marketplace_source = Some("Astra Official".into());
+        mp.marketplace_source = Some("topodrive Official".into());
         let group = plugin_group(&mp);
-        assert_eq!(group.key, "grok-mp:Astra Official");
-        assert_eq!(group.label, "Astra Official");
+        assert_eq!(group.key, "grok-mp:topodrive Official");
+        assert_eq!(group.label, "topodrive Official");
 
         let mut direct = make_plugin("direct-tool");
         direct.marketplace_source = Some("git: owner/repo".into());
@@ -6592,8 +6592,8 @@ mod tests {
         );
         assert_eq!(plugin_group(&unknown).key, "origin:user");
 
-        unknown.marketplace_source = Some("Astra Official".into());
-        assert_eq!(plugin_group(&unknown).key, "grok-mp:Astra Official");
+        unknown.marketplace_source = Some("topodrive Official".into());
+        assert_eq!(plugin_group(&unknown).key, "grok-mp:topodrive Official");
     }
 
     #[test]
@@ -6720,14 +6720,14 @@ mod tests {
         let mut direct = make_plugin("direct-tool");
         direct.marketplace_source = Some("git: owner/repo".into());
         let mut mp = make_plugin("official-tool");
-        mp.marketplace_source = Some("Astra Official".into());
+        mp.marketplace_source = Some("topodrive Official".into());
         let plain = make_plugin("plain-tool");
 
         let mut state = plugins_modal_state(vec![direct, mp, plain]);
         let buf = render_plugins_into_buffer(&mut state, 100, 40);
 
         assert_eq!(buffer_count(&buf, "User (1 plugin)"), 1);
-        assert_eq!(buffer_count(&buf, "Astra Official (1 plugin)"), 1);
+        assert_eq!(buffer_count(&buf, "topodrive Official (1 plugin)"), 1);
         assert_eq!(buffer_count(&buf, "Direct installs (1 plugin)"), 1);
     }
 
@@ -7044,7 +7044,7 @@ mod tests {
         let sources = vec![
             mp("zeta-mp", "https://example.com/zeta", Some("boom"), &[]),
             mp(
-                "Astra Official",
+                "topodrive Official",
                 xai_grok_plugin_marketplace::OFFICIAL_SOURCE_GIT_URL,
                 None,
                 &["zeta", "alpha"],
@@ -7056,7 +7056,7 @@ mod tests {
             .iter()
             .map(|v| sources[v.source_index].source_name.as_str())
             .collect();
-        assert_eq!(names, ["Astra Official", "alpha-mp", "zeta-mp"]);
+        assert_eq!(names, ["topodrive Official", "alpha-mp", "zeta-mp"]);
         let plugin_names: Vec<_> = view[0]
             .plugin_indices
             .iter()

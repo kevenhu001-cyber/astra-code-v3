@@ -352,9 +352,9 @@ const CUSTOM_MODEL_PROVIDER_CHOICES: &[EnumChoice] = &[
         description: "Anthropic /v1/messages endpoint.",
     },
     EnumChoice {
-        canonical: "xai",
-        display: "xAI (Grok)",
-        description: "xAI /v1/chat/completions endpoint.",
+        canonical: "topodrive",
+        display: "topodrive",
+        description: "topodrive /v1/chat/completions endpoint.",
     },
     EnumChoice {
         canonical: "deepseek",
@@ -409,7 +409,7 @@ const VOICE_CAPTURE_MODE_CHOICES: &[EnumChoice] = &[
 // Voice STT language choices for the settings modal.
 //
 // Concrete codes must match `xai_grok_voice::STT_LANGUAGES` (official Astra STT
-// catalog — https://docs.x.ai/developers/model-capabilities/audio/speech-to-text).
+// catalog — https://docs.topodrive.top/developers/model-capabilities/audio/speech-to-text).
 // `auto` is client-only; the voice crate resolves it to a concrete code before
 // the STT handshake. Order: English (default), System, then remaining languages
 // A–Z by English name. A registry unit test locks this list to the voice crate.

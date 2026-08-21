@@ -184,7 +184,7 @@ async fn run_setup_command(json: bool) {
                 println!("{out}");
                 if !report.configured {
                     eprintln!(
-                        "Your team doesn't have a managed configuration yet. A team admin can set one up at console.x.ai."
+                        "Your team doesn't have a managed configuration yet. A team admin can set one up at console.topodrive.top."
                     );
                 }
             }
@@ -199,7 +199,7 @@ async fn run_setup_command(json: bool) {
         SetupOutcome::Installed => eprintln!("Applied managed configuration."),
         SetupOutcome::NothingConfigured => {
             eprintln!(
-                "Your team doesn't have a managed configuration yet. A team admin can set one up at console.x.ai."
+                "Your team doesn't have a managed configuration yet. A team admin can set one up at console.topodrive.top."
             );
         }
         SetupOutcome::Skipped => {

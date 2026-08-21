@@ -3,7 +3,7 @@ pub const HEADLESS_CLIENT_TYPE: &str = "grok-shell";
 
 pub const PAGER_CLIENT_VERSION: &str = xai_grok_version::VERSION;
 
-/// `User-Agent` for pager-owned direct-to-`api.x.ai` clients (voice STT).
+/// `User-Agent` for pager-owned direct-to-`api.topodrive.top` clients (voice STT).
 ///
 /// Matches the sampler's `grok-shell/<version> (os; arch)` shape so server-side
 /// dashboards bucket voice traffic alongside chat / imagine requests.

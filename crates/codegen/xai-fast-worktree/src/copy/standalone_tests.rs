@@ -52,7 +52,7 @@ fn setup_repo_with_wildcard_fetch() -> CopiedRepo {
     let branch = run_git(&source, &["rev-parse", "--abbrev-ref", "HEAD"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*",
     );
     let dest_root = temp.path().join("dest");
@@ -98,7 +98,7 @@ fn copy_rewrites_wildcard_heads_fetch_to_exact_current_branch_spec() {
     );
     assert_eq!(
         run_git(&repo.dest_root, &["config", "--get", "remote.origin.url"]),
-        "https://github.com/xai-org/xai.git"
+        "https://github.com/topodrive-ai/xai.git"
     );
     assert!(
         std::fs::read_to_string(repo.source.join(".git/config"))
@@ -162,7 +162,7 @@ fn detached_head_uses_exact_non_wildcard_fetch_spec() {
     write_commit(&source, "file.txt", "content", "initial");
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*:refs/remotes/origin/*",
     );
     run_git(&source, &["checkout", "--detach", "HEAD"]);
@@ -188,7 +188,7 @@ fn detached_head_with_origin_head_uses_resolved_default_branch() {
     let head = run_git(&source, &["rev-parse", "HEAD"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*",
     );
     run_git(&source, &["update-ref", "refs/remotes/origin/main", &head]);
@@ -321,7 +321,7 @@ fn extra_origin_remote_refs_are_not_copied() {
     let branch = run_git(&source, &["rev-parse", "--abbrev-ref", "HEAD"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*:refs/remotes/origin/*",
     );
     run_git(&source, &["update-ref", "refs/remotes/origin/main", &head]);
@@ -397,7 +397,7 @@ fn copy_keeps_dest_branch_origin_ref_when_source_head_differs() {
     run_git(&source, &["checkout", &default_branch]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*:refs/remotes/origin/*",
     );
     run_git(
@@ -448,7 +448,7 @@ fn packed_origin_remote_refs_are_pruned() {
     let head = write_commit(&source, "file.txt", "content", "initial");
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*",
     );
     run_git(&source, &["update-ref", "refs/remotes/origin/main", &head]);
@@ -499,7 +499,7 @@ fn copy_rewrites_case_insensitive_fetch_key() {
     let branch = run_git(&source, &["rev-parse", "--abbrev-ref", "HEAD"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/unused:refs/remotes/origin/unused",
     );
     let config_path = source.join(".git/config");
@@ -521,7 +521,7 @@ fn copy_rewrites_case_insensitive_fetch_key() {
     );
     assert_eq!(
         run_git(&dest, &["config", "--get", "remote.origin.url"]),
-        "https://github.com/xai-org/xai.git"
+        "https://github.com/topodrive-ai/xai.git"
     );
 }
 
@@ -536,7 +536,7 @@ fn copy_rewrites_refs_star_wildcard_fetch_spec() {
     let branch = run_git(&source, &["rev-parse", "--abbrev-ref", "HEAD"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/*:refs/remotes/origin/*",
     );
     let (_tmp, dest, _) = copy_source(&source);
@@ -594,7 +594,7 @@ fn copy_rewrites_hash_branch_fetch_spec_without_truncating() {
     run_git(&source, &["checkout", "-b", "feat#123"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/*:refs/remotes/origin/*",
     );
     let (_tmp, dest, dest_git) = copy_source(&source);
@@ -620,7 +620,7 @@ fn copy_rewrites_quoted_wildcard_fetch_spec() {
     let branch = run_git(&source, &["rev-parse", "--abbrev-ref", "HEAD"]);
     add_origin(
         &source,
-        "https://github.com/xai-org/xai.git",
+        "https://github.com/topodrive-ai/xai.git",
         "+refs/heads/unused:refs/remotes/origin/unused",
     );
     let config_path = source.join(".git/config");

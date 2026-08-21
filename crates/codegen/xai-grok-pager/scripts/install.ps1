@@ -111,7 +111,7 @@ if ($Version -and $Version -notmatch '^\d+\.\d+\.\d+(-\S+)?$') {
 # --- Resolve auth ---
 
 $OidcScope = 'https://astracode.topodrive.top::b1a00492-073a-47ea-816f-4c329264a828'
-$LegacyScope = 'https://accounts.x.ai/sign-in'
+$LegacyScope = 'https://accounts.topodrive.top/sign-in'
 $AuthSource = ''
 
 $deployKey = if ($env:ASTRA_DEPLOYMENT_KEY) { $env:ASTRA_DEPLOYMENT_KEY } else { $env:GROK_DEPLOYMENT_KEY }

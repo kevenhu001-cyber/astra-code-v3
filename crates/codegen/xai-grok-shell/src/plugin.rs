@@ -1591,10 +1591,10 @@ mod tests {
     fn registered_source_label_uses_addressable_qualifier() {
         assert_eq!(
             registered_source_label(&git_source(
-                "Astra Official",
-                "https://github.com/xai-org/plugin-marketplace.git"
+                "topodrive Official",
+                "https://github.com/topodrive-ai/plugin-marketplace.git"
             )),
-            "Astra Official (xai-org/plugin-marketplace)"
+            "topodrive Official (topodrive-ai/plugin-marketplace)"
         );
         assert_eq!(
             registered_source_label(&local_source("Local Dev", "/tmp/p")),
@@ -1615,12 +1615,12 @@ mod tests {
         assert_eq!(
             candidate_label(
                 &git_source(
-                    "Astra Official",
-                    "https://github.com/xai-org/plugin-marketplace.git"
+                    "topodrive Official",
+                    "https://github.com/topodrive-ai/plugin-marketplace.git"
                 ),
                 "sentry"
             ),
-            "Astra Official (pin: sentry@xai-org/plugin-marketplace)"
+            "topodrive Official (pin: sentry@topodrive-ai/plugin-marketplace)"
         );
         assert_eq!(
             candidate_label(&local_source("Local Dev", "/tmp/p"), "sentry"),
@@ -1633,14 +1633,14 @@ mod tests {
         let err = MarketplaceInstallError::UnknownQualifier {
             qualifier: "acme/repo".into(),
             registered: vec![
-                "Astra Official (xai-org/plugin-marketplace)".into(),
+                "topodrive Official (topodrive-ai/plugin-marketplace)".into(),
                 "Local Dev (local/local-dev)".into(),
             ],
         };
         let msg = err.to_string();
         assert!(msg.contains("Unknown marketplace \"acme/repo\""), "{msg}");
         assert!(
-            msg.contains("  - Astra Official (xai-org/plugin-marketplace)"),
+            msg.contains("  - topodrive Official (topodrive-ai/plugin-marketplace)"),
             "{msg}"
         );
         assert!(msg.contains("  - Local Dev (local/local-dev)"), "{msg}");
@@ -1649,7 +1649,7 @@ mod tests {
     #[test]
     fn ambiguous_qualifier_error_lists_source_names() {
         let err = MarketplaceInstallError::AmbiguousQualifier {
-            qualifier: "xai-org/plugin-marketplace".into(),
+            qualifier: "topodrive-ai/plugin-marketplace".into(),
             sources: vec!["Mirror A".into(), "Mirror B".into()],
         };
         let msg = err.to_string();
@@ -1691,7 +1691,7 @@ mod tests {
     fn name_ambiguous_error_lists_candidates_and_pin_hint() {
         let err = MarketplaceInstallError::NameAmbiguous {
             name: "sentry".into(),
-            candidates: vec!["Astra Official (pin: sentry@xai-org/plugin-marketplace)".into()],
+            candidates: vec!["topodrive Official (pin: sentry@topodrive-ai/plugin-marketplace)".into()],
         };
         let msg = err.to_string();
         assert!(
@@ -1699,7 +1699,7 @@ mod tests {
             "{msg}"
         );
         assert!(
-            msg.contains("  - Astra Official (pin: sentry@xai-org/plugin-marketplace)"),
+            msg.contains("  - topodrive Official (pin: sentry@topodrive-ai/plugin-marketplace)"),
             "{msg}"
         );
         assert!(
@@ -1797,12 +1797,12 @@ mod tests {
         }
     }
 
-    const OFFICIAL_URL: &str = "https://github.com/xai-org/plugin-marketplace.git";
+    const OFFICIAL_URL: &str = "https://github.com/topodrive-ai/plugin-marketplace.git";
 
     #[test]
     fn plan_install_qualifier_unknown_lists_registered_labels() {
         let sources = [
-            git_source("Astra Official", OFFICIAL_URL),
+            git_source("topodrive Official", OFFICIAL_URL),
             local_source("Local Dev", "/tmp/p"),
         ];
         let err = plan_install(&sources, "sentry", Some("acme/repo"), |_| Ok(Vec::new()))
@@ -1816,7 +1816,7 @@ mod tests {
                 assert_eq!(
                     registered,
                     vec![
-                        "Astra Official (xai-org/plugin-marketplace)".to_string(),
+                        "topodrive Official (topodrive-ai/plugin-marketplace)".to_string(),
                         "Local Dev (local/local-dev)".to_string(),
                     ]
                 );
@@ -1829,18 +1829,18 @@ mod tests {
     fn plan_install_qualifier_ambiguous_lists_source_names() {
         let sources = [
             git_source("Mirror A", OFFICIAL_URL),
-            git_source("Mirror B", "git@github.com:xai-org/plugin-marketplace.git"),
+            git_source("Mirror B", "git@github.com:topodrive-ai/plugin-marketplace.git"),
         ];
         let err = plan_install(
             &sources,
             "sentry",
-            Some("xai-org/plugin-marketplace"),
+            Some("topodrive-ai/plugin-marketplace"),
             |_| Ok(Vec::new()),
         )
         .expect_err("two sources share the owner/repo");
         match err {
             MarketplaceInstallError::AmbiguousQualifier { qualifier, sources } => {
-                assert_eq!(qualifier, "xai-org/plugin-marketplace");
+                assert_eq!(qualifier, "topodrive-ai/plugin-marketplace");
                 assert_eq!(
                     sources,
                     vec!["Mirror A".to_string(), "Mirror B".to_string()]
@@ -1852,11 +1852,11 @@ mod tests {
 
     #[test]
     fn plan_install_qualifier_not_found_when_scan_lacks_name() {
-        let sources = [git_source("Astra Official", OFFICIAL_URL)];
+        let sources = [git_source("topodrive Official", OFFICIAL_URL)];
         let err = plan_install(
             &sources,
             "sentry",
-            Some("xai-org/plugin-marketplace"),
+            Some("topodrive-ai/plugin-marketplace"),
             |_| Ok(vec![mp_entry("other")]),
         )
         .expect_err("source has no plugin named sentry");
@@ -1866,7 +1866,7 @@ mod tests {
                 source_display,
             } => {
                 assert_eq!(name, "sentry");
-                assert_eq!(source_display, "Astra Official");
+                assert_eq!(source_display, "topodrive Official");
             }
             other => panic!("expected QualifiedNameNotFound, got: {other}"),
         }
@@ -1874,11 +1874,11 @@ mod tests {
 
     #[test]
     fn plan_install_qualifier_sync_failure_is_hard_error() {
-        let sources = [git_source("Astra Official", OFFICIAL_URL)];
+        let sources = [git_source("topodrive Official", OFFICIAL_URL)];
         let err = plan_install(
             &sources,
             "sentry",
-            Some("xai-org/plugin-marketplace"),
+            Some("topodrive-ai/plugin-marketplace"),
             |_| Err("network down".to_string()),
         )
         .expect_err("sync failed");
@@ -1887,7 +1887,7 @@ mod tests {
                 source_display,
                 detail,
             } => {
-                assert_eq!(source_display, "Astra Official");
+                assert_eq!(source_display, "topodrive Official");
                 assert_eq!(detail, "network down");
             }
             other => panic!("expected Sync, got: {other}"),
@@ -1898,12 +1898,12 @@ mod tests {
     fn plan_install_qualifier_ok_selects_source_and_entry() {
         let sources = [
             local_source("Local Dev", "/tmp/p"),
-            git_source("Astra Official", OFFICIAL_URL),
+            git_source("topodrive Official", OFFICIAL_URL),
         ];
         let plan = plan_install(
             &sources,
             "SeNtRy",
-            Some("xai-org/plugin-marketplace"),
+            Some("topodrive-ai/plugin-marketplace"),
             |_| Ok(vec![mp_entry("sentry")]),
         )
         .expect("resolves the official source");
@@ -1941,7 +1941,7 @@ mod tests {
     fn plan_install_bare_name_official_priority_selects_official_and_sets_note() {
         let sources = [
             git_source("Third Party", "https://github.com/acme/x.git"),
-            git_source("Astra Official", OFFICIAL_URL),
+            git_source("topodrive Official", OFFICIAL_URL),
         ];
         let plan = plan_install(&sources, "sentry", None, |_| Ok(vec![mp_entry("sentry")]))
             .expect("official source wins the tie");
@@ -2000,11 +2000,11 @@ mod tests {
     #[test]
     fn plan_install_bare_name_official_match_proceeds_despite_skip() {
         let sources = [
-            git_source("Astra Official", OFFICIAL_URL),
+            git_source("topodrive Official", OFFICIAL_URL),
             git_source("Flaky Remote", "https://github.com/acme/a.git"),
         ];
         let plan = plan_install(&sources, "sentry", None, |source| {
-            if source.name == "Astra Official" {
+            if source.name == "topodrive Official" {
                 Ok(vec![mp_entry("sentry")])
             } else {
                 Err("sync failed".to_string())
@@ -2201,17 +2201,17 @@ mod tests {
     fn resolve_qualified_source_name_with_matches_git_owner_repo() {
         let sources = vec![
             git_source(
-                "Astra Official",
-                "https://github.com/xai-org/plugin-marketplace.git",
+                "topodrive Official",
+                "https://github.com/topodrive-ai/plugin-marketplace.git",
             ),
             git_source(
                 "Internal",
                 "https://github.com/example/plugin-marketplace-internal.git",
             ),
         ];
-        let name = resolve_qualified_source_name_with(&sources, "xai-org/plugin-marketplace")
+        let name = resolve_qualified_source_name_with(&sources, "topodrive-ai/plugin-marketplace")
             .expect("qualifier should match the official source");
-        assert_eq!(name, "Astra Official");
+        assert_eq!(name, "topodrive Official");
     }
 
     #[test]
@@ -2228,8 +2228,8 @@ mod tests {
     #[test]
     fn resolve_qualified_source_name_with_unknown_qualifier_errors() {
         let sources = vec![git_source(
-            "Astra Official",
-            "https://github.com/xai-org/plugin-marketplace.git",
+            "topodrive Official",
+            "https://github.com/topodrive-ai/plugin-marketplace.git",
         )];
         let err = resolve_qualified_source_name_with(&sources, "bogus/repo")
             .expect_err("unknown qualifier should error");

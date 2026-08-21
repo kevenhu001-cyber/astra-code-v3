@@ -533,7 +533,7 @@ fn validate_verification_uri(uri: &str) -> anyhow::Result<()> {
 // code at the CLI. The server's `/api/auth/device/consume` returns a bearer
 // token immediately on success — no polling needed. This is the primary
 // interactive login path now that the project no longer relies on
-// `accounts.x.ai` / `auth.x.ai` OIDC discovery.
+// `accounts.topodrive.top` / `auth.topodrive.top` OIDC discovery.
 
 #[derive(Deserialize)]
 struct DeviceConsumeUser {

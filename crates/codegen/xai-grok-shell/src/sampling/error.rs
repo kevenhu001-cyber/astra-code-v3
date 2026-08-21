@@ -422,7 +422,7 @@ mod tests {
         assert_eq!(format_rate_limited_user_message(Some(&wire), true), body);
 
         // Team console rate-limit copy has no personal SuperGrok upsell — surface as-is.
-        let team = "resource-exhausted: Too many requests for team abc. See https://console.x.ai/team/default/rate-limits.";
+        let team = "resource-exhausted: Too many requests for team abc. See https://console.topodrive.top/team/default/rate-limits.";
         let team_wire = format!("API error (status 429 Too Many Requests): {team}");
         assert_eq!(
             format_rate_limited_user_message(Some(&team_wire), true),

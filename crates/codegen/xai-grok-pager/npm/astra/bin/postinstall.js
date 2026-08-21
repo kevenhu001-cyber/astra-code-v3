@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Runs once after npm install/update. Reads the astra binary from the
-// matching per-platform optional dependency (@xai-official/grok-<platform>)
+// matching per-platform optional dependency (@topodrive-ai-official/grok-<platform>)
 // and installs it to ~/.astra/bin/ using versioned filenames:
 //
 //   Unix:    astra-<version>  +  astra  (symlink)
@@ -36,7 +36,7 @@ const SUPPORTED = new Set([
     'win32-arm64',
 ]);
 if (!SUPPORTED.has(key)) {
-    console.error(`@xai-official/grok: unsupported platform ${key}`);
+    console.error(`@topodrive-ai-official/grok: unsupported platform ${key}`);
     process.exit(0);
 }
 
@@ -45,7 +45,7 @@ if (!SUPPORTED.has(key)) {
 // other five are silently skipped. If the matching one is missing, npm was
 // likely invoked with --no-optional or the platform is unsupported.
 function resolvePlatformPackageDir() {
-    const platformPkg = `@xai-official/grok-${key}`;
+    const platformPkg = `@topodrive-ai-official/grok-${key}`;
     try {
         return path.dirname(require.resolve(`${platformPkg}/package.json`));
     } catch {
@@ -56,7 +56,7 @@ function resolvePlatformPackageDir() {
 let version;
 try { version = require('../package.json').version; } catch {}
 if (!version) {
-    console.error('@xai-official/grok: unable to determine version');
+    console.error('@topodrive-ai-official/grok: unable to determine version');
     process.exit(0);
 }
 
@@ -96,7 +96,7 @@ function installBinary(binName, sourceDir, vendorSubpath) {
 
     // Skip if this exact version is already installed.
     if (!fs.existsSync(versionedPath) && !writeVendorBinary(brPath, rawPath, versionedPath)) {
-        console.error(`@xai-official/grok: missing binary at ${brPath}`);
+        console.error(`@topodrive-ai-official/grok: missing binary at ${brPath}`);
         return false;
     }
 
@@ -119,7 +119,7 @@ function installBinary(binName, sourceDir, vendorSubpath) {
                     throw copyErr;
                 }
             } catch (e2) {
-                console.error(`@xai-official/grok: failed to update ${canonicalPath}: ${e2.message}`);
+                console.error(`@topodrive-ai-official/grok: failed to update ${canonicalPath}: ${e2.message}`);
                 console.error('Close all running astra processes and try again.');
                 return false;
             }
@@ -134,7 +134,7 @@ function installBinary(binName, sourceDir, vendorSubpath) {
 
     // Don't report a broken wire-up as success.
     if (!fs.existsSync(canonicalPath)) {
-        console.error(`@xai-official/grok: ${canonicalName} did not resolve after install`);
+        console.error(`@topodrive-ai-official/grok: ${canonicalName} did not resolve after install`);
         return false;
     }
 
@@ -180,9 +180,9 @@ function cleanupOldVersions(binName) {
 
 const platformDir = resolvePlatformPackageDir();
 if (!platformDir) {
-    console.error(`@xai-official/grok: platform package @xai-official/grok-${key} not installed.`);
+    console.error(`@topodrive-ai-official/grok: platform package @topodrive-ai-official/grok-${key} not installed.`);
     console.error('  This usually means npm was invoked with --no-optional, or the install failed.');
-    console.error('  Try: npm install -g @xai-official/grok');
+    console.error('  Try: npm install -g @topodrive-ai-official/grok');
     process.exit(0);
 }
 

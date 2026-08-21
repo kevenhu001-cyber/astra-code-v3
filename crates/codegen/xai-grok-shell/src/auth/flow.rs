@@ -536,7 +536,7 @@ async fn run_auth_flow_steps(
 
     if reauth {
         auth_manager.clear()?;
-        // Also remove the legacy accounts.x.ai scope so stale tokens
+        // Also remove the legacy accounts.topodrive.top scope so stale tokens
         // don't linger alongside the fresh OIDC credential.
         let _ = auth_manager.remove_scope(LEGACY_AUTH_SCOPE);
     }
@@ -702,7 +702,7 @@ async fn run_auth_flow_steps(
     if let Some(ref oauth2_cfg) = grok_com_config.oauth2 {
         if should_use_device_flow(login_override).await {
             // Reverse device flow (replaces the RFC 8628 forward flow that
-            // required `accounts.x.ai`'s `/oauth2/device/code` endpoint).
+            // required `accounts.topodrive.top`'s `/oauth2/device/code` endpoint).
             return match channels.take() {
                 Some(channels) => {
                     crate::auth::device_code::run_reverse_device_login_channels(

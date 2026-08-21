@@ -403,7 +403,7 @@ async fn team_login_then_personal_evicts_team_token() {
 
 /// Regression test: clear() must only remove the current scope, not the
 /// legacy scope. Previously, logging in with OAuth would also delete the
-/// legacy `https://accounts.x.ai/sign-in` entry from auth.json.
+/// legacy `https://accounts.topodrive.top/sign-in` entry from auth.json.
 #[test]
 fn clear_does_not_remove_legacy_scope() {
     let dir = tempfile::tempdir().unwrap();

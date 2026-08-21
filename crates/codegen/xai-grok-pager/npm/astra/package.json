@@ -1,5 +1,5 @@
 {
-    "name": "@xai-official/grok",
+    "name": "@topodrive-ai-official/grok",
     "version": "0.1.220-alpha.4",
     "description": "Bring Astra into your terminal",
     "license": "Apache-2.0",
@@ -31,11 +31,11 @@
         "@iarna/toml": "^3.0.0"
     },
     "optionalDependencies": {
-        "@xai-official/grok-darwin-arm64": "0.1.220-alpha.4",
-        "@xai-official/grok-darwin-x64": "0.1.220-alpha.4",
-        "@xai-official/grok-linux-arm64": "0.1.220-alpha.4",
-        "@xai-official/grok-linux-x64": "0.1.220-alpha.4",
-        "@xai-official/grok-win32-arm64": "0.1.220-alpha.4",
-        "@xai-official/grok-win32-x64": "0.1.220-alpha.4"
+        "@topodrive-ai-official/grok-darwin-arm64": "0.1.220-alpha.4",
+        "@topodrive-ai-official/grok-darwin-x64": "0.1.220-alpha.4",
+        "@topodrive-ai-official/grok-linux-arm64": "0.1.220-alpha.4",
+        "@topodrive-ai-official/grok-linux-x64": "0.1.220-alpha.4",
+        "@topodrive-ai-official/grok-win32-arm64": "0.1.220-alpha.4",
+        "@topodrive-ai-official/grok-win32-x64": "0.1.220-alpha.4"
     }
 }

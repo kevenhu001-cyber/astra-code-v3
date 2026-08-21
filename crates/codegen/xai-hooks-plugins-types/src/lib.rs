@@ -811,7 +811,7 @@ mod tests {
                 git_url: None,
             },
             PluginOrigin::MarketplaceInstall {
-                source_name: Some("Astra Official".into()),
+                source_name: Some("topodrive Official".into()),
                 git_url: Some("https://example.com/r.git".into()),
             },
             PluginOrigin::ConfigPath,

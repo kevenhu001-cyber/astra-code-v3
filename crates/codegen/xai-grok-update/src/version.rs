@@ -10,7 +10,7 @@ use xai_grok_shell::env::GrokBuildEnvironment;
 use xai_grok_shell::util::grok_home::grok_home;
 
 const TTL_SECONDS_BEFORE_AUTO_UPDATE: Duration = Duration::from_secs(60 * 30);
-const NPM_PACKAGE: &str = "@xai-official/grok";
+const NPM_PACKAGE: &str = "@topodrive-ai-official/grok";
 pub const GH_RELEASE_REPO: &str = "kevenhu001-cyber/astra-code-v3";
 
 pub(crate) const CLI_BASE_URL_PRIMARY: &str = "https://astracode.topodrive.top/cli";

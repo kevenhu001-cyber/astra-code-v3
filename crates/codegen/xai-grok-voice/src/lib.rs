@@ -1,4 +1,4 @@
-//! Voice input for Astra CLI: an xAI streaming STT client and the
+//! Voice input for Astra CLI: a topodrive streaming STT client and the
 //! [`run_voice_pipeline`] task that emits [`VoiceEvent`]s for the pager.
 //!
 //! Voice is dictation only: mic → streaming STT → transcript into the prompt box.

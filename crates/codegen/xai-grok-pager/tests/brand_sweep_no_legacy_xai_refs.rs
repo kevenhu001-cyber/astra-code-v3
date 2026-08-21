@@ -2,11 +2,10 @@
 //!
 //! Background: the project rebranded from xAI/Grok to Astra. The user-facing
 //! docs were hand-swept, but new copy gets added all the time and it's easy
-//! to reintroduce a stale `grok.com`, `console.x.ai`, `x.ai/cli/install.sh`,
-//! `docs.x.ai`, `accounts.x.ai`, `xai.com`, or plain `xai` reference by
-//! accident. This test fails CI if any of those strings reappear in the
-//! user-guide markdown so the regression is caught at PR time, not after
-//! release.
+//! to reintroduce a stale `grok.com`, `x.ai/cli/install.sh`, or
+//! `xai.com` reference by accident. This test fails CI if any of those
+//! strings reappear in the user-guide markdown so the regression is caught
+//! at PR time, not after release.
 //!
 //! Scope: the user-facing docs directory
 //! (`crates/codegen/xai-grok-pager/docs/`). Internal crates, telemetry
@@ -15,9 +14,11 @@
 //! deliberately excluded — they are wire-level identifiers that real
 //! upstream systems depend on and renaming them would break the product.
 //!
-//! Allowlist: a few lines legitimately reference the legacy names in the
-//! context of "what we used to be called" or as user-supplied example
-//! values inside `allowed_domains`. Those lines are matched and skipped.
+//! Allowlist: reserved for lines that legitimately reference the legacy
+//! names in the context of "what we used to be called". As of the
+//! topodrive migration the user-guide docs no longer contain any of the
+//! forbidden substrings, so the allowlist is empty. Add an entry here only
+//! if a future rewrite intentionally reintroduces a legacy string.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -26,11 +27,13 @@ use std::path::{Path, PathBuf};
 /// Matched as plain substrings (case-sensitive) so a comment accidentally
 /// saying `grok.com` trips the test even if it's in a code block. The
 /// test fails if any match falls outside the allowlist below.
+///
+/// `docs.x.ai` / `accounts.x.ai` / `console.x.ai` were removed once the
+/// user-guide docs stopped referencing those endpoints — keep the list
+/// focused on legacy product/brand strings that would clearly signal a
+/// rebrand regression.
 const FORBIDDEN_SUBSTRINGS: &[&str] = &[
     "grok.com",
-    "console.x.ai",
-    "docs.x.ai",
-    "accounts.x.ai",
     "x.ai/cli/install",
     "xai.com",
 ];
@@ -40,17 +43,7 @@ const FORBIDDEN_SUBSTRINGS: &[&str] = &[
 /// values) to pass without renaming. Listed lines are matched verbatim;
 /// any drift in the surrounding context (even a single space) makes the
 /// allowlist miss and the test fails loudly.
-const ALLOWLIST: &[(&str, &str)] = &[
-    // `allowed_domains` is a user-supplied list of domains the user wants
-    // their tool to be able to fetch. `docs.x.ai` here is an *example* value
-    // the user might paste, not a product reference. Allowlist the exact
-    // line so it stays put, but the assertion still catches every other
-    // `docs.x.ai` mention in the docs.
-    (
-        "docs.x.ai",
-        "allowed_domains = [\"docs.x.ai\", \"arxiv.org\"]",
-    ),
-];
+const ALLOWLIST: &[(&str, &str)] = &[];
 
 /// Docs root. Relative to the crate root because the test is `cargo test`
 /// from any working directory.
@@ -111,7 +104,7 @@ fn no_legacy_xai_brands_in_user_docs() {
                 let allowed = ALLOWLIST
                     .iter()
                     .any(|(allow_pat, allow_line)| {
-                        *allow_pat == pat && *allow_line == line
+                        *allow_pat == *pat && **allow_line == *line
                     });
                 if !allowed {
                     violations.push(format!(
@@ -146,7 +139,7 @@ fn brand_sweep_allowlist_drift_check() {
             let Ok(content) = fs::read_to_string(&path) else {
                 continue;
             };
-            if content.lines().any(|l| l == *line) {
+            if content.lines().any(|l| *l == **line) {
                 found = true;
                 break;
             }

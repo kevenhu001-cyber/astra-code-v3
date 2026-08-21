@@ -451,10 +451,10 @@ pub const CUSTOM_MODEL_PROVIDER_PRESETS: &[CustomModelProviderPreset] = &[
         injects_think_tags: false,
     },
     CustomModelProviderPreset {
-        id: "xai",
-        label: "xAI (Grok)",
+        id: "topodrive",
+        label: "topodrive",
         api_backend: "chat_completions",
-        base_url: "https://api.x.ai/v1",
+        base_url: "https://api.topodrive.top/v1",
         injects_think_tags: false,
     },
     CustomModelProviderPreset {

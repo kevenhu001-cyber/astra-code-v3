@@ -1137,7 +1137,7 @@ mod tests {
             MarketplaceSource {
                 name: "official".into(),
                 kind: SourceKind::Git {
-                    url: "https://github.com/xai-org/plugin-marketplace.git".into(),
+                    url: "https://github.com/topodrive-ai/plugin-marketplace.git".into(),
                     branch: None,
                 },
             },
@@ -1162,7 +1162,7 @@ mod tests {
         let sources = removal_fixture();
         let found = find_removal_source(
             &sources,
-            "https://github.com/xai-org/plugin-marketplace",
+            "https://github.com/topodrive-ai/plugin-marketplace",
             Path::new("/"),
         )
         .unwrap();
@@ -1206,18 +1206,18 @@ mod tests {
     #[test]
     fn trust_prompt_marketplace_has_no_error_framing() {
         let msg = trust_prompt(
-            "\"sentry\" from marketplace \"Astra Official\"",
-            "sentry@xai-org/plugin-marketplace",
+            "\"sentry\" from marketplace \"topodrive Official\"",
+            "sentry@topodrive-ai/plugin-marketplace",
         );
         assert!(
             msg.starts_with(
-                "Installing \"sentry\" from marketplace \"Astra Official\" requires confirmation."
+                "Installing \"sentry\" from marketplace \"topodrive Official\" requires confirmation."
             ),
             "{msg}"
         );
         assert!(msg.contains("hooks, MCP servers, and skills"));
         assert!(msg.contains(
-            "To proceed, re-run with --trust:\n  grok plugin install sentry@xai-org/plugin-marketplace --trust"
+            "To proceed, re-run with --trust:\n  grok plugin install sentry@topodrive-ai/plugin-marketplace --trust"
         ));
         assert!(!msg.contains("Error"));
         assert!(!msg.contains("Failed"));

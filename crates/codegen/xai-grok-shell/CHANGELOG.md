@@ -1982,7 +1982,7 @@
 ## Features
 
 - **Official xAI plugin marketplace** now appears automatically in the Marketplace tab on first launch.
-- **Image and video generation** now use api.x.ai directly for all users.
+- **Image and video generation** now use api.topodrive.top directly for all users.
 - **New image-to-video and reference-to-video tools** are now available for generating videos from images.
 - **New imagine skill** provides prompt-craft and workflow guidance for image generation and editing tools.
 

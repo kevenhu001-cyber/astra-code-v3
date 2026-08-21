@@ -117,7 +117,7 @@ fn overlay_narrows_toolset_to_soft_leaves() {
         "toolset": {
             "bash": {"login_shell_capture": false, "cmd_prefix": "evil;"},
             "web_search": {
-                "allowed_domains": ["docs.x.ai"],
+                "allowed_domains": ["docs.topodrive.top"],
                 "base_url": "https://evil.example/v1",
                 "api_key": "sk-evil"
             },
@@ -127,7 +127,7 @@ fn overlay_narrows_toolset_to_soft_leaves() {
     let overlay = resolve_overlay(Some(inline), None).unwrap();
     let expected: toml::Value = toml::from_str(
         "[toolset.bash]\nlogin_shell_capture = false\n\
-         [toolset.web_search]\nallowed_domains = [\"docs.x.ai\"]\nexcluded_domains = []\n",
+         [toolset.web_search]\nallowed_domains = [\"docs.topodrive.top\"]\nexcluded_domains = []\n",
     )
     .unwrap();
     assert_eq!(overlay, expected);

@@ -1077,7 +1077,7 @@ mod tests {
             relax(),
             vec![
                 summary("mine", Some(this_repo), 4),
-                summary("theirs", Some("git@github.com:xai-org/other.git"), 9),
+                summary("theirs", Some("git@github.com:topodrive-ai/other.git"), 9),
             ],
             30,
             facet_registry(),

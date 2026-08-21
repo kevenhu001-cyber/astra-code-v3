@@ -34,7 +34,7 @@ pub struct VoiceProbeReport {
     pub transcript: Option<String>,
 }
 
-/// Capture mic audio and stream it to xAI STT, reporting the transcript.
+/// Capture mic audio and stream it to topodrive STT, reporting the transcript.
 #[cfg(feature = "audio")]
 pub async fn run_streaming_probe(opts: VoiceProbeOptions) -> Result<VoiceProbeReport, VoiceError> {
     let bearer = crate::auth::require_bearer(&opts.auth).await?;

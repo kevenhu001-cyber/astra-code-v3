@@ -125,7 +125,7 @@ impl acp::Client for QuietClient {
 /// any configured scope.
 fn seed_credential(grok_home: &Path, expires_at: chrono::DateTime<chrono::Utc>) {
     let auth = json!({
-        "https://accounts.x.ai/sign-in": {
+        "https://accounts.topodrive.top/sign-in": {
             "key": STALE_TOKEN,
             "auth_mode": "external",
             "create_time": (chrono::Utc::now() - chrono::Duration::hours(9)).to_rfc3339(),

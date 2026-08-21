@@ -132,7 +132,7 @@ pub(crate) const ASTRA_OAUTH2_LOCAL_ISSUER: &str = "http://localhost:8080";
 pub const XAI_OAUTH2_ISSUER: &str = ASTRA_OAUTH2_ISSUER;
 /// Production accounts-app origin allowlist for the legacy OIDC loopback
 /// callback CORS layer. Points at the independent Astra auth origin (the
-/// project no longer depends on `accounts.x.ai`). Its own const so the
+/// project no longer depends on `accounts.topodrive.top`). Its own const so the
 /// frozen contract test pins the production allowlist even when the
 /// non-production feature adds staging/local origins.
 const PROD_ACCOUNTS_APP_ORIGINS: &[&str] = &["https://astracode.topodrive.top"];
@@ -193,9 +193,9 @@ pub fn is_xai_oauth2_issuer(issuer: &str) -> bool {
 }
 /// auth.json scope key used by historical x.ai / `grok login --legacy` flows.
 /// Retained so the manager can scrub stale entries from `auth.json` on every
-/// load — users migrating from the old `accounts.x.ai` relay auth still need
+/// load — users migrating from the old `accounts.topodrive.top` relay auth still need
 /// these removed from their on-disk credentials. Never used as a URL or issuer.
-pub(crate) const LEGACY_AUTH_SCOPE: &str = "https://accounts.x.ai/sign-in";
+pub(crate) const LEGACY_AUTH_SCOPE: &str = "https://accounts.topodrive.top/sign-in";
 impl GrokComConfig {
     /// Whether `xai.api_key` auth is disabled. Pinning a team
     /// (`force_login_team_uuid`) implies this: team membership can't be verified
@@ -452,7 +452,7 @@ mod tests {
     }
     /// FROZEN loopback contract: the accounts-app origins the CLI's loopback
     /// callback server accepts cross-origin requests from. The consent page
-    /// (served from accounts.x.ai) delivers the code via `fetch(..., cors)`, so
+    /// (served from accounts.topodrive.top) delivers the code via `fetch(..., cors)`, so
     /// removing an origin breaks loopback delivery for already-installed CLIs.
     /// Keep in sync with the oauth2-provider / accounts-app deployments.
     /// Non-production / local-dev origins are opt-in only.
