@@ -466,22 +466,25 @@ mod tests {
             lines[0]
         );
         // URL sits alone on the second line, scheme-stripped and bracket-highlighted.
-        assert_eq!(lines[1], "[grok.com/connectors]");
+        assert_eq!(lines[1], "[astracode.topodrive.top/connectors]");
         assert!(
             !lines[1].contains("https://"),
             "displayed URL should drop the scheme: {}",
             lines[1]
         );
         let with_team = section_description_lines(&McpSectionId::Managed, Some("team-1"));
-        assert_eq!(with_team[1], "[grok.com/connectors?teamId=team-1]");
+        assert_eq!(with_team[1], "[astracode.topodrive.top/connectors?teamId=team-1]");
     }
 
     #[test]
     fn managed_connectors_url_display_strips_scheme() {
-        assert_eq!(managed_connectors_url_display(None), "grok.com/connectors");
+        assert_eq!(
+            managed_connectors_url_display(None),
+            "astracode.topodrive.top/connectors"
+        );
         assert_eq!(
             managed_connectors_url_display(Some("team-uuid-1")),
-            "grok.com/connectors?teamId=team-uuid-1"
+            "astracode.topodrive.top/connectors?teamId=team-uuid-1"
         );
     }
 

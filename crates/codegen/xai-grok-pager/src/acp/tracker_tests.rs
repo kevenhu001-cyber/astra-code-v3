@@ -3919,9 +3919,10 @@ fn handle_user_message_does_not_finalize_fresh_pin() {
     }
     sb.push_block(RenderBlock::user_prompt("new question"));
     let prompt_idx = sb.len() - 1;
-    sb.prepare_layout(80, 8);
+    // Viewport must fit the whole prompt bubble (content + 4+4 vpad band).
+    sb.prepare_layout(80, 12);
     sb.follow_new_turn(Some(prompt_idx), true);
-    sb.prepare_layout(80, 8);
+    sb.prepare_layout(80, 12);
     assert!(sb.is_pin_reserve_active(), "pin armed for the new turn");
     assert!(
         !sb.is_pin_reserve_after_turn(),

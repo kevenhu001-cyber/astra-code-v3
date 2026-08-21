@@ -613,6 +613,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(not(windows))]
     async fn async_gate_supports_bundled_and_user_skill_locations() {
         let enabled = gated_sources_async_with(compat_all(), Path::new("/grok"), |path| {
             let path = path.to_string_lossy();

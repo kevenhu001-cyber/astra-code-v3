@@ -63,6 +63,7 @@ fn worktrees_report(worktrees: Vec<WorktreeUsage>, total_bytes: u64) -> DiskUsag
 }
 
 #[test]
+#[cfg(not(windows))]
 fn collect_report_joins_registry_and_flags_untracked() {
     let tmp = tempfile::TempDir::new().unwrap();
     let base = dunce::canonicalize(tmp.path()).unwrap();

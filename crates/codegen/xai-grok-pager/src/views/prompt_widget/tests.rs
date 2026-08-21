@@ -1724,15 +1724,15 @@
             agent_client_protocol::ModelInfo::new(model_id, "Astra 4.5".to_string()),
         );
 
-        // Type "/model gr" and position cursor at end (in args).
-        pw.textarea.insert_str("/model gr");
+        // Type "/model as" and position cursor at end (in args).
+        pw.textarea.insert_str("/model as");
         pw.refresh_slash(&models);
 
         let snap = pw.slash_snapshot();
         assert!(snap.open, "arg suggestions should be open");
         assert!(snap.args_range.is_some());
 
-        // Accept arg completion → should replace "gr" with "Astra 4.5".
+        // Accept arg completion → should replace "as" with "Astra 4.5".
         pw.accept_slash_completion(&models);
         let text = pw.textarea.text().to_string();
         assert!(

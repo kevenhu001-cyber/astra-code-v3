@@ -1727,6 +1727,29 @@ fn move_setting_away_from_default(app: &mut AppView, key: crate::settings::Setti
                 app,
             );
         }
+        // Custom-model fields have no in-memory mirror (`current_value_for`
+        // always reports the registry default), so any away-value works.
+        "custom_model_provider" => {
+            let _ = dispatch(Action::SetCustomModelProvider("anthropic".into()), app);
+        }
+        "custom_model_id" => {
+            let _ = dispatch(Action::SetCustomModelId("test-move-id".into()), app);
+        }
+        "custom_model_display_name" => {
+            let _ = dispatch(Action::SetCustomModelDisplayName("Test Move".into()), app);
+        }
+        "custom_model_api_key" => {
+            let _ = dispatch(Action::SetCustomModelApiKey("sk-test-move".into()), app);
+        }
+        "custom_model_base_url" => {
+            let _ = dispatch(
+                Action::SetCustomModelBaseUrl("https://example.test".into()),
+                app,
+            );
+        }
+        "custom_model_injects_think_tags" => {
+            let _ = dispatch(Action::SetCustomModelInjectsThinkTags(true), app);
+        }
         other => {
             panic!(
                 "move_setting_away_from_default: no arm for `{other}`. \

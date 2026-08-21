@@ -193,9 +193,16 @@ pub(super) struct FileIdentity {
     dev: u64,
     #[cfg(unix)]
     ino: u64,
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     len: u64,
-    #[cfg(not(unix))]
+    // Directory mtimes churn whenever children are created/removed, so
+    // `modified` false-flags `ParentChanged` on every write on Windows.
+    // Creation time is stable for a directory that is merely modified.
+    #[cfg(windows)]
+    created: u64,
+    #[cfg(all(not(unix), not(windows)))]
+    len: u64,
+    #[cfg(all(not(unix), not(windows)))]
     modified: Option<std::time::SystemTime>,
 }
 
@@ -209,7 +216,15 @@ impl FileIdentity {
                 ino: metadata.ino(),
             }
         }
-        #[cfg(not(unix))]
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt as _;
+            Self {
+                len: metadata.len(),
+                created: metadata.creation_time(),
+            }
+        }
+        #[cfg(all(not(unix), not(windows)))]
         {
             Self {
                 len: metadata.len(),

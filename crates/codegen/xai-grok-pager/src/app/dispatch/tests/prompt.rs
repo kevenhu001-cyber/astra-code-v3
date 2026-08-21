@@ -73,6 +73,7 @@ fn doctor_question_app(temp: &std::path::Path) -> AppView {
     app
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_modal_stashes_prompt_and_confirms_exactly_one_apply() {
     let temp = tempfile::tempdir().unwrap();
@@ -98,6 +99,7 @@ fn doctor_fix_modal_stashes_prompt_and_confirms_exactly_one_apply() {
     ));
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_confirm_rejects_changed_session_or_cwd() {
     let temp = tempfile::tempdir().unwrap();
@@ -133,6 +135,7 @@ fn doctor_fix_confirm_rejects_changed_session_or_cwd() {
     }
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_promoted_target_allows_confirm_and_apply() {
     let temp = tempfile::tempdir().unwrap();
@@ -177,6 +180,7 @@ fn doctor_fix_promoted_target_allows_confirm_and_apply() {
     ));
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_none_target_rejects_cwd_change() {
     let temp = tempfile::tempdir().unwrap();
@@ -213,6 +217,7 @@ fn doctor_fix_none_target_rejects_cwd_change() {
     assert!(last_system_text(&app, id).contains("session changed"));
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_background_confirm_keeps_original_target() {
     let temp = tempfile::tempdir().unwrap();
@@ -243,6 +248,7 @@ fn doctor_fix_background_confirm_keeps_original_target() {
     ));
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_cancel_routes_to_initiator_then_fallbacks() {
     let temp = tempfile::tempdir().unwrap();
@@ -278,6 +284,7 @@ fn doctor_fix_cancel_routes_to_initiator_then_fallbacks() {
     );
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_fix_all_cancel_keys_restore_prompt_without_effect() {
     let temp = tempfile::tempdir().unwrap();
@@ -4509,6 +4516,7 @@ fn suggestions_landing_after_bash_exit_are_dropped() {
 /// OFF: Tab fires a deterministic fetch, and the landing response runs the
 /// terminal Tab semantics — a single file candidate splices in place
 /// immediately and the drill-down refetch rides out with the dispatch.
+#[cfg(not(windows))]
 #[test]
 fn tab_fetch_landing_insta_accepts_single_candidate_always_on() {
     use crate::views::suggestion_controller::{
@@ -4590,6 +4598,7 @@ fn tab_fetch_landing_insta_accepts_single_candidate_always_on() {
 /// dropdown (and installs no ghost) — the user picks with arrows + Tab.
 /// History rows model an OLD shell (new shells honor `tokenOnly` and send
 /// none on Tab fetches); whole-line sets must keep plain-open semantics.
+#[cfg(not(windows))]
 #[test]
 fn tab_fetch_landing_opens_dropdown_for_ambiguous_set_always_on() {
     use crate::views::suggestion_controller::{

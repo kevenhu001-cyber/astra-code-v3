@@ -224,11 +224,23 @@ fn hovering_a_link_brightens_every_row_it_wraps_onto() {
     }
 }
 
+/// A body far taller than any short window: wraps into dozens of rows at
+/// narrow widths, guaranteeing the illegibility fallback is exercised even
+/// though removing the central logo freed several rows.
+fn oversized_notice() -> ConsentNotice {
+    let filler = "This paragraph deliberately wraps across many narrow rows so the body cannot fit inside a short window. ";
+    ConsentNotice {
+        segments: vec![ConsentSegment::Text(filler.repeat(16))],
+        links: vec![],
+        ..notice()
+    }
+}
+
 /// Quit must stay even when the body is illegible: it is the only way out.
 #[test]
 fn an_unreadable_body_withholds_accept_but_still_offers_quit() {
-    let (small, small_result) = render(40, 10);
-    let (large, large_result) = render(100, 40);
+    let (small, small_result) = render_with(40, 10, &oversized_notice(), None, None);
+    let (large, large_result) = render_with(100, 40, &oversized_notice(), None, None);
 
     assert_eq!(
         small_result.consent_legibility,

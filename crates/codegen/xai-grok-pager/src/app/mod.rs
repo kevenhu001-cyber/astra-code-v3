@@ -2330,7 +2330,7 @@ mod tests {
             vec![
                 "Astra TUI",
                 "",
-                "Usage: grok [OPTIONS] [PROMPT] [COMMAND]",
+                "Usage: astra [OPTIONS] [PROMPT] [COMMAND]",
                 "",
                 "Arguments:",
             ]

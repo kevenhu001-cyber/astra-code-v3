@@ -64,11 +64,13 @@ pub(crate) fn resolve_tool_path_target_with_home(
 }
 
 fn non_empty_rel(rel: &Path) -> Option<String> {
-    let value = rel.to_string_lossy();
+    // Display surface: always spell relative paths with `/` so headers look
+    // identical across platforms (Windows `to_string_lossy` yields `\`).
+    let value = rel.to_string_lossy().replace('\\', "/");
     if value.is_empty() {
         None
     } else {
-        Some(value.into_owned())
+        Some(value)
     }
 }
 
@@ -107,17 +109,23 @@ fn resolve_tool_path(path: &str, cwd: Option<&Path>) -> ResolvedToolPath {
 }
 
 fn path_for_fullscreen_header(path: &str, cwd: Option<&Path>) -> String {
+    // Display surface: spell every header with `/` so headers look identical
+    // across platforms (`normalize_lexically` rebuilds with the host separator,
+    // yielding `\` on Windows even for transcripts of Unix sessions).
     resolve_tool_path(path, cwd)
         .display_path
         .to_string_lossy()
-        .into_owned()
+        .replace('\\', "/")
 }
 
 fn path_for_expanded_header(path: &str, cwd: Option<&Path>) -> String {
     let resolved = resolve_tool_path(path, cwd);
-    resolved
-        .relative_to_cwd
-        .unwrap_or_else(|| resolved.display_path.to_string_lossy().into_owned())
+    resolved.relative_to_cwd.unwrap_or_else(|| {
+        resolved
+            .display_path
+            .to_string_lossy()
+            .replace('\\', "/")
+    })
 }
 
 /// Shorten a file path to fit within `budget` display columns using fish-style

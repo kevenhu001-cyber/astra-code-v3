@@ -684,6 +684,13 @@ fn rows_contain_categories_and_settings_through_pr_14() {
             "coding_data_sharing",
             // SHELL-owned default_model (Models category).
             "default_model",
+            // Custom-model override fields (Models category, registered
+            // right after default_model; base_url / injects_think_tags
+            // are not exposed in the modal).
+            "custom_model_provider",
+            "custom_model_id",
+            "custom_model_display_name",
+            "custom_model_api_key",
             // Models category. `default_reasoning_effort`,
             // `web_search_model`, and `session_summary_model` are
             // not exposed in the modal.

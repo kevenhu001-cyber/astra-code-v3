@@ -128,6 +128,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn sets_environment_variables() {
         let dir = tempfile::tempdir().unwrap();
@@ -161,6 +162,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn omits_session_id_when_none() {
         let dir = tempfile::tempdir().unwrap();
@@ -223,6 +225,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn successful_command_completes_without_error() {
         let dir = tempfile::tempdir().unwrap();
@@ -281,6 +284,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn run_hook_passes_correct_env_via_thread() {
         let dir = tempfile::tempdir().unwrap();

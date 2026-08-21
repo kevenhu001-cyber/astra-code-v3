@@ -186,7 +186,9 @@ mod tests {
         }
         state.push_block(user_block("next question"));
         let prompt_idx = state.len() - 1;
-        state.prepare_layout(80, 8);
+        // Viewport must fit the whole prompt bubble (content + 4+4 vpad band)
+        // so the pinned pose is a real scroll bottom.
+        state.prepare_layout(80, 12);
         (state, prompt_idx)
     }
 
@@ -194,7 +196,7 @@ mod tests {
     fn page_flip_small_scroll_does_not_collapse_pad() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
         let pin = state.scroll_offset();
         let (_, vh, total) = state.scroll_info();
@@ -205,7 +207,7 @@ mod tests {
         );
 
         state.scroll_up(2);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
         assert_eq!(
             state.scroll_offset(),
@@ -218,11 +220,11 @@ mod tests {
     fn page_flip_scroll_down_at_pin_does_not_jump() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         let pin = state.scroll_offset();
 
         state.scroll_down(3);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert_eq!(state.scroll_offset(), pin);
         assert!(state.is_pin_reserve_active());
     }
@@ -231,11 +233,11 @@ mod tests {
     fn page_flip_drops_pad_once_last_user_is_below_the_fold() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
 
         state.scroll_up(12);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(
             !state.is_pin_reserve_active(),
             "scrolling the last user prompt fully off the bottom must drop the pad"
@@ -246,12 +248,12 @@ mod tests {
     fn page_flip_drops_pad_when_offset_moves_without_scroll_up() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
 
         state.scroll_offset = 0;
         state.follow_mode = false;
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(
             !state.is_pin_reserve_active(),
             "layout must drop the pad once the last user prompt is below the fold"
@@ -263,7 +265,11 @@ mod tests {
         crate::appearance::cache::set_show_thinking_blocks(true);
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        // Viewport must leave pad headroom for a minimal response block
+        // (truncated thinking ≈ 3 rows + gap) below the pinned prompt, or the
+        // first streamed block consumes follow-preserve ("content pushed past
+        // what fits") before the turn ever finishes.
+        state.prepare_layout(80, 20);
 
         let think_id = state.push_block(RenderBlock::thinking("line1"));
         if let Some(entry) = state.entries.get_mut(&think_id) {
@@ -271,14 +277,14 @@ mod tests {
             entry.set_display_mode(DisplayMode::Truncated);
         }
         state.running.insert(think_id);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         for i in 0..8 {
             state.push_chunk_to_thinking(think_id, &format!("\nline{}", i + 2));
-            state.prepare_layout(80, 8);
+            state.prepare_layout(80, 20);
         }
 
         state.scroll_up(2);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         assert!(state.is_pin_reserve_active());
         let mid = state.scroll_offset();
 
@@ -289,7 +295,7 @@ mod tests {
                 elapsed: Some(std::time::Duration::from_secs(1)),
             },
         ));
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         assert!(
             state.is_pin_reserve_active(),
             "completing the turn must not drop the pad"
@@ -301,7 +307,7 @@ mod tests {
         );
 
         state.scroll_up(2);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         assert!(state.is_pin_reserve_active());
         assert_eq!(
             state.scroll_offset(),
@@ -315,7 +321,8 @@ mod tests {
         crate::appearance::cache::set_show_thinking_blocks(true);
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        // Pad headroom for a minimal response block, as above.
+        state.prepare_layout(80, 20);
         let pin = state.scroll_offset();
 
         let think_id = state.push_block(RenderBlock::thinking("line1"));
@@ -324,9 +331,9 @@ mod tests {
             entry.set_display_mode(DisplayMode::Truncated);
         }
         state.running.insert(think_id);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         state.push_chunk_to_thinking(think_id, "\nline2");
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         assert!(state.is_follow_preserve_scroll());
         assert!(state.is_pin_reserve_active());
 
@@ -337,7 +344,7 @@ mod tests {
                 elapsed: Some(std::time::Duration::from_secs(2)),
             },
         ));
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 20);
         assert!(state.is_pin_reserve_active());
         assert_eq!(
             state.scroll_offset(),
@@ -355,7 +362,7 @@ mod tests {
         state.pin_reserve_target = Some(999);
 
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(
             state.is_pin_reserve_active(),
             "arming while scrolled up must not disarm the reserve"
@@ -369,7 +376,7 @@ mod tests {
         );
 
         state.scroll_up(2);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
         assert_eq!(
             state.scroll_offset(),
@@ -382,7 +389,7 @@ mod tests {
     fn shift_pin_reserve_target_tracks_only_above_prompt_changes() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         let base = state.pin_reserve_target.expect("armed pose");
         let start = state.visible_entry_range().start;
 
@@ -422,7 +429,7 @@ mod tests {
     fn page_flip_tracks_height_changes_above_prompt() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         let before = state.scroll_offset;
         let entry_id = *state.entries.get_index(0).expect("history entry").0;
         let before_height = state.layout_cache.as_ref().expect("layout cache").entries[0].height;
@@ -432,7 +439,7 @@ mod tests {
             entry.invalidate_cache();
         }
         state.dirty_heights.insert(entry_id);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
 
         let after_height = state.layout_cache.as_ref().expect("layout cache").entries[0].height;
         assert!(
@@ -453,7 +460,7 @@ mod tests {
     fn streaming_fast_path_releases_pin_below_fold() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         state.scroll_up(2);
         let entry_id = *state.entries.get_index(0).expect("history entry").0;
         {
@@ -463,7 +470,7 @@ mod tests {
         }
         state.dirty_heights.insert(entry_id);
 
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
 
         assert!(!state.is_pin_reserve_active());
         assert_eq!(state.pin_reserve_pad, 0);
@@ -473,7 +480,7 @@ mod tests {
     fn pin_reserve_prompt_index_survives_interjection() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
 
         // An interjection becomes the last user prompt but must not retarget the reserve.
         state.push_block(user_block("interjection"));
@@ -496,12 +503,12 @@ mod tests {
     fn page_flip_survives_narrower_resize() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
 
         // A narrower resize re-wraps every entry taller, moving the pin pose
         // down in the new coordinate space. The reserve must survive it.
-        state.prepare_layout(40, 8);
+        state.prepare_layout(40, 12);
         assert!(
             state.is_pin_reserve_active(),
             "a resize must not drop the page-flip pin"
@@ -518,7 +525,7 @@ mod tests {
     fn goto_bottom_releases_pin_reserve() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
         let pinned = state.scroll_offset();
 
@@ -543,14 +550,18 @@ mod tests {
     fn clear_drops_pin_reserve() {
         let (mut state, prompt_idx) = tall_history_then_prompt();
         state.follow_new_turn(Some(prompt_idx), true);
-        state.prepare_layout(80, 8);
+        state.prepare_layout(80, 12);
         assert!(state.is_pin_reserve_active());
 
         state.clear();
         assert!(!state.is_pin_reserve_active());
         state.push_block(user_block("reopened"));
         state.push_block(agent_block("answer"));
-        state.prepare_layout(80, 8);
+        // Reopened content is naturally taller than the arming viewport now
+        // (prompt bubble 1+4+4, agent bubble 1+3+3, plus gaps ≈ 18 rows), so
+        // give the viewport room to fit it — otherwise `total <= vh` fails on
+        // legitimate overflow rather than a leftover pad.
+        state.prepare_layout(80, 24);
         assert!(!state.is_pin_reserve_active());
         let (_, vh, total) = state.scroll_info();
         assert!(

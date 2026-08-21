@@ -61,6 +61,18 @@ pub use xai_grok_pager_render::{
 };
 #[cfg(test)]
 pub mod test_util;
+
+#[cfg(test)]
+mod test_env {
+    use ctor::ctor;
+
+    #[ctor]
+    fn force_fancy_glyphs() {
+        unsafe {
+            std::env::set_var("GROK_FORCE_LEGACY_CONSOLE", "0");
+        }
+    }
+}
 pub mod trace_cmd;
 pub mod tracing;
 pub mod unified_log;

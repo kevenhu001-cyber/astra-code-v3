@@ -938,11 +938,42 @@ fn token_to_path(token: &str) -> Option<PathBuf> {
         if url.scheme() != "file" {
             return None;
         }
-        return url.to_file_path().ok();
+        if let Ok(path) = url.to_file_path() {
+            return Some(path);
+        }
+        // Drive-less `file:///…` URIs (macOS/Linux transcripts viewed on a
+        // Windows build) are rejected by `to_file_path`; hand-decode the path
+        // so paste still inserts the path text instead of missing entirely.
+        let decoded = percent_decode_utf8(url.path())?;
+        return Some(PathBuf::from(decoded));
     }
 
     let unescaped = shell_unescape(unquoted);
     Some(PathBuf::from(unescaped.into_owned()))
+}
+
+/// Minimal percent-decoder for `file://` URL paths (RFC 3986 pct-encoded
+/// octets → bytes, then UTF-8). Returns `None` for malformed escapes or
+/// non-UTF-8 results rather than guessing.
+fn percent_decode_utf8(s: &str) -> Option<String> {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            let hi = bytes.get(i + 1).and_then(|b| (*b as char).to_digit(16));
+            let lo = bytes.get(i + 2).and_then(|b| (*b as char).to_digit(16));
+            let (Some(h), Some(l)) = (hi, lo) else {
+                return None;
+            };
+            out.push((h * 16 + l) as u8);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
 }
 
 /// Validate that `path` points to a readable image file and load it as

@@ -2938,8 +2938,15 @@ mod tests {
                 "badge must not label the product: {rendered:?}"
             );
         }
-        assert!(full.contains("Astra"), "full badge: {full:?}");
-        assert!(inline.contains("Astra"), "inline badge: {inline:?}");
+        assert!(full.contains("acme"), "full badge keeps the team: {full:?}");
+        assert!(
+            full.contains(xai_grok_version::VERSION),
+            "full badge carries the version: {full:?}"
+        );
+        assert!(
+            inline.contains(xai_grok_version::VERSION),
+            "inline badge carries the version: {inline:?}"
+        );
         assert!(footer.contains("acme"), "footer keeps the team: {footer:?}");
         assert!(
             !footer.ends_with('\u{2502}'),
@@ -3726,7 +3733,8 @@ mod tests {
         assert_eq!(layout.logo.width, 0);
         assert_eq!(layout.menu.width, 0);
         // Sub-rects inside the hero box are valid.
-        assert!(layout.hero_logo.height > 0);
+        // Central logo removed per design — the hero logo slot collapses to zero.
+        assert_eq!(layout.hero_logo.height, 0);
         assert!(layout.hero_menu.height > 0);
         assert_eq!(layout.hero_version.height, 1);
     }
@@ -3808,10 +3816,9 @@ mod tests {
 
     #[test]
     fn hero_box_inactive_when_warning_would_overflow() {
-        // Regression: the box is forced to the full 7-row logo, so even a
-        // 3-item menu needs 11 box rows. A startup warning (error_height = 2)
-        // pushes the total past height 19, so the gate must fall back to the
-        // stacked layout instead of overflowing by a row.
+        // Regression: with the central logo removed, a 3-item menu needs only
+        // a 10-row box, so a startup warning (error_height = 2) still fits at
+        // height 19 (1 gap + 2 error + 10 box + 1 flex + 5 fixed-below = 19).
         let area = Rect::new(0, 0, 90, 19);
         let with_warning = WelcomeLayout::compute(WelcomeLayoutInput {
             content_area: area,
@@ -3819,8 +3826,11 @@ mod tests {
             menu_height: 3,
             ..Default::default()
         });
-        assert!(!with_warning.has_hero_box());
-        // The same terminal fits the box once the warning is gone.
+        assert!(
+            with_warning.has_hero_box(),
+            "warning + 3-item menu now fits the 10-row logo-less box at 90x19"
+        );
+        // The same terminal obviously fits once the warning is gone.
         let no_warning = WelcomeLayout::compute(WelcomeLayoutInput {
             content_area: area,
             menu_height: 3,
@@ -3851,9 +3861,9 @@ mod tests {
             ..Default::default()
         });
         assert!(!blocked.has_hero_box());
-        assert!(
-            blocked.logo.height > 0,
-            "logo must be painted on the login screen"
+        assert_eq!(
+            blocked.logo.height, 0,
+            "central logo removed per design; the stacked logo slot stays empty"
         );
         assert!(
             blocked.menu.height > 0,
@@ -3894,9 +3904,10 @@ mod tests {
 
     #[test]
     fn hero_box_height_accounts_for_borders_and_padding() {
-        // At h >= 26, logo07 is used (7 lines). With menu_height=3:
-        // right_col = 2 + 0 + 0 + 1 + 3 = 6, inner = max(7, 6) = 7.
-        // hero_box_height = 2 (borders) + 2 (v_pad) + 7 = 11.
+        // Central logo removed per design — inner height comes solely from
+        // the right column. With menu_height=3:
+        // right_col = 1 (version) + 1 (subtitle) + 1 (gap) + 3 (menu) = 6,
+        // hero_box_height = 2 (borders) + 2×1 (v_pad) + 6 = 10.
         let area = Rect::new(0, 0, 100, 50);
         let layout = WelcomeLayout::compute(WelcomeLayoutInput {
             content_area: area,
@@ -3904,7 +3915,7 @@ mod tests {
             ..Default::default()
         });
         assert!(layout.has_hero_box());
-        assert_eq!(layout.hero_box.height, 11);
+        assert_eq!(layout.hero_box.height, 10);
     }
 
     #[test]
@@ -4220,16 +4231,25 @@ mod tests {
             .find(|l| l.contains("https://"))
             .expect("raw URL mode must render the URL");
         let second = lines.next().expect("URL must wrap to a second row");
-        // First row flush against both edges (full width), remainder on the
-        // next row starting at column 0.
+        // First row flush against both edges (full width), remainder flowing
+        // onto the following rows starting at column 0. The migrated accounts
+        // host makes this URL 81 cols, so the tail spans two rows.
         assert_eq!(
             first,
             &url[..40],
             "long URL row must span the full terminal width:\n{text}"
         );
+        let remaining = url[40..].as_bytes();
+        let mut rest = second.to_string();
+        for line in lines {
+            if rest.len() >= remaining.len() {
+                break;
+            }
+            rest.push_str(line);
+        }
         assert!(
-            second.starts_with(&url[40..]),
-            "wrapped remainder must start at column 0:\n{text}"
+            rest.starts_with(&url[40..]),
+            "wrapped remainder must continue at column 0:\n{text}"
         );
     }
 

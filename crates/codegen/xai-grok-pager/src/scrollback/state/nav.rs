@@ -1765,7 +1765,10 @@ mod tests {
         for i in 0..3 {
             state.push_block(agent_block(&format!("row {i}")));
         }
-        state.prepare_layout(80, 20);
+        // With the taller chat-bubble vpad bands, the three response bubbles
+        // alone need ~24 rows; 40 leaves room for the shrunken head to fit
+        // entirely so the re-clamp to 0 is observable.
+        state.prepare_layout(80, 40);
         assert!(state.is_follow_mode(), "fresh state follows");
         assert!(state.scroll_offset > 0, "setup: content must overflow");
 
@@ -1776,7 +1779,7 @@ mod tests {
             entry.invalidate_cache();
         }
         state.mark_height_dirty(tall_id);
-        state.prepare_layout(80, 20);
+        state.prepare_layout(80, 40);
         assert_eq!(
             state.scroll_offset, 0,
             "offset re-clamps to 0 once the content fits the viewport"

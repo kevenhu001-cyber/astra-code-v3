@@ -934,6 +934,28 @@ pub(in crate::app::dispatch) fn action_for_reset(
             }
         }
 
+        // Custom-model override fields round-trip through their typed setters.
+        // Registered defaults are the empty string / `false`, so reset
+        // restores "no custom model configured".
+        ("custom_model_provider", SettingValue::Enum(s)) => {
+            Some(Action::SetCustomModelProvider((*s).to_owned()))
+        }
+        ("custom_model_id", SettingValue::String(s)) => {
+            Some(Action::SetCustomModelId((*s).to_owned()))
+        }
+        ("custom_model_display_name", SettingValue::String(s)) => {
+            Some(Action::SetCustomModelDisplayName((*s).to_owned()))
+        }
+        ("custom_model_api_key", SettingValue::String(s)) => {
+            Some(Action::SetCustomModelApiKey((*s).to_owned()))
+        }
+        ("custom_model_base_url", SettingValue::String(s)) => {
+            Some(Action::SetCustomModelBaseUrl((*s).to_owned()))
+        }
+        ("custom_model_injects_think_tags", SettingValue::Bool(b)) => {
+            Some(Action::SetCustomModelInjectsThinkTags(*b))
+        }
+
         _ => None,
     }
 }
@@ -1226,7 +1248,9 @@ pub(in crate::app::dispatch) fn apply_setting_rollback(
         ("custom_model_provider", SettingValue::Enum(_))
         | ("custom_model_id", SettingValue::String(_))
         | ("custom_model_display_name", SettingValue::String(_))
-        | ("custom_model_api_key", SettingValue::String(_)) => {
+        | ("custom_model_api_key", SettingValue::String(_))
+        | ("custom_model_base_url", SettingValue::String(_))
+        | ("custom_model_injects_think_tags", SettingValue::Bool(_)) => {
             tracing::warn!(
                 target: "settings",
                 ?key,

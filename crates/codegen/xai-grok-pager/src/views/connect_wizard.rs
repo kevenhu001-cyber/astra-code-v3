@@ -1571,8 +1571,8 @@ mod tests {
     #[test]
     fn switching_preset_updates_url_when_url_was_unedited() {
         let mut s = ConnectWizardState::default();
-        s.set_preset(3); // xai
-        assert_eq!(s.current_preset_id(), "xai");
+        s.set_preset(3); // topodrive
+        assert_eq!(s.current_preset_id(), "topodrive");
         assert_eq!(s.base_url, "https://api.topodrive.top/v1");
     }
 

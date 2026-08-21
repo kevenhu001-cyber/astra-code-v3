@@ -13843,6 +13843,7 @@ dependencies = [
  "core-foundation",
  "criterion",
  "crossterm",
+ "ctor",
  "derive_more 2.1.1",
  "dirs 5.0.1",
  "dunce",

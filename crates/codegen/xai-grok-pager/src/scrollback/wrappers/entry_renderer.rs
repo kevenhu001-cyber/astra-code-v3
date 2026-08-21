@@ -395,14 +395,15 @@ impl<'a> EntryRenderer<'a> {
 
     /// Whether this entry should display a timestamp on the first content line.
     ///
-    /// Timestamps are shown for user and agent messages (including /btw responses
-    /// and mid-turn interjections) but NOT for thinking traces, tool calls, or
-    /// system messages.
+    /// Timestamps are shown for user and agent messages (including /btw responses)
+    /// but NOT for thinking traces, tool calls, system messages, or the prompt
+    /// variants that already carry their own chrome (cron, interjection).
     fn should_show_timestamp(&self) -> bool {
-        matches!(
-            self.entry.block,
-            RenderBlock::UserPrompt(_) | RenderBlock::AgentMessage(_) | RenderBlock::Btw(_)
-        )
+        match &self.entry.block {
+            RenderBlock::UserPrompt(b) => !b.is_cron && !b.is_interjection,
+            RenderBlock::AgentMessage(_) | RenderBlock::Btw(_) => true,
+            _ => false,
+        }
     }
 
     /// Width reserved for the timestamp on the right side of content lines.
@@ -478,6 +479,13 @@ impl<'a> EntryRenderer<'a> {
     pub fn estimate_height(&self, width: u16) -> u16 {
         if self.thinking_hidden() {
             return 0;
+        }
+        // Fold shortcut: a Collapsed/Truncated foldable entry renders as a
+        // compact 1-line header — no vpad band. Mirror that here so off-screen
+        // sizing matches the fold path; on-screen entries still get their exact
+        // `desired_height` (which includes the band the render actually paints).
+        if self.entry.display_mode != DisplayMode::Expanded && self.entry.is_foldable() {
+            return 1;
         }
         let content_width = width
             .saturating_sub(self.chrome_width())
@@ -1062,9 +1070,9 @@ mod tests {
         let row0 = renderer.rendered_row_of_logical_line(30, 0);
         let row1 = renderer.rendered_row_of_logical_line(30, 1);
 
-        // Line 0 starts on the first content row (after any top vpad row).
+        // Line 0 starts on the first content row (after the top vpad band).
         assert!(
-            row0 <= 3,
+            row0 <= 4,
             "first logical line starts at the top content row"
         );
         // Line 1 begins after every wrapped row of line 0, so it lands more than
@@ -1177,12 +1185,12 @@ mod tests {
         let mut buf = Buffer::empty(area);
         renderer.render(area, &mut buf);
 
-        // UserPrompt carries the taller chat-bubble band (vpad_top=3),
-        // first content row is y=3.
+        // UserPrompt carries the taller chat-bubble band (vpad_top=4),
+        // first content row is y=4.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
-        let content_row = 3u16;
+        let content_row = 4u16;
 
         let rendered = collect_row_symbols(&buf, content_row, ts_x, ts_x + ts_width);
         assert_eq!(
@@ -1203,12 +1211,12 @@ mod tests {
         let mut buf = Buffer::empty(area);
         renderer.render(area, &mut buf);
 
-        // AgentMessage has vpad (2 top rows), first content row is y=2.
+        // AgentMessage has vpad (3 top rows), first content row is y=3.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
 
-        let rendered = collect_row_symbols(&buf, 2, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 3, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
             "Expected short timestamp '{expected}' at row 2"
@@ -1221,10 +1229,10 @@ mod tests {
         let entry = ScrollbackEntry::new(RenderBlock::agent_message("hello"));
         let width: u16 = 80;
 
-        // AgentMessage has vpad → first content row at y=2.
+        // AgentMessage has vpad → first content row at y=3.
         // Hover the rightmost 10 cols of that row to trigger expansion.
         let hover_x = width - 2 - 5; // inside the timestamp zone
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 2)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 3)));
 
         let height = renderer.desired_height(width);
         let area = Rect::new(0, 0, width, height);
@@ -1242,7 +1250,7 @@ mod tests {
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
 
-        let rendered = collect_row_symbols(&buf, 2, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 3, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
             "Expected expanded timestamp on hover"
@@ -1257,28 +1265,28 @@ mod tests {
 
         // Render with mouse hovering timestamp → expanded
         let hover_x = width - 2 - 3;
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 2)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((hover_x, 3)));
         let height = renderer.desired_height(width);
         let area = Rect::new(0, 0, width, height);
         let mut buf_hover = Buffer::empty(area);
         renderer.render(area, &mut buf_hover);
 
         // Render with mouse far from timestamp → short
-        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((5, 2)));
+        let renderer = EntryRenderer::new(&entry, &theme).with_mouse_pos(Some((5, 3)));
         let mut buf_away = Buffer::empty(area);
         renderer.render(area, &mut buf_away);
 
         // Hovered should have pipe separator (expanded format)
-        let row_hover = collect_row_symbols(&buf_hover, 2, 0, width);
+        let row_hover = collect_row_symbols(&buf_hover, 3, 0, width);
         assert!(
             row_hover.contains('|'),
             "Hovered should show expanded format with '|'"
         );
 
         // Away should have AM/PM but NO pipe
-        let row_away = collect_row_symbols(&buf_away, 2, 0, width);
+        let row_away = collect_row_symbols(&buf_away, 3, 0, width);
         assert!(
-            has_ampm_timestamp(&buf_away, 2, width),
+            has_ampm_timestamp(&buf_away, 3, width),
             "Non-hovered should show short AM/PM timestamp"
         );
         assert!(
@@ -1379,8 +1387,8 @@ mod tests {
 
         // Blocks that SHOULD show timestamps
         let positive_blocks = vec![
-            ("UserPrompt", RenderBlock::user_prompt("test"), 3u16),
-            ("AgentMessage", RenderBlock::agent_message("test"), 2u16),
+            ("UserPrompt", RenderBlock::user_prompt("test"), 4u16),
+            ("AgentMessage", RenderBlock::agent_message("test"), 3u16),
             ("Btw", RenderBlock::Btw(BtwBlock::new("q", "a")), 0),
         ];
 
@@ -1462,28 +1470,30 @@ mod tests {
 
         let width: u16 = 80;
         let height = renderer.desired_height(width);
-        assert!(height >= 3, "need multiple content rows, got {height}");
+        assert!(height >= 5, "need multiple content rows, got {height}");
         let area = Rect::new(0, 0, width, height);
         let mut buf = Buffer::empty(area);
 
         // A column inside the gutter band (past `text_width`), so content never
         // writes it; only the gutter clear can.
         let ghost_x = gutter_band(&renderer, width).start + 2;
-        buf.set_string(ghost_x, 2, "X", Style::default());
-        buf.set_string(ghost_x, 3, "X", Style::default());
+        // First content row sits at y=3 (vpad_top for AgentMessage). The
+        // timestamp overlay rewrites that row, so seed a NON-first content
+        // row to exercise the gutter clear path.
+        buf.set_string(ghost_x, 4, "X", Style::default());
 
         renderer.render(area, &mut buf);
 
         // Without the fix these cells stay "X" (nothing repaints them).
         assert_eq!(
-            buf.cell((ghost_x, 2)).unwrap().symbol(),
+            buf.cell((ghost_x, 4)).unwrap().symbol(),
             " ",
-            "gutter ghost on row 2 must be cleared"
+            "gutter ghost on row 4 must be cleared"
         );
         assert_eq!(
-            buf.cell((ghost_x, 3)).unwrap().symbol(),
+            buf.cell((ghost_x, 5)).unwrap().symbol(),
             " ",
-            "gutter ghost on row 3 must be cleared"
+            "gutter ghost on row 5 must be cleared"
         );
     }
 
@@ -1504,11 +1514,11 @@ mod tests {
         buf.set_string(ghost_x, 2, "X", Style::default());
         renderer.render(area, &mut buf);
 
-        // AgentMessage has vpad → first content row is y=2.
+        // AgentMessage has vpad → first content row is y=3.
         let expected = entry.created_at.unwrap().format("%-I:%M %p").to_string();
         let ts_width = expected.len() as u16;
         let ts_x = width - 2 - ts_width;
-        let rendered = collect_row_symbols(&buf, 2, ts_x, ts_x + ts_width);
+        let rendered = collect_row_symbols(&buf, 3, ts_x, ts_x + ts_width);
         assert_eq!(
             rendered, expected,
             "timestamp must survive the gutter clear on the first row"

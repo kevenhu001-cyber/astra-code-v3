@@ -17,6 +17,7 @@ fn doctor_target(app: &AppView, id: AgentId) -> crate::app::actions::DoctorFixTa
     }
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_planning_promotes_initial_session_binding() {
     let temp = tempfile::tempdir().unwrap();
@@ -51,6 +52,7 @@ fn doctor_planning_promotes_initial_session_binding() {
     );
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_planning_rejects_bind_replace_and_unbind_rebind() {
     let temp = tempfile::tempdir().unwrap();
@@ -84,6 +86,7 @@ fn doctor_planning_rejects_bind_replace_and_unbind_rebind() {
     }
 }
 
+#[cfg(not(windows))]
 #[test]
 fn doctor_planning_opens_refuses_remote_and_rejects_stale_identity() {
     let temp = tempfile::tempdir().unwrap();

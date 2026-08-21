@@ -499,7 +499,7 @@ mod tests {
             .expect("suggestions");
         assert!(items.iter().any(|i| i.match_text == "openai"));
         assert!(items.iter().any(|i| i.match_text == "anthropic"));
-        assert!(items.iter().any(|i| i.match_text == "xai"));
+        assert!(items.iter().any(|i| i.match_text == "topodrive"));
         assert!(items.iter().any(|i| i.match_text == "deepseek"));
         assert!(items.iter().any(|i| i.match_text == "zhipu"));
         assert!(items.iter().any(|i| i.match_text == "xiaomi"));

@@ -334,6 +334,13 @@ fn collapse_home(path: &Path) -> String {
 /// Tilde-collapse with a path-component prefix so `HOME=/Users/u` does not
 /// match `/Users/user/xai`, and trailing slashes on HOME do not break the join.
 fn collapse_home_path(path: &Path, home: Option<&Path>) -> String {
+    // libgit2 reports Windows paths with `/` separators; restore the native
+    // spelling so worktree displays match the rest of the UI. (`/` cannot
+    // appear inside a component on Windows, so a blanket replace is safe.)
+    #[cfg(windows)]
+    let path = PathBuf::from(path.to_string_lossy().replace('/', "\\"));
+    #[cfg(not(windows))]
+    let path = path.to_path_buf();
     let Some(home) = home else {
         return path.display().to_string();
     };
@@ -576,7 +583,11 @@ mod tests {
         );
     }
 
+    // POSIX-spelling fixture: on Windows hosts `collapse_home_path` restores
+    // native `\` separators for display, so the passthrough expectation only
+    // holds where `/` is already the native spelling.
     #[test]
+    #[cfg(not(windows))]
     fn collapse_home_requires_whole_path_component() {
         let home = Path::new("/Users/u");
         assert_eq!(

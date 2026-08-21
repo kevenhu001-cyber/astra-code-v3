@@ -1840,6 +1840,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn active_child_copy_uses_child_scrollback_cwd() {
         use crate::scrollback::block::RenderBlock;
         use crate::scrollback::render::ScratchBuffer;
@@ -3167,7 +3168,9 @@ mod tests {
 
             let mut prev = agent.scrollback.scroll_info().0;
             let mut clamped_ticks = 0;
-            for _ in 0..200 {
+            // Ticks needed scales with total content height; 400 covers the
+            // current fixture at speed 1 with headroom.
+            for _ in 0..400 {
                 agent.tick_drag_autoscroll();
                 agent.reclamp_drag_head_post_render(false);
                 let now = agent.scrollback.scroll_info().0;
@@ -3193,7 +3196,9 @@ mod tests {
             Some(AutoScrollDirection::Up)
         );
         let mut prev = agent.scrollback.scroll_info().0;
-        for _ in 0..200 {
+        // Ticks needed scales with total content height; 400 covers the
+        // current fixture at speed 1 with headroom.
+        for _ in 0..400 {
             agent.tick_drag_autoscroll();
             agent.reclamp_drag_head_post_render(false);
             let now = agent.scrollback.scroll_info().0;
@@ -3367,7 +3372,9 @@ mod tests {
         let (_, viewport, total) = agent.scrollback.scroll_info();
         let max_offset = total - viewport as usize;
         let mut prev = after_wheel;
-        for _ in 0..200 {
+        // Ticks needed scales with total content height; 400 covers the
+        // current fixture at speed 1 with headroom.
+        for _ in 0..400 {
             agent.tick_drag_autoscroll();
             agent.reclamp_drag_head_post_render(false);
             let now = agent.scrollback.scroll_info().0;

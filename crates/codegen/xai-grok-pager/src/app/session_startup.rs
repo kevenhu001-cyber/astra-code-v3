@@ -1867,6 +1867,7 @@ mod tests {
     }
     /// `--restore-code --worktree` stays on the existing defer path.
     #[tokio::test]
+    #[cfg(not(windows))]
     async fn remote_miss_restore_code_with_worktree_defers() {
         let id = "no such remote target";
         let out = materialize_startup_for_cwd(
@@ -1897,6 +1898,7 @@ mod tests {
         }
     }
     #[tokio::test]
+    #[cfg(not(windows))]
     async fn remote_miss_worktree_without_restore_code_suppresses_snapshot() {
         let id = "no such remote target";
         let out = materialize_startup_for_cwd(

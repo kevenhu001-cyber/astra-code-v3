@@ -701,10 +701,13 @@ mod tests {
         assert_eq!(lines.len(), 1);
 
         let theme = Theme::current();
+        // The first span is the prefix ("❯ "); the rest are body spans.
+        // Skip it so the same color on user-vs-skill does not collide.
         let teal: Vec<&str> = lines[0]
             .content
             .spans
             .iter()
+            .skip(1)
             .filter(|s| s.style.fg == Some(theme.accent_skill))
             .map(|s| s.content.as_ref())
             .collect();
@@ -720,9 +723,10 @@ mod tests {
         assert_eq!(lines.len(), 2);
 
         let theme = Theme::current();
-        let line0 = &lines[0].content.spans;
+        // Line 0's first span is the prefix; subsequent spans are body.
+        let line0_body = &lines[0].content.spans[1..];
         assert!(
-            line0.iter().all(|s| s.style.fg != Some(theme.accent_skill)),
+            line0_body.iter().all(|s| s.style.fg != Some(theme.accent_skill)),
             "line 0 has no token"
         );
         let line1 = &lines[1].content.spans;
@@ -750,10 +754,12 @@ mod tests {
 
         let lines = block.wrap_prompt_lines(80, None, true, false);
         let theme = Theme::current();
+        // The first span is the prefix; skip it before filtering for skill tokens.
         let teal: Vec<&str> = lines[0]
             .content
             .spans
             .iter()
+            .skip(1)
             .filter(|s| s.style.fg == Some(theme.accent_skill))
             .map(|s| s.content.as_ref())
             .collect();

@@ -1444,6 +1444,14 @@ pub fn tab_complete_path(partial: &str) -> Option<String> {
         return None;
     }
 
+    // Prefix each completion with the real parent path. Deriving it by
+    // splitting `expanded` on `/` drops the entire prefix on Windows, where
+    // paths use `\` (the completed text would be a bare filename).
+    let mut parent_str = parent.to_string_lossy().into_owned();
+    if !parent_str.ends_with('/') && !parent_str.ends_with('\\') {
+        parent_str.push(std::path::MAIN_SEPARATOR);
+    }
+
     let mut matches: Vec<String> = std::fs::read_dir(parent)
         .ok()?
         .filter_map(|e| e.ok())
@@ -1454,14 +1462,6 @@ pub fn tab_complete_path(partial: &str) -> Option<String> {
         .map(|e| {
             let name = e.file_name().to_string_lossy().to_string();
             let full = parent.join(&name);
-            let parent_str = if expanded.contains('/') {
-                expanded
-                    .rsplit_once('/')
-                    .map(|(p, _)| format!("{p}/"))
-                    .unwrap_or_default()
-            } else {
-                String::new()
-            };
             if full.is_dir() {
                 format!("{parent_str}{name}/")
             } else {

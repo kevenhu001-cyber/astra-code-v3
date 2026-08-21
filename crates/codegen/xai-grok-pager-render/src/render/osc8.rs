@@ -258,9 +258,30 @@ pub fn path_to_file_target(path: &str) -> Option<LinkTarget> {
 }
 
 fn file_path_to_url(path: &Path) -> Option<Arc<str>> {
-    url::Url::from_file_path(path)
-        .ok()
-        .map(|u| Arc::from(u.as_str()))
+    // `Url::from_file_path` rejects Unix-style absolute paths (`/Users/me/x`)
+    // on Windows builds because they lack a drive letter. Transcripts render
+    // such paths routinely (macOS/Linux sessions viewed anywhere), so fall
+    // back to assembling the `file://` URL by hand with conservative
+    // percent-encoding of every byte that is not an RFC 3986 `pchar`.
+    if let Ok(parsed) = url::Url::from_file_path(path) {
+        return Some(Arc::from(parsed.as_str()));
+    }
+    let text = path.to_str()?;
+    let mut out = String::with_capacity(text.len() + 16);
+    out.push_str("file://");
+    let mut buf = [0u8; 4];
+    for ch in text.chars() {
+        match ch {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '/' | '-' | '.' | '_' | '~' | '!' | '$' | '&'
+            | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=' | ':' | '@' => out.push(ch),
+            _ => {
+                for byte in ch.encode_utf8(&mut buf).as_bytes() {
+                    out.push_str(&format!("%{byte:02X}"));
+                }
+            }
+        }
+    }
+    Some(Arc::from(out.as_str()))
 }
 
 #[cfg(test)]

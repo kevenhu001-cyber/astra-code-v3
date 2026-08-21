@@ -485,11 +485,14 @@ pub(crate) fn render_scrolled_entries_with_selection_boundaries(
             });
 
         let ctx = entry.context(content_width, appearance, cwd);
-        // Must match EntryRenderer's top padding (user prompts: 2 rows) or the
-        // selection/search/hyperlink row mapping drifts one row off the paint.
+        // Must match EntryRenderer's top padding or the
+        // selection/search/hyperlink row mapping drifts off the paint. The
+        // number of vpad rows above the first content row is whatever the
+        // block declares (1/3/4), not a fixed "1" — see
+        // `vpad_top_rows_for`.
         let vpad_top = entry.block.vpad_top_rows_for(&ctx.appearance);
         let content_skip = skip_rows.saturating_sub(vpad_top) as usize;
-        let first_visible_content_y = render_y + if skip_rows < vpad_top { 1 } else { 0 };
+        let first_visible_content_y = render_y + vpad_top.saturating_sub(skip_rows);
         let max_y = render_y + render_height;
 
         // Group-header entries draw synthetic "N more" text instead of
@@ -802,8 +805,10 @@ pub(crate) fn render_scrolled_entries_with_selection_boundaries(
         // Diagram affordance rows: map each block-relative reserved row to a
         // screen rect when visible. The blank row already scrolls with the
         // content; the draw loop paints the buttons + registers click hit-rects.
-        // Agent messages (the only producer) have no top vpad, so `row_offset`
-        // is measured straight from `y_start`, like inline media above.
+        // The only producer is the agent message, which carries a top vpad
+        // band — `row_offset` is measured from its first content row, so the
+        // band shifts the reserved row down by `vpad_top`. (Inline media above
+        // skips this: its tool-block producers have no vpad.)
         // Header gate unreachable today (producers are agent messages — run
         // breakers, so never verb-group members either); structural.
         let diagram_affordances = if is_group_header {
@@ -812,7 +817,7 @@ pub(crate) fn render_scrolled_entries_with_selection_boundaries(
             entry.block.diagram_affordances(&ctx)
         };
         for aff in diagram_affordances {
-            let virtual_y = entry_start + aff.row_offset as usize;
+            let virtual_y = entry_start + vpad_top as usize + aff.row_offset as usize;
             let viewport_bottom = viewport_start + viewport.height as usize;
             if virtual_y >= viewport_start && virtual_y < viewport_bottom {
                 result.diagram_affordances.push(DiagramAffordancePlacement {

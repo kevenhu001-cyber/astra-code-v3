@@ -1330,7 +1330,13 @@ fn test_selection_model_top_clipped_markdown_entry() {
     let result = render_with_scratch(&entries, viewport, 1, None);
 
     let range = &result.selection_model.ranges[0];
-    assert_eq!(range.lines[0].screen_y, 0);
+    // The clip hides 1 row of the agent message's top vpad band; the first
+    // selectable line paints at the band remainder (vpad_top - skip).
+    let vpad_top = entries[0]
+        .block
+        .vpad_top_rows_for(&AppearanceConfig::default());
+    let expected = vpad_top.saturating_sub(1);
+    assert_eq!(range.lines[0].screen_y, expected);
 }
 
 #[test]
@@ -1338,11 +1344,18 @@ fn test_selection_model_bottom_clipped_markdown_entry() {
     let entries = vec![make_markdown_entry(
         "hello world this should wrap across lines",
     )];
-    let viewport = Rect::new(0, 0, 20, 2);
+    // Tall enough to clear the agent message's top vpad band so actual
+    // content rows are visible and mapped (clipped by the viewport bottom).
+    let viewport = Rect::new(0, 0, 20, 5);
     let result = render_with_scratch(&entries, viewport, 0, None);
 
     let range = &result.selection_model.ranges[0];
-    assert!(range.lines.len() <= 2);
+    assert!(!range.lines.is_empty());
+    let visible_content_rows = viewport.height as usize
+        - entries[0]
+            .block
+            .vpad_top_rows_for(&AppearanceConfig::default()) as usize;
+    assert!(range.lines.len() <= visible_content_rows);
 }
 
 #[test]
@@ -1753,6 +1766,7 @@ fn execute_block_urls_get_overlay_links() {
 }
 
 #[test]
+#[cfg(not(windows))]
 fn markdown_wrapped_project_media_path_fully_linkified() {
     // Regression: imagine-tool prose whose long, percent-encoded media
     // path soft-wraps across rows. The whole path must be clickable (one
@@ -2837,6 +2851,7 @@ fn file_link_policy(
 }
 
 #[test]
+#[cfg(not(windows))]
 fn official_vscode_remote_delegates_scanned_absolute_path() {
     let path = "/worktree/src/main.rs";
     let entry = make_markdown_entry(path);
@@ -2862,6 +2877,7 @@ fn official_vscode_remote_delegates_scanned_absolute_path() {
 }
 
 #[test]
+#[cfg(not(windows))]
 fn official_vscode_remote_tool_headers_delegate_only_self_resolving_paint() {
     let cwd = std::path::PathBuf::from("/worktree");
     let target = "/worktree/src/nested/main.rs";

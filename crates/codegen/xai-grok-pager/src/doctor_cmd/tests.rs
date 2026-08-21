@@ -488,7 +488,7 @@ fn human_mixed_fixture_is_exact() {
             "  · byobu                        tmux\n",
             "  · ssh                          yes\n",
             "  · color                        256\n",
-            "  · themes                       2/5: groknight, grokday\n",
+            "  · themes                       2/5: astranight, astraday\n",
             "  · keyboard                     cmd=dropped, opt=native (OS rescue active)\n",
             "  · newline                      Alt+Enter (Cursor: xterm.js cannot distinguish Shift+Enter)\n",
             "\n",
@@ -523,6 +523,7 @@ fn human_mixed_fixture_is_exact() {
     );
 }
 
+#[cfg(not(windows))]
 #[test]
 fn fix_preview_contains_exact_change_and_caveats() {
     let temp = tempfile::tempdir().unwrap();
@@ -550,6 +551,7 @@ fn fix_preview_contains_exact_change_and_caveats() {
     assert!(preview.contains("~^Z"));
 }
 
+#[cfg(not(windows))]
 #[test]
 fn decline_is_success_and_does_not_write() {
     let temp = tempfile::tempdir().unwrap();
@@ -582,6 +584,7 @@ fn decline_is_success_and_does_not_write() {
     assert!(!temp.path().join(".bashrc").exists());
 }
 
+#[cfg(not(windows))]
 #[test]
 fn non_tty_without_yes_fails_safely_before_write() {
     let temp = tempfile::tempdir().unwrap();

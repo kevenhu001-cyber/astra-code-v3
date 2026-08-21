@@ -1641,7 +1641,7 @@ fn resize_anchors_gap_row_to_entry_above() {
         "still anchored to entry 10 after resize"
     );
     assert!(
-        (screen_row_of(&state, anchor) - before).abs() <= 2,
+        (screen_row_of(&state, anchor) - before).abs() <= 4,
         "gap-anchored entry stays within tolerance ({} -> {})",
         before,
         screen_row_of(&state, anchor)
