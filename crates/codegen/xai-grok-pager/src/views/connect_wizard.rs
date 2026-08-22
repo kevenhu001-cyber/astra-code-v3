@@ -158,13 +158,17 @@ impl ProtocolBackend {
             Self::Messages => "Anthropic Messages",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Self {
-        match s.trim().to_ascii_lowercase().as_str() {
+impl std::str::FromStr for ProtocolBackend {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.trim().to_ascii_lowercase().as_str() {
             "responses" => Self::Responses,
             "messages" | "anthropic" => Self::Messages,
             _ => Self::ChatCompletions,
-        }
+        })
     }
 }
 
@@ -580,28 +584,26 @@ impl ConnectWizardState {
 
     /// Check if background model fetch returned a result.
     pub fn poll_fetch_rx(&mut self) -> bool {
-        if let Some(ref mut rx) = self.fetch_rx {
-            if let Ok(res) = rx.try_recv() {
-                self.is_fetching = false;
-                self.fetch_rx = None;
-                match res {
-                    Ok(models) => {
-                        let count = models.len();
-                        self.fetched_models = Some(models.clone());
-                        self.fetch_status = Some(format!("Fetched {count} models"));
-                        self.mode = ConnectWizardMode::PickingModel {
-                            models,
-                            selected: 0,
-                            filter: String::new(),
-                        };
-                        return true;
-                    }
-                    Err(e) => {
-                        self.fetch_status = Some(format!("Error: {e}"));
-                        self.error = e;
-                        self.mode = ConnectWizardMode::Form;
-                        return true;
-                    }
+        if let Some(ref mut rx) = self.fetch_rx && let Ok(res) = rx.try_recv() {
+            self.is_fetching = false;
+            self.fetch_rx = None;
+            match res {
+                Ok(models) => {
+                    let count = models.len();
+                    self.fetched_models = Some(models.clone());
+                    self.fetch_status = Some(format!("Fetched {count} models"));
+                    self.mode = ConnectWizardMode::PickingModel {
+                        models,
+                        selected: 0,
+                        filter: String::new(),
+                    };
+                    return true;
+                }
+                Err(e) => {
+                    self.fetch_status = Some(format!("Error: {e}"));
+                    self.error = e;
+                    self.mode = ConnectWizardMode::Form;
+                    return true;
                 }
             }
         }
@@ -1501,20 +1503,18 @@ fn render_connect_form(
         ]);
         buf.set_line(area.x + 2, cur_y, &err_line, area.width.saturating_sub(4));
         cur_y += 1;
-    } else if let Some(ref st) = state.fetch_status {
-        if cur_y < max_y {
-            let status_line = Line::from(vec![
-                Span::styled("ℹ ", Style::default().fg(theme.fuzzy_accent)),
-                Span::styled(st, Style::default().fg(theme.fuzzy_accent)),
-            ]);
-            buf.set_line(
-                area.x + 2,
-                cur_y,
-                &status_line,
-                area.width.saturating_sub(4),
-            );
-            cur_y += 1;
-        }
+    } else if let Some(ref st) = state.fetch_status && cur_y < max_y {
+        let status_line = Line::from(vec![
+            Span::styled("ℹ ", Style::default().fg(theme.fuzzy_accent)),
+            Span::styled(st, Style::default().fg(theme.fuzzy_accent)),
+        ]);
+        buf.set_line(
+            area.x + 2,
+            cur_y,
+            &status_line,
+            area.width.saturating_sub(4),
+        );
+        cur_y += 1;
     }
 
     cur_y += 1;

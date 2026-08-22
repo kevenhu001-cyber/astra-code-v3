@@ -3194,13 +3194,12 @@ fn prime_initial_ui_from_root(root: Option<&toml::Value>) {
     if INITIAL_UI.get().is_some() {
         return;
     }
-    if let Some(r) = root {
-        if let Some(ui_value) = r.get("ui").cloned() {
-            if let Ok(cfg) = ui_value.try_into::<xai_grok_shell::agent::config::UiConfig>() {
-                let _ = INITIAL_UI.set(cfg);
-                return;
-            }
-        }
+    if let Some(r) = root
+        && let Some(ui_value) = r.get("ui").cloned()
+        && let Ok(cfg) = ui_value.try_into::<xai_grok_shell::agent::config::UiConfig>()
+    {
+        let _ = INITIAL_UI.set(cfg);
+        return;
     }
     let _ = INITIAL_UI.set(xai_grok_shell::agent::config::UiConfig::default());
 }

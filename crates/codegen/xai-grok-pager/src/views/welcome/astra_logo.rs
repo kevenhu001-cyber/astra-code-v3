@@ -91,7 +91,7 @@ fn boost(base: Color, amount: f32) -> Color {
     let Color::Rgb(r, g, b) = base else {
         return base;
     };
-    let a = amount.clamp(0.0, 1.0) as f32;
+    let a = amount.clamp(0.0, 1.0);
     let lerp = |channel: u8| -> u8 {
         let c = channel as f32 + (255.0 - channel as f32) * a;
         c.round().clamp(0.0, 255.0) as u8
@@ -158,13 +158,11 @@ where
                     _ => (None, false),
                 };
                 if !push {
-                    if !run.is_empty() {
-                        if let Some(c) = run_color {
-                            spans.push(Span::styled(
-                                std::mem::take(&mut run),
-                                Style::default().fg(c),
-                            ));
-                        }
+                    if !run.is_empty() && let Some(c) = run_color {
+                        spans.push(Span::styled(
+                            std::mem::take(&mut run),
+                            Style::default().fg(c),
+                        ));
                     }
                     spans.push(Span::raw(" "));
                     col += 1;
@@ -172,23 +170,19 @@ where
                 }
                 let boosted = boost(base_color.unwrap_or(ORANGE), shine_at_col(col));
                 if run_color != Some(boosted) {
-                    if !run.is_empty() {
-                        if let Some(c) = run_color {
-                            spans.push(Span::styled(
-                                std::mem::take(&mut run),
-                                Style::default().fg(c),
-                            ));
-                        }
+                    if !run.is_empty() && let Some(c) = run_color {
+                        spans.push(Span::styled(
+                            std::mem::take(&mut run),
+                            Style::default().fg(c),
+                        ));
                     }
                     run_color = Some(boosted);
                 }
                 run.push_str(LIT);
                 col += 1;
             }
-            if !run.is_empty() {
-                if let Some(c) = run_color {
-                    spans.push(Span::styled(run, Style::default().fg(c)));
-                }
+            if !run.is_empty() && let Some(c) = run_color {
+                spans.push(Span::styled(run, Style::default().fg(c)));
             }
         }
         out.push(Line::from(spans));

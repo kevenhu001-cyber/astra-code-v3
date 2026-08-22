@@ -37,7 +37,7 @@ fn boost_color(base: Color, target: Color, amount: f32) -> Color {
     let (Color::Rgb(br, bg, bb), Color::Rgb(tr, tg, tb)) = (base, target) else {
         return base;
     };
-    let a = amount.clamp(0.0, 1.0) as f32;
+    let a = amount.clamp(0.0, 1.0);
     let lerp = |c: u8, t: u8| -> u8 {
         let v = c as f32 + (t as f32 - c as f32) * a;
         v.round().clamp(0.0, 255.0) as u8
