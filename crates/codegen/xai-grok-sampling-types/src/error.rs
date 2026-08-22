@@ -593,7 +593,9 @@ pub const MAX_USER_ERROR_BODY_CHARS: usize = 280;
 pub fn status_user_message(status: StatusCode) -> String {
     match status.as_u16() {
         code @ 502..=504 => {
-            format!("Astra is temporarily unavailable. Please try again in a moment. (HTTP {code}).")
+            format!(
+                "Astra is temporarily unavailable. Please try again in a moment. (HTTP {code})."
+            )
         }
         // Upstream capacity, not an edge failure — see [`SamplingError::is_overloaded`].
         code @ 529 => {

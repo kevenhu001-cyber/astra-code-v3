@@ -416,20 +416,15 @@ impl AgentView {
                     // Close the wizard before re-dispatching so the user
                     // sees the modal disappear immediately.
                     self.active_modal = None;
-                    let display_name = format!(
-                        "{} · {}",
-                        result.provider, result.model_id
-                    );
-                    return InputOutcome::Action(
-                        crate::app::actions::Action::ConnectCustomModel {
-                            provider: result.provider,
-                            model_id: result.model_id,
-                            display_name,
-                            api_key: result.api_key,
-                            base_url: result.base_url,
-                            injects_think_tags: result.injects_think_tags,
-                        },
-                    );
+                    let display_name = format!("{} · {}", result.provider, result.model_id);
+                    return InputOutcome::Action(crate::app::actions::Action::ConnectCustomModel {
+                        provider: result.provider,
+                        model_id: result.model_id,
+                        display_name,
+                        api_key: result.api_key,
+                        base_url: result.base_url,
+                        injects_think_tags: result.injects_think_tags,
+                    });
                 }
                 WizardOutcome::Changed | WizardOutcome::Unhandled => {
                     return InputOutcome::Changed;
@@ -1453,16 +1448,14 @@ impl AgentView {
                 }
                 WizardOutcome::Submitted(result) => {
                     self.active_modal = None;
-                    return InputOutcome::Action(
-                        crate::app::actions::Action::ConnectCustomModel {
-                            provider: result.provider,
-                            model_id: result.model_id,
-                            display_name: result.display_name,
-                            api_key: result.api_key,
-                            base_url: result.base_url,
-                            injects_think_tags: result.injects_think_tags,
-                        },
-                    );
+                    return InputOutcome::Action(crate::app::actions::Action::ConnectCustomModel {
+                        provider: result.provider,
+                        model_id: result.model_id,
+                        display_name: result.display_name,
+                        api_key: result.api_key,
+                        base_url: result.base_url,
+                        injects_think_tags: result.injects_think_tags,
+                    });
                 }
                 WizardOutcome::Changed | WizardOutcome::Unhandled => {
                     return InputOutcome::Changed;
@@ -2478,7 +2471,12 @@ impl AgentView {
                         }
                         let line_idx = start + row_idx as usize;
                         if line_idx < all_lines.len() {
-                            buf.set_line(content_area.x, y, &all_lines[line_idx], content_area.width);
+                            buf.set_line(
+                                content_area.x,
+                                y,
+                                &all_lines[line_idx],
+                                content_area.width,
+                            );
                         }
                     }
                 }

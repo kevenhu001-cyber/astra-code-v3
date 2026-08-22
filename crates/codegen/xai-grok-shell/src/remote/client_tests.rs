@@ -884,7 +884,10 @@ fn list_url_derived_from_base_url() {
         Some("https://api.topodrive.top/v1"),
         None,
     );
-    assert_eq!(ep.resolve_models_list_url(), "https://api.topodrive.top/v1/models");
+    assert_eq!(
+        ep.resolve_models_list_url(),
+        "https://api.topodrive.top/v1/models"
+    );
 }
 #[test]
 fn list_url_explicit_overrides_derivation() {

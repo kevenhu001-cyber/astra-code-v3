@@ -53,18 +53,21 @@ fn env_overlay_inputs() -> (Option<String>, Option<PathBuf>) {
     // Prefer the new `ASTRA_CONFIG[_PATH]` names; fall back to the legacy
     // `GROK_CONFIG[_PATH]` for one release so existing deployments keep
     // working.
-    let inline = read_first_nonempty_env([GROK_CONFIG_ENV, "GROK_CONFIG"]).and_then(|raw| {
-        match raw.into_string() {
-            Ok(s) if !s.is_empty() => Some(s),
-            Ok(_) => None,
-            Err(_) => {
-                tracing::warn!("config overlay env var is not valid UTF-8; ignoring the overlay");
-                None
+    let inline =
+        read_first_nonempty_env([GROK_CONFIG_ENV, "GROK_CONFIG"]).and_then(|raw| {
+            match raw.into_string() {
+                Ok(s) if !s.is_empty() => Some(s),
+                Ok(_) => None,
+                Err(_) => {
+                    tracing::warn!(
+                        "config overlay env var is not valid UTF-8; ignoring the overlay"
+                    );
+                    None
+                }
             }
-        }
-    });
-    let path = read_first_nonempty_env([GROK_CONFIG_PATH_ENV, "GROK_CONFIG_PATH"])
-        .map(PathBuf::from);
+        });
+    let path =
+        read_first_nonempty_env([GROK_CONFIG_PATH_ENV, "GROK_CONFIG_PATH"]).map(PathBuf::from);
     (inline, path)
 }
 

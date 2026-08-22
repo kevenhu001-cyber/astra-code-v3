@@ -55,7 +55,8 @@ fn manual_install_cmd(channel: &str) -> String {
         return if cfg!(windows) {
             "irm https://astracode.topodrive.top/cli/enterprise-install.ps1 | iex".to_string()
         } else {
-            "curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh | bash".to_string()
+            "curl -fsSL https://astracode.topodrive.top/cli/enterprise-install.sh | bash"
+                .to_string()
         };
     }
     if is_stable_channel(channel) || !safe {
@@ -66,9 +67,13 @@ fn manual_install_cmd(channel: &str) -> String {
         };
     }
     if cfg!(windows) {
-        format!("$env:ASTRA_CHANNEL='{channel}'; irm https://astracode.topodrive.top/cli/install.ps1 | iex")
+        format!(
+            "$env:ASTRA_CHANNEL='{channel}'; irm https://astracode.topodrive.top/cli/install.ps1 | iex"
+        )
     } else {
-        format!("curl -fsSL https://astracode.topodrive.top/cli/install.sh | ASTRA_CHANNEL='{channel}' bash")
+        format!(
+            "curl -fsSL https://astracode.topodrive.top/cli/install.sh | ASTRA_CHANNEL='{channel}' bash"
+        )
     }
 }
 
@@ -198,10 +203,7 @@ pub fn print_update_status(status: &UpdateStatus, json: bool) -> anyhow::Result<
     }
 
     if let Some(error) = status.error.as_deref() {
-        println!(
-            "Astra - v{} [{}]",
-            status.current_version, status.channel
-        );
+        println!("Astra - v{} [{}]", status.current_version, status.channel);
         println!("Update check failed: {error}");
         return Ok(());
     }
@@ -1656,7 +1658,10 @@ async fn regenerate_completions(binary: &std::path::Path, astra_home: &std::path
     let completions: &[(&str, std::path::PathBuf)] = &[
         ("bash", astra_home.join("completions/bash/astra.bash")),
         ("zsh", astra_home.join("completions/zsh/_astra")),
-        ("fish", user_home.join(".config/fish/completions/astra.fish")),
+        (
+            "fish",
+            user_home.join(".config/fish/completions/astra.fish"),
+        ),
     ];
 
     for (shell, dest) in completions {

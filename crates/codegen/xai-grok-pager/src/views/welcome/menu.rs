@@ -67,7 +67,9 @@ fn paint_sheen_segment(
                 if d >= SHEEN_HALF_WIDTH {
                     0.0
                 } else {
-                    SHEEN_STRENGTH * 0.5 * (1.0 + (std::f32::consts::PI * d / SHEEN_HALF_WIDTH).cos())
+                    SHEEN_STRENGTH
+                        * 0.5
+                        * (1.0 + (std::f32::consts::PI * d / SHEEN_HALF_WIDTH).cos())
                 }
             })
             .unwrap_or(0.0);

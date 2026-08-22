@@ -508,15 +508,19 @@ pub const CUSTOM_MODEL_PROVIDER_PRESETS: &[CustomModelProviderPreset] = &[
 
 /// Custom-model provider canonical → (`api_backend`, `base_url`,
 /// `injects_think_tags_in_content`). Returns `None` for unknown ids.
-pub fn custom_model_provider_backend(
-    provider: &str,
-) -> Option<(&'static str, &'static str, bool)> {
-    let preset = CUSTOM_MODEL_PROVIDER_PRESETS.iter().find(|p| p.id == provider)?;
+pub fn custom_model_provider_backend(provider: &str) -> Option<(&'static str, &'static str, bool)> {
+    let preset = CUSTOM_MODEL_PROVIDER_PRESETS
+        .iter()
+        .find(|p| p.id == provider)?;
     // The `custom` preset has no baked-in endpoint; callers must supply one.
     if preset.base_url.is_empty() {
         return None;
     }
-    Some((preset.api_backend, preset.base_url, preset.injects_think_tags))
+    Some((
+        preset.api_backend,
+        preset.base_url,
+        preset.injects_think_tags,
+    ))
 }
 
 /// Resolve a preset by canonical id (case-insensitive), including `custom`.
@@ -538,11 +542,8 @@ pub async fn set_custom_model_provider(value: String) -> Result<()> {
         // protocol + think flag to defaults so a stale preset value from a
         // previous connection doesn't leak into the new one.
         super::persist::set_custom_model_field("api_backend", "chat_completions").await?;
-        return super::persist::set_custom_model_field(
-            "injects_think_tags_in_content",
-            "false",
-        )
-        .await;
+        return super::persist::set_custom_model_field("injects_think_tags_in_content", "false")
+            .await;
     };
     super::persist::set_custom_model_field("api_backend", backend).await?;
     super::persist::set_custom_model_field("base_url", base_url).await?;

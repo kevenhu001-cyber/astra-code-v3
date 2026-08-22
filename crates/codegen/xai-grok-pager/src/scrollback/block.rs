@@ -910,7 +910,6 @@ impl RenderBlock {
         self.vpad_top_rows_for(appearance) * 2
     }
 
-
     /// Check if this block is a ToolCall (any variant).
     ///
     /// Used by the entry cache to decide whether selection state should

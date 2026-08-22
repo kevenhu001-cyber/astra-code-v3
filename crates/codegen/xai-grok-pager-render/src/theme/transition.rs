@@ -138,7 +138,10 @@ pub fn sample_live(theme: Theme) -> Theme {
         bg_base: lerp_rgb(theme.bg_base, OLD_BG_BASE.load(Ordering::Relaxed)),
         text_primary: lerp_rgb(theme.text_primary, OLD_TEXT_PRIMARY.load(Ordering::Relaxed)),
         gray: lerp_rgb(theme.gray, OLD_GRAY.load(Ordering::Relaxed)),
-        prompt_border: lerp_rgb(theme.prompt_border, OLD_PROMPT_BORDER.load(Ordering::Relaxed)),
+        prompt_border: lerp_rgb(
+            theme.prompt_border,
+            OLD_PROMPT_BORDER.load(Ordering::Relaxed),
+        ),
         prompt_border_active: lerp_rgb(
             theme.prompt_border_active,
             OLD_PROMPT_BORDER_ACTIVE.load(Ordering::Relaxed),

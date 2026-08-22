@@ -989,7 +989,15 @@ pub fn default_settings() -> Vec<SettingMeta> {
             label: "Custom model provider",
             description: "Provider/protocol for the custom model. Sets the API backend \
                           and endpoint on [model.astra-custom] in config.toml. Restart required.",
-            keywords: &["model", "provider", "custom", "openai", "anthropic", "endpoint", "backend"],
+            keywords: &[
+                "model",
+                "provider",
+                "custom",
+                "openai",
+                "anthropic",
+                "endpoint",
+                "backend",
+            ],
             kind: SettingKind::Enum {
                 default: "openai",
                 choices: CUSTOM_MODEL_PROVIDER_CHOICES,

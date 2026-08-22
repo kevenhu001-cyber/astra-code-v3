@@ -1151,8 +1151,18 @@ fn sampling_config_scopes_no_inline_citations_include() {
             crate::env::PROD_CLI_CHAT_PROXY_BASE_URL,
             true,
         ),
-        (true, ApiBackend::Responses, "https://api.topodrive.top/v1", true),
-        (false, ApiBackend::Responses, "https://api.topodrive.top/v1", false),
+        (
+            true,
+            ApiBackend::Responses,
+            "https://api.topodrive.top/v1",
+            true,
+        ),
+        (
+            false,
+            ApiBackend::Responses,
+            "https://api.topodrive.top/v1",
+            false,
+        ),
         (
             true,
             ApiBackend::ChatCompletions,
@@ -1916,7 +1926,13 @@ fn parses_model_context_window() {
 }
 #[test]
 fn sampling_config_context_window_from_entry_or_default() {
-    let model = test_model_entry("any-model", "https://api.topodrive.top/v1", None, None, None);
+    let model = test_model_entry(
+        "any-model",
+        "https://api.topodrive.top/v1",
+        None,
+        None,
+        None,
+    );
     let config = sampling_config_for_model(
         &model,
         resolve_credentials(&model, None),
@@ -1926,7 +1942,13 @@ fn sampling_config_context_window_from_entry_or_default() {
         None,
     );
     assert_eq!(config.context_window, 200_000);
-    let mut model = test_model_entry("any-model", "https://api.topodrive.top/v1", None, None, None);
+    let mut model = test_model_entry(
+        "any-model",
+        "https://api.topodrive.top/v1",
+        None,
+        None,
+        None,
+    );
     model.info.context_window = NonZeroU64::new(256_000).unwrap();
     let config = sampling_config_for_model(
         &model,

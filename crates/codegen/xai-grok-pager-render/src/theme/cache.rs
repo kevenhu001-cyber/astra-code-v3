@@ -185,7 +185,12 @@ fn env_theme_name() -> Option<String> {
 }
 
 fn env_theme_name_from(env: &HashMap<String, String>) -> Option<&str> {
-    for key in ["ASTRA_THEME", "LC_ASTRA_THEME", "GROK_THEME", "LC_GROK_THEME"] {
+    for key in [
+        "ASTRA_THEME",
+        "LC_ASTRA_THEME",
+        "GROK_THEME",
+        "LC_GROK_THEME",
+    ] {
         let Some(raw) = env
             .get(key)
             .map(String::as_str)
@@ -662,7 +667,10 @@ mod tests {
     #[test]
     fn grok_theme_wins_over_lc_and_config() {
         with_test_env(|| {
-            let env = theme_env(&[("ASTRA_THEME", "astraday"), ("LC_ASTRA_THEME", "tokyonight")]);
+            let env = theme_env(&[
+                ("ASTRA_THEME", "astraday"),
+                ("LC_ASTRA_THEME", "tokyonight"),
+            ]);
             assert_eq!(
                 resolve_initial_theme_from(
                     env_theme_name_from(&env),

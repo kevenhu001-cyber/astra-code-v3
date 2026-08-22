@@ -272,8 +272,27 @@ fn file_path_to_url(path: &Path) -> Option<Arc<str>> {
     let mut buf = [0u8; 4];
     for ch in text.chars() {
         match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '/' | '-' | '.' | '_' | '~' | '!' | '$' | '&'
-            | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=' | ':' | '@' => out.push(ch),
+            'a'..='z'
+            | 'A'..='Z'
+            | '0'..='9'
+            | '/'
+            | '-'
+            | '.'
+            | '_'
+            | '~'
+            | '!'
+            | '$'
+            | '&'
+            | '\''
+            | '('
+            | ')'
+            | '*'
+            | '+'
+            | ','
+            | ';'
+            | '='
+            | ':'
+            | '@' => out.push(ch),
             _ => {
                 for byte in ch.encode_utf8(&mut buf).as_bytes() {
                     out.push_str(&format!("%{byte:02X}"));

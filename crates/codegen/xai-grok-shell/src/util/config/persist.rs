@@ -274,7 +274,10 @@ pub async fn set_custom_model_field(field: &str, value: &str) -> Result<()> {
         models
             .as_table_mut()
             .expect("models must be a table")
-            .insert("default".to_string(), TomlValue::String(CUSTOM_MODEL_KEY.to_string()));
+            .insert(
+                "default".to_string(),
+                TomlValue::String(CUSTOM_MODEL_KEY.to_string()),
+            );
     }
 
     let toml_str = toml::to_string_pretty(&root)?;

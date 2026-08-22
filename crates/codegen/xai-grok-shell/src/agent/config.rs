@@ -46,7 +46,8 @@ pub const DEFAULT_AGENT_TYPE: &str = "grok-build-plan";
 pub(crate) fn default_agent_type() -> String {
     DEFAULT_AGENT_TYPE.to_owned()
 }
-pub const CLI_CHAT_PROXY_BASE_URL_DEFAULT: &str = "https://cli-chat-proxy.astracode.topodrive.top/v1";
+pub const CLI_CHAT_PROXY_BASE_URL_DEFAULT: &str =
+    "https://cli-chat-proxy.astracode.topodrive.top/v1";
 /// Default base URL for the public Astra API.
 pub const XAI_API_BASE_URL_DEFAULT: &str = "https://api.astracode.topodrive.top/v1";
 const NO_INLINE_CITATIONS_RESPONSE_INCLUDE: &str = "no_inline_citations";
@@ -1191,15 +1192,8 @@ impl SandboxSettingsConfig {
         if let Some(val) = requirement {
             return Resolved::new(val.to_owned(), ConfigSource::Requirement);
         }
-        resolve_string_flag(
-            cli_arg,
-            "ASTRA_SANDBOX",
-            self.profile.as_deref(),
-            None,
-        )
-        .or_else(|| {
-            resolve_string_flag(cli_arg, "GROK_SANDBOX", self.profile.as_deref(), None)
-        })
+        resolve_string_flag(cli_arg, "ASTRA_SANDBOX", self.profile.as_deref(), None)
+            .or_else(|| resolve_string_flag(cli_arg, "GROK_SANDBOX", self.profile.as_deref(), None))
             .unwrap_or_else(|| Resolved::new("off".to_owned(), ConfigSource::Default))
     }
     /// Resolve auto_allow_bash: requirement > env > config > default (false).

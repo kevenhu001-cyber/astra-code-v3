@@ -352,16 +352,24 @@ mod tests {
     #[test]
     fn test_is_topodrive_api_url() {
         assert!(is_topodrive_api_url("https://api.topodrive.top/v1"));
-        assert!(is_topodrive_api_url("https://api.topodrive.top/v1/chat/completions"));
+        assert!(is_topodrive_api_url(
+            "https://api.topodrive.top/v1/chat/completions"
+        ));
         assert!(is_topodrive_api_url("https://topodrive.top"));
         assert!(is_topodrive_api_url(
             "https://cli-chat-proxy.grok.com/v1/chat/completions"
         ));
         assert!(!is_topodrive_api_url("https://api.openai.com/v1"));
         assert!(!is_topodrive_api_url("https://api.anthropic.com/v1"));
-        assert!(!is_topodrive_api_url("https://generativelanguage.googleapis.com"));
-        assert!(!is_topodrive_api_url("https://api.topodrive.top.evil.example/v1"));
-        assert!(!is_topodrive_api_url("https://evil-topodrive.top.attacker.com/v1"));
+        assert!(!is_topodrive_api_url(
+            "https://generativelanguage.googleapis.com"
+        ));
+        assert!(!is_topodrive_api_url(
+            "https://api.topodrive.top.evil.example/v1"
+        ));
+        assert!(!is_topodrive_api_url(
+            "https://evil-topodrive.top.attacker.com/v1"
+        ));
         assert!(!is_topodrive_api_url("https://prefixtopodrive.top/v1"));
         assert!(!is_topodrive_api_url("not-a-url"));
         assert!(!is_topodrive_api_url(""));

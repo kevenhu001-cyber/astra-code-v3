@@ -65,7 +65,10 @@ fn long_tool_name_is_capped_on_all_three_backends() {
         assert!(n.len() <= TOOL_NAME_MAX_LEN, "name too long: {n:?}");
         // The cap suffix is a stable hash of the original; pin its shape so
         // the algorithm doesn't silently regress.
-        assert!(n.ends_with(|c: char| c.is_ascii_hexdigit()), "no hash suffix: {n:?}");
+        assert!(
+            n.ends_with(|c: char| c.is_ascii_hexdigit()),
+            "no hash suffix: {n:?}"
+        );
     }
 }
 
@@ -89,7 +92,10 @@ fn unsafe_characters_in_tool_name_are_substituted() {
     let tools = vec![spec("a b/c?d")];
     let chat = normalize_tool_definitions_for(ApiBackend::ChatCompletions, &tools, &[]);
     let name = chat_name_of(&chat);
-    assert!(name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'));
+    assert!(
+        name.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    );
 }
 
 #[test]
@@ -131,7 +137,9 @@ fn tool_choice_required_maps_correctly_per_backend() {
         other => panic!("chat shape wrong: {other:?}"),
     }
     match resp {
-        BackendToolChoice::Responses(rs::ToolChoiceParam::Mode(rs::ToolChoiceOptions::Required)) => {}
+        BackendToolChoice::Responses(rs::ToolChoiceParam::Mode(
+            rs::ToolChoiceOptions::Required,
+        )) => {}
         other => panic!("responses shape wrong: {other:?}"),
     }
     match anth {
@@ -176,7 +184,10 @@ fn tool_choice_function_name_also_gets_sanitized() {
             function: ToolChoiceFunction { name },
             ..
         }) => {
-            assert!(name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'))
+            assert!(
+                name.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+            )
         }
         other => panic!("chat shape wrong: {other:?}"),
     }
@@ -218,7 +229,10 @@ fn tool_call_id_openai_prefix_is_preserved() {
 fn tool_call_id_unsafe_chars_are_substituted() {
     let id = "toolu_abc def!";
     let out = sanitize_tool_call_id(id);
-    assert!(out.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'));
+    assert!(
+        out.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    );
 }
 
 #[test]
@@ -288,7 +302,10 @@ fn tool_use_input_is_a_value_not_a_string() {
     .expect("fixture deserializes");
     match block {
         ContentBlock::ToolUse { input, .. } => {
-            assert_eq!(input, json!({"type": "object", "properties": {"x": {"type": "integer"}}}));
+            assert_eq!(
+                input,
+                json!({"type": "object", "properties": {"x": {"type": "integer"}}})
+            );
         }
         other => panic!("expected tool_use, got {other:?}"),
     }
@@ -304,7 +321,11 @@ fn tool_result_content_text_round_trips() {
     }))
     .expect("fixture deserializes");
     match block {
-        ContentBlock::ToolResult { tool_use_id, content: ToolResultContent::Text(text), .. } => {
+        ContentBlock::ToolResult {
+            tool_use_id,
+            content: ToolResultContent::Text(text),
+            ..
+        } => {
             assert_eq!(tool_use_id, "toolu_xyz");
             assert_eq!(text, "ok");
         }

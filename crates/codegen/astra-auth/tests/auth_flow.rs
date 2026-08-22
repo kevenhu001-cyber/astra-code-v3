@@ -18,11 +18,15 @@ use axum::http::StatusCode;
 fn test_server() -> (String, Arc<Store>) {
     let dir = tempfile::tempdir().unwrap();
     let store = Arc::new(Store::open(dir.path().join("auth.json")).unwrap());
-    let srv = Server::from_arc(store.clone(), Arc::new(ConsoleMailer), Options {
-        base_url: "http://test.local".to_string(),
-        cookie_secure: false,
-        cookie_path: "/".to_string(),
-    });
+    let srv = Server::from_arc(
+        store.clone(),
+        Arc::new(ConsoleMailer),
+        Options {
+            base_url: "http://test.local".to_string(),
+            cookie_secure: false,
+            cookie_path: "/".to_string(),
+        },
+    );
     let app = srv.router();
 
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -149,10 +153,12 @@ fn device_flow_end_to_end() {
     let (_, out) = post_json(&format!("{base}/api/auth/device"), serde_json::json!({}));
     let device_code = out["device_code"].as_str().unwrap().to_string();
     let user_code = out["user_code"].as_str().unwrap().to_string();
-    assert!(out["verification_uri"]
-        .as_str()
-        .unwrap()
-        .contains(&user_code));
+    assert!(
+        out["verification_uri"]
+            .as_str()
+            .unwrap()
+            .contains(&user_code)
+    );
 
     // 2) TUI polls → pending.
     let (_, poll) = post_json(
@@ -207,7 +213,12 @@ fn cross_site_origin_rejected() {
 fn site_pages_serve() {
     let (base, _store) = test_server();
     for p in [
-        "/", "/login", "/authorize", "/account", "/assets/site.css", "/assets/auth.js",
+        "/",
+        "/login",
+        "/authorize",
+        "/account",
+        "/assets/site.css",
+        "/assets/auth.js",
         "/favicon.svg",
     ] {
         let resp = reqwest::blocking::get(format!("{base}{p}")).unwrap();
@@ -218,7 +229,12 @@ fn site_pages_serve() {
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap();
-    for p in ["/login.html", "/authorize.html", "/account.html", "/index.html"] {
+    for p in [
+        "/login.html",
+        "/authorize.html",
+        "/account.html",
+        "/index.html",
+    ] {
         let resp = client.get(format!("{base}{p}")).send().unwrap();
         assert_eq!(resp.status(), StatusCode::MOVED_PERMANENTLY, "{p}");
     }
@@ -266,10 +282,7 @@ fn account_update_display_name() {
 
     // /me reflects the trimmed name.
     let me = client.get(format!("{base}/api/auth/me")).send().unwrap();
-    assert!(me
-        .text()
-        .unwrap()
-        .contains("\"display_name\":\"New Name\""));
+    assert!(me.text().unwrap().contains("\"display_name\":\"New Name\""));
 
     // Over-long input truncated to 60 chars.
     let long = "a".repeat(100);
@@ -316,7 +329,9 @@ fn reverse_device_flow_end_to_end() {
     assert!(user_code.contains('-'));
 
     // The grant is pre-bound to the user (no manual approve).
-    let grant = store.find_device_by_code(&device_code).expect("grant stored");
+    let grant = store
+        .find_device_by_code(&device_code)
+        .expect("grant stored");
     assert_eq!(grant.user_id.as_deref(), Some("u1"));
     assert_eq!(grant.status, "pending");
 
@@ -360,10 +375,7 @@ fn reverse_device_consume_rejects_unbound_grant() {
     let (base, _store) = test_server();
 
     // Forward flow: anonymous grant, never approved.
-    let (_, out) = post_json(
-        &format!("{base}/api/auth/device"),
-        serde_json::json!({}),
-    );
+    let (_, out) = post_json(&format!("{base}/api/auth/device"), serde_json::json!({}));
     let user_code = out["user_code"].as_str().unwrap().to_string();
 
     let cli = reqwest::blocking::Client::new();
@@ -412,7 +424,10 @@ fn tokens_crud() {
     let tok = token["token"].as_str().unwrap().to_string();
 
     // List tokens.
-    let list = client.get(format!("{base}/api/auth/tokens")).send().unwrap();
+    let list = client
+        .get(format!("{base}/api/auth/tokens"))
+        .send()
+        .unwrap();
     assert_eq!(list.status(), StatusCode::OK);
     let body: serde_json::Value = list.json().unwrap();
     assert!(body["tokens"].as_array().unwrap().iter().any(|t| {
@@ -426,11 +441,16 @@ fn tokens_crud() {
         .send()
         .unwrap();
     assert_eq!(del.status(), StatusCode::OK);
-    let list2 = client.get(format!("{base}/api/auth/tokens")).send().unwrap();
+    let list2 = client
+        .get(format!("{base}/api/auth/tokens"))
+        .send()
+        .unwrap();
     let body2: serde_json::Value = list2.json().unwrap();
-    assert!(!body2["tokens"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|t| t["token"].as_str() == Some(tok.as_str())));
+    assert!(
+        !body2["tokens"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["token"].as_str() == Some(tok.as_str()))
+    );
 }

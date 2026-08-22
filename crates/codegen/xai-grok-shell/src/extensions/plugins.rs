@@ -244,7 +244,10 @@ mod tests {
                 git_url: Some("https://example.com/mp.git".to_string()),
             })
         );
-        assert_eq!(info.marketplace_source.as_deref(), Some("topodrive Official"));
+        assert_eq!(
+            info.marketplace_source.as_deref(),
+            Some("topodrive Official")
+        );
     }
 
     #[test]

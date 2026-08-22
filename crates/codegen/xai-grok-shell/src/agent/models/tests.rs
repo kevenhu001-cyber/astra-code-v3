@@ -2122,11 +2122,7 @@ fn resolve_default_model_prefers_id_over_model_slug() {
 
 #[test]
 fn build_prefetched_map_none_id_falls_back_to_slug() {
-    let entries = vec![make_entry_config_with_id(
-        None,
-        "grok-build",
-        Some("Astra"),
-    )];
+    let entries = vec![make_entry_config_with_id(None, "grok-build", Some("Astra"))];
     let map = build_prefetched_map(entries, None);
 
     assert_eq!(map.len(), 1);

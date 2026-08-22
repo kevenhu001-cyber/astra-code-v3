@@ -124,7 +124,10 @@ mod tests {
                 assert_eq!(extra_headers.get("X-Custom").unwrap(), "value");
                 assert!(alpha_test_key.is_none());
                 // Domain filters survive redaction (not secrets).
-                assert_eq!(allowed_domains, Some(vec!["docs.topodrive.top".to_string()]));
+                assert_eq!(
+                    allowed_domains,
+                    Some(vec!["docs.topodrive.top".to_string()])
+                );
                 assert!(excluded_domains.is_none());
             }
             _ => panic!("Expected Enabled variant"),

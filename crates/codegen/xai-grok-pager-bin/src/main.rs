@@ -2794,8 +2794,10 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn is_managed_install_matches_only_the_bin_astra_target() {
-        let home =
-            std::env::temp_dir().join(format!("astra-pager-managed-install-{}", std::process::id()));
+        let home = std::env::temp_dir().join(format!(
+            "astra-pager-managed-install-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&home);
         std::fs::create_dir_all(home.join("bin")).unwrap();
         std::fs::create_dir_all(home.join("downloads")).unwrap();

@@ -3125,7 +3125,10 @@ fn fork_secondary_model_picker_opens_on_persisted_model() {
     assert_ne!(slug, xai_grok_shell::models::default_model());
     let snapshot = PagerLocalSnapshot {
         available_models: vec![
-            ("Astra 3".to_string(), acp::ModelId::new(Arc::from("grok-3"))),
+            (
+                "Astra 3".to_string(),
+                acp::ModelId::new(Arc::from("grok-3")),
+            ),
             (
                 "Astra 4.5 Fast".to_string(),
                 acp::ModelId::new(Arc::from(slug)),

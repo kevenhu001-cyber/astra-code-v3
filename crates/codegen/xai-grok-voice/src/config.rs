@@ -132,7 +132,11 @@ mod tests {
 
     #[test]
     fn scheme_less_and_wss_bases() {
-        for base in ["api.topodrive.top", "wss://api.topodrive.top", "HTTPS://api.topodrive.top"] {
+        for base in [
+            "api.topodrive.top",
+            "wss://api.topodrive.top",
+            "HTTPS://api.topodrive.top",
+        ] {
             let cfg = VoiceConfig {
                 api_base: base.into(),
                 ..VoiceConfig::default()

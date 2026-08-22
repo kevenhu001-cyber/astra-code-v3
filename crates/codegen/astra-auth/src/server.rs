@@ -114,7 +114,10 @@ impl Server {
                     .delete(handlers_tokens_delete),
             )
             .route("/api/auth/account", post(handlers_account))
-            .route("/.well-known/openid-configuration", get(Self::handlers_oidc_discovery))
+            .route(
+                "/.well-known/openid-configuration",
+                get(Self::handlers_oidc_discovery),
+            )
             .route("/.well-known/jwks.json", get(Self::handlers_jwks))
             .route("/authorize", get(Self::handlers_authorize))
             .route("/token", post(Self::handlers_token))
@@ -125,7 +128,11 @@ impl Server {
 
     async fn handlers_oidc_discovery(State(s): State<Server>) -> Response {
         let base = s.opts.base_url.trim_end_matches('/').to_string();
-        let base = if base.is_empty() { "http://localhost:8080".to_string() } else { base };
+        let base = if base.is_empty() {
+            "http://localhost:8080".to_string()
+        } else {
+            base
+        };
         json_response(
             StatusCode::OK,
             json!({
@@ -209,19 +216,21 @@ impl Server {
             params
                 .get("sid")
                 .or_else(|| params.get("token"))
-                .and_then(|sid| s.store.find_session(sid).and_then(|sess| s.store.find_user_by_id(&sess.user_id)))
+                .and_then(|sid| {
+                    s.store
+                        .find_session(sid)
+                        .and_then(|sess| s.store.find_user_by_id(&sess.user_id))
+                })
         });
         let Some(user) = user else {
             let original = req.uri().to_string();
             let next = urlencoding::encode(&original);
             return (
                 StatusCode::FOUND,
-                [
-                    (
-                        header::LOCATION,
-                        HeaderValue::from_str(&format!("/login?next={next}")).unwrap(),
-                    ),
-                ],
+                [(
+                    header::LOCATION,
+                    HeaderValue::from_str(&format!("/login?next={next}")).unwrap(),
+                )],
             )
                 .into_response();
         };
@@ -235,10 +244,7 @@ impl Server {
             nonce: nonce.clone(),
             expires_at: Utc::now() + Duration::minutes(10),
         };
-        s.oidc_codes
-            .lock()
-            .unwrap()
-            .insert(code.clone(), oidc_code);
+        s.oidc_codes.lock().unwrap().insert(code.clone(), oidc_code);
         let mut redirect = format!("{}?code={}", redirect_uri, code);
         if !state.is_empty() {
             redirect.push_str(&format!("&state={}", urlencoding::encode(&state)));
@@ -252,7 +258,9 @@ impl Server {
 
     async fn handlers_token(State(s): State<Server>, req: axum::extract::Request) -> Response {
         let (_parts, body) = req.into_parts();
-        let bytes = axum::body::to_bytes(body, 64 << 10).await.unwrap_or_default();
+        let bytes = axum::body::to_bytes(body, 64 << 10)
+            .await
+            .unwrap_or_default();
         let body_str = String::from_utf8_lossy(&bytes).to_string();
         let params: HashMap<String, String> = url::form_urlencoded::parse(body_str.as_bytes())
             .into_owned()
@@ -263,15 +271,20 @@ impl Server {
         } else if grant_type == "refresh_token" {
             return Self::handle_token_refresh(s, params).await;
         } else if grant_type == DEVICE_GRANT_TYPE {
-            return write_err(StatusCode::BAD_REQUEST, "use /api/auth/device/token for device flow");
+            return write_err(
+                StatusCode::BAD_REQUEST,
+                "use /api/auth/device/token for device flow",
+            );
         }
         write_err(StatusCode::BAD_REQUEST, "unsupported grant_type")
     }
 
     fn is_loopback_redirect(uri: &str) -> bool {
         if let Ok(u) = url::Url::parse(uri) {
-            matches!(u.host_str(), Some("127.0.0.1") | Some("localhost") | Some("::1"))
-                && u.scheme() == "http"
+            matches!(
+                u.host_str(),
+                Some("127.0.0.1") | Some("localhost") | Some("::1")
+            ) && u.scheme() == "http"
         } else {
             false
         }
@@ -286,7 +299,10 @@ impl Server {
         let client_id = params.get("client_id").cloned().unwrap_or_default();
         let redirect_uri = params.get("redirect_uri").cloned().unwrap_or_default();
         if code.is_empty() || client_id.is_empty() || redirect_uri.is_empty() {
-            return write_err(StatusCode::BAD_REQUEST, "missing code/client_id/redirect_uri");
+            return write_err(
+                StatusCode::BAD_REQUEST,
+                "missing code/client_id/redirect_uri",
+            );
         }
         let stored = {
             let mut map = s.oidc_codes.lock().unwrap();
@@ -299,7 +315,10 @@ impl Server {
             return write_err(StatusCode::BAD_REQUEST, "code expired");
         }
         if stored.client_id != client_id || stored.redirect_uri != redirect_uri {
-            return write_err(StatusCode::BAD_REQUEST, "client_id or redirect_uri mismatch");
+            return write_err(
+                StatusCode::BAD_REQUEST,
+                "client_id or redirect_uri mismatch",
+            );
         }
         if !stored.code_challenge.is_empty() {
             let computed = if stored.code_challenge_method == "S256" {
@@ -317,7 +336,11 @@ impl Server {
             None => return write_err(StatusCode::BAD_REQUEST, "user not found"),
         };
         let base = s.opts.base_url.trim_end_matches('/').to_string();
-        let base = if base.is_empty() { "https://astracode.topodrive.top".to_string() } else { base };
+        let base = if base.is_empty() {
+            "https://astracode.topodrive.top".to_string()
+        } else {
+            base
+        };
         let now = Utc::now();
         let exp = now + Duration::days(30);
         let header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256);
@@ -338,7 +361,9 @@ impl Server {
             &jsonwebtoken::EncodingKey::from_secret(s.oidc_jwt_secret.as_bytes()),
         ) {
             Ok(t) => t,
-            Err(_) => return write_err(StatusCode::INTERNAL_SERVER_ERROR, "token generation failed"),
+            Err(_) => {
+                return write_err(StatusCode::INTERNAL_SERVER_ERROR, "token generation failed");
+            }
         };
         let refresh_token = password::random_hex(24);
         let _ = s.store.create_token(&ApiToken {
@@ -381,7 +406,11 @@ impl Server {
             None => return write_err(StatusCode::BAD_REQUEST, "user not found"),
         };
         let base = s.opts.base_url.trim_end_matches('/').to_string();
-        let base = if base.is_empty() { "https://astracode.topodrive.top".to_string() } else { base };
+        let base = if base.is_empty() {
+            "https://astracode.topodrive.top".to_string()
+        } else {
+            base
+        };
         let now = Utc::now();
         let exp = now + Duration::days(30);
         let header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256);
@@ -401,7 +430,9 @@ impl Server {
             &jsonwebtoken::EncodingKey::from_secret(s.oidc_jwt_secret.as_bytes()),
         ) {
             Ok(t) => t,
-            Err(_) => return write_err(StatusCode::INTERNAL_SERVER_ERROR, "token generation failed"),
+            Err(_) => {
+                return write_err(StatusCode::INTERNAL_SERVER_ERROR, "token generation failed");
+            }
         };
         let _ = s.store.create_token(&ApiToken {
             token: access_token.clone(),
@@ -421,10 +452,7 @@ impl Server {
     }
 
     /// Serve the embedded static site pages. Unknown paths 404.
-    async fn static_site(
-        State(_state): State<Server>,
-        req: axum::extract::Request,
-    ) -> Response {
+    async fn static_site(State(_state): State<Server>, req: axum::extract::Request) -> Response {
         let path = req.uri().path().to_string();
 
         // /assets/* served from the embedded assets directory.
@@ -453,7 +481,10 @@ impl Server {
             "/authorize" => serve_page(crate::assets::AUTHORIZE_HTML),
             "/account" => serve_page(crate::assets::ACCOUNT_HTML),
             "/favicon.svg" => (
-                [(header::CONTENT_TYPE, HeaderValue::from_static("image/svg+xml"))],
+                [(
+                    header::CONTENT_TYPE,
+                    HeaderValue::from_static("image/svg+xml"),
+                )],
                 Body::from(crate::assets::FAVICON_SVG),
             )
                 .into_response(),
@@ -467,7 +498,10 @@ impl Server {
 
 fn serve_page(content: &'static str) -> Response {
     (
-        [(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"))],
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/html; charset=utf-8"),
+        )],
         Body::from(content),
     )
         .into_response()
@@ -526,9 +560,13 @@ async fn decode_body<T: for<'de> Deserialize<'de>>(
         return Err(write_err(StatusCode::METHOD_NOT_ALLOWED, "POST required"));
     }
     if !origin_allowed(headers, host) {
-        return Err(write_err(StatusCode::FORBIDDEN, "cross-site request rejected"));
+        return Err(write_err(
+            StatusCode::FORBIDDEN,
+            "cross-site request rejected",
+        ));
     }
-    serde_json::from_slice(bytes).map_err(|_| write_err(StatusCode::BAD_REQUEST, "invalid JSON body"))
+    serde_json::from_slice(bytes)
+        .map_err(|_| write_err(StatusCode::BAD_REQUEST, "invalid JSON body"))
 }
 
 /// Extract a session token from Cookie, Authorization Bearer, or X-Session-Token.
@@ -549,7 +587,10 @@ fn session_token_from_headers(headers: &HeaderMap) -> Option<String> {
         }
     }
     // 2) Authorization: Bearer <session_token> (fallback when cookies blocked)
-    if let Some(h) = headers.get(header::AUTHORIZATION).and_then(|v| v.to_str().ok()) {
+    if let Some(h) = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+    {
         if let Some(tok) = h.strip_prefix("Bearer ") {
             let tok = tok.trim();
             if !tok.is_empty() {
@@ -615,10 +656,7 @@ fn verify_url(base_url: &str, token: &str) -> String {
     format!("{base}/api/auth/verify?token={token}")
 }
 
-fn create_session_token(
-    store: &Store,
-    user_id: &str,
-) -> Result<String, Response> {
+fn create_session_token(store: &Store, user_id: &str) -> Result<String, Response> {
     let token = password::random_hex(24);
     let expires = Utc::now() + Duration::days(SESSION_TTL_DAYS);
     store
@@ -658,15 +696,17 @@ fn clear_session_cookie(opts: &Options) -> HeaderValue {
 
 // --- registration ---
 
-async fn handlers_register(
-    State(s): State<Server>,
-    req: axum::extract::Request,
-) -> Response {
+async fn handlers_register(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let (parts, body) = req.into_parts();
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     #[derive(Deserialize)]
     struct Body {
         email: String,
@@ -707,15 +747,17 @@ async fn handlers_register(
     json_response(StatusCode::OK, json!({ "ok": true }))
 }
 
-async fn handlers_resend(
-    State(s): State<Server>,
-    req: axum::extract::Request,
-) -> Response {
+async fn handlers_resend(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let (parts, body) = req.into_parts();
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     #[derive(Deserialize)]
     struct Body {
         email: String,
@@ -752,7 +794,7 @@ async fn handlers_verify(
                 StatusCode::BAD_REQUEST,
                 "Verification link is invalid or expired. Please register again.",
             )
-                .into_response()
+                .into_response();
         }
     };
     if p.expires_at < Utc::now() {
@@ -798,7 +840,10 @@ async fn handlers_verify(
             StatusCode::OK,
             [
                 (header::SET_COOKIE, cookie),
-                (header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8")),
+                (
+                    header::CONTENT_TYPE,
+                    HeaderValue::from_static("text/html; charset=utf-8"),
+                ),
                 (header::CACHE_CONTROL, HeaderValue::from_static("no-store")),
             ],
             Body::from(html),
@@ -826,7 +871,12 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     #[derive(Deserialize)]
     struct Body {
         email: String,
@@ -952,15 +1002,17 @@ async fn handlers_device_create(State(s): State<Server>, _req: axum::extract::Re
     )
 }
 
-async fn handlers_device_approve(
-    State(s): State<Server>,
-    req: axum::extract::Request,
-) -> Response {
+async fn handlers_device_approve(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let (parts, body) = req.into_parts();
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     let user = current_user(&s.store, &parts.headers);
     let Some(user) = user else {
         return write_err(StatusCode::UNAUTHORIZED, "please log in first");
@@ -1003,15 +1055,17 @@ async fn handlers_device_approve(
     json_response(StatusCode::OK, json!({ "ok": true }))
 }
 
-async fn handlers_device_token(
-    State(s): State<Server>,
-    req: axum::extract::Request,
-) -> Response {
+async fn handlers_device_token(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let (parts, body) = req.into_parts();
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     #[derive(Deserialize)]
     struct Body {
         #[serde(rename = "device_code")]
@@ -1031,7 +1085,11 @@ async fn handlers_device_token(
     match g.status.as_str() {
         "pending" => json_response(StatusCode::OK, json!({ "status": "pending" })),
         "approved" => {
-            let Some(user) = g.user_id.as_ref().and_then(|id| s.store.find_user_by_id(id)) else {
+            let Some(user) = g
+                .user_id
+                .as_ref()
+                .and_then(|id| s.store.find_user_by_id(id))
+            else {
                 return json_response(StatusCode::OK, json!({ "status": "expired" }));
             };
             json_response(
@@ -1049,7 +1107,10 @@ async fn handlers_device_token(
 
 /// Reverse flow: authenticated user generates a one-time code on the device/browser;
 /// CLI consumes it by POSTing the `user_code`. Separated from the RFC8628 forward flow.
-async fn handlers_device_generate(State(s): State<Server>, req: axum::extract::Request) -> Response {
+async fn handlers_device_generate(
+    State(s): State<Server>,
+    req: axum::extract::Request,
+) -> Response {
     let user = current_user(&s.store, req.headers());
     let Some(user) = user else {
         return write_err(StatusCode::UNAUTHORIZED, "please log in first");
@@ -1069,7 +1130,11 @@ async fn handlers_device_generate(State(s): State<Server>, req: axum::extract::R
     }
     let base = {
         let b = s.opts.base_url.trim_end_matches('/');
-        if b.is_empty() { "http://localhost:8080" } else { b }
+        if b.is_empty() {
+            "http://localhost:8080"
+        } else {
+            b
+        }
     };
     json_response(
         StatusCode::OK,
@@ -1085,8 +1150,15 @@ async fn handlers_device_generate(State(s): State<Server>, req: axum::extract::R
 
 async fn handlers_device_consume(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let (parts, body) = req.into_parts();
-    let bytes = axum::body::to_bytes(body, 64 << 10).await.unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let bytes = axum::body::to_bytes(body, 64 << 10)
+        .await
+        .unwrap_or_default();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     #[derive(Deserialize)]
     struct Body {
         #[serde(rename = "user_code")]
@@ -1177,15 +1249,17 @@ async fn handlers_tokens_post(State(s): State<Server>, req: axum::extract::Reque
     json_response(StatusCode::OK, json!({ "token": tok.token }))
 }
 
-async fn handlers_tokens_delete(
-    State(s): State<Server>,
-    req: axum::extract::Request,
-) -> Response {
+async fn handlers_tokens_delete(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let (parts, body) = req.into_parts();
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     let Some(_user) = current_user(&s.store, &parts.headers) else {
         return write_err(StatusCode::UNAUTHORIZED, "not authenticated");
     };
@@ -1208,7 +1282,12 @@ async fn handlers_account(State(s): State<Server>, req: axum::extract::Request) 
     let bytes = axum::body::to_bytes(body, 64 << 10)
         .await
         .unwrap_or_default();
-    let host = parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
     let Some(mut user) = current_user(&s.store, &parts.headers) else {
         return write_err(StatusCode::UNAUTHORIZED, "not authenticated");
     };

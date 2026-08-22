@@ -121,7 +121,10 @@ impl WorkflowRegistry {
         if let Some(cwd) = session_cwd
             && crate::agent::folder_trust::project_scope_allowed(cwd)
         {
-            dirs.push((project_root(cwd).join(".astra").join("workflows"), "project"));
+            dirs.push((
+                project_root(cwd).join(".astra").join("workflows"),
+                "project",
+            ));
         }
         dirs.push((user_workflow_dir(), "user"));
 

@@ -271,16 +271,15 @@ impl From<ConversationRequest> for ChatCompletionRequest {
         };
 
         // only set `tool_choice` when there are `tools` to avoid OpenAI client errors
-        let tool_choice = req
-            .tool_choice
-            .filter(|_| !tools_is_empty)
-            .map(|tc| match crate::tool_normalize::normalize_tool_choice_for(
+        let tool_choice = req.tool_choice.filter(|_| !tools_is_empty).map(|tc| {
+            match crate::tool_normalize::normalize_tool_choice_for(
                 crate::ApiBackend::ChatCompletions,
                 tc,
             ) {
                 crate::tool_normalize::BackendToolChoice::Chat(c) => c,
                 _ => unreachable!("backend must match"),
-            });
+            }
+        });
 
         let response_format = req
             .json_schema

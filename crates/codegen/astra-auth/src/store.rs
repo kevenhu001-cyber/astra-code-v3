@@ -116,9 +116,8 @@ impl Store {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
         let inner = match std::fs::read(&path) {
-            Ok(data) => {
-                serde_json::from_slice(&data).with_context(|| format!("parse {}", path.display()))?
-            }
+            Ok(data) => serde_json::from_slice(&data)
+                .with_context(|| format!("parse {}", path.display()))?,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 let inner = StoreInner::default();
                 let json = serde_json::to_vec_pretty(&inner)?;
@@ -147,11 +146,7 @@ impl Store {
     pub fn find_user_by_email(&self, email: &str) -> Option<User> {
         let email = normalize_email(email);
         let inner = self.inner.lock().unwrap();
-        inner
-            .users
-            .iter()
-            .find(|u| u.email == email)
-            .cloned()
+        inner.users.iter().find(|u| u.email == email).cloned()
     }
 
     pub fn find_user_by_id(&self, id: &str) -> Option<User> {
@@ -294,9 +289,17 @@ impl Store {
             .cloned()
     }
 
-    pub fn update_device(&self, device_code: &str, mutate: impl FnOnce(&mut DeviceGrant)) -> Result<bool> {
+    pub fn update_device(
+        &self,
+        device_code: &str,
+        mutate: impl FnOnce(&mut DeviceGrant),
+    ) -> Result<bool> {
         let mut inner = self.inner.lock().unwrap();
-        let Some(d) = inner.devices.iter_mut().find(|d| d.device_code == device_code) else {
+        let Some(d) = inner
+            .devices
+            .iter_mut()
+            .find(|d| d.device_code == device_code)
+        else {
             return Ok(false);
         };
         mutate(d);

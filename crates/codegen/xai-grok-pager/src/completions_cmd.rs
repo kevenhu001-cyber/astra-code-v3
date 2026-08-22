@@ -122,6 +122,9 @@ mod tests {
             "nested subcommand dispatch must be untouched"
         );
         // The subcommand list itself must still be offered at the root.
-        assert!(fixed.contains("_astra_commands"), "root command list intact");
+        assert!(
+            fixed.contains("_astra_commands"),
+            "root command list intact"
+        );
     }
 }

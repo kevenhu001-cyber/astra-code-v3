@@ -487,7 +487,10 @@ mod tests {
         render_auth(&mut buf, area, &theme, &hint);
         let text = buffer_text(&buf, area);
         assert!(text.contains("Sign in to Astra"), "header: {text:?}");
-        assert!(text.contains("accounts.topodrive.top/device"), "url: {text:?}");
+        assert!(
+            text.contains("accounts.topodrive.top/device"),
+            "url: {text:?}"
+        );
         assert!(text.contains("ABCD-EFGH"), "device code: {text:?}");
         assert!(
             text.contains("Waiting for approval"),

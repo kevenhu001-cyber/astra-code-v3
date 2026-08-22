@@ -99,15 +99,16 @@ impl From<&ConversationRequest> for rs::CreateResponse {
         let input = build_responses_input(req);
         let tools = build_responses_tools(req);
 
-        let tool_choice = req.tool_choice.as_ref().map(|tc| {
-            match crate::tool_normalize::normalize_tool_choice_for(
-                crate::ApiBackend::Responses,
-                tc.clone(),
-            ) {
-                crate::tool_normalize::BackendToolChoice::Responses(c) => c,
-                _ => unreachable!("backend must match"),
-            }
-        });
+        let tool_choice =
+            req.tool_choice.as_ref().map(
+                |tc| match crate::tool_normalize::normalize_tool_choice_for(
+                    crate::ApiBackend::Responses,
+                    tc.clone(),
+                ) {
+                    crate::tool_normalize::BackendToolChoice::Responses(c) => c,
+                    _ => unreachable!("backend must match"),
+                },
+            );
 
         let text = req
             .json_schema

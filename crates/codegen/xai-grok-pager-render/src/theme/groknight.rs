@@ -66,9 +66,9 @@ use palette::*;
 
 impl Theme {
     /// Astra Night theme — pure black canvas with the user-requested `#FF6A00`
-/// orange accent. Backgrounds are flat black with subtle highlight tiers;
-/// all text is white or a white-tinted gray. Accent / selection / focus /
-/// borders / md headings / diff / scrollbar all use the orange ramp.
+    /// orange accent. Backgrounds are flat black with subtle highlight tiers;
+    /// all text is white or a white-tinted gray. Accent / selection / focus /
+    /// borders / md headings / diff / scrollbar all use the orange ramp.
     ///
     /// Colors are defined in RGB. Call [`Theme::quantized`] to downgrade
     /// them to the terminal's supported color level before rendering.
@@ -113,7 +113,7 @@ impl Theme {
 
             selection_border: ORANGE_DIM,
             prompt_border: rgb(70, 70, 70), // dimmer prompt chrome
-            prompt_border_active: ORANGE, // brighter when focused
+            prompt_border_active: ORANGE,   // brighter when focused
             hover_border: rgb(40, 40, 40),
 
             accent_model: ORANGE,

@@ -58,8 +58,19 @@ async fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     let addr = parse_flag(&args, "addr", env_or("ASTRA_AUTH_ADDR", ":8080"));
-    let base_url = parse_flag(&args, "base-url", env_or("ASTRA_AUTH_BASE_URL", "http://localhost:8080"));
-    let data_dir = parse_flag(&args, "data-dir", env_or("ASTRA_AUTH_DATA_DIR", default_data_dir().to_string_lossy().to_string()));
+    let base_url = parse_flag(
+        &args,
+        "base-url",
+        env_or("ASTRA_AUTH_BASE_URL", "http://localhost:8080"),
+    );
+    let data_dir = parse_flag(
+        &args,
+        "data-dir",
+        env_or(
+            "ASTRA_AUTH_DATA_DIR",
+            default_data_dir().to_string_lossy().to_string(),
+        ),
+    );
     let cookie_path = parse_flag(&args, "cookie-path", env_or("ASTRA_AUTH_COOKIE_PATH", "/"));
     let cookie_secure = parse_flag(&args, "cookie-secure", false);
 
@@ -71,7 +82,9 @@ async fn main() -> anyhow::Result<()> {
             tracing::info!("mailer: smtp ({})", smtp_host(&smtp));
             Arc::new(smtp)
         } else {
-            tracing::info!("mailer: console (verification links printed to this log); set SMTP_HOST/SMTP_USER/SMTP_PASS to send real email");
+            tracing::info!(
+                "mailer: console (verification links printed to this log); set SMTP_HOST/SMTP_USER/SMTP_PASS to send real email"
+            );
             Arc::new(ConsoleMailer)
         }
     };
@@ -87,7 +100,10 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| anyhow::anyhow!("bind {addr}: {e}"))?;
-    tracing::info!("astra-auth listening on {addr} (site + API at {})", opts.base_url);
+    tracing::info!(
+        "astra-auth listening on {addr} (site + API at {})",
+        opts.base_url
+    );
     axum::serve(listener, router)
         .await
         .map_err(|e| anyhow::anyhow!("server: {e}"))?;

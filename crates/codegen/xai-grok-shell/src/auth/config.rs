@@ -458,7 +458,10 @@ mod tests {
     /// Non-production / local-dev origins are opt-in only.
     #[test]
     fn allowed_accounts_app_origins_are_frozen() {
-        assert_eq!(PROD_ACCOUNTS_APP_ORIGINS, &["https://astracode.topodrive.top"]);
+        assert_eq!(
+            PROD_ACCOUNTS_APP_ORIGINS,
+            &["https://astracode.topodrive.top"]
+        );
         assert_eq!(allowed_accounts_app_origins(), PROD_ACCOUNTS_APP_ORIGINS);
     }
     /// FROZEN client contract: the 10 scopes the xAI OAuth2 client requests.

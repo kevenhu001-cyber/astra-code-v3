@@ -746,7 +746,10 @@ mod web_search_domains_tests {
         .unwrap();
         assert_eq!(
             got.allowed_domains,
-            Some(vec!["docs.topodrive.top".to_string(), "arxiv.org".to_string()])
+            Some(vec![
+                "docs.topodrive.top".to_string(),
+                "arxiv.org".to_string()
+            ])
         );
         assert!(got.excluded_domains.is_none());
     }
@@ -780,7 +783,10 @@ mod web_search_domains_tests {
             "allowed_domains = [\"docs.topodrive.top\"]\nexcluded_domains = [\"reddit.com\"]",
         ))
         .unwrap();
-        assert_eq!(got.allowed_domains, Some(vec!["docs.topodrive.top".to_string()]));
+        assert_eq!(
+            got.allowed_domains,
+            Some(vec!["docs.topodrive.top".to_string()])
+        );
         assert!(got.excluded_domains.is_none());
     }
 }

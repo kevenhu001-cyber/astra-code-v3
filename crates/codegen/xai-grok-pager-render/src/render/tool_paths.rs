@@ -67,11 +67,7 @@ fn non_empty_rel(rel: &Path) -> Option<String> {
     // Display surface: always spell relative paths with `/` so headers look
     // identical across platforms (Windows `to_string_lossy` yields `\`).
     let value = rel.to_string_lossy().replace('\\', "/");
-    if value.is_empty() {
-        None
-    } else {
-        Some(value)
-    }
+    if value.is_empty() { None } else { Some(value) }
 }
 
 fn home_dir() -> Option<&'static Path> {
@@ -120,12 +116,9 @@ fn path_for_fullscreen_header(path: &str, cwd: Option<&Path>) -> String {
 
 fn path_for_expanded_header(path: &str, cwd: Option<&Path>) -> String {
     let resolved = resolve_tool_path(path, cwd);
-    resolved.relative_to_cwd.unwrap_or_else(|| {
-        resolved
-            .display_path
-            .to_string_lossy()
-            .replace('\\', "/")
-    })
+    resolved
+        .relative_to_cwd
+        .unwrap_or_else(|| resolved.display_path.to_string_lossy().replace('\\', "/"))
 }
 
 /// Shorten a file path to fit within `budget` display columns using fish-style

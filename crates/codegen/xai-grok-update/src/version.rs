@@ -641,13 +641,16 @@ mod tests {
             // Pre-releases must round-trip whole — truncating to "0.1.220"
             // would make an alpha install masquerade as the release and
             // mask alpha → stable updates.
-            ("astra-0.1.220-alpha.4-linux-x86_64", Some("0.1.220-alpha.4")),
+            (
+                "astra-0.1.220-alpha.4-linux-x86_64",
+                Some("0.1.220-alpha.4"),
+            ),
             ("astra-0.1.220-alpha.4", Some("0.1.220-alpha.4")), // npm layout
-            ("grok-pager-0.1.5-darwin-arm64", None),           // "pager" is not a version
-            ("grok-garbage-darwin-arm64", None),               // unparseable version
+            ("grok-pager-0.1.5-darwin-arm64", None),            // "pager" is not a version
+            ("grok-garbage-darwin-arm64", None),                // unparseable version
             ("astra-0.2.46", Some("0.2.46")),                   // no platform suffix
-            ("other-0.2.46-darwin-arm64", None),               // wrong prefix
-            ("grok-latest", None),                             // symlink alias, not a version
+            ("other-0.2.46-darwin-arm64", None),                // wrong prefix
+            ("grok-latest", None),                              // symlink alias, not a version
             ("astra", None),                                    // bare name
             ("", None),
         ];

@@ -32,11 +32,7 @@ use std::path::{Path, PathBuf};
 /// user-guide docs stopped referencing those endpoints — keep the list
 /// focused on legacy product/brand strings that would clearly signal a
 /// rebrand regression.
-const FORBIDDEN_SUBSTRINGS: &[&str] = &[
-    "grok.com",
-    "x.ai/cli/install",
-    "xai.com",
-];
+const FORBIDDEN_SUBSTRINGS: &[&str] = &["grok.com", "x.ai/cli/install", "xai.com"];
 
 /// One forbidden substring + a unique context line from the file it's in.
 /// Allows legitimate mentions (e.g. user-supplied `allowed_domains` example
@@ -70,7 +66,10 @@ fn collect_markdown_files(root: &Path) -> Vec<PathBuf> {
 }
 
 fn line_of(content: &str, line_number: usize) -> &str {
-    content.lines().nth(line_number.saturating_sub(1)).unwrap_or("")
+    content
+        .lines()
+        .nth(line_number.saturating_sub(1))
+        .unwrap_or("")
 }
 
 /// Walk every `*.md` under `docs/` and report any forbidden substring whose
@@ -80,11 +79,7 @@ fn line_of(content: &str, line_number: usize) -> &str {
 #[test]
 fn no_legacy_xai_brands_in_user_docs() {
     let root = docs_root();
-    assert!(
-        root.is_dir(),
-        "docs root must exist: {}",
-        root.display()
-    );
+    assert!(root.is_dir(), "docs root must exist: {}", root.display());
 
     let mut violations: Vec<String> = Vec::new();
     for path in collect_markdown_files(&root) {
@@ -103,9 +98,7 @@ fn no_legacy_xai_brands_in_user_docs() {
                 }
                 let allowed = ALLOWLIST
                     .iter()
-                    .any(|(allow_pat, allow_line)| {
-                        *allow_pat == *pat && **allow_line == *line
-                    });
+                    .any(|(allow_pat, allow_line)| *allow_pat == *pat && **allow_line == *line);
                 if !allowed {
                     violations.push(format!(
                         "{}:{}  {}  >>>{}<<<",

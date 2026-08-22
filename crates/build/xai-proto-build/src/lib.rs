@@ -188,8 +188,9 @@ impl XaiProtoBuilder {
             let output = match &probe_dir {
                 Some(dir) => fs::read_to_string(dir.path().join("deps.txt"))
                     .context("read protoc dependency file")?,
-                None => String::from_utf8(output.stdout)
-                    .context("protoc command output not UTF-8")?,
+                None => {
+                    String::from_utf8(output.stdout).context("protoc command output not UTF-8")?
+                }
             };
 
             let mut lines = output.lines();
@@ -197,9 +198,12 @@ impl XaiProtoBuilder {
             // First line is "<descriptor_set_out>: <source> ...". The prefix
             // differs per platform (/dev/null vs a temp file), so take the
             // part after the first ": " separator.
-            let rem = first_line.split_once(": ").with_context(|| {
-                format!("protoc command output must start with a path: {output:?}")
-            })?.1;
+            let rem = first_line
+                .split_once(": ")
+                .with_context(|| {
+                    format!("protoc command output must start with a path: {output:?}")
+                })?
+                .1;
             for line in iter::once(rem).chain(lines) {
                 let line = line.trim();
                 let line = line.strip_suffix("\\").unwrap_or(line);

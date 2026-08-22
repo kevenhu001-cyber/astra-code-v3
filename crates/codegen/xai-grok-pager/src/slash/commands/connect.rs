@@ -42,10 +42,7 @@ const CONNECT_PRESETS: &[(&str, &str)] = &[
 /// only — the model ID field stays free-form, so any ID the provider serves
 /// is accepted (including IDs not listed here).
 const PRESET_EXAMPLE_MODELS: &[(&str, &[&str])] = &[
-    (
-        "openai",
-        &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"],
-    ),
+    ("openai", &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"]),
     (
         "openai_responses",
         &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"],
@@ -252,11 +249,12 @@ fn display_name_for(provider: &str, model_id: &str) -> String {
 
 /// Help text shown when `/connect` is run with no arguments.
 fn guided_help() -> String {
-    let mut s = String::from(
-        "Connect a custom model. Pick a preset, then supply model id + key:\n\n",
-    );
+    let mut s =
+        String::from("Connect a custom model. Pick a preset, then supply model id + key:\n\n");
     for (id, label) in CONNECT_PRESETS {
-        s.push_str(&format!("  /connect {id} <model_id> <api_key>\n    {label}\n"));
+        s.push_str(&format!(
+            "  /connect {id} <model_id> <api_key>\n    {label}\n"
+        ));
         let examples = preset_example_models(id);
         if !examples.is_empty() {
             s.push_str(&format!("    e.g. {}\n", examples.join(", ")));
@@ -334,7 +332,10 @@ mod tests {
 
     #[test]
     fn unknown_provider_errors() {
-        assert!(matches!(run("bogus gpt-5.6-luna x"), CommandResult::Error(_)));
+        assert!(matches!(
+            run("bogus gpt-5.6-luna x"),
+            CommandResult::Error(_)
+        ));
     }
 
     #[test]
@@ -467,7 +468,10 @@ mod tests {
         assert!(msg.contains("claude-opus-5"), "{msg}");
         assert!(msg.contains("claude-sonnet-5"), "{msg}");
         // Examples are suggestions; custom IDs remain accepted.
-        assert!(msg.contains("any model ID the provider serves works"), "{msg}");
+        assert!(
+            msg.contains("any model ID the provider serves works"),
+            "{msg}"
+        );
     }
 
     #[test]
@@ -486,16 +490,19 @@ mod tests {
     fn suggest_args_lists_all_presets() {
         let c = ctx();
         let items = ConnectCommand
-            .suggest_args(&crate::slash::command::AppCtx {
-                models: empty_models(),
-                cwd: std::path::Path::new("."),
-                has_session_announcements: false,
-                billing_surface_visible: true,
-                usage_command_visible: true,
-                workflows_available: true,
-                screen_mode: crate::app::ScreenMode::Inline,
-                current_title: None,
-            }, "")
+            .suggest_args(
+                &crate::slash::command::AppCtx {
+                    models: empty_models(),
+                    cwd: std::path::Path::new("."),
+                    has_session_announcements: false,
+                    billing_surface_visible: true,
+                    usage_command_visible: true,
+                    workflows_available: true,
+                    screen_mode: crate::app::ScreenMode::Inline,
+                    current_title: None,
+                },
+                "",
+            )
             .expect("suggestions");
         assert!(items.iter().any(|i| i.match_text == "openai"));
         assert!(items.iter().any(|i| i.match_text == "anthropic"));
@@ -508,9 +515,16 @@ mod tests {
         assert!(items.iter().any(|i| i.match_text == "custom"));
         // Presets with example model IDs advertise them in the description.
         let openai = items.iter().find(|i| i.match_text == "openai").unwrap();
-        assert!(openai.description.contains("gpt-5.6-luna"), "{}", openai.description);
+        assert!(
+            openai.description.contains("gpt-5.6-luna"),
+            "{}",
+            openai.description
+        );
         let anthropic = items.iter().find(|i| i.match_text == "anthropic").unwrap();
-        assert!(anthropic.description.contains("claude-sonnet-5"), "{}", anthropic.description);
+        assert!(
+            anthropic.description.contains("claude-sonnet-5"),
+            "{}",
+            anthropic.description
+        );
     }
 }
-

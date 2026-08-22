@@ -276,8 +276,7 @@ fn repos_manifest_search_dirs(start: &std::path::Path) -> Vec<std::path::PathBuf
     #[allow(deprecated)]
     let home = std::env::home_dir();
     let mut global_manifests = Vec::with_capacity(2);
-    if let Some(v) = std::env::var_os("ASTRA_HOME")
-        .or_else(|| std::env::var_os("GROK_HOME"))
+    if let Some(v) = std::env::var_os("ASTRA_HOME").or_else(|| std::env::var_os("GROK_HOME"))
         && !v.is_empty()
     {
         global_manifests.push(std::path::PathBuf::from(v).join("repos.json"));

@@ -57,7 +57,11 @@ impl SMTPMailer {
     }
 
     fn addr(&self) -> String {
-        let port = if self.port.is_empty() { "25" } else { &self.port };
+        let port = if self.port.is_empty() {
+            "25"
+        } else {
+            &self.port
+        };
         format!("{}:{port}", self.host)
     }
 }
@@ -110,8 +114,7 @@ impl SMTPMailer {
         match &self.proxy {
             Some(proxy) => connect_via_proxy(proxy, &addr),
             None => {
-                let stream =
-                    TcpStream::connect(&addr).map_err(|e| format!("smtp dial: {e}"))?;
+                let stream = TcpStream::connect(&addr).map_err(|e| format!("smtp dial: {e}"))?;
                 stream.set_nodelay(true).ok();
                 Ok(Box::new(stream))
             }
@@ -137,7 +140,9 @@ impl SmtpConn {
         if port == "465" {
             // Implicit TLS: wrap the tunnel before SMTP hello.
             let stream = tls_stream(raw, host)?;
-            Ok(SmtpConn { rw: Box::new(stream) })
+            Ok(SmtpConn {
+                rw: Box::new(stream),
+            })
         } else {
             // Plain SMTP hello first, then STARTTLS.
             let mut conn = SmtpConn { rw: raw };
@@ -147,7 +152,9 @@ impl SmtpConn {
                 return Err(format!("smtp STARTTLS: {resp}"));
             }
             let stream = tls_stream(conn.rw, host)?;
-            Ok(SmtpConn { rw: Box::new(stream) })
+            Ok(SmtpConn {
+                rw: Box::new(stream),
+            })
         }
     }
 
@@ -179,7 +186,10 @@ impl SmtpConn {
     }
 }
 
-fn tls_stream(raw: Box<dyn ReadWrite>, host: &str) -> Result<rustls::StreamOwned<rustls::ClientConnection, Box<dyn ReadWrite>>, String> {
+fn tls_stream(
+    raw: Box<dyn ReadWrite>,
+    host: &str,
+) -> Result<rustls::StreamOwned<rustls::ClientConnection, Box<dyn ReadWrite>>, String> {
     let mut roots = rustls::RootCertStore::empty();
     roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     // `builder_with_provider` (not `builder`) so no process-level default
@@ -210,15 +220,18 @@ fn connect_via_proxy(proxy: &str, addr: &str) -> Result<Box<dyn ReadWrite>, Stri
     let mut stream =
         TcpStream::connect(format!("{host}:{port}")).map_err(|e| format!("proxy dial: {e}"))?;
     stream.set_nodelay(true).ok();
-    let req = format!(
-        "CONNECT {addr} HTTP/1.1\r\nHost: {addr}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
-    );
+    let req =
+        format!("CONNECT {addr} HTTP/1.1\r\nHost: {addr}\r\nProxy-Connection: Keep-Alive\r\n\r\n");
     stream
         .write_all(req.as_bytes())
         .map_err(|e| format!("proxy write: {e}"))?;
     stream.flush().ok();
 
-    let mut reader = BufReader::new(stream.try_clone().map_err(|e| format!("proxy clone: {e}"))?);
+    let mut reader = BufReader::new(
+        stream
+            .try_clone()
+            .map_err(|e| format!("proxy clone: {e}"))?,
+    );
     // Status line, then headers up to the blank line.
     let mut status = String::new();
     reader

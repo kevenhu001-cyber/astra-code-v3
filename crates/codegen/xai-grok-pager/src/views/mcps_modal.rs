@@ -473,7 +473,10 @@ mod tests {
             lines[1]
         );
         let with_team = section_description_lines(&McpSectionId::Managed, Some("team-1"));
-        assert_eq!(with_team[1], "[astracode.topodrive.top/connectors?teamId=team-1]");
+        assert_eq!(
+            with_team[1],
+            "[astracode.topodrive.top/connectors?teamId=team-1]"
+        );
     }
 
     #[test]

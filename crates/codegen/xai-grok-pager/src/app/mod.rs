@@ -636,7 +636,8 @@ pub async fn run(
         }
     };
     let grok_home_path = xai_grok_shell::util::grok_home::grok_home();
-    let local_auth = xai_grok_shell::auth::AuthManager::new(&grok_home_path, grok_com_config.clone()).current();
+    let local_auth =
+        xai_grok_shell::auth::AuthManager::new(&grok_home_path, grok_com_config.clone()).current();
     let refreshed_auth = if let Some(auth) = local_auth {
         // Local cached auth available immediately: spawn background refresh and proceed instantly
         let cfg = grok_com_config.clone();

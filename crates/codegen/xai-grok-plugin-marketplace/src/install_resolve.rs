@@ -469,7 +469,10 @@ mod tests {
                 "Mirror A",
                 "https://github.com/topodrive-ai/plugin-marketplace.git",
             ),
-            git_source("Mirror B", "git@github.com:topodrive-ai/plugin-marketplace.git"),
+            git_source(
+                "Mirror B",
+                "git@github.com:topodrive-ai/plugin-marketplace.git",
+            ),
         ];
         assert_eq!(
             resolve_qualified_source("topodrive-ai/plugin-marketplace", &sources),

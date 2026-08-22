@@ -478,7 +478,10 @@ mod tests {
             .build_request_json("q", Some(v(&["docs.topodrive.top"])), None)
             .expect("request json builds");
         let filters = &body["tools"][0]["filters"];
-        assert_eq!(filters["allowed_domains"], serde_json::json!(["docs.topodrive.top"]));
+        assert_eq!(
+            filters["allowed_domains"],
+            serde_json::json!(["docs.topodrive.top"])
+        );
         assert!(filters.get("excluded_domains").is_none());
     }
     #[test]

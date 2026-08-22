@@ -583,18 +583,14 @@ pub(super) fn render_version_badge(
                 spans.push(sep.clone());
                 spans.push(Span::styled(
                     format!("build {commit}"),
-                    Style::default()
-                        .fg(theme.gray)
-                        .add_modifier(Modifier::DIM),
+                    Style::default().fg(theme.gray).add_modifier(Modifier::DIM),
                 ));
             }
             if let Some(clock) = hero_inline_clock() {
                 spans.push(sep);
                 spans.push(Span::styled(
                     clock,
-                    Style::default()
-                        .fg(theme.gray)
-                        .add_modifier(Modifier::DIM),
+                    Style::default().fg(theme.gray).add_modifier(Modifier::DIM),
                 ));
             }
         }
@@ -1672,11 +1668,10 @@ fn render_welcome_authenticating(
 
             render_logo(logo_area, buf, theme, content_area.height);
 
-            let mut lines: Vec<Line> = vec![Line::from(Span::styled(
-                header,
-                Style::default().fg(theme.gray_bright),
-            ))
-            .alignment(Alignment::Center)];
+            let mut lines: Vec<Line> = vec![
+                Line::from(Span::styled(header, Style::default().fg(theme.gray_bright)))
+                    .alignment(Alignment::Center),
+            ];
             if auth_url.is_some() {
                 push_auth_copy_block(&mut lines, theme, clipboard_delivery);
             }
@@ -4079,9 +4074,18 @@ mod tests {
             Some("GOOD"),
         );
         // No code param, empty code, and unexpected characters all yield None.
-        assert_eq!(extract_user_code("https://topodrive.top/oauth2/device"), None);
-        assert_eq!(extract_user_code("https://topodrive.top/d?user_code="), None);
-        assert_eq!(extract_user_code("https://topodrive.top/d?user_code=AB%20CD"), None);
+        assert_eq!(
+            extract_user_code("https://topodrive.top/oauth2/device"),
+            None
+        );
+        assert_eq!(
+            extract_user_code("https://topodrive.top/d?user_code="),
+            None
+        );
+        assert_eq!(
+            extract_user_code("https://topodrive.top/d?user_code=AB%20CD"),
+            None
+        );
     }
 
     #[test]
@@ -4209,7 +4213,8 @@ mod tests {
         let theme = Theme::current();
         // 40-col terminal; URL longer than one row must wrap at the exact
         // screen edge with no leading spaces so copy-paste stays intact.
-        let url = "https://accounts.topodrive.top/oauth2/device?user_code=WXYZ-1234&extra=0123456789";
+        let url =
+            "https://accounts.topodrive.top/oauth2/device?user_code=WXYZ-1234&extra=0123456789";
 
         render_welcome_authenticating(
             area,

@@ -125,10 +125,7 @@ mod tests {
 
     #[test]
     fn options_have_one_selected_model_and_a_mode_per_effort() {
-        let models = [
-            model("grok-build", "Astra"),
-            model("grok-4.5", "Astra 4.5"),
-        ];
+        let models = [model("grok-build", "Astra"), model("grok-4.5", "Astra 4.5")];
         let current = acp::ModelId::from("grok-build");
         let opts = build_session_config_options(
             &models,

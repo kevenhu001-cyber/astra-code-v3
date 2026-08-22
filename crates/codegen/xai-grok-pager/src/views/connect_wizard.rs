@@ -11,15 +11,17 @@
 //! - Think-tag injection toggle
 //! - Mouse hover/clicks and keyboard navigation
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Widget;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
 
 use crate::theme::Theme;
-use crate::views::modal_window::{self as mw, ModalSizing, ModalWindowConfig, ModalWindowState, Shortcut};
+use crate::views::modal_window::{
+    self as mw, ModalSizing, ModalWindowConfig, ModalWindowState, Shortcut,
+};
 
 /// Canonical provider presets with id, default label, protocol, default endpoint, and think-tag flag.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -247,8 +249,12 @@ pub enum WizardOutcome {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectWizardMode {
     Form,
-    PickingPreset { selected: usize },
-    PickingProtocol { selected: usize },
+    PickingPreset {
+        selected: usize,
+    },
+    PickingProtocol {
+        selected: usize,
+    },
     PickingModel {
         models: Vec<String>,
         selected: usize,
@@ -464,7 +470,11 @@ impl ConnectWizardState {
             Field::ProviderName => {
                 if self.cursor_provider_name > 0 && !self.provider_name.is_empty() {
                     let idx = self.cursor_provider_name.min(self.provider_name.len());
-                    let prev_idx = self.provider_name[..idx].char_indices().next_back().map(|(i, _)| i).unwrap_or(0);
+                    let prev_idx = self.provider_name[..idx]
+                        .char_indices()
+                        .next_back()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
                     self.provider_name.remove(prev_idx);
                     self.cursor_provider_name = prev_idx;
                 }
@@ -472,7 +482,11 @@ impl ConnectWizardState {
             Field::Url => {
                 if self.cursor_url > 0 && !self.base_url.is_empty() {
                     let idx = self.cursor_url.min(self.base_url.len());
-                    let prev_idx = self.base_url[..idx].char_indices().next_back().map(|(i, _)| i).unwrap_or(0);
+                    let prev_idx = self.base_url[..idx]
+                        .char_indices()
+                        .next_back()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
                     self.base_url.remove(prev_idx);
                     self.cursor_url = prev_idx;
                 }
@@ -480,7 +494,11 @@ impl ConnectWizardState {
             Field::ApiKey => {
                 if self.cursor_key > 0 && !self.api_key.is_empty() {
                     let idx = self.cursor_key.min(self.api_key.len());
-                    let prev_idx = self.api_key[..idx].char_indices().next_back().map(|(i, _)| i).unwrap_or(0);
+                    let prev_idx = self.api_key[..idx]
+                        .char_indices()
+                        .next_back()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
                     self.api_key.remove(prev_idx);
                     self.cursor_key = prev_idx;
                 }
@@ -488,7 +506,11 @@ impl ConnectWizardState {
             Field::ModelId => {
                 if self.cursor_model > 0 && !self.model_id.is_empty() {
                     let idx = self.cursor_model.min(self.model_id.len());
-                    let prev_idx = self.model_id[..idx].char_indices().next_back().map(|(i, _)| i).unwrap_or(0);
+                    let prev_idx = self.model_id[..idx]
+                        .char_indices()
+                        .next_back()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
                     self.model_id.remove(prev_idx);
                     self.cursor_model = prev_idx;
                 }
@@ -496,7 +518,11 @@ impl ConnectWizardState {
             Field::ModelName => {
                 if self.cursor_model_name > 0 && !self.model_name.is_empty() {
                     let idx = self.cursor_model_name.min(self.model_name.len());
-                    let prev_idx = self.model_name[..idx].char_indices().next_back().map(|(i, _)| i).unwrap_or(0);
+                    let prev_idx = self.model_name[..idx]
+                        .char_indices()
+                        .next_back()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
                     self.model_name.remove(prev_idx);
                     self.cursor_model_name = prev_idx;
                 }
@@ -635,7 +661,10 @@ async fn fetch_upstream_models_async(
         }
     }
 
-    let resp = req.send().await.map_err(|e| format!("Request failed: {e}"))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
     if !resp.status().is_success() {
         return Err(format!("Server returned HTTP {}", resp.status()));
     }
@@ -674,116 +703,114 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
 
     // Mode-specific handling
     match &mut state.mode {
-        ConnectWizardMode::PickingPreset { selected } => {
-            match key.code {
-                KeyCode::Esc => {
-                    state.mode = ConnectWizardMode::Form;
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    if *selected > 0 {
-                        *selected -= 1;
-                    }
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    if *selected + 1 < PRESET_DEFS.len() {
-                        *selected += 1;
-                    }
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Enter | KeyCode::Char(' ') => {
-                    let sel = *selected;
-                    state.set_preset(sel);
-                    state.mode = ConnectWizardMode::Form;
-                    return WizardOutcome::Changed;
-                }
-                _ => return WizardOutcome::Unhandled,
+        ConnectWizardMode::PickingPreset { selected } => match key.code {
+            KeyCode::Esc => {
+                state.mode = ConnectWizardMode::Form;
+                return WizardOutcome::Changed;
             }
-        }
-        ConnectWizardMode::PickingProtocol { selected } => {
-            match key.code {
-                KeyCode::Esc => {
-                    state.mode = ConnectWizardMode::Form;
-                    return WizardOutcome::Changed;
+            KeyCode::Up | KeyCode::Char('k') => {
+                if *selected > 0 {
+                    *selected -= 1;
                 }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    if *selected > 0 {
-                        *selected -= 1;
-                    }
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    if *selected + 1 < ProtocolBackend::ALL.len() {
-                        *selected += 1;
-                    }
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Enter | KeyCode::Char(' ') => {
-                    let sel = *selected;
-                    state.protocol = ProtocolBackend::ALL[sel];
-                    state.mode = ConnectWizardMode::Form;
-                    return WizardOutcome::Changed;
-                }
-                _ => return WizardOutcome::Unhandled,
+                return WizardOutcome::Changed;
             }
-        }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if *selected + 1 < PRESET_DEFS.len() {
+                    *selected += 1;
+                }
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                let sel = *selected;
+                state.set_preset(sel);
+                state.mode = ConnectWizardMode::Form;
+                return WizardOutcome::Changed;
+            }
+            _ => return WizardOutcome::Unhandled,
+        },
+        ConnectWizardMode::PickingProtocol { selected } => match key.code {
+            KeyCode::Esc => {
+                state.mode = ConnectWizardMode::Form;
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if *selected > 0 {
+                    *selected -= 1;
+                }
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if *selected + 1 < ProtocolBackend::ALL.len() {
+                    *selected += 1;
+                }
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                let sel = *selected;
+                state.protocol = ProtocolBackend::ALL[sel];
+                state.mode = ConnectWizardMode::Form;
+                return WizardOutcome::Changed;
+            }
+            _ => return WizardOutcome::Unhandled,
+        },
         ConnectWizardMode::PickingModel {
             models,
             selected,
             filter,
-        } => {
-            match key.code {
-                KeyCode::Esc => {
-                    state.mode = ConnectWizardMode::Form;
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Up => {
-                    if *selected > 0 {
-                        *selected -= 1;
-                    }
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Down => {
-                    let filtered_count = models
-                        .iter()
-                        .filter(|m| filter.is_empty() || m.to_lowercase().contains(&filter.to_lowercase()))
-                        .count();
-                    if filtered_count > 0 && *selected + 1 < filtered_count {
-                        *selected += 1;
-                    }
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Backspace => {
-                    filter.pop();
-                    *selected = 0;
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Char(c) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    filter.push(c);
-                    *selected = 0;
-                    return WizardOutcome::Changed;
-                }
-                KeyCode::Enter => {
-                    let filtered: Vec<String> = models
-                        .iter()
-                        .filter(|m| filter.is_empty() || m.to_lowercase().contains(&filter.to_lowercase()))
-                        .cloned()
-                        .collect();
-                    if let Some(picked) = filtered.get(*selected) {
-                        state.model_id = picked.clone();
-                        state.cursor_model = state.model_id.len();
-                        if state.model_name.is_empty() || state.model_name == state.model_id {
-                            state.model_name = state.model_id.clone();
-                            state.cursor_model_name = state.model_name.len();
-                        }
-                    }
-                    state.mode = ConnectWizardMode::Form;
-                    return WizardOutcome::Changed;
-                }
-                _ => return WizardOutcome::Unhandled,
+        } => match key.code {
+            KeyCode::Esc => {
+                state.mode = ConnectWizardMode::Form;
+                return WizardOutcome::Changed;
             }
-        }
+            KeyCode::Up => {
+                if *selected > 0 {
+                    *selected -= 1;
+                }
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Down => {
+                let filtered_count = models
+                    .iter()
+                    .filter(|m| {
+                        filter.is_empty() || m.to_lowercase().contains(&filter.to_lowercase())
+                    })
+                    .count();
+                if filtered_count > 0 && *selected + 1 < filtered_count {
+                    *selected += 1;
+                }
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Backspace => {
+                filter.pop();
+                *selected = 0;
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Char(c) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                filter.push(c);
+                *selected = 0;
+                return WizardOutcome::Changed;
+            }
+            KeyCode::Enter => {
+                let filtered: Vec<String> = models
+                    .iter()
+                    .filter(|m| {
+                        filter.is_empty() || m.to_lowercase().contains(&filter.to_lowercase())
+                    })
+                    .cloned()
+                    .collect();
+                if let Some(picked) = filtered.get(*selected) {
+                    state.model_id = picked.clone();
+                    state.cursor_model = state.model_id.len();
+                    if state.model_name.is_empty() || state.model_name == state.model_id {
+                        state.model_name = state.model_id.clone();
+                        state.cursor_model_name = state.model_name.len();
+                    }
+                }
+                state.mode = ConnectWizardMode::Form;
+                return WizardOutcome::Changed;
+            }
+            _ => return WizardOutcome::Unhandled,
+        },
         ConnectWizardMode::Form => {}
     }
 
@@ -837,7 +864,10 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
                     }
                 }
                 Field::Protocol => {
-                    let idx = ProtocolBackend::ALL.iter().position(|p| *p == state.protocol).unwrap_or(0);
+                    let idx = ProtocolBackend::ALL
+                        .iter()
+                        .position(|p| *p == state.protocol)
+                        .unwrap_or(0);
                     if idx > 0 {
                         state.protocol = ProtocolBackend::ALL[idx - 1];
                     }
@@ -872,7 +902,10 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
                     }
                 }
                 Field::Protocol => {
-                    let idx = ProtocolBackend::ALL.iter().position(|p| *p == state.protocol).unwrap_or(0);
+                    let idx = ProtocolBackend::ALL
+                        .iter()
+                        .position(|p| *p == state.protocol)
+                        .unwrap_or(0);
                     if idx + 1 < ProtocolBackend::ALL.len() {
                         state.protocol = ProtocolBackend::ALL[idx + 1];
                     }
@@ -938,11 +971,16 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
         KeyCode::Enter => {
             match state.focused {
                 Field::Preset => {
-                    state.mode = ConnectWizardMode::PickingPreset { selected: state.preset_idx };
+                    state.mode = ConnectWizardMode::PickingPreset {
+                        selected: state.preset_idx,
+                    };
                     WizardOutcome::Changed
                 }
                 Field::Protocol => {
-                    let idx = ProtocolBackend::ALL.iter().position(|p| *p == state.protocol).unwrap_or(0);
+                    let idx = ProtocolBackend::ALL
+                        .iter()
+                        .position(|p| *p == state.protocol)
+                        .unwrap_or(0);
                     state.mode = ConnectWizardMode::PickingProtocol { selected: idx };
                     WizardOutcome::Changed
                 }
@@ -1032,9 +1070,14 @@ pub fn handle_wizard_mouse(
                             state.focused = f;
                             state.error.clear();
                             if f == Field::Preset {
-                                state.mode = ConnectWizardMode::PickingPreset { selected: state.preset_idx };
+                                state.mode = ConnectWizardMode::PickingPreset {
+                                    selected: state.preset_idx,
+                                };
                             } else if f == Field::Protocol {
-                                let idx = ProtocolBackend::ALL.iter().position(|p| *p == state.protocol).unwrap_or(0);
+                                let idx = ProtocolBackend::ALL
+                                    .iter()
+                                    .position(|p| *p == state.protocol)
+                                    .unwrap_or(0);
                                 state.mode = ConnectWizardMode::PickingProtocol { selected: idx };
                             } else if f == Field::InjectThinkTags {
                                 state.inject_think_tags = !state.inject_think_tags;
@@ -1068,15 +1111,25 @@ pub fn handle_wizard_mouse(
                             return WizardOutcome::Changed;
                         }
                         ConnectHitTarget::ModelChoice(idx) => {
-                            if let ConnectWizardMode::PickingModel { ref models, ref filter, .. } = state.mode {
+                            if let ConnectWizardMode::PickingModel {
+                                ref models,
+                                ref filter,
+                                ..
+                            } = state.mode
+                            {
                                 let filtered: Vec<&String> = models
                                     .iter()
-                                    .filter(|m| filter.is_empty() || m.to_lowercase().contains(&filter.to_lowercase()))
+                                    .filter(|m| {
+                                        filter.is_empty()
+                                            || m.to_lowercase().contains(&filter.to_lowercase())
+                                    })
                                     .collect();
                                 if let Some(m) = filtered.get(idx) {
                                     state.model_id = (*m).clone();
                                     state.cursor_model = state.model_id.len();
-                                    if state.model_name.is_empty() || state.model_name == state.model_id {
+                                    if state.model_name.is_empty()
+                                        || state.model_name == state.model_id
+                                    {
                                         state.model_name = state.model_id.clone();
                                         state.cursor_model_name = state.model_name.len();
                                     }
@@ -1107,10 +1160,26 @@ pub fn render_wizard(
     state.hit_areas.clear();
 
     let shortcuts = [
-        Shortcut { label: "↑/↓ nav", clickable: false, id: 0 },
-        Shortcut { label: "Enter select/edit", clickable: false, id: 0 },
-        Shortcut { label: "Ctrl+S connect", clickable: true, id: 1 },
-        Shortcut { label: "Esc close", clickable: false, id: 0 },
+        Shortcut {
+            label: "↑/↓ nav",
+            clickable: false,
+            id: 0,
+        },
+        Shortcut {
+            label: "Enter select/edit",
+            clickable: false,
+            id: 0,
+        },
+        Shortcut {
+            label: "Ctrl+S connect",
+            clickable: true,
+            id: 1,
+        },
+        Shortcut {
+            label: "Esc close",
+            clickable: false,
+            id: 0,
+        },
     ];
 
     let modal_config = ModalWindowConfig {
@@ -1125,11 +1194,13 @@ pub fn render_wizard(
             h_pad: 2,
             v_pad: 1,
             footer_lines: 2,
-        }.with_compact(compact),
+        }
+        .with_compact(compact),
         fold_info: None,
     };
 
-    let Some(mca) = mw::render_modal_window(buf, area, &mut state.window, &modal_config, theme) else {
+    let Some(mca) = mw::render_modal_window(buf, area, &mut state.window, &modal_config, theme)
+    else {
         return;
     };
 
@@ -1159,7 +1230,11 @@ pub fn render_wizard(
         ConnectWizardMode::PickingProtocol { selected } => {
             render_protocol_picker(buf, content_area, selected, state, theme);
         }
-        ConnectWizardMode::PickingModel { models, selected, filter } => {
+        ConnectWizardMode::PickingModel {
+            models,
+            selected,
+            filter,
+        } => {
             render_model_picker(buf, content_area, &models, selected, &filter, state, theme);
         }
     }
@@ -1178,24 +1253,98 @@ fn render_connect_form(
 
     // Section Header
     if cur_y < max_y {
-        let header = Line::from(vec![
-            Span::styled("◆ Provider & Endpoint Configuration", Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)),
-        ]);
+        let header = Line::from(vec![Span::styled(
+            "◆ Provider & Endpoint Configuration",
+            Style::default()
+                .fg(theme.fuzzy_accent)
+                .add_modifier(Modifier::BOLD),
+        )]);
         buf.set_line(area.x, cur_y, &header, area.width);
         cur_y += 2;
     }
 
     // List of form rows
     let rows = [
-        (Field::Preset, "Provider Preset", state.current_preset_id(), format!("[ {} ▾ ]", PRESET_DEFS[state.preset_idx].label)),
-        (Field::ProviderName, "Provider Name", &state.provider_name, state.provider_name.clone()),
-        (Field::Protocol, "Protocol Format", state.protocol.as_str(), format!("[ {} ▾ ]", state.protocol.display_label())),
-        (Field::Url, "Base URL", &state.base_url, if state.base_url.is_empty() { "<None / Enter Base URL>".to_string() } else { state.base_url.clone() }),
-        (Field::ApiKey, "API Key", &state.api_key, if state.api_key.is_empty() { "<Enter API Key>".to_string() } else if state.mask_api_key { "•".repeat(state.api_key.len().min(24)) } else { state.api_key.clone() }),
-        (Field::ModelId, "Model ID", &state.model_id, if state.model_id.is_empty() { "<Enter Model ID or Auto-Fetch below>".to_string() } else { state.model_id.clone() }),
-        (Field::FetchModels, "Auto-Fetch Models", "", if state.is_fetching { "⟳ Fetching models from upstream...".to_string() } else { "[ ⟳ Fetch Upstream Models ]".to_string() }),
-        (Field::ModelName, "Model Display Name", &state.model_name, if state.model_name.is_empty() { "<Optional Display Name>".to_string() } else { state.model_name.clone() }),
-        (Field::InjectThinkTags, "Think Tag Injection", "", if state.inject_think_tags { "[ ✓ Enabled (<think> tags) ]".to_string() } else { "[   Disabled ]".to_string() }),
+        (
+            Field::Preset,
+            "Provider Preset",
+            state.current_preset_id(),
+            format!("[ {} ▾ ]", PRESET_DEFS[state.preset_idx].label),
+        ),
+        (
+            Field::ProviderName,
+            "Provider Name",
+            &state.provider_name,
+            state.provider_name.clone(),
+        ),
+        (
+            Field::Protocol,
+            "Protocol Format",
+            state.protocol.as_str(),
+            format!("[ {} ▾ ]", state.protocol.display_label()),
+        ),
+        (
+            Field::Url,
+            "Base URL",
+            &state.base_url,
+            if state.base_url.is_empty() {
+                "<None / Enter Base URL>".to_string()
+            } else {
+                state.base_url.clone()
+            },
+        ),
+        (
+            Field::ApiKey,
+            "API Key",
+            &state.api_key,
+            if state.api_key.is_empty() {
+                "<Enter API Key>".to_string()
+            } else if state.mask_api_key {
+                "•".repeat(state.api_key.len().min(24))
+            } else {
+                state.api_key.clone()
+            },
+        ),
+        (
+            Field::ModelId,
+            "Model ID",
+            &state.model_id,
+            if state.model_id.is_empty() {
+                "<Enter Model ID or Auto-Fetch below>".to_string()
+            } else {
+                state.model_id.clone()
+            },
+        ),
+        (
+            Field::FetchModels,
+            "Auto-Fetch Models",
+            "",
+            if state.is_fetching {
+                "⟳ Fetching models from upstream...".to_string()
+            } else {
+                "[ ⟳ Fetch Upstream Models ]".to_string()
+            },
+        ),
+        (
+            Field::ModelName,
+            "Model Display Name",
+            &state.model_name,
+            if state.model_name.is_empty() {
+                "<Optional Display Name>".to_string()
+            } else {
+                state.model_name.clone()
+            },
+        ),
+        (
+            Field::InjectThinkTags,
+            "Think Tag Injection",
+            "",
+            if state.inject_think_tags {
+                "[ ✓ Enabled (<think> tags) ]".to_string()
+            } else {
+                "[   Disabled ]".to_string()
+            },
+        ),
     ];
 
     for (field, label, raw_val, display_val) in rows {
@@ -1228,7 +1377,9 @@ fn render_connect_form(
 
         let indicator = if is_focused { "▶ " } else { "  " };
         let label_style = if is_focused {
-            Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(theme.fuzzy_accent)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(theme.text_primary)
         };
@@ -1241,35 +1392,56 @@ fn render_connect_form(
 
         if field == Field::FetchModels {
             let btn_style = if is_focused {
-                Style::default().fg(theme.accent_success).bg(theme.bg_base).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(theme.accent_success)
+                    .bg(theme.bg_base)
+                    .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(theme.fuzzy_accent)
+                    .add_modifier(Modifier::BOLD)
             };
             spans.push(Span::styled(&display_val, btn_style));
         } else if field == Field::ApiKey {
             let val_style = if raw_val.is_empty() {
                 Style::default().fg(theme.gray)
             } else if is_focused {
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(theme.text_primary)
             };
             spans.push(Span::styled(&display_val, val_style));
 
             // Show mask toggle button
-            let mask_btn_text = if state.mask_api_key { " [Show]" } else { " [Hide]" };
+            let mask_btn_text = if state.mask_api_key {
+                " [Show]"
+            } else {
+                " [Hide]"
+            };
             let mask_btn_style = Style::default().fg(theme.fuzzy_accent);
             let mask_x = area.x + label_width + display_val.len() as u16 + 5;
             if mask_x + 8 < area.x + area.width {
                 state.hit_areas.push(ConnectHitArea {
-                    rect: Rect { x: mask_x, y: cur_y, width: 8, height: 1 },
+                    rect: Rect {
+                        x: mask_x,
+                        y: cur_y,
+                        width: 8,
+                        height: 1,
+                    },
                     target: ConnectHitTarget::ToggleKeyMask,
                 });
                 spans.push(Span::styled(mask_btn_text, mask_btn_style));
             }
-        } else if field == Field::Preset || field == Field::Protocol || field == Field::InjectThinkTags {
+        } else if field == Field::Preset
+            || field == Field::Protocol
+            || field == Field::InjectThinkTags
+        {
             let chip_style = if is_focused {
-                Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(theme.fuzzy_accent)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(theme.text_primary)
             };
@@ -1279,7 +1451,9 @@ fn render_connect_form(
             let val_style = if is_empty {
                 Style::default().fg(theme.gray)
             } else if is_focused {
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(theme.text_primary)
             };
@@ -1292,10 +1466,16 @@ fn render_connect_form(
                     Field::ModelId => state.cursor_model,
                     Field::ModelName => state.cursor_model_name,
                     _ => display_val.len(),
-                }.min(display_val.len());
+                }
+                .min(display_val.len());
 
                 spans.push(Span::styled(&display_val[..cursor], val_style));
-                spans.push(Span::styled("█", Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::SLOW_BLINK)));
+                spans.push(Span::styled(
+                    "█",
+                    Style::default()
+                        .fg(theme.fuzzy_accent)
+                        .add_modifier(Modifier::SLOW_BLINK),
+                ));
                 spans.push(Span::styled(&display_val[cursor..], val_style));
             } else {
                 spans.push(Span::styled(&display_val, val_style));
@@ -1311,7 +1491,12 @@ fn render_connect_form(
     // Error or status bar
     if !state.error.is_empty() && cur_y < max_y {
         let err_line = Line::from(vec![
-            Span::styled("✗ ", Style::default().fg(theme.accent_error).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "✗ ",
+                Style::default()
+                    .fg(theme.accent_error)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(&state.error, Style::default().fg(theme.accent_error)),
         ]);
         buf.set_line(area.x + 2, cur_y, &err_line, area.width.saturating_sub(4));
@@ -1322,7 +1507,12 @@ fn render_connect_form(
                 Span::styled("ℹ ", Style::default().fg(theme.fuzzy_accent)),
                 Span::styled(st, Style::default().fg(theme.fuzzy_accent)),
             ]);
-            buf.set_line(area.x + 2, cur_y, &status_line, area.width.saturating_sub(4));
+            buf.set_line(
+                area.x + 2,
+                cur_y,
+                &status_line,
+                area.width.saturating_sub(4),
+            );
             cur_y += 1;
         }
     }
@@ -1333,9 +1523,15 @@ fn render_connect_form(
     if cur_y < max_y {
         let is_submit_focused = state.focused == Field::Submit;
         let submit_btn_style = if is_submit_focused {
-            Style::default().bg(theme.fuzzy_accent).fg(Color::Black).add_modifier(Modifier::BOLD)
+            Style::default()
+                .bg(theme.fuzzy_accent)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().bg(theme.bg_highlight).fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
+            Style::default()
+                .bg(theme.bg_highlight)
+                .fg(theme.fuzzy_accent)
+                .add_modifier(Modifier::BOLD)
         };
 
         let btn_text = "  [ Connect & Save Model ]  ";
@@ -1343,7 +1539,12 @@ fn render_connect_form(
         let btn_w = btn_text.len() as u16;
 
         state.hit_areas.push(ConnectHitArea {
-            rect: Rect { x: btn_x, y: cur_y, width: btn_w, height: 1 },
+            rect: Rect {
+                x: btn_x,
+                y: cur_y,
+                width: btn_w,
+                height: 1,
+            },
             target: ConnectHitTarget::SubmitBtn,
         });
 
@@ -1362,9 +1563,12 @@ fn render_preset_picker(
     let mut cur_y = area.y;
     let max_y = area.y + area.height;
 
-    let header = Line::from(vec![
-        Span::styled("◆ Select Provider Preset (↑/↓ to navigate, Enter to choose, Esc back)", Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)),
-    ]);
+    let header = Line::from(vec![Span::styled(
+        "◆ Select Provider Preset (↑/↓ to navigate, Enter to choose, Esc back)",
+        Style::default()
+            .fg(theme.fuzzy_accent)
+            .add_modifier(Modifier::BOLD),
+    )]);
     buf.set_line(area.x, cur_y, &header, area.width);
     cur_y += 2;
 
@@ -1373,7 +1577,12 @@ fn render_preset_picker(
             break;
         }
         let is_sel = i == selected;
-        let row_rect = Rect { x: area.x, y: cur_y, width: area.width, height: 1 };
+        let row_rect = Rect {
+            x: area.x,
+            y: cur_y,
+            width: area.width,
+            height: 1,
+        };
         state.hit_areas.push(ConnectHitArea {
             rect: row_rect,
             target: ConnectHitTarget::PresetChoice(i),
@@ -1389,9 +1598,13 @@ fn render_preset_picker(
         }
 
         let pfx = if is_sel { " ▶ " } else { "   " };
-        let pfx_style = Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD);
+        let pfx_style = Style::default()
+            .fg(theme.fuzzy_accent)
+            .add_modifier(Modifier::BOLD);
         let name_style = if is_sel {
-            Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(theme.fuzzy_accent)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(theme.text_primary)
         };
@@ -1400,7 +1613,10 @@ fn render_preset_picker(
         let spans = vec![
             Span::styled(pfx, pfx_style),
             Span::styled(format!("{:<28}", def.label), name_style),
-            Span::styled(format!(" ({})  {}", def.protocol.short_label(), def.base_url), url_style),
+            Span::styled(
+                format!(" ({})  {}", def.protocol.short_label(), def.base_url),
+                url_style,
+            ),
         ];
 
         buf.set_line(area.x, cur_y, &Line::from(spans), area.width);
@@ -1419,9 +1635,12 @@ fn render_protocol_picker(
     let mut cur_y = area.y;
     let max_y = area.y + area.height;
 
-    let header = Line::from(vec![
-        Span::styled("◆ Select Protocol Format (↑/↓ to navigate, Enter to choose, Esc back)", Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)),
-    ]);
+    let header = Line::from(vec![Span::styled(
+        "◆ Select Protocol Format (↑/↓ to navigate, Enter to choose, Esc back)",
+        Style::default()
+            .fg(theme.fuzzy_accent)
+            .add_modifier(Modifier::BOLD),
+    )]);
     buf.set_line(area.x, cur_y, &header, area.width);
     cur_y += 2;
 
@@ -1430,7 +1649,12 @@ fn render_protocol_picker(
             break;
         }
         let is_sel = i == selected;
-        let row_rect = Rect { x: area.x, y: cur_y, width: area.width, height: 1 };
+        let row_rect = Rect {
+            x: area.x,
+            y: cur_y,
+            width: area.width,
+            height: 1,
+        };
         state.hit_areas.push(ConnectHitArea {
             rect: row_rect,
             target: ConnectHitTarget::ProtocolChoice(i),
@@ -1447,12 +1671,22 @@ fn render_protocol_picker(
 
         let pfx = if is_sel { " ▶ " } else { "   " };
         let spans = vec![
-            Span::styled(pfx, Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)),
-            Span::styled(proto.display_label(), if is_sel {
-                Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(theme.text_primary)
-            }),
+            Span::styled(
+                pfx,
+                Style::default()
+                    .fg(theme.fuzzy_accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                proto.display_label(),
+                if is_sel {
+                    Style::default()
+                        .fg(theme.fuzzy_accent)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(theme.text_primary)
+                },
+            ),
         ];
 
         buf.set_line(area.x, cur_y, &Line::from(spans), area.width);
@@ -1473,15 +1707,27 @@ fn render_model_picker(
     let mut cur_y = area.y;
     let max_y = area.y + area.height;
 
-    let header = Line::from(vec![
-        Span::styled("◆ Pick Model ID from Upstream Server (Type to filter, Enter to select, Esc back)", Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)),
-    ]);
+    let header = Line::from(vec![Span::styled(
+        "◆ Pick Model ID from Upstream Server (Type to filter, Enter to select, Esc back)",
+        Style::default()
+            .fg(theme.fuzzy_accent)
+            .add_modifier(Modifier::BOLD),
+    )]);
     buf.set_line(area.x, cur_y, &header, area.width);
     cur_y += 1;
 
     let filter_line = Line::from(vec![
         Span::styled(" Filter: ", Style::default().fg(theme.gray_dim)),
-        Span::styled(if filter.is_empty() { "(all models)" } else { filter }, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            if filter.is_empty() {
+                "(all models)"
+            } else {
+                filter
+            },
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        ),
     ]);
     buf.set_line(area.x, cur_y, &filter_line, area.width);
     cur_y += 2;
@@ -1492,9 +1738,10 @@ fn render_model_picker(
         .collect();
 
     if filtered.is_empty() {
-        let none_line = Line::from(vec![
-            Span::styled("   (No models matching filter)", Style::default().fg(theme.gray)),
-        ]);
+        let none_line = Line::from(vec![Span::styled(
+            "   (No models matching filter)",
+            Style::default().fg(theme.gray),
+        )]);
         buf.set_line(area.x, cur_y, &none_line, area.width);
         return;
     }
@@ -1507,12 +1754,22 @@ fn render_model_picker(
         0
     };
 
-    for (i, &model_id) in filtered.iter().enumerate().skip(start_idx).take(visible_rows) {
+    for (i, &model_id) in filtered
+        .iter()
+        .enumerate()
+        .skip(start_idx)
+        .take(visible_rows)
+    {
         if cur_y >= max_y {
             break;
         }
         let is_sel = i == selected;
-        let row_rect = Rect { x: area.x, y: cur_y, width: area.width, height: 1 };
+        let row_rect = Rect {
+            x: area.x,
+            y: cur_y,
+            width: area.width,
+            height: 1,
+        };
         state.hit_areas.push(ConnectHitArea {
             rect: row_rect,
             target: ConnectHitTarget::ModelChoice(i),
@@ -1529,12 +1786,22 @@ fn render_model_picker(
 
         let pfx = if is_sel { " ▶ " } else { "   " };
         let spans = vec![
-            Span::styled(pfx, Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)),
-            Span::styled(model_id, if is_sel {
-                Style::default().fg(theme.fuzzy_accent).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(theme.text_primary)
-            }),
+            Span::styled(
+                pfx,
+                Style::default()
+                    .fg(theme.fuzzy_accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                model_id,
+                if is_sel {
+                    Style::default()
+                        .fg(theme.fuzzy_accent)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(theme.text_primary)
+                },
+            ),
         ];
 
         buf.set_line(area.x, cur_y, &Line::from(spans), area.width);

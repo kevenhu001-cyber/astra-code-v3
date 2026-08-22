@@ -133,7 +133,10 @@ mod tests {
             r#"{"access_token":"t","expires_in":900,"issuer":"https://astracode.topodrive.top"}"#,
         ))
         .unwrap();
-        assert_eq!(auth.oidc_issuer.as_deref(), Some("https://astracode.topodrive.top"));
+        assert_eq!(
+            auth.oidc_issuer.as_deref(),
+            Some("https://astracode.topodrive.top")
+        );
         assert!(auth.is_xai_auth());
 
         // Non-x.ai issuer is stored but stays third-party.

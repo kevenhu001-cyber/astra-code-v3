@@ -58,7 +58,11 @@ pub fn astra_logo_lines_anim(phase_secs: f32) -> Vec<Line<'static>> {
     // right edge), so the band enters and exits cleanly.
     let cycle = (phase_secs / PULSE_PERIOD_SECS).fract();
     // Triangle wave: 0→1 in the first half of the cycle, 1→0 in the second.
-    let tri = if cycle < 0.5 { cycle * 2.0 } else { 2.0 - cycle * 2.0 };
+    let tri = if cycle < 0.5 {
+        cycle * 2.0
+    } else {
+        2.0 - cycle * 2.0
+    };
     let front = -BAND_HALF_WIDTH + tri * (TOTAL_COLS as f32 + 2.0 * BAND_HALF_WIDTH);
     astra_logo_lines_with(|col| shine_at(col as f32, front))
 }
@@ -100,45 +104,15 @@ fn boost(base: Color, amount: f32) -> Color {
 /// `D→ORANGE_DIM`, ` `→nothing.
 const LETTERS: [&[&str; 5]; 5] = [
     // A (5 cols × 5 rows)
-    &[
-        " LLL ",
-        "L   L",
-        "LLLLL",
-        "L   L",
-        "L   L",
-    ],
+    &[" LLL ", "L   L", "LLLLL", "L   L", "L   L"],
     // S (5 cols × 5 rows)
-    &[
-        "LLLLL",
-        "L    ",
-        "LLLLL",
-        "    L",
-        "LLLLL",
-    ],
+    &["LLLLL", "L    ", "LLLLL", "    L", "LLLLL"],
     // T (5 cols × 5 rows)
-    &[
-        "LLLLL",
-        "  L  ",
-        "  L  ",
-        "  L  ",
-        "  L  ",
-    ],
+    &["LLLLL", "  L  ", "  L  ", "  L  ", "  L  "],
     // R (5 cols × 5 rows)
-    &[
-        "LLLL ",
-        "L   L",
-        "LLLL ",
-        "L  L ",
-        "L   L",
-    ],
+    &["LLLL ", "L   L", "LLLL ", "L  L ", "L   L"],
     // A (5 cols × 5 rows)
-    &[
-        " LLL ",
-        "L   L",
-        "LLLLL",
-        "L   L",
-        "L   L",
-    ],
+    &[" LLL ", "L   L", "LLLLL", "L   L", "L   L"],
 ];
 
 /// Compose the 5 letters into one `Vec<Line<'static>>` with no animation.
@@ -186,7 +160,10 @@ where
                 if !push {
                     if !run.is_empty() {
                         if let Some(c) = run_color {
-                            spans.push(Span::styled(std::mem::take(&mut run), Style::default().fg(c)));
+                            spans.push(Span::styled(
+                                std::mem::take(&mut run),
+                                Style::default().fg(c),
+                            ));
                         }
                     }
                     spans.push(Span::raw(" "));
@@ -197,7 +174,10 @@ where
                 if run_color != Some(boosted) {
                     if !run.is_empty() {
                         if let Some(c) = run_color {
-                            spans.push(Span::styled(std::mem::take(&mut run), Style::default().fg(c)));
+                            spans.push(Span::styled(
+                                std::mem::take(&mut run),
+                                Style::default().fg(c),
+                            ));
                         }
                     }
                     run_color = Some(boosted);
@@ -233,12 +213,11 @@ mod tests {
         for line in &lines {
             // Each line is built from styled spans; visual width sums the
             // string length of each span (block chars are width-1).
-            let w: usize = line
-                .spans
-                .iter()
-                .map(|s| s.content.chars().count())
-                .sum();
-            assert_eq!(w as u16, LOGO_WIDTH, "row width mismatch: {w} vs {LOGO_WIDTH}");
+            let w: usize = line.spans.iter().map(|s| s.content.chars().count()).sum();
+            assert_eq!(
+                w as u16, LOGO_WIDTH,
+                "row width mismatch: {w} vs {LOGO_WIDTH}"
+            );
         }
     }
 

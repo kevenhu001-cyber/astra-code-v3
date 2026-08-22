@@ -74,16 +74,15 @@ use super::session::load::{
 };
 use super::session::modal::{dispatch_rename_session, dispatch_reset_session_title};
 use super::settings::setters::{
-    clear_default_model, clear_fork_secondary_model, preview_auto_dark_theme,
+    clear_default_model, clear_fork_secondary_model, connect_custom_model, preview_auto_dark_theme,
     preview_auto_light_theme, preview_theme, set_ask_user_question_timeout_enabled,
     set_auto_dark_theme, set_auto_light_theme, set_auto_update, set_collapsed_edit_blocks,
     set_combine_queued_prompts, set_compact_mode, set_confirm_before_rewind,
     set_contextual_hint_image_input, set_contextual_hint_plan_mode, set_contextual_hint_send_now,
     set_contextual_hint_small_screen, set_contextual_hint_ssh_wrap, set_contextual_hint_undo,
-    set_contextual_hint_word_select,     set_custom_model_api_key, set_custom_model_base_url, set_custom_model_display_name,
-    set_custom_model_id, set_custom_model_injects_think_tags, set_custom_model_provider,
-    set_default_model, connect_custom_model,
-    set_default_selected_permission,
+    set_contextual_hint_word_select, set_custom_model_api_key, set_custom_model_base_url,
+    set_custom_model_display_name, set_custom_model_id, set_custom_model_injects_think_tags,
+    set_custom_model_provider, set_default_model, set_default_selected_permission,
     set_display_refresh_auto_cadence, set_follow_up_behavior, set_fork_secondary_model,
     set_group_tool_verbs, set_hunk_tracker_mode, set_invert_scroll, set_keep_text_selection,
     set_max_thoughts_width, set_multiline_mode, set_page_flip_on_send, set_prompt_suggestions,
@@ -1099,9 +1098,7 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::SetCustomModelDisplayName(v) => set_custom_model_display_name(app, v),
         Action::SetCustomModelApiKey(v) => set_custom_model_api_key(app, v),
         Action::SetCustomModelBaseUrl(v) => set_custom_model_base_url(app, v),
-        Action::SetCustomModelInjectsThinkTags(v) => {
-            set_custom_model_injects_think_tags(app, v)
-        }
+        Action::SetCustomModelInjectsThinkTags(v) => set_custom_model_injects_think_tags(app, v),
         Action::ConnectCustomModel {
             provider,
             model_id,

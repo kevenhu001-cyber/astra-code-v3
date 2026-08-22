@@ -726,7 +726,9 @@ mod tests {
         // Line 0's first span is the prefix; subsequent spans are body.
         let line0_body = &lines[0].content.spans[1..];
         assert!(
-            line0_body.iter().all(|s| s.style.fg != Some(theme.accent_skill)),
+            line0_body
+                .iter()
+                .all(|s| s.style.fg != Some(theme.accent_skill)),
             "line 0 has no token"
         );
         let line1 = &lines[1].content.spans;

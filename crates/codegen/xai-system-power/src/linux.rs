@@ -50,7 +50,12 @@ fn take_inhibitor(proxy: &zbus::blocking::Proxy<'_>) -> Option<zbus::zvariant::O
     proxy
         .call(
             "Inhibit",
-            &("sleep", "astra", "Pause token refresh across sleep", "delay"),
+            &(
+                "sleep",
+                "astra",
+                "Pause token refresh across sleep",
+                "delay",
+            ),
         )
         .ok()
 }

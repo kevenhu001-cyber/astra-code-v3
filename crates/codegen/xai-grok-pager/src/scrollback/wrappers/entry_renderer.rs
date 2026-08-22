@@ -1251,10 +1251,7 @@ mod tests {
         let ts_x = width - 2 - ts_width;
 
         let rendered = collect_row_symbols(&buf, 3, ts_x, ts_x + ts_width);
-        assert_eq!(
-            rendered, expected,
-            "Expected expanded timestamp on hover"
-        );
+        assert_eq!(rendered, expected, "Expected expanded timestamp on hover");
     }
 
     #[test]

@@ -733,8 +733,10 @@ fn test_effective_worktree_cwd_empty_offset() {
 
 #[test]
 fn test_effective_worktree_cwd_single_level_offset() {
-    let result =
-        effective_worktree_cwd("/home/user/.astra/worktrees/repo/ab-123-a", Path::new("src"));
+    let result = effective_worktree_cwd(
+        "/home/user/.astra/worktrees/repo/ab-123-a",
+        Path::new("src"),
+    );
     assert_eq!(result, "/home/user/.astra/worktrees/repo/ab-123-a/src");
 }
 
@@ -1451,8 +1453,11 @@ fn resolve_normalized_remote_urls_deduplicates_across_transports() {
     let repo = git2::Repository::init(tmp.path()).unwrap();
     repo.remote("origin", "git@github.com:topodrive-ai/example.git")
         .unwrap();
-    repo.remote("https-mirror", "https://github.com/topodrive-ai/example.git")
-        .unwrap();
+    repo.remote(
+        "https-mirror",
+        "https://github.com/topodrive-ai/example.git",
+    )
+    .unwrap();
 
     let urls = resolve_normalized_remote_urls(tmp.path());
     // Both should normalize to the same value and dedup.

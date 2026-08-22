@@ -39,14 +39,9 @@ async fn connect_wizard_three_step_flow_persists_config() {
     let content = ContentController::start().await.expect("start content");
 
     let binary = pager_binary().expect("resolve pager binary");
-    let mut harness = PtyHarness::spawn_with_content(
-        &binary,
-        DEFAULT_ROWS,
-        DEFAULT_COLS,
-        &content,
-        &[],
-    )
-    .expect("spawn pager");
+    let mut harness =
+        PtyHarness::spawn_with_content(&binary, DEFAULT_ROWS, DEFAULT_COLS, &content, &[])
+            .expect("spawn pager");
 
     harness
         .wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT)
@@ -153,14 +148,9 @@ async fn connect_wizard_default_preset_openai() {
     let content = ContentController::start().await.expect("start content");
 
     let binary = pager_binary().expect("resolve pager binary");
-    let mut harness = PtyHarness::spawn_with_content(
-        &binary,
-        DEFAULT_ROWS,
-        DEFAULT_COLS,
-        &content,
-        &[],
-    )
-    .expect("spawn pager");
+    let mut harness =
+        PtyHarness::spawn_with_content(&binary, DEFAULT_ROWS, DEFAULT_COLS, &content, &[])
+            .expect("spawn pager");
 
     harness
         .wait_for_text(WELCOME_SCREEN_SENTINEL, WIZARD_TIMEOUT)

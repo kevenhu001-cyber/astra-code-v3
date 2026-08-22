@@ -30,7 +30,8 @@ pub(super) fn is_max_tier(subscription_tier: Option<&str>) -> bool {
 }
 
 /// URL for upgrading the subscription tier.
-pub(crate) const UPSELL_URL_UPGRADE: &str = "https://astracode.topodrive.top/upgrade?referrer=astra-build";
+pub(crate) const UPSELL_URL_UPGRADE: &str =
+    "https://astracode.topodrive.top/upgrade?referrer=astra-build";
 
 /// URL for managing pay-as-you-go / on-demand spending / purchasing credits.
 pub(crate) const UPSELL_URL_PAYG: &str = "https://astracode.topodrive.top/usage";
