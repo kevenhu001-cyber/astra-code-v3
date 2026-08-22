@@ -514,7 +514,7 @@ fn human_mixed_fixture_is_exact() {
             "      Reload tmux after editing.\n",
             "  i terminal.ssh-wrap            Use local SSH wrapping\n",
             "    → Automatic setup: `grok doctor fix ssh-wrap`\n",
-            "    → One-off: `astra wrap ssh <host>`\n",
+            "    → One-off: `grok wrap ssh <host>`\n",
             "\n",
             "Checks not completed\n",
             "  ? tmux.version                 unavailable\n",
