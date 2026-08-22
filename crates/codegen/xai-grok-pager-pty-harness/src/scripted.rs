@@ -2349,8 +2349,8 @@ mod tests {
             &bodies,
             1,
             "image/png",
-            &DimensionAssertion::Exact(8),
-            &DimensionAssertion::Exact(8),
+            &DimensionAssertion::Exact(32),
+            &DimensionAssertion::Exact(32),
         )
         .expect("exact match");
         // range form succeeds when width >= 1
@@ -2368,18 +2368,18 @@ mod tests {
             },
         )
         .expect("range match");
-        // range form fails when width must be >= 28 but actual is 8
+        // range form fails when width must be >= 64 but actual is 32
         assert!(
             assert_inline_images(
                 &bodies,
                 1,
                 "image/png",
                 &DimensionAssertion::Range {
-                    min: Some(28),
+                    min: Some(64),
                     max: None
                 },
                 &DimensionAssertion::Range {
-                    min: Some(28),
+                    min: Some(64),
                     max: None
                 },
             )
