@@ -73,10 +73,10 @@ fn env_overlay_inputs() -> (Option<String>, Option<PathBuf>) {
 
 fn read_first_nonempty_env(names: [&str; 2]) -> Option<std::ffi::OsString> {
     for n in names {
-        if let Some(v) = std::env::var_os(n) {
-            if !v.is_empty() {
-                return Some(v);
-            }
+        if let Some(v) = std::env::var_os(n)
+            && !v.is_empty()
+        {
+            return Some(v);
         }
     }
     None
