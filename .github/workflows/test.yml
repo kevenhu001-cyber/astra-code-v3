@@ -128,6 +128,15 @@ jobs:
             scripted_bracket_prompt_input \
             scripted_image_inputs
 
+      - name: Upload scripted scenario artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scripted-scenario-artifacts
+          path: /tmp/scripted-scenarios/**
+          if-no-files-found: ignore
+          retention-days: 7
+
   # ── Auth server tests. Already live in build.yml today, but they belong
   # with the test workflow rather than the build matrix.
   auth-server:

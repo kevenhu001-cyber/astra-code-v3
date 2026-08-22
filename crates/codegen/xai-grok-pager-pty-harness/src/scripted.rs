@@ -1050,7 +1050,9 @@ fn run_step(
                     .join("\n---\n");
                 bail!(
                     "expected at least {min} request image(s), got {count}; \
-                     recorded request bodies (truncated):\n{dump}"
+                     recorded request bodies (truncated):\n{dump}\n\
+                     === screen at failure ===\n{}",
+                    harness.screen_contents()
                 );
             }
         }

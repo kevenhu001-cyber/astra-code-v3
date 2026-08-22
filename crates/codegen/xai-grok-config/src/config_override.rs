@@ -293,7 +293,7 @@ mod tests {
             leaves,
             table(
                 "[toolset.bash]\nlogin_shell_capture = false\n\
-                 [toolset.web_search]\nallowed_domains = [\"docs.x.ai\"]\n"
+                 [toolset.web_search]\nallowed_domains = [\"docs.topodrive.top\"]\n"
             )
         );
     }
