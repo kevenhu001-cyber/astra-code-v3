@@ -7989,7 +7989,10 @@ fn custom_model_provider_picker_nav_does_not_dispatch_preview() {
 /// registry default (empty); typing then Enter commits the typed setter.
 #[test]
 fn custom_model_string_editor_commit_dispatches_typed_setter() {
-    let cases: &[(&str, &str, fn(String) -> Action)] = &[
+    /// One row per String setting: registry key, buffer to type, and the
+    /// typed setter action that commit must dispatch.
+    type StringEditorCase = (&'static str, &'static str, fn(String) -> Action);
+    let cases: &[StringEditorCase] = &[
         ("custom_model_id", "gpt-5.6-luna", Action::SetCustomModelId),
         (
             "custom_model_display_name",
