@@ -258,6 +258,13 @@ pub fn path_to_file_target(path: &str) -> Option<LinkTarget> {
 }
 
 fn file_path_to_url(path: &Path) -> Option<Arc<str>> {
+    // A relative path cannot form a valid `file://` URL here: there is no
+    // base to resolve against, and the hand-assembled fallback below would
+    // emit `file://relative.rs`, which parses "relative.rs" as a URI HOST.
+    // Callers keep the app-owned open target in that case.
+    if !path.is_absolute() {
+        return None;
+    }
     // `Url::from_file_path` rejects Unix-style absolute paths (`/Users/me/x`)
     // on Windows builds because they lack a drive letter. Transcripts render
     // such paths routinely (macOS/Linux sessions viewed anywhere), so fall

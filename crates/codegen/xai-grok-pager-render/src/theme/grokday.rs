@@ -101,7 +101,9 @@ impl Theme {
             accent_model: TEAL,
 
             scrollbar_bg: BG_STORM_DARK,
-            scrollbar_fg: BG_HIGHLIGHT,
+            // Medium-gray thumb: must sit ≥30 channel-sum points darker than
+            // the #EEEEEE track on this light theme (see the contrast test).
+            scrollbar_fg: FG_GUTTER,
 
             diff_delete_bg: RED_LIGHT,
             diff_delete_fg: RED,
