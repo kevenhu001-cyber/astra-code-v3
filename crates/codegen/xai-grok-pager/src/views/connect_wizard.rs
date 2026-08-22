@@ -1866,8 +1866,10 @@ mod tests {
 
     #[test]
     fn validation_requires_api_key() {
-        let mut s = ConnectWizardState::default();
-        s.model_id = "m".into();
+        let mut s = ConnectWizardState {
+            model_id: "m".into(),
+            ..ConnectWizardState::default()
+        };
         let res = s.validate_and_build();
         assert!(res.is_none());
         assert!(s.error.contains("API key"));
@@ -1876,9 +1878,11 @@ mod tests {
 
     #[test]
     fn validation_passes_for_openai_preset() {
-        let mut s = ConnectWizardState::default();
-        s.model_id = "gpt-5.6-luna".into();
-        s.api_key = "sk-test".into();
+        let mut s = ConnectWizardState {
+            model_id: "gpt-5.6-luna".into(),
+            api_key: "sk-test".into(),
+            ..ConnectWizardState::default()
+        };
         let res = s.validate_and_build().expect("valid");
         assert_eq!(res.provider, "openai");
         assert_eq!(res.model_id, "gpt-5.6-luna");
@@ -1888,10 +1892,12 @@ mod tests {
 
     #[test]
     fn minimax_preset_sets_injects_think_tags() {
-        let mut s = ConnectWizardState::default();
+        let mut s = ConnectWizardState {
+            model_id: "MiniMax-M3".into(),
+            api_key: "sk-mm".into(),
+            ..ConnectWizardState::default()
+        };
         s.set_preset(7); // minimax_cn
-        s.model_id = "MiniMax-M3".into();
-        s.api_key = "sk-mm".into();
         let res = s.validate_and_build().expect("valid");
         assert_eq!(res.provider, "minimax_cn");
         assert!(res.injects_think_tags);
@@ -1909,8 +1915,10 @@ mod tests {
 
     #[test]
     fn typing_inserts_chars_at_cursor() {
-        let mut s = ConnectWizardState::default();
-        s.focused = Field::ModelId;
+        let mut s = ConnectWizardState {
+            focused: Field::ModelId,
+            ..ConnectWizardState::default()
+        };
         s.insert_char('a');
         s.insert_char('b');
         s.insert_char('c');
@@ -1920,8 +1928,10 @@ mod tests {
 
     #[test]
     fn backspace_removes_previous_char() {
-        let mut s = ConnectWizardState::default();
-        s.focused = Field::ModelId;
+        let mut s = ConnectWizardState {
+            focused: Field::ModelId,
+            ..ConnectWizardState::default()
+        };
         s.insert_char('a');
         s.insert_char('b');
         s.backspace();
@@ -1938,10 +1948,12 @@ mod tests {
 
     #[test]
     fn enter_with_valid_form_submits() {
-        let mut s = ConnectWizardState::default();
-        s.focused = Field::Submit;
-        s.model_id = "m".into();
-        s.api_key = "sk".into();
+        let mut s = ConnectWizardState {
+            focused: Field::Submit,
+            model_id: "m".into(),
+            api_key: "sk".into(),
+            ..ConnectWizardState::default()
+        };
         let out = handle_wizard_key(&mut s, &k(KeyCode::Enter));
         match out {
             WizardOutcome::Submitted(r) => {
