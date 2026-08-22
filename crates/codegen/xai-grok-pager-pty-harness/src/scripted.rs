@@ -1030,7 +1030,28 @@ fn run_step(
         ScenarioStep::AssertRequestImageCount { min } => {
             let count = count_request_images(&content.request_bodies());
             if count < *min {
-                bail!("expected at least {min} request image(s), got {count}");
+                // Dump every recorded request body (truncated) so a failure
+                // shows what the mock actually received: which prompts went
+                // out, whether the text made it, and whether image parts are
+                // missing entirely or shaped differently than the counter
+                // expects.
+                let dump = content
+                    .request_bodies()
+                    .iter()
+                    .map(|body| {
+                        let s = body.to_string();
+                        let mut s = s.chars().take(2000).collect::<String>();
+                        if s.len() == 2000 {
+                            s.push('…');
+                        }
+                        s
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n---\n");
+                bail!(
+                    "expected at least {min} request image(s), got {count}; \
+                     recorded request bodies (truncated):\n{dump}"
+                );
             }
         }
         ScenarioStep::AssertInlineImages {
