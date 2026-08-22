@@ -241,7 +241,7 @@ fn fake_standalone_facts_compose_through_shared_view() {
         false,
         RuntimeEvidence::Available(ColorLevel::TrueColor),
     );
-    let report = collect_report_with(snapshot);
+    let mut report = collect_report_with(snapshot);
 
     // The voice probe is environment-dependent: on a machine without an
     // audio input device (e.g. a CI runner) `apply_voice_probe` appends a
