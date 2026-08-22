@@ -53,10 +53,12 @@ async fn main() -> anyhow::Result<()> {
 
     // Fast path for `--version` / `--help` used by CI smoke tests.
     // Must not attempt to bind or touch the store.
-    if args
-        .iter()
-        .any(|a| matches!(a.as_str(), "--version" | "-V" | "--help" | "-h" | "version" | "help"))
-    {
+    if args.iter().any(|a| {
+        matches!(
+            a.as_str(),
+            "--version" | "-V" | "--help" | "-h" | "version" | "help"
+        )
+    }) {
         println!("astra-auth {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
