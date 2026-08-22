@@ -1967,10 +1967,12 @@ mod tests {
 
     #[test]
     fn enter_in_text_field_submits_when_valid() {
-        let mut s = ConnectWizardState::default();
-        s.focused = Field::ApiKey;
-        s.model_id = "m".into();
-        s.api_key = "sk".into();
+        let mut s = ConnectWizardState {
+            focused: Field::ApiKey,
+            model_id: "m".into(),
+            api_key: "sk".into(),
+            ..ConnectWizardState::default()
+        };
         let out = handle_wizard_key(&mut s, &k(KeyCode::Enter));
         match out {
             WizardOutcome::Submitted(r) => {

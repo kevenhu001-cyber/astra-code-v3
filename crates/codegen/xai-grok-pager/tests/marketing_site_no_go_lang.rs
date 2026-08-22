@@ -137,10 +137,10 @@ fn collect_marketing_files(root: &Path) -> Vec<PathBuf> {
         let path = entry.path();
         if path.is_dir() {
             out.extend(collect_marketing_files(&path));
-        } else if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-            if matches!(ext, "html" | "md" | "css" | "js" | "txt" | "sh" | "ps1") {
-                out.push(path);
-            }
+        } else if let Some(ext) = path.extension().and_then(|s| s.to_str())
+            && matches!(ext, "html" | "md" | "css" | "js" | "txt" | "sh" | "ps1")
+        {
+            out.push(path);
         }
     }
     out.sort();

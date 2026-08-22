@@ -4244,7 +4244,7 @@ mod tests {
             &url[..40],
             "long URL row must span the full terminal width:\n{text}"
         );
-        let remaining = url[40..].as_bytes();
+        let remaining = &url.as_bytes()[40..];
         let mut rest = second.to_string();
         for line in lines {
             if rest.len() >= remaining.len() {
