@@ -86,7 +86,10 @@ jobs:
           dotslash --help
 
       - name: Build pager binary for the harness
-        run: cargo build -p xai-grok-pager --bin astra
+        run: cargo build -p xai-grok-pager-bin --bin astra
+
+      - name: Point the harness at the built binary
+        run: echo "PAGER_BINARY=${{ github.workspace }}/target/debug/astra" >> "$GITHUB_ENV"
 
       - name: Run every scripted scenario
         # test-threads=1 because each scenario spins up its own mock
@@ -122,7 +125,10 @@ jobs:
           dotslash --help
 
       - name: Build pager binary for the leader harness
-        run: cargo build -p xai-grok-pager --bin astra
+        run: cargo build -p xai-grok-pager-bin --bin astra
+
+      - name: Point the harness at the built binary
+        run: echo "PAGER_BINARY=${{ github.workspace }}/target/debug/astra" >> "$GITHUB_ENV"
 
       - name: leader_pty_e2e (full, single-threaded)
         run: |

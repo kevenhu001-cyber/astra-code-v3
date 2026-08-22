@@ -89,7 +89,10 @@ jobs:
           dotslash --help
 
       - name: Build pager once (binary + helpers for scenario runner)
-        run: cargo build -p xai-grok-pager --bin astra
+        run: cargo build -p xai-grok-pager-bin --bin astra
+
+      - name: Point the harness at the built binary
+        run: echo "PAGER_BINARY=${{ github.workspace }}/target/debug/astra" >> "$GITHUB_ENV"
 
       - name: Brand sweep (no leaked legacy xai refs in user-guide)
         run: cargo test -p xai-grok-pager --test brand_sweep_no_legacy_xai_refs
@@ -179,7 +182,10 @@ jobs:
           dotslash --help
 
       - name: Build pager binary for the harness
-        run: cargo build -p xai-grok-pager --bin astra
+        run: cargo build -p xai-grok-pager-bin --bin astra
+
+      - name: Point the harness at the built binary
+        run: echo "PAGER_BINARY=${{ github.workspace }}/target/debug/astra" >> "$GITHUB_ENV"
 
       - name: pty_e2e (smoke subset, serialized)
         # The pty_e2e/* headers self-disable for ordinary cargo runs (all cases
@@ -219,7 +225,10 @@ jobs:
           dotslash --help
 
       - name: Build pager binary for the leader harness
-        run: cargo build -p xai-grok-pager --bin astra
+        run: cargo build -p xai-grok-pager-bin --bin astra
+
+      - name: Point the harness at the built binary
+        run: echo "PAGER_BINARY=${{ github.workspace }}/target/debug/astra" >> "$GITHUB_ENV"
 
       - name: leader_pty_e2e (single-threaded)
         run: |

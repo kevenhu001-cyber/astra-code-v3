@@ -26,7 +26,7 @@ fn target_dir() -> Result<PathBuf> {
 fn local_pager_binary_path() -> Result<PathBuf> {
     Ok(target_dir()?
         .join("debug")
-        .join(format!("xai-grok-pager{}", std::env::consts::EXE_SUFFIX)))
+        .join(format!("astra{}", std::env::consts::EXE_SUFFIX)))
 }
 
 fn ensure_local_pager_binary(binary: &std::path::Path) -> Result<()> {
@@ -38,7 +38,7 @@ fn ensure_local_pager_binary(binary: &std::path::Path) -> Result<()> {
             "-p",
             "xai-grok-pager-bin",
             "--bin",
-            "xai-grok-pager",
+            "astra",
         ])
         .stdin(Stdio::null())
         .envs(xai_tty_utils::pager_env());
