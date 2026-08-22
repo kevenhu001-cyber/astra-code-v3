@@ -1,5 +1,11 @@
 name: build
 
+# Cross-platform release builds + GitHub release publishing.
+#
+# Scope: "does it compile and link on every target we ship?" and "publish the
+# resulting archives". All tests (unit, regression, PTY E2E, leader, scripted
+# scenarios, auth) live in test.yml. Heavy / ignored tiers live in nightly.yml.
+
 on:
   push:
     branches: [main]
@@ -7,12 +13,19 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   # The repo's `bin/protoc` is a dotslash manifest; on every GitHub-hosted
   # runner (Linux/macOS/Windows) dotslash fetches the pinned protoc release
   # automatically.
   RUSTFLAGS: "-D warnings"
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -44,8 +57,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
         with:
           toolchain: "1.94.0"
           components: rustfmt, clippy
@@ -55,6 +68,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
 
       - name: Install dotslash (protoc provider)
         run: |
@@ -79,6 +95,17 @@ jobs:
       - name: Build release binary
         run: cargo build -p xai-grok-pager-bin --release --target ${{ matrix.target }}
 
+      - name: Smoke test the built binary
+        # `--version` is host-portable; gives a fast "did the binary actually
+        # link and load?" signal beyond `cargo build`'s exit code.
+        working-directory: target/${{ matrix.target }}/release
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ./${{ matrix.binary }} --version
+          else
+            ./${{ matrix.binary }} --version
+          fi
+
       - name: Compute release tag
         id: version
         shell: bash
@@ -92,15 +119,6 @@ jobs:
             fi
             echo "RELEASE_TAG=v${BASE_VERSION}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           fi
-
-      - name: Cargo test (sampling-types + agent prompt)
-        # Tests are host-platform (wire types are platform-agnostic), so run
-        # them once on Linux only — duplicating across the matrix is waste.
-        # (astra-auth's own tests run in the `astra-auth` job below.)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cargo test -p xai-grok-sampling-types --lib
-          cargo test -p xai-grok-agent --lib prompt::template
 
       - name: Package archive + checksum
         working-directory: target/${{ matrix.target }}/release
@@ -159,8 +177,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
         with:
           toolchain: "1.94.0"
           components: rustfmt, clippy
@@ -170,12 +188,19 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
 
       - name: Cargo check (fast validation)
         run: cargo check -p astra-auth --target ${{ matrix.target }}
 
       - name: Build release binary
         run: cargo build -p astra-auth --release --target ${{ matrix.target }}
+
+      - name: Smoke test the built binary
+        working-directory: target/${{ matrix.target }}/release
+        run: ./${{ matrix.binary }} --version
 
       - name: Compute release tag
         id: version
@@ -190,10 +215,6 @@ jobs:
             fi
             echo "RELEASE_TAG=v${BASE_VERSION}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           fi
-
-      - name: Cargo test (auth server)
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo test -p astra-auth
 
       - name: Package archive + checksum
         working-directory: target/${{ matrix.target }}/release

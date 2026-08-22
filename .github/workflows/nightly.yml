@@ -1,0 +1,198 @@
+name: nightly
+
+# Heavy / slow / flaky tier. Runs once a day at 04:00 UTC.
+# Captures regressions that are too expensive for the PR loop:
+#   - full workspace test (every ignored case included)
+#   - serialized leader PTY suite
+#   - every scripted_scenarios YAML
+#   - benchmark smoke (bench --no-run plus one or two representative benches)
+#   - upstream merge probe (conflict canary for `xai-org/grok-build`)
+
+on:
+  schedule:
+    # Daily at 04:00 UTC. Stagger from audit.yml (Mon 06:00) so they don't
+    # both hammer the cache cold at the same instant.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  full-test:
+    name: cargo test --workspace --all-targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      # `--all-targets` includes every test target (including ignored ones),
+      # which compiles-but-doesn't-run them; the per-target jobs below run
+      # the ignored cases.
+      - name: cargo test (workspace, all-targets, all features)
+        run: |
+          set -euo pipefail
+          cargo test --workspace --all-targets --locked -- --include-ignored
+
+  scripted-scenarios-full:
+    name: scripted_scenarios (full sweep, ignored)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: Build pager binary for the harness
+        run: cargo build -p xai-grok-pager --bin astra
+
+      - name: Run every scripted scenario
+        # test-threads=1 because each scenario spins up its own mock
+        # inference server; running them in parallel has been the source of
+        # port-bind flake in past CI history.
+        run: |
+          cargo test -p xai-grok-pager --test scripted_scenarios \
+            -- --ignored --test-threads=1
+
+  leader-pty-e2e-full:
+    name: leader_pty_e2e (full, single-threaded)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: Build pager binary for the leader harness
+        run: cargo build -p xai-grok-pager --bin astra
+
+      - name: leader_pty_e2e (full, single-threaded)
+        run: |
+          cargo test -p xai-grok-pager --test leader_pty_e2e \
+            -- --ignored --test-threads=1 --nocapture
+
+  bench:
+    name: cargo bench (compile + smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: Compile every bench
+        run: cargo bench --workspace --no-run --locked
+
+      - name: Smoke-run representative benches
+        # `--bench` flags pick the benches that historically regressed; we
+        # don't collect criterion numbers — just exercise the harness end to
+        # end so a broken benchmark crate fails CI before release.
+        run: |
+          cargo bench -p xai-grok-pager --bench render
+          cargo bench -p xai-grok-pager --bench search
+
+  upstream-merge-probe:
+    name: upstream merge conflict probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream + check divergence
+        # The upstream monorepo is `xai-org/grok-build`. We diff `main` against
+        # `upstream/main` to surface conflicts that landed upstream overnight;
+        # a non-trivial --stat output flags "rebase before next release".
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/xai-org/grok-build.git || true
+          git fetch --no-tags --depth=200 upstream main
+          echo "=== upstream/main vs origin/main (stat) ===" > upstream-merge-probe.txt
+          git diff --stat upstream/main...HEAD >> upstream-merge-probe.txt || true
+          echo "" >> upstream-merge-probe.txt
+          echo "=== files diverged (no shared history since fork) ===" >> upstream-merge-probe.txt
+          git diff --name-only upstream/main...HEAD >> upstream-merge-probe.txt || true
+          cat upstream-merge-probe.txt
+
+      - name: Upload probe artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-merge-probe
+          path: upstream-merge-probe.txt
+          if-no-files-found: warn

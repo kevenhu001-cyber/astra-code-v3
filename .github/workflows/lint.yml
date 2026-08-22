@@ -1,0 +1,55 @@
+name: lint
+
+# Strict clippy over the whole workspace. Linux-only. ~3 min on a warm cache.
+# Treats every warning as an error so style drift cannot land silently.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Treat every rustc / clippy diagnostic as an error. The repo's
+  # `rust-toolchain.toml` already pins the toolchain.
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  clippy:
+    name: cargo clippy --workspace --all-targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+          components: rustfmt, clippy
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      # Same pattern as build.yml: bin/protoc is a dotslash manifest on Linux,
+      # and we want clippy's build script invocations to succeed.
+      - name: cargo clippy (workspace, all-targets, -D warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings

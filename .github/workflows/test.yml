@@ -1,0 +1,227 @@
+name: test
+
+# Linux-only test suite. PR + main + manual. Heavy / slow / flaky tiers
+# (full workspace PTY, leader PTY, scripted scenarios) live in nightly.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # The repo's bin/protoc is a dotslash manifest; dotslash fetches the pinned
+  # protoc release automatically on the Linux runner.
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # ── Fast unit tests. The PR feedback path. Skips ignored PTY / leader /
+  # scripted scenarios so this stays under ~10 min on a cold cache.
+  unit:
+    name: cargo test --workspace (lib + bins)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+          components: rustfmt, clippy
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: cargo test (workspace, lib + bins)
+        run: |
+          set -euo pipefail
+          # `--workspace --lib --bins` covers every crate's in-crate tests;
+          # `--tests` would also compile ignored PTY / leader / scripted
+          # targets — those are exercised by `regressions` / `pty-e2e` /
+          # `leader-pty-e2e` jobs (and the full sweep lives in nightly.yml).
+          cargo test --workspace --lib --bins --locked
+
+  # ── Regression / consistency tests that aren't part of `cargo test` because
+  # they're either integration tests inside the pager crate, or live in
+  # crates without much unit-test surface.
+  regressions:
+    name: regression suite (brand sweep, marketing, docs, …)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: Build pager once (binary + helpers for scenario runner)
+        run: cargo build -p xai-grok-pager --bin astra
+
+      - name: Brand sweep (no leaked legacy xai refs in user-guide)
+        run: cargo test -p xai-grok-pager --test brand_sweep_no_legacy_xai_refs
+
+      - name: Marketing site (no Go lang leftovers)
+        run: cargo test -p xai-grok-pager --test marketing_site_no_go_lang
+
+      - name: Registered features are documented
+        run: cargo test -p xai-grok-pager --test registered_features_are_documented
+
+      - name: Doctor early dispatch
+        run: cargo test -p xai-grok-pager --test doctor_early_dispatch
+
+      - name: Grok home paths
+        run: cargo test -p xai-grok-pager --test grok_home_paths
+
+      - name: Selection model public API surface
+        run: cargo test -p xai-grok-pager --test selection_model_public_api
+
+      - name: Signal errno preservation
+        run: cargo test -p xai-grok-pager --test signal_errno_preservation
+
+      - name: Settings E2E (lightweight)
+        run: cargo test -p xai-grok-pager --test settings_e2e
+
+      - name: Scripted scenarios — selected happy-path
+        run: |
+          # Sample scenarios chosen for fast / low-flake feedback. The full
+          # 45+ scenarios run nightly.
+          cargo test -p xai-grok-pager --test scripted_scenarios -- --ignored \
+            scripted_welcome_screen \
+            scripted_mock_response \
+            scripted_bracket_prompt_input \
+            scripted_image_inputs
+
+  # ── Auth server tests. Already live in build.yml today, but they belong
+  # with the test workflow rather than the build matrix.
+  auth-server:
+    name: cargo test -p astra-auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: cargo test -p astra-auth
+        run: cargo test -p astra-auth --locked
+
+  # ── PTY integration smoke. Runs the entire family (`--ignored`) but caps
+  # libtest workers so it stays under the timeout; flaky cases are rerun by
+  # the harness or moved to nightly.yml.
+  pty-e2e:
+    name: pty_e2e (smoke, ignored)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: Build pager binary for the harness
+        run: cargo build -p xai-grok-pager --bin astra
+
+      - name: pty_e2e (smoke subset, serialized)
+        # The pty_e2e/* headers self-disable for ordinary cargo runs (all cases
+        # are `#[ignore]`d); the `--ignored` flag opts them back in. Workers
+        # are capped to avoid the 60→240s flake history called out in
+        # `tests/leader_pty_e2e/mod.rs`.
+        run: |
+          cargo test -p xai-grok-pager --test pty_e2e \
+            -- --ignored --test-threads=2 --nocapture
+
+  # ── Leader PTY E2E. Multi-process (boots 2-3 pager instances + a leader
+  # subprocess). Run serialized on a dedicated job so it can't race with the
+  # main pty_e2e pool.
+  leader-pty-e2e:
+    name: leader_pty_e2e (serialized, ignored)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      - name: Build pager binary for the leader harness
+        run: cargo build -p xai-grok-pager --bin astra
+
+      - name: leader_pty_e2e (single-threaded)
+        run: |
+          cargo test -p xai-grok-pager --test leader_pty_e2e \
+            -- --ignored --test-threads=1 --nocapture

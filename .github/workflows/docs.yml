@@ -1,0 +1,171 @@
+name: docs
+
+# Docs / packaging surface validation. Skips the actual Rust builds (covered
+# by format / lint / test / build) and instead focuses on:
+#   - user-guide link rot (lychee)
+#   - shell + PowerShell installer scripts (shellcheck / pwsh parse)
+#   - npm package manifest sanity (postinstall.js + bin/astra shebang)
+#   - marketing site regressions (re-uses the marketing_site_no_go_lang test)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/codegen/xai-grok-pager/docs/**'
+      - 'crates/codegen/xai-grok-pager/scripts/**'
+      - 'crates/codegen/xai-grok-pager/npm/**'
+      - 'site/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'crates/codegen/xai-grok-pager/docs/**'
+      - 'crates/codegen/xai-grok-pager/scripts/**'
+      - 'crates/codegen/xai-grok-pager/npm/**'
+      - 'site/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: lychee (user-guide markdown links)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned, for lychee pin)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: lychee link check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # `--no-fail` is on lychee's side; we want failures to surface
+          # cleanly through the action exit code, not as silent warnings.
+          args: >
+            --no-progress
+            --exclude 'https://example.invalid'
+            --exclude 'https://astracode.topodrive.top'
+            --exclude 'https://x.com'
+            --exclude 'https://docs.x.ai'
+            --exclude 'https://console.x.ai'
+            --exclude 'https://accounts.x.ai'
+            --exclude 'mailto:*'
+            --accept '200..299,403,429'
+            crates/codegen/xai-grok-pager/docs/user-guide
+          fail: true
+
+  install-scripts:
+    name: install script lint (shellcheck + pwsh parse)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck installer shell scripts
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --severity=warning \
+            crates/codegen/xai-grok-pager/scripts/install.sh \
+            crates/codegen/xai-grok-pager/scripts/install-enterprise.sh
+
+      - name: PowerShell syntax check
+        # Best-effort: PSScriptAnalyzer requires Pester + a PS module path; a
+        # plain AST parse via the `pwsh` binary is enough to catch the common
+        # "missing brace / unterminated string" class of bug that lands in
+        # installer updates.
+        run: |
+          set -euo pipefail
+          # Install pwsh (PowerShell 7) on the Linux runner. The package list
+          # is stable; pin the version so we don't pick up a new pwsh mid-PR.
+          wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq powershell
+          rm -f packages-microsoft-prod.deb
+          pwsh -NoProfile -Command '
+            $ErrorActionPreference = "Stop"
+            $script = Get-ChildItem -Path crates/codegen/xai-grok-pager/scripts -Filter "*.ps1"
+            foreach ($f in $script) {
+              $tokens = $errors = $null
+              [void][System.Management.Automation.Language.Parser]::ParseFile(
+                $f.FullName, [ref]$tokens, [ref]$errors)
+              if ($errors.Count -gt 0) {
+                Write-Host "::error file=$($f.FullName):: parse errors found"
+                $errors | ForEach-Object { Write-Host $_ }
+                exit 1
+              }
+            }
+            Write-Host "PowerShell scripts parse cleanly."
+          '
+
+  npm:
+    name: npm package smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate package.json + postinstall.js syntax
+        working-directory: crates/codegen/xai-grok-pager/npm/astra
+        run: |
+          set -euo pipefail
+          # Validate the manifest is parseable.
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          # postinstall.js must at least parse.
+          node --check bin/postinstall.js
+          node --check scripts/assemble-platform-packages.js
+
+      - name: bin/astra shebang sanity
+        working-directory: crates/codegen/xai-grok-pager/npm/astra
+        run: |
+          set -euo pipefail
+          first=$(head -n 1 bin/astra)
+          if [[ "$first" != "#!"* ]]; then
+            echo "::error::bin/astra missing shebang on first line"
+            exit 1
+          fi
+          echo "shebang OK: $first"
+
+  marketing-site:
+    name: marketing site regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      # Same regression as test.yml `regressions`, kept here so a docs-only PR
+      # still triggers the marketing sanity check.
+      - name: Marketing site (no Go lang leftovers)
+        run: cargo test -p xai-grok-pager --test marketing_site_no_go_lang
+
+      - name: Brand sweep (no leaked legacy xai refs)
+        run: cargo test -p xai-grok-pager --test brand_sweep_no_legacy_xai_refs

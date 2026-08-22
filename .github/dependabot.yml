@@ -1,0 +1,58 @@
+version: 2
+updates:
+  # Cargo dependencies. The `[patch.crates-io]` git fork for `async-openai`
+  # is intentional — keep dependabot from "fixing" it back to crates.io.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "rust"
+    groups:
+      rust-direct:
+        dependency-type: "direct"
+      rust-indirect:
+        dependency-type: "indirect"
+    # Surface breaking cargo updates as their own PR so they get eyes-on
+    # review before landing. Minor + patch can batch.
+    # (Dependabot doesn't let us split by semver inside groups yet; this is a
+    # known limitation — adjust if/when GitHub supports it.)
+    ignore:
+      # The intentional git-fork override must not be "fixed" by dependabot.
+      - dependency-name: "async-openai"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor", "version-update:semver-major"]
+
+  # npm wrapper packages. The optional `@topodrive-ai-official/grok-*`
+  # platform tarballs are released in lockstep with the CLI release; let
+  # dependabot bump the version pointer inside the published manifest after a
+  # release tag lands rather than chase floating semver.
+  - package-ecosystem: "npm"
+    directory: "/crates/codegen/xai-grok-pager/npm/astra"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+
+  # GitHub Actions versions. Auto-bumps `actions/checkout`, `dtolnay/rust-toolchain`,
+  # `Swatinem/rust-cache`, etc.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"

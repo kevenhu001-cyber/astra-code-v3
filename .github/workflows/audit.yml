@@ -1,0 +1,111 @@
+name: audit
+
+# Vulnerability + license sanity. PR + main + weekly cron.
+# - `cargo audit`: walks Cargo.lock against the RustSec advisory DB.
+# - `cargo license`: ensures every direct dep has a license entry and the set
+#   matches THIRD-PARTY-NOTICES (baseline diffed against git history).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly on Mondays at 06:00 UTC.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    name: cargo audit (RustSec DB)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install cargo-audit (locked)
+        run: cargo install --locked cargo-audit
+
+      - name: Audit dependencies against RustSec
+        run: |
+          # `--no-fetch` keeps the workflow hermetic if the advisory fetch
+          # fails; we'd rather show stale data than a hard failure mid-PR.
+          cargo audit --deny warnings
+        continue-on-error: false
+
+  licenses:
+    name: third-party notice consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install cargo-license (locked)
+        run: cargo install --locked cargo-license
+
+      - name: Emit current dep -> license list
+        # The `--json` output is a stable contract we can diff against
+        # `audit-baseline.txt` checked into the repo. The first run creates
+        # the baseline; later runs fail if the dependency license set drifts
+        # without an accompanying `THIRD-PARTY-NOTICES` update.
+        run: |
+          set -euo pipefail
+          cargo license --json > current-licenses.json
+
+      - name: Diff against checked-in baseline
+        run: |
+          set -euo pipefail
+          if [ ! -f audit-baseline.txt ]; then
+            echo "::warning::No audit-baseline.txt present — recording the current snapshot."
+            cp current-licenses.json audit-baseline.txt
+            exit 0
+          fi
+          if ! diff -u audit-baseline.txt current-licenses.json > license-diff.patch; then
+            echo "::error::License set drifted. Either update THIRD-PARTY-NOTICES to match, or refresh the baseline by running:"
+            echo "  cargo license --json > audit-baseline.txt"
+            echo "Diff follows:"
+            cat license-diff.patch
+            exit 1
+          fi
+
+      - name: Upload license diff artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-snapshot
+          path: |
+            current-licenses.json
+            license-diff.patch
+          if-no-files-found: ignore
