@@ -52,6 +52,10 @@ jobs:
           dotslash --help
 
       - name: cargo test (workspace, lib + bins)
+        env:
+          # Stack-overflow aborts (e.g. the auth-retry-budget scenario) print
+          # overflowing frames only when this is set.
+          RUST_BACKTRACE: 1
         run: |
           set -euo pipefail
           # `--workspace --lib --bins` covers every crate's in-crate tests;
