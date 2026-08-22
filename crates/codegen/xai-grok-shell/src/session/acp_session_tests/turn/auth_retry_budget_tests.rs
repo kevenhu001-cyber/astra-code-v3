@@ -296,8 +296,29 @@ async fn fail_closed_401_is_uncharged_and_turn_survives() {
 /// carries a bearer the server rejects, the escalating budget exhausts after
 /// `MAX_RETRIES` and the failure names authenticated rejections — not a
 /// generic budget message. `start_paused` auto-advances the backoff ladder.
-#[tokio::test(flavor = "current_thread", start_paused = true)]
-async fn authenticated_401s_still_exhaust_after_three_retries() {
+/// The turn loop's future is deep (auth retry ladder + notification fan-out
+/// nested inside the sampler poll chain); on a default 8 MiB libtest thread
+/// this scenario overflowed the stack before libtest could report anything,
+/// taking the whole test binary down with SIGABRT. Run on a dedicated thread
+/// with a generous stack so the budget-exhaustion path completes and real
+/// assertion failures surface normally.
+#[test]
+fn authenticated_401s_still_exhaust_after_three_retries() {
+    std::thread::Builder::new()
+        .stack_size(256 * 1024 * 1024)
+        .spawn(|| {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .start_paused(true)
+                .build()
+                .expect("current-thread paused runtime");
+            runtime.block_on(authenticated_401s_still_exhaust_after_three_retries_inner());
+        })
+        .expect("spawn auth-retry-budget test thread")
+        .join()
+        .expect("auth-retry-budget test body");
+}
+
+async fn authenticated_401s_still_exhaust_after_three_retries_inner() {
     let local = tokio::task::LocalSet::new();
     local
         .run_until(async {
