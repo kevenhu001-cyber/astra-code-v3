@@ -200,7 +200,8 @@ pub struct ImageFixture {
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ImageFixtureKind {
-    /// 8x8 RGBA PNG — meets the minimum vision-model dimension requirement.
+    /// 32×32 RGBA PNG — clears the vision-model minimums (8 px per side and
+    /// 512 total pixels); smaller fixtures are rejected before send.
     #[default]
     Standard,
     /// 1x1 RGBA PNG — below the 8 px minimum; rejected client-side.
@@ -1384,8 +1385,11 @@ fn write_fixture_image(path: &Path, kind: ImageFixtureKind) -> Result<()> {
 fn standard_png_bytes() -> Result<Vec<u8>> {
     use image::{ImageBuffer, ImageFormat, Rgba};
 
+    // 32×32 (1024 px) clears the send-time vision floor (`MIN_VISION_TOTAL_PX`
+    // = 512 total pixels, matching the backend API limit); an 8×8 fixture is
+    // rejected before send with "images must have at least 512 total pixels".
     let buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
-        ImageBuffer::from_pixel(8, 8, Rgba([128, 64, 32, 255]));
+        ImageBuffer::from_pixel(32, 32, Rgba([128, 64, 32, 255]));
     let mut png = Vec::new();
     buffer.write_to(&mut std::io::Cursor::new(&mut png), ImageFormat::Png)?;
     Ok(png)
@@ -2159,9 +2163,9 @@ mod tests {
     }
 
     #[test]
-    fn standard_fixture_decodes_as_8x8() {
+    fn standard_fixture_decodes_as_32x32() {
         let bytes = standard_png_bytes().expect("encode standard");
-        assert_eq!(decoded_dimensions(&bytes), (8, 8));
+        assert_eq!(decoded_dimensions(&bytes), (32, 32));
     }
 
     #[test]

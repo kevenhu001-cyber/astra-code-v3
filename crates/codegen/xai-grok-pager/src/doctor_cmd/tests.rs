@@ -8,7 +8,7 @@ use crate::diagnostics::probes::{
 use crate::diagnostics::{
     ClipboardFacts, ColorFacts, DataControlFact, DiagnosticFacts, DiagnosticFinding, DiagnosticId,
     DiagnosticReport, FindingDisposition, KeyboardFact, ManualRemediation, NewlineFact, ProbeNote,
-    ProbeStatus, RuntimeFact,
+    ProbeStatus, RuntimeFact, VOICE_NO_INPUT_DEVICE_ID,
 };
 use crate::host::{DisplayServer, HostOs};
 use crate::terminal::{
@@ -242,6 +242,14 @@ fn fake_standalone_facts_compose_through_shared_view() {
         RuntimeEvidence::Available(ColorLevel::TrueColor),
     );
     let report = collect_report_with(snapshot);
+
+    // The voice probe is environment-dependent: on a machine without an
+    // audio input device (e.g. a CI runner) `apply_voice_probe` appends a
+    // voice-missing Issue. Drop it so the assertions below pin only the
+    // tmux clipboard composition under test.
+    report
+        .findings
+        .retain(|finding| finding.id != VOICE_NO_INPUT_DEVICE_ID);
 
     assert_eq!(report.issue_count(), 1);
     assert!(

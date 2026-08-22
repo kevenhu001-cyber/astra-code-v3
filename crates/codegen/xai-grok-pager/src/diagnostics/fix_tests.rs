@@ -717,12 +717,12 @@ fn tmux_stale_plan_and_idempotence_reuse_managed_writer_safety() {
 fn bash_zsh_and_fish_plans_use_exact_paths_and_aliases() {
     let temp = tempfile::tempdir().unwrap();
     for (shell, relative, alias) in [
-        ("/bin/bash", ".bashrc", "alias ssh='grok wrap ssh'"),
-        ("/bin/zsh", ".zshrc", "alias ssh='grok wrap ssh'"),
+        ("/bin/bash", ".bashrc", "alias ssh='astra wrap ssh'"),
+        ("/bin/zsh", ".zshrc", "alias ssh='astra wrap ssh'"),
         (
             "/usr/local/bin/fish",
             ".config/fish/config.fish",
-            "alias ssh 'grok wrap ssh'",
+            "alias ssh 'astra wrap ssh'",
         ),
     ] {
         let plan = plan_fix(request(temp.path(), shell), &report(), &terminal()).unwrap();
@@ -952,7 +952,7 @@ fn comments_and_managed_alias_do_not_create_false_conflicts() {
     let path = temp.path().join(".zshrc");
     std::fs::write(
         &path,
-        "# alias ssh='ssh -A'\n# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='grok wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<\n",
+        "# alias ssh='ssh -A'\n# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='astra wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<\n",
     )
     .unwrap();
     let plan = plan_fix(request(temp.path(), "/bin/zsh"), &report(), &terminal()).unwrap();
@@ -966,11 +966,11 @@ fn managed_alias_with_later_unmanaged_conflict_is_not_configured() {
     let cases = [
         (
             ShellKind::Bash,
-            "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='grok wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<\nalias ssh='ssh -A'\n",
+            "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='astra wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<\nalias ssh='ssh -A'\n",
         ),
         (
             ShellKind::Fish,
-            "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh 'grok wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<\nfunction ssh\n  command ssh -A $argv\nend\n",
+            "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh 'astra wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<\nfunction ssh\n  command ssh -A $argv\nend\n",
         ),
     ];
     for (shell, content) in cases {
@@ -1088,7 +1088,7 @@ fn shell_aliases_expand_to_exact_argv_and_bypass_is_explicit() {
 
     if let Some(bash) = find_on_path("bash") {
         let rc = temp.path().join("bashrc");
-        std::fs::write(&rc, "alias ssh='grok wrap ssh'\n").unwrap();
+        std::fs::write(&rc, "alias ssh='astra wrap ssh'\n").unwrap();
         let command = format!(
             "source '{}'; source '{}'; eval 'ssh -p 2222 host'",
             rc.display(),
@@ -1119,7 +1119,7 @@ fn shell_aliases_expand_to_exact_argv_and_bypass_is_explicit() {
     }
     if let Some(zsh) = find_on_path("zsh") {
         let rc = temp.path().join("zshrc");
-        std::fs::write(&rc, "alias ssh='grok wrap ssh'\n").unwrap();
+        std::fs::write(&rc, "alias ssh='astra wrap ssh'\n").unwrap();
         let command = format!(
             "source '{}'; source '{}'; eval 'ssh -p 2222 host'",
             rc.display(),
@@ -1159,7 +1159,7 @@ fn shell_aliases_expand_to_exact_argv_and_bypass_is_explicit() {
     };
     let mut shell = std::process::Command::new(bash);
     shell
-        .args(["-ic", "alias ssh='grok wrap ssh'; command ssh host"])
+        .args(["-ic", "alias ssh='astra wrap ssh'; command ssh host"])
         .env("CAPTURE", &capture)
         .env(
             "PATH",
