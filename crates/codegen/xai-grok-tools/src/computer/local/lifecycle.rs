@@ -177,6 +177,9 @@ mod tests {
     /// until a `wait` has returned.
     #[cfg(unix)]
     #[tokio::test]
+    // Allowed per clippy.toml's "waited on" exception: this test reaps the
+    // child below, so no unenrolled process outlives the run.
+    #[allow(clippy::disallowed_methods)]
     async fn a_collection_claim_requires_the_child_to_have_been_waited_on() {
         let mut child = tokio::process::Command::new("true")
             .spawn()
