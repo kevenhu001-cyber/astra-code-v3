@@ -193,7 +193,7 @@ jobs:
         # are capped to avoid the 60→240s flake history called out in
         # `tests/leader_pty_e2e/mod.rs`.
         run: |
-          cargo test -p xai-grok-pager --test pty_e2e \
+          cargo test -p xai-grok-pager --test pty_e2e_smoke \
             -- --ignored --test-threads=2 --nocapture
 
   # ── Leader PTY E2E. Multi-process (boots 2-3 pager instances + a leader
