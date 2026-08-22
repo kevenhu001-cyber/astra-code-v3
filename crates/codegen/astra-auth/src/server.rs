@@ -188,10 +188,10 @@ impl Server {
         if !has_oidc {
             let path = req.uri().path().to_string();
             if path == "/authorize" {
-                if let Some(code) = params.get("code") {
-                    if !code.is_empty() {
-                        return serve_page(crate::assets::AUTHORIZE_HTML);
-                    }
+                if let Some(code) = params.get("code")
+                    && !code.is_empty()
+                {
+                    return serve_page(crate::assets::AUTHORIZE_HTML);
                 }
                 return serve_page(crate::assets::AUTHORIZE_HTML);
             }
@@ -576,29 +576,28 @@ async fn decode_body<T: for<'de> Deserialize<'de>>(
 /// that the front-end stores in localStorage as a fallback.
 fn session_token_from_headers(headers: &HeaderMap) -> Option<String> {
     // 1) HttpOnly cookie `sid=...` (primary, most secure)
-    if let Some(cookie) = headers.get(header::COOKIE).and_then(|v| v.to_str().ok()) {
-        if let Some(sid) = cookie.split(';').find_map(|c| {
+    if let Some(cookie) = headers.get(header::COOKIE).and_then(|v| v.to_str().ok())
+        && let Some(sid) = cookie.split(';').find_map(|c| {
             let c = c.trim();
             c.strip_prefix("sid=").map(|v| v.trim().to_string())
-        }) {
-            if !sid.is_empty() {
-                return Some(sid);
-            }
-        }
+        })
+        && !sid.is_empty()
+    {
+        return Some(sid);
     }
     // 2) Authorization: Bearer <session_token> (fallback when cookies blocked)
-    if let Some(h) = headers
+    let bearer = headers
         .get(header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.to_str().ok());
+    if let Some(h) = bearer
+        && let Some(tok) = h.strip_prefix("Bearer ")
     {
-        if let Some(tok) = h.strip_prefix("Bearer ") {
-            let tok = tok.trim();
-            if !tok.is_empty() {
-                // Only treat as session token if it exists in the session store.
-                // API tokens are handled separately by bearer_user, but checking
-                // here first avoids an extra lookup.
-                return Some(tok.to_string());
-            }
+        let tok = tok.trim();
+        if !tok.is_empty() {
+            // Only treat as session token if it exists in the session store.
+            // API tokens are handled separately by bearer_user, but checking
+            // here first avoids an extra lookup.
+            return Some(tok.to_string());
         }
     }
     // 3) X-Session-Token header (alternative fallback, avoids colliding with
@@ -638,10 +637,10 @@ fn to_public(u: &User) -> Value {
         "email": u.email,
         "created_at": u.created_at.to_rfc3339(),
     });
-    if let Some(name) = &u.display_name {
-        if !name.is_empty() {
-            v["display_name"] = json!(name);
-        }
+    if let Some(name) = &u.display_name
+        && !name.is_empty()
+    {
+        v["display_name"] = json!(name);
     }
     v
 }
@@ -732,12 +731,13 @@ async fn handlers_register(State(s): State<Server>, req: axum::extract::Request)
     };
     let token = password::random_hex(16);
     let now = Utc::now();
-    if let Err(_) = s.store.upsert_pending(&PendingRegistration {
+    let stored = s.store.upsert_pending(&PendingRegistration {
         email: email.clone(),
         password_hash: hash,
         token: token.clone(),
         expires_at: now + Duration::hours(24),
-    }) {
+    });
+    if stored.is_err() {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     let url = verify_url(&s.opts.base_url, &token);
@@ -767,11 +767,11 @@ async fn handlers_resend(State(s): State<Server>, req: axum::extract::Request) -
         Err(r) => return r,
     };
     let email = crate::store::normalize_email(&body.email);
-    if let Some(p) = s.store.find_pending(&email) {
-        if p.expires_at > Utc::now() {
-            let url = verify_url(&s.opts.base_url, &p.token);
-            let _ = s.mailer.send_verification(&email, &url);
-        }
+    if let Some(p) = s.store.find_pending(&email)
+        && p.expires_at > Utc::now()
+    {
+        let url = verify_url(&s.opts.base_url, &p.token);
+        let _ = s.mailer.send_verification(&email, &url);
     }
     json_response(StatusCode::OK, json!({ "ok": true }))
 }
@@ -816,7 +816,8 @@ async fn handlers_verify(
                 created_at: Utc::now(),
                 verified_at: Some(Utc::now()),
             };
-            if let Err(_) = s.store.create_user(&u) {
+            let created = s.store.create_user(&u);
+            if created.is_err() {
                 return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
             }
             u
@@ -979,7 +980,8 @@ async fn handlers_device_create(State(s): State<Server>, _req: axum::extract::Re
         expires_at: Utc::now() + Duration::seconds(DEVICE_EXPIRY_SECS),
         approved_at: None,
     };
-    if let Err(_) = s.store.create_device(&g) {
+    let stored = s.store.create_device(&g);
+    if stored.is_err() {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     let base = {
@@ -1040,7 +1042,8 @@ async fn handlers_device_approve(State(s): State<Server>, req: axum::extract::Re
         created_at: Utc::now(),
         expires_at: Utc::now() + Duration::days(TOKEN_TTL_DAYS),
     };
-    if let Err(_) = s.store.create_token(&token) {
+    let stored = s.store.create_token(&token);
+    if stored.is_err() {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     let now = Utc::now();
@@ -1243,7 +1246,8 @@ async fn handlers_tokens_post(State(s): State<Server>, req: axum::extract::Reque
         created_at: Utc::now(),
         expires_at: Utc::now() + Duration::days(TOKEN_TTL_DAYS),
     };
-    if let Err(_) = s.store.create_token(&tok) {
+    let stored = s.store.create_token(&tok);
+    if stored.is_err() {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "storage failed");
     }
     json_response(StatusCode::OK, json!({ "token": tok.token }))
@@ -1303,9 +1307,10 @@ async fn handlers_account(State(s): State<Server>, req: axum::extract::Request) 
     let name = body.display_name.trim();
     let name: String = name.chars().take(60).collect();
     let user_id = user.id.clone();
-    if let Err(_) = s.store.update_user(&user_id, |u| {
+    let updated = s.store.update_user(&user_id, |u| {
         u.display_name = Some(name.clone());
-    }) {
+    });
+    if updated.is_err() {
         return write_err(StatusCode::INTERNAL_SERVER_ERROR, "update failed");
     }
     user.display_name = Some(name);
