@@ -211,10 +211,7 @@ mod tests {
             state.push_block(user_block(&format!("Q{i}")));
             state.push_block(agent_block("ok"));
         }
-        // The chat-bubble vpad bands make each short turn ~17 rows; a tall
-        // viewport keeps several trailing turns fully below the fold so the
-        // top row stays anchored to an earlier prompt.
-        state.prepare_layout(80, 40);
+        state.prepare_layout(80, 12);
 
         state.goto_bottom();
         let at_bottom = state.active_turn_for_viewport().expect("active at bottom");
@@ -326,9 +323,7 @@ mod tests {
             state.push_block(user_block(&format!("Q{i}")));
             state.push_block(agent_block("ok"));
         }
-        // Tall viewport (see active_turn_stays_top_anchored): keeps the last
-        // short turn below the fold so the top-anchored turn is not the newest.
-        state.prepare_layout(80, 40);
+        state.prepare_layout(80, 12);
         state.goto_bottom();
 
         let active = state.active_turn_for_viewport().expect("active at bottom");
@@ -339,7 +334,7 @@ mod tests {
             "▼ has a target below the top-anchored turn"
         );
         assert_eq!(
-            click_chevron(&mut state, 40, false),
+            click_chevron(&mut state, 12, false),
             Some(active + 1),
             "▼ steps to the next turn instead of dimming"
         );
