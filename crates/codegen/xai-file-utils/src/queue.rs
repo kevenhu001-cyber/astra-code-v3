@@ -2341,6 +2341,13 @@ pub fn cleanup_orphaned_uploads(grok_home: &Path, max_age: Duration) -> u64 {
 /// or vice versa) bumps `cleanup_orphan_mismatched`. Pairing is decided against
 /// a name snapshot taken before any deletion, so the count is independent of
 /// visit order.
+///
+/// Expiry is PAIR-ATOMIC: when either member of a temp↔sidecar pair is
+/// judged expired, both are deleted. The name snapshot alone does not make
+/// single-file deletion order-independent — if the sidecar is visited first
+/// and unlinked, re-reading it for the temp would fail and fall back to the
+/// temp's mtime, which can disagree with recovery (the leak this guards
+/// against).
 fn cleanup_queue_dir(queue_dir: &Path, max_age: Duration, stats: Option<&UploadQueueStats>) -> u64 {
     let entries: Vec<std::fs::DirEntry> = match std::fs::read_dir(queue_dir) {
         Ok(e) => e.flatten().collect(),
@@ -2378,16 +2385,36 @@ fn cleanup_queue_dir(queue_dir: &Path, max_age: Duration, stats: Option<&UploadQ
                 cleaned += 1;
                 cleaned_bytes += size;
             }
-        } else if std::fs::remove_file(&path).is_ok() {
+            continue;
+        }
+        if std::fs::remove_file(&path).is_err() {
+            continue;
+        }
+        cleaned += 1;
+        cleaned_bytes += metadata.len();
+        if let Some(stats) = stats
+            && is_mismatched_queue_file(&name, &all_names)
+        {
+            stats
+                .cleanup_orphan_mismatched
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        // Pair-atomic expiry: the partner shares this entry's fate. Its own
+        // verdict would be identical (same sidecar timestamp), but its
+        // sidecar may already be unlinked by the time it is visited, which
+        // would push `pair_age` into the mtime fallback.
+        let partner: Option<PathBuf> = if name.to_string_lossy().ends_with(SIDECAR_SUFFIX) {
+            temp_path_for_sidecar(&path)
+        } else {
+            Some(sidecar_path_for(&path))
+        };
+        if let Some(partner) = partner
+            && let Ok(partner_meta) = std::fs::metadata(&partner)
+            && partner_meta.is_file()
+            && std::fs::remove_file(&partner).is_ok()
+        {
             cleaned += 1;
-            cleaned_bytes += metadata.len();
-            if let Some(stats) = stats
-                && is_mismatched_queue_file(&name, &all_names)
-            {
-                stats
-                    .cleanup_orphan_mismatched
-                    .fetch_add(1, Ordering::Relaxed);
-            }
+            cleaned_bytes += partner_meta.len();
         }
     }
     if cleaned > 0 {

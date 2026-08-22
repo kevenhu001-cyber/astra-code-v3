@@ -97,18 +97,32 @@ async fn connect_wizard_three_step_flow_persists_config() {
     // The wizard closes; the modal chrome with the title is gone.
     wait_for_labels_absent(&mut harness, &[WIZARD_TITLE_SENTINEL], WIZARD_TIMEOUT);
 
-    // The pager writes the persisted block synchronously through
-    // `Effect::PersistConfig` (the same path the one-shot `/connect`
-    // command uses) so by the time the modal disappears the file is on
-    // disk. Poll briefly in case of async flush.
+    // The wizard persists through six `Effect::PersistSetting` tasks which
+    // run CONCURRENTLY on a JoinSet (see `effects::mod`), so each field lands
+    // in config.toml in arbitrary order. Poll until every marker we submitted
+    // is present; dumping the last seen file on timeout keeps failures
+    // diagnosable.
     let config_path = content.home().join(".astra").join("config.toml");
     let deadline = std::time::Instant::now() + WIZARD_TIMEOUT;
+    let mut last_config = String::from("<no config.toml yet>");
     let config = loop {
         if let Ok(c) = std::fs::read_to_string(&config_path) {
-            break c;
+            last_config = c.clone();
+            if c.contains(url)
+                && c.contains(model_id)
+                && c.contains(api_key)
+                && c.contains("astra-custom")
+            {
+                break c;
+            }
         }
         if std::time::Instant::now() >= deadline {
-            panic!("config.toml was not written: {}", config_path.display());
+            panic!(
+                "config.toml never contained the submitted wizard fields\n\
+                 path: {}\n\
+                 last seen:\n{last_config}",
+                config_path.display()
+            );
         }
         harness.update(Duration::from_millis(200));
     };
