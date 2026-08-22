@@ -162,6 +162,11 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
       # Same regression as test.yml `regressions`, kept here so a docs-only PR
       # still triggers the marketing sanity check.
       - name: Marketing site (no Go lang leftovers)

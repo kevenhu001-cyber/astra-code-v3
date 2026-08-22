@@ -1661,9 +1661,7 @@ mod tests {
     /// hardcoded `false` here once disabled it everywhere.
     #[test]
     fn remote_restore_follows_compiled_restore_stack() {
-        assert!(
-            !MaterializeCtx::from_pager_args(&parse(&["astra"])).allow_remote_restore
-        );
+        assert!(!MaterializeCtx::from_pager_args(&parse(&["astra"])).allow_remote_restore);
     }
     #[test]
     fn from_pager_args_does_not_probe_tty_for_progress() {
