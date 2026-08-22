@@ -584,7 +584,9 @@ impl ConnectWizardState {
 
     /// Check if background model fetch returned a result.
     pub fn poll_fetch_rx(&mut self) -> bool {
-        if let Some(ref mut rx) = self.fetch_rx && let Ok(res) = rx.try_recv() {
+        if let Some(ref mut rx) = self.fetch_rx
+            && let Ok(res) = rx.try_recv()
+        {
             self.is_fetching = false;
             self.fetch_rx = None;
             match res {
@@ -1503,7 +1505,9 @@ fn render_connect_form(
         ]);
         buf.set_line(area.x + 2, cur_y, &err_line, area.width.saturating_sub(4));
         cur_y += 1;
-    } else if let Some(ref st) = state.fetch_status && cur_y < max_y {
+    } else if let Some(ref st) = state.fetch_status
+        && cur_y < max_y
+    {
         let status_line = Line::from(vec![
             Span::styled("ℹ ", Style::default().fg(theme.fuzzy_accent)),
             Span::styled(st, Style::default().fg(theme.fuzzy_accent)),

@@ -158,7 +158,9 @@ where
                     _ => (None, false),
                 };
                 if !push {
-                    if !run.is_empty() && let Some(c) = run_color {
+                    if !run.is_empty()
+                        && let Some(c) = run_color
+                    {
                         spans.push(Span::styled(
                             std::mem::take(&mut run),
                             Style::default().fg(c),
@@ -170,7 +172,9 @@ where
                 }
                 let boosted = boost(base_color.unwrap_or(ORANGE), shine_at_col(col));
                 if run_color != Some(boosted) {
-                    if !run.is_empty() && let Some(c) = run_color {
+                    if !run.is_empty()
+                        && let Some(c) = run_color
+                    {
                         spans.push(Span::styled(
                             std::mem::take(&mut run),
                             Style::default().fg(c),
@@ -181,7 +185,9 @@ where
                 run.push_str(LIT);
                 col += 1;
             }
-            if !run.is_empty() && let Some(c) = run_color {
+            if !run.is_empty()
+                && let Some(c) = run_color
+            {
                 spans.push(Span::styled(run, Style::default().fg(c)));
             }
         }
