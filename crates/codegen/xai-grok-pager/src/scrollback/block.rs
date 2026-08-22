@@ -884,32 +884,6 @@ impl RenderBlock {
         matches!(self, RenderBlock::UserPrompt(_))
     }
 
-    /// Vertical padding rows painted ABOVE the first content line under
-    /// `appearance`.
-    ///
-    /// Single source of truth for every consumer (EntryRenderer heights,
-    /// sticky-header budgets, selection/hyperlink row mapping) so the paths
-    /// can't drift. User prompts carry a taller band (4 rows above / below)
-    /// so turns read as chat bubbles; AI agent messages carry 3+3 rows for
-    /// comfortable reading; every other vpad block keeps 1+1.
-    pub fn vpad_top_rows_for(&self, appearance: &AppearanceConfig) -> u16 {
-        if !self.has_vpad_for(appearance) {
-            return 0;
-        }
-        if self.is_user_prompt() {
-            4
-        } else if self.is_agent_message() {
-            3
-        } else {
-            1
-        }
-    }
-
-    /// Total vertical padding rows (top + bottom) under `appearance`.
-    pub fn vpad_rows_for(&self, appearance: &AppearanceConfig) -> u16 {
-        self.vpad_top_rows_for(appearance) * 2
-    }
-
     /// Check if this block is a ToolCall (any variant).
     ///
     /// Used by the entry cache to decide whether selection state should

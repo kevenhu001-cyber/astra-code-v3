@@ -678,11 +678,13 @@ impl ScrollbackPane {
 
         let layout = HorizontalLayout::new(area, &appearance.scrollback.layout);
 
-        // Compute content lines from render_height.
-        // The block adds its vpad rows (user prompts: 2+2 band; others 1+1) —
-        // shared helper keeps this budget in sync with EntryRenderer heights.
+        // Compute content lines from render_height
+        // The block adds vpad (2 rows) if has_vpad is true
         let cwd = state.cwd();
-        let vpad_rows = entry.block.vpad_rows_for(appearance);
+        let has_vpad = entry
+            .block
+            .has_vpad(&entry.context(area.width, appearance, cwd));
+        let vpad_rows = if has_vpad { 2 } else { 0 };
         let content_lines = render_height.saturating_sub(vpad_rows);
 
         // User prompts use their actual display mode so collapsed prompts
@@ -848,13 +850,14 @@ impl ScrollbackPane {
             BlockBackground::Dark => Some(theme.bg_dark),
         };
 
-        let vpad_top = entry.block.vpad_top_rows_for(&ctx.appearance);
-        let vpad_rows = entry.block.vpad_rows_for(&ctx.appearance);
-        let use_vpad = block_has_vpad && content_area.height >= vpad_rows + 1;
+        // Only use vpad if there's enough room for vpad + at least 1 content line.
+        // Need at least 3 rows: vpad_top (1) + content (1) + vpad_bottom (1)
+        // If less space, skip vpad to prioritize content.
+        let use_vpad = block_has_vpad && content_area.height >= 3;
 
         // Calculate actual content height
         let content_height = output.len() as u16;
-        let total_height = content_height + if use_vpad { vpad_rows } else { 0 };
+        let total_height = content_height + if use_vpad { 2 } else { 0 };
 
         // Fill the entire entry area with block background (if any)
         // This includes vpad rows, content rows, and padding columns
@@ -884,10 +887,10 @@ impl ScrollbackPane {
             }
         }
 
-        // Render vpad top if needed
+        // Render vpad top if needed (skip 1 row)
         let mut y = content_area.y;
         if use_vpad {
-            y += vpad_top;
+            y += 1;
         }
 
         // `block_line_idx` counts every line, painted or not.

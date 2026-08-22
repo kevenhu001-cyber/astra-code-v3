@@ -491,10 +491,9 @@ impl ScrollbackEntry {
         // Force Truncated for sticky-header height; include cwd (header wrap).
         let ctx = self.context_with_mode(content_width, DisplayMode::Truncated, appearance, cwd);
         let output = self.block.output(&ctx);
+        let has_vpad = self.block.has_vpad(&ctx);
         let content_height = output.len() as u16;
-        // Same per-block padding as the expanded path (user prompts carry a
-        // taller 2+2 band) so sticky min_heights match the inline rendering.
-        let vpad = self.block.vpad_rows_for(appearance);
+        let vpad = if has_vpad { 2 } else { 0 };
         let height = content_height + vpad;
 
         *self.cached_truncated_height.borrow_mut() =
