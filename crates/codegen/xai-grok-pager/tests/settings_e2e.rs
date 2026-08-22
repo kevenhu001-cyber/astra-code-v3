@@ -7949,7 +7949,9 @@ fn custom_model_provider_picker_enter_dispatches_set_commit() {
     let mut s = make_state();
     navigate_to(&mut s, "custom_model_provider");
     let _ = handle_settings_key(&mut s, &press(KeyCode::Enter));
-    assert!(matches!(s.mode(), SettingsModalMode::PickingEnum { key, .. } if key == "custom_model_provider"));
+    assert!(
+        matches!(s.mode(), SettingsModalMode::PickingEnum { key, .. } if key == "custom_model_provider")
+    );
 
     let _ = handle_settings_key(&mut s, &press(KeyCode::Down));
     let outcome = handle_settings_key(&mut s, &press(KeyCode::Enter));
@@ -7988,11 +7990,7 @@ fn custom_model_provider_picker_nav_does_not_dispatch_preview() {
 #[test]
 fn custom_model_string_editor_commit_dispatches_typed_setter() {
     let cases: &[(&str, &str, fn(String) -> Action)] = &[
-        (
-            "custom_model_id",
-            "gpt-5.6-luna",
-            Action::SetCustomModelId,
-        ),
+        ("custom_model_id", "gpt-5.6-luna", Action::SetCustomModelId),
         (
             "custom_model_display_name",
             "My Custom Model",
@@ -8083,7 +8081,10 @@ fn custom_model_string_rows_mouse_click_two_stage_opens_editor() {
             row_y,
         );
         assert!(
-            matches!(outcome, SettingsKeyOutcome::Changed | SettingsKeyOutcome::Unchanged),
+            matches!(
+                outcome,
+                SettingsKeyOutcome::Changed | SettingsKeyOutcome::Unchanged
+            ),
             "first click on `{key}` must only select, got: {outcome:?}",
         );
         // Second click enters the line editor.
