@@ -19,6 +19,7 @@ is missing from this table. Update both together.
 | `cancel_rewind` | `features.cancel_rewind` | enabled |
 | `compaction_verbatim_input` | `features.compaction_verbatim_input` | enabled |
 | `two_pass_compaction` | `features.two_pass_compaction` | disabled |
+| `backend_tools` | `features.backend_tools` | enabled |
 | `auto_wake` | `features.auto_wake` | enabled |
 | `subagent_worktree_snapshot` | `features.subagent_worktree_snapshot` | disabled |
 

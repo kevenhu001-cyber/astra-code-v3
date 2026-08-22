@@ -19,6 +19,7 @@ missing from this table. Update both together.
 | `GROK_CANCEL_REWIND` | `cancel_rewind` | enabled |
 | `GROK_COMPACTION_VERBATIM_INPUT` | `compaction_verbatim_input` | enabled |
 | `GROK_TWO_PASS_COMPACTION` | `two_pass_compaction` | disabled |
+| `GROK_BACKEND_SEARCH` | `backend_tools` | enabled |
 | `GROK_AUTO_WAKE` | `auto_wake` | enabled |
 | `GROK_SUBAGENT_WORKTREE_SNAPSHOT` | `subagent_worktree_snapshot` | disabled |
 
