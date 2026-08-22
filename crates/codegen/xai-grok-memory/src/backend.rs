@@ -1318,7 +1318,8 @@ mod tests {
         let session: xai_grok_tools::types::SharedApiKeyProvider = Arc::new(PanicKey);
 
         let scoped = EndpointScopedCredentials::for_endpoint(
-            "https://api.topodrive.top/v1" | _ | true,
+            "https://api.topodrive.top/v1",
+            |_| true,
             None,
             Some(session),
         );
@@ -1369,7 +1370,8 @@ mod tests {
         let auth: Arc<dyn xai_grok_auth::AuthCredentialProvider> = Arc::new(StubAuth);
         let api_key: xai_grok_tools::types::SharedApiKeyProvider = Arc::new(PanicKey);
         let scoped = EndpointScopedCredentials::for_endpoint(
-            "https://api.topodrive.top/v1" | _ | true,
+            "https://api.topodrive.top/v1",
+            |_| true,
             Some(auth),
             Some(api_key),
         );
@@ -1407,7 +1409,8 @@ mod tests {
         assert!(denied.is_empty(), "untrusted endpoint drops the credential");
 
         let scoped = EndpointScopedCredentials::for_endpoint(
-            "https://api.topodrive.top/v1" | _ | true,
+            "https://api.topodrive.top/v1",
+            |_| true,
             None,
             Some(key()),
         );
