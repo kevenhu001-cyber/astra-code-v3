@@ -320,8 +320,8 @@ fn doctor_irrelevant_unsafe_byobu_does_not_break_ssh_or_plain_tmux() {
 fn doctor_hostile_home_and_byobu_create_no_config_files() {
     let binary = pager_binary()
         .expect("real pager binary is required when selected")
-        .canonicalize()
-        .unwrap();
+        .to_path_buf();
+    let binary = dunce::canonicalize(binary).unwrap();
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
     let grok_home = temp.path().join("qhome");
