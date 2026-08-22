@@ -3897,6 +3897,7 @@ async fn sampling_config_survives_compaction_replacement() {
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
     };
 
     let h = TestHarness::with_config(
@@ -3982,6 +3983,7 @@ async fn model_metadata_lost_after_compaction_then_recovered_on_next_turn() {
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
     };
 
     let h = TestHarness::with_config(
@@ -4072,6 +4074,7 @@ async fn context_window_downgrade_triggers_auto_compact() {
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
         stream_tool_calls: None,
+        injects_think_tags_in_content: false,
     };
 
     let h = TestHarness::with_config(vec![], config);
