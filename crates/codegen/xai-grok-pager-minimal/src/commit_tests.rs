@@ -871,17 +871,27 @@ fn committed_edit_keeps_diff_line_backgrounds() {
     // removed line is indistinguishable from context.
     let mut saw_insert = false;
     let mut saw_delete = false;
+    let mut bgs: std::collections::BTreeMap<String, usize> = Default::default();
     for y in 0..h {
         for x in 0..width {
             if let Some(cell) = buf.cell((x, y)) {
                 saw_insert |= cell.bg == theme.diff_insert_bg;
                 saw_delete |= cell.bg == theme.diff_delete_bg;
+                *bgs.entry(format!("{:?}", cell.bg)).or_default() += 1;
             }
         }
     }
     assert!(
         saw_insert,
-        "committed edit lost the insert (green) diff background"
+        "committed edit lost the insert (green) diff background\n\
+         expected insert bg: {:?}\n\
+         expected delete bg: {:?}\n\
+         TERM={:?} COLORTERM={:?}\n\
+         buffer backgrounds: {bgs:?}",
+        theme.diff_insert_bg,
+        theme.diff_delete_bg,
+        std::env::var("TERM"),
+        std::env::var("COLORTERM"),
     );
     assert!(
         saw_delete,
