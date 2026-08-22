@@ -514,7 +514,7 @@ fn human_mixed_fixture_is_exact() {
             "      Reload tmux after editing.\n",
             "  i terminal.ssh-wrap            Use local SSH wrapping\n",
             "    → Automatic setup: `grok doctor fix ssh-wrap`\n",
-            "    → One-off: `grok wrap ssh <host>`\n",
+            "    → One-off: `astra wrap ssh <host>`\n",
             "\n",
             "Checks not completed\n",
             "  ? tmux.version                 unavailable\n",
@@ -547,12 +547,10 @@ fn fix_preview_contains_exact_change_and_caveats() {
     let preview = String::from_utf8(preview).unwrap();
     assert_eq!(preview, crate::diagnostics::format_fix_preview(&plan));
     assert!(preview.contains("File: "));
-    assert!(
-        preview.contains(
-            "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='grok wrap ssh'"
-        )
-    );
-    assert!(preview.contains("To use once without changing config: `grok wrap ssh <host>`"));
+    assert!(preview.contains(
+        "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='astra wrap ssh'"
+    ));
+    assert!(preview.contains("To use once without changing config: `astra wrap ssh <host>`"));
     assert!(preview.contains("Use `command ssh ...` to bypass the alias."));
     assert!(preview.contains("ssh -f"));
     assert!(preview.contains("ControlPersist"));
