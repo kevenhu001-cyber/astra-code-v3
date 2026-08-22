@@ -99,12 +99,8 @@ jobs:
         # `--version` is host-portable; gives a fast "did the binary actually
         # link and load?" signal beyond `cargo build`'s exit code.
         working-directory: target/${{ matrix.target }}/release
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            ./${{ matrix.binary }} --version
-          else
-            ./${{ matrix.binary }} --version
-          fi
+        shell: bash
+        run: ./${{ matrix.binary }} --version
 
       - name: Compute release tag
         id: version
@@ -200,6 +196,7 @@ jobs:
 
       - name: Smoke test the built binary
         working-directory: target/${{ matrix.target }}/release
+        shell: bash
         run: ./${{ matrix.binary }} --version
 
       - name: Compute release tag

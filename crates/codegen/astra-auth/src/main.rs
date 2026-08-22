@@ -49,15 +49,30 @@ fn default_data_dir() -> PathBuf {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+
+    // Fast path for `--version` / `--help` used by CI smoke tests.
+    // Must not attempt to bind or touch the store.
+    if args
+        .iter()
+        .any(|a| matches!(a.as_str(), "--version" | "-V" | "--help" | "-h" | "version" | "help"))
+    {
+        println!("astra-auth {}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .init();
 
-    let args: Vec<String> = std::env::args().skip(1).collect();
-
-    let addr = parse_flag(&args, "addr", env_or("ASTRA_AUTH_ADDR", ":8080"));
+    let mut addr = parse_flag(&args, "addr", env_or("ASTRA_AUTH_ADDR", "0.0.0.0:8080"));
+    // Normalize Go-style `:8080` (empty host) which `tokio::net::TcpListener::bind`
+    // cannot resolve on some platforms (err: "failed to lookup address information").
+    if addr.starts_with(':') {
+        addr = format!("0.0.0.0{addr}");
+    }
     let base_url = parse_flag(
         &args,
         "base-url",

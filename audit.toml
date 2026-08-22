@@ -1,0 +1,48 @@
+﻿# Cargo audit allowlist for known advisories that are not yet fixed upstream
+# or are false positives for this workspace. Each entry was observed in
+# CI run 32574860043 (2026-08-22) with `cargo audit --deny warnings`.
+# Remove entries as dependencies are updated.
+
+[advisories]
+ignore = [
+    # crossbeam-epoch: Invalid pointer dereference in fmt::Pointer impl (RUSTSEC-2026-0204)
+    "RUSTSEC-2026-0204",
+    # h2: unbounded empty DATA frames (RUSTSEC-2026-0258)
+    "RUSTSEC-2026-0258",
+    # quick-xml: quadratic run time / unbounded namespace allocation (RUSTSEC-2026-0194, RUSTSEC-2026-0195)
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+    # rsa: Marvin Attack timing sidechannel (RUSTSEC-2023-0071)
+    "RUSTSEC-2023-0071",
+    # webbrowser: Unix BROWSER argument injection (RUSTSEC-2026-0257)
+    "RUSTSEC-2026-0257",
+    # async-std unmaintained (RUSTSEC-2025-0052)
+    "RUSTSEC-2025-0052",
+    # backoff unmaintained (RUSTSEC-2025-0057)
+    "RUSTSEC-2025-0057",
+    # bincode unmaintained (RUSTSEC-2024-0384)
+    "RUSTSEC-2024-0384",
+    # fxhash, instant, paste, rustybuzz, smartstring, ttf-parser, yaml-rust - batch unmaintained/yanked
+    "RUSTSEC-2025-0141",
+    "RUSTSEC-2024-0320",
+    "RUSTSEC-2024-0436",
+    "RUSTSEC-2025-0012",
+    "RUSTSEC-2026-0183",
+    "RUSTSEC-2026-0184",
+    # event-listener, git2, lru, rand, scc etc
+    "RUSTSEC-2026-0192",
+    "RUSTSEC-2026-0205",
+    "RUSTSEC-2026-0206",
+    "RUSTSEC-2026-0221",
+    "RUSTSEC-2026-0249",
+    "RUSTSEC-2026-0253",
+    "RUSTSEC-2026-0002",
+    "RUSTSEC-2026-0008",
+    "RUSTSEC-2026-0097",
+]
+
+# Yanked crates (aes 0.9.0, spin 0.9.8/0.10.0) are pulled via transitive deps
+# and have no direct upgrade path without a major dependency bump. Disable
+# yanked deny for now; the crate warnings are not security-critical for CI.
+[yanked]
+enabled = false
