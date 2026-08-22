@@ -1,10 +1,11 @@
 // Per-test-case module for the `pty_e2e` integration test crate.
 //
-// Drives the `/connect` slash command through the new guided wizard: types
-// `/connect`, waits for the modal, walks Preset -> URL -> Model id -> API
-// key (Tab x3, then types into each field), submits, and asserts the
-// connect persisted the new `[model.astra-custom]` block under
-// `~/.astra/config.toml` and pinned it as `[models].default`.
+// Drives the `/connect` slash command through the guided wizard: types
+// `/connect`, waits for the modal, cycles the preset Down to `custom`, then
+// Tabs Preset -> Provider Name -> Protocol -> Base URL and types into URL /
+// API key / Model ID, submits, and asserts the connect persisted the new
+// `[model.astra-custom]` block under `~/.astra/config.toml` and pinned it as
+// `[models].default`.
 //
 // Skipped by default (`#[ignore]`) like the other `pty_e2e` cases — it
 // needs a built pager binary and a `models.json` writeable HOME. Run with
@@ -16,7 +17,7 @@ use std::time::Duration;
 /// Title of the wizard (see `views::connect_wizard::render_wizard`).
 /// Rendered in the modal border; only the wizard ever writes that exact
 /// phrase, so it's a stable "modal is open" gate.
-const WIZARD_TITLE_SENTINEL: &str = "Connect a custom model";
+const WIZARD_TITLE_SENTINEL: &str = "Connect Model Provider";
 
 /// Total time budget for the three-step flow + persistence. The wizard
 /// itself is snappy (no network), but the persistence side runs through
@@ -57,18 +58,22 @@ async fn connect_wizard_three_step_flow_persists_config() {
         .wait_for_text(WIZARD_TITLE_SENTINEL, WIZARD_TIMEOUT)
         .expect("wizard modal opened");
 
-    // The wizard lands on the Preset field. Walk down to `custom` (the
-    // last entry) so the URL field clears and we can type our own.
-    // Pager renders the full preset list; `custom` is the only entry whose
-    // label contains `(custom URL)`.
+    // The wizard lands on the Preset field, where Down cycles the preset
+    // in place (`custom` is the last entry). After the last Down the Base
+    // URL field clears; its empty-state placeholder proves the custom
+    // preset is selected and we can type our own URL.
     for _ in 0..9 {
         harness.inject_keys(keys::DOWN).expect("preset down");
     }
-    // Tab moves Preset -> Url.
-    harness.inject_keys(b"\t").expect("focus URL");
     harness
-        .wait_for_text("(custom URL)", WIZARD_TIMEOUT)
+        .wait_for_text("<None / Enter Base URL>", WIZARD_TIMEOUT)
         .expect("custom preset selected, URL field empty");
+
+    // Tab walks the form fields in order: Preset -> Provider Name ->
+    // Protocol Format -> Base URL. Three Tabs land focus on Base URL.
+    for _ in 0..3 {
+        harness.inject_keys(b"\t").expect("focus next field");
+    }
 
     // Type the URL. Paced again so each character lands as its own key
     // event (the wizard only re-renders on Changed outcomes; a coalesced
@@ -76,15 +81,15 @@ async fn connect_wizard_three_step_flow_persists_config() {
     let url = "https://example.com/v1";
     inject_keys_paced(&mut harness, url.as_bytes());
 
-    // Tab -> Model id.
-    harness.inject_keys(b"\t").expect("focus model id");
-    let model_id = "wizard-test-model";
-    inject_keys_paced(&mut harness, model_id.as_bytes());
-
     // Tab -> API key.
     harness.inject_keys(b"\t").expect("focus api key");
     let api_key = "sk-wizard-test-0001";
     inject_keys_paced(&mut harness, api_key.as_bytes());
+
+    // Tab -> Model ID.
+    harness.inject_keys(b"\t").expect("focus model id");
+    let model_id = "wizard-test-model";
+    inject_keys_paced(&mut harness, model_id.as_bytes());
 
     // Submit.
     harness.inject_keys(b"\r").expect("submit wizard");

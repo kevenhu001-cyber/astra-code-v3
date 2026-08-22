@@ -331,7 +331,13 @@ fn reclaim_dead_records(db: &WorktreeDb, opts: &GcOptions, report: &mut GcReport
         })?;
         let dead = all
             .iter()
-            .filter(|rec| rec.status == WorktreeStatus::Dead || !Path::new(&rec.path).exists())
+            // Same predicate as `sweep_dead`: a dangling symlink still on
+            // disk is not dead — the age pass reclaims it as a no-repo path.
+            .filter(|rec| {
+                let path = Path::new(&rec.path);
+                rec.status == WorktreeStatus::Dead
+                    || (!path.exists() && std::fs::symlink_metadata(path).is_err())
+            })
             .count();
         report.dead_removed = u64::try_from(dead).unwrap_or(u64::MAX);
         return Ok(());

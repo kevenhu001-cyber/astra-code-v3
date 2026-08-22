@@ -915,7 +915,13 @@ pub(crate) async fn run(
     );
     app.pending_startup = Some(pending_startup);
     app.tracing_rx = Some(tracing_handle.rx);
-    app.last_known_terminal_rows = 0;
+    // Startup terminal height seeds the auto-compact derivation
+    // (`views::agent::effective_compact`). A PTY spawn (and any terminal that
+    // doesn't resize after launch) never emits `Event::Resize`, so without this
+    // seed a small terminal would render the tall layout until the first manual
+    // resize. Kept fresh by `Event::Resize` from here on; 0 (probe failure)
+    // never forces compact.
+    app.last_known_terminal_rows = crossterm::terminal::size().map(|(_, r)| r).unwrap_or(0);
     // Leader mode: a live `leader_status_rx` means the pager is connected via a
     // leader. The dashboard itself is NOT gated on this flag (it renders local
     // sessions regardless); `leader_mode` only controls whether we additionally

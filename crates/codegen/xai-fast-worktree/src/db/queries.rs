@@ -219,7 +219,13 @@ pub fn sweep_dead(conn: &Connection) -> Result<u64> {
 
     let mut marked = 0u64;
     for (id, path_str) in alive_paths {
-        if !Path::new(&path_str).exists() {
+        let path = Path::new(&path_str);
+        // `exists()` follows symlinks: a dangling worktree symlink reads as
+        // absent while the link itself is still on disk. It must stay alive
+        // here so the age pass reclaims it as a no-repo path (unlinked +
+        // counted); marking it dead would leak the link and bypass that
+        // accounting. Truly-gone paths (no link either) sweep as dead.
+        if !path.exists() && std::fs::symlink_metadata(path).is_err() {
             conn.execute(
                 "UPDATE worktrees SET status = 'dead' WHERE id = ?1",
                 params![id],

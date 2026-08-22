@@ -60,6 +60,10 @@ const ALL_SETTINGS_EXERCISED: &[&str] = &[
     "show_tips",
     "auto_update",
     "fork_secondary_model",
+    "custom_model_provider",
+    "custom_model_id",
+    "custom_model_display_name",
+    "custom_model_api_key",
     "show_thinking_blocks",
     "prompt_suggestions",
     "group_tool_verbs",
@@ -1930,6 +1934,7 @@ fn registry_kind_membership_through_pr_14() {
             "auto_dark_theme",
             "auto_light_theme",
             "coding_data_sharing",
+            "custom_model_provider",
             "default_selected_permission",
             "follow_up_behavior",
             "hunk_tracker_mode",
@@ -1947,10 +1952,18 @@ fn registry_kind_membership_through_pr_14() {
     );
 
     let string_keys = by_kind.remove("String").unwrap_or_default();
-    assert!(
-        string_keys.is_empty(),
-        "no String-kind settings should remain — `default_model` + `fork_secondary_model` \
-         migrated to DynamicEnum; got: {string_keys:?}",
+    let mut sorted_string = string_keys.clone();
+    sorted_string.sort();
+    assert_eq!(
+        sorted_string,
+        vec![
+            "custom_model_api_key",
+            "custom_model_display_name",
+            "custom_model_id",
+        ],
+        "String kind membership drift — the custom-model fields are the only \
+         String-kind settings (`default_model` + `fork_secondary_model` migrated \
+         to DynamicEnum)",
     );
 
     let dynamic_enum_keys = by_kind.remove("DynamicEnum").unwrap_or_default();
@@ -2000,6 +2013,7 @@ fn enum_settings_membership_through_pr_14() {
             "auto_dark_theme",
             "auto_light_theme",
             "coding_data_sharing",
+            "custom_model_provider",
             "default_selected_permission",
             "follow_up_behavior",
             "hunk_tracker_mode",
@@ -2084,6 +2098,13 @@ fn defaults_round_trip_through_registry() {
             "show_tips" => SettingValue::Bool(true),
             "auto_update" => SettingValue::Bool(true),
             "fork_secondary_model" => SettingValue::String(String::new()),
+            // Custom-model fields: picker shows the registry default (values
+            // written to `[model.astra-custom]` are not read back into the
+            // modal until restart).
+            "custom_model_provider" => SettingValue::Enum("openai"),
+            "custom_model_id" => SettingValue::String(String::new()),
+            "custom_model_display_name" => SettingValue::String(String::new()),
+            "custom_model_api_key" => SettingValue::String(String::new()),
             "show_thinking_blocks" => SettingValue::Bool(true),
             "prompt_suggestions" => SettingValue::Bool(true),
             "group_tool_verbs" => SettingValue::Bool(true),
@@ -7884,4 +7905,202 @@ fn collapsed_edit_blocks_renders_under_appearance_category_shell_owned() {
         "collapsed_edit_blocks must be immediately below group_tool_verbs; \
          Appearance order: {keys:?}"
     );
+}
+
+// ---------------------------------------------------------------------------
+// custom_model_* — SHELL-owned Models rows (provider Enum + 3 String fields)
+// ---------------------------------------------------------------------------
+
+/// The custom-model provider catalog is EXACTLY the canonical preset ids in
+/// order — contract with `canonical_custom_model_provider` and the wizard.
+#[test]
+fn custom_model_provider_choices_use_canonical_strings() {
+    let reg = SettingsRegistry::defaults();
+    let meta = reg.find("custom_model_provider").unwrap();
+    let canonicals: Vec<&str> = match &meta.kind {
+        SettingKind::Enum { choices, .. } => choices.iter().map(|c| c.canonical).collect(),
+        other => panic!("custom_model_provider must be Enum, got {other:?}"),
+    };
+    assert_eq!(
+        canonicals.first(),
+        Some(&"openai"),
+        "custom_model_provider default must be `openai` (index 0)"
+    );
+    assert!(canonicals.contains(&"custom"), "custom preset must exist");
+    match &meta.kind {
+        SettingKind::Enum {
+            supports_preview, ..
+        } => {
+            assert!(
+                !*supports_preview,
+                "custom_model_provider is restart-required — no live preview"
+            );
+        }
+        _ => unreachable!(),
+    }
+    assert!(meta.restart_required);
+}
+
+/// Enter on the provider row opens the picker; picker Enter commits via
+/// `Action::SetCustomModelProvider(String)` carrying the registry canonical.
+/// Seed is `openai` (index 0); one Down moves to `openai_responses`.
+#[test]
+fn custom_model_provider_picker_enter_dispatches_set_commit() {
+    let mut s = make_state();
+    navigate_to(&mut s, "custom_model_provider");
+    let _ = handle_settings_key(&mut s, &press(KeyCode::Enter));
+    assert!(matches!(s.mode(), SettingsModalMode::PickingEnum { key, .. } if key == "custom_model_provider"));
+
+    let _ = handle_settings_key(&mut s, &press(KeyCode::Down));
+    let outcome = handle_settings_key(&mut s, &press(KeyCode::Enter));
+    match outcome {
+        SettingsKeyOutcome::Action(Action::SetCustomModelProvider(provider)) => {
+            assert_eq!(
+                provider, "openai_responses",
+                "picker commit must carry the highlighted canonical"
+            );
+        }
+        other => panic!("expected Action::SetCustomModelProvider commit, got {other:?}"),
+    }
+    assert!(matches!(s.mode(), SettingsModalMode::Browse));
+}
+
+/// Provider picker nav must not dispatch a preview action
+/// (`supports_preview: false`, restart-required).
+#[test]
+fn custom_model_provider_picker_nav_does_not_dispatch_preview() {
+    for nav_key in [KeyCode::Down, KeyCode::Char('j')] {
+        let mut s = make_state();
+        navigate_to(&mut s, "custom_model_provider");
+        let _ = handle_settings_key(&mut s, &press(KeyCode::Enter));
+        let outcome = handle_settings_key(&mut s, &press(nav_key));
+        assert!(
+            matches!(outcome, SettingsKeyOutcome::Changed),
+            "nav key {nav_key:?} in the provider picker MUST NOT dispatch a \
+             preview Action. Got {outcome:?}"
+        );
+        assert!(matches!(s.mode(), SettingsModalMode::PickingEnum { .. }));
+    }
+}
+
+/// String-kind custom-model fields open the line editor seeded from the
+/// registry default (empty); typing then Enter commits the typed setter.
+#[test]
+fn custom_model_string_editor_commit_dispatches_typed_setter() {
+    let cases: &[(&str, &str, fn(String) -> Action)] = &[
+        (
+            "custom_model_id",
+            "gpt-5.6-luna",
+            Action::SetCustomModelId,
+        ),
+        (
+            "custom_model_display_name",
+            "My Custom Model",
+            Action::SetCustomModelDisplayName,
+        ),
+        (
+            "custom_model_api_key",
+            "sk-e2e-key-0001",
+            Action::SetCustomModelApiKey,
+        ),
+    ];
+    for (key, typed, expect) in cases {
+        let mut s = make_state();
+        navigate_to(&mut s, key);
+        let outcome = handle_settings_key(&mut s, &press(KeyCode::Enter));
+        assert!(
+            matches!(outcome, SettingsKeyOutcome::Changed),
+            "Enter on String row `{key}` must transition to EditingValue, got {outcome:?}"
+        );
+        assert_eq!(
+            s.editing_buffer(),
+            Some(""),
+            "buffer for `{key}` must seed from the empty registry default"
+        );
+
+        for c in typed.chars() {
+            let _ = handle_settings_key(&mut s, &press(KeyCode::Char(c)));
+        }
+        assert_eq!(s.editing_buffer(), Some(*typed));
+
+        let outcome = handle_settings_key(&mut s, &press(KeyCode::Enter));
+        let action = match outcome {
+            SettingsKeyOutcome::Action(action) => action,
+            other => panic!("expected typed setter Action for `{key}`, got {other:?}"),
+        };
+        // `Action` derives Debug but not PartialEq; compare debug forms.
+        assert_eq!(
+            format!("{action:?}"),
+            format!("{:?}", expect((*typed).to_string())),
+            "commit for `{key}` carries the edited buffer"
+        );
+        assert!(matches!(s.mode(), SettingsModalMode::Browse));
+    }
+}
+
+/// Value-column click on the provider row opens the picker in ONE click
+/// (mouse ↔ keyboard parity).
+#[test]
+fn custom_model_provider_mouse_click_opens_picker_in_one_click() {
+    let mut s = make_state();
+    synth_rects(&mut s);
+    let row_y = row_idx_for(&s, "custom_model_provider") as u16;
+
+    let outcome = handle_settings_mouse(
+        &mut s,
+        MouseEventKind::Down(crossterm::event::MouseButton::Left),
+        72,
+        row_y,
+    );
+    assert!(
+        matches!(outcome, SettingsKeyOutcome::Changed),
+        "value click must open picker in one click, got: {outcome:?}",
+    );
+    match s.mode() {
+        SettingsModalMode::PickingEnum { key, .. } => assert_eq!(key, "custom_model_provider"),
+        _ => panic!("value click on custom_model_provider must enter PickingEnum"),
+    }
+}
+
+/// Two-stage click on a String row (label click selects, second click opens
+/// the editor) — mouse ↔ keyboard parity for the editor entry.
+#[test]
+fn custom_model_string_rows_mouse_click_two_stage_opens_editor() {
+    for key in [
+        "custom_model_id",
+        "custom_model_display_name",
+        "custom_model_api_key",
+    ] {
+        let mut s = make_state();
+        synth_rects(&mut s);
+        let row_y = row_idx_for(&s, key) as u16;
+
+        // First click on the label column selects without emitting an action.
+        let outcome = handle_settings_mouse(
+            &mut s,
+            MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            10,
+            row_y,
+        );
+        assert!(
+            matches!(outcome, SettingsKeyOutcome::Changed | SettingsKeyOutcome::Unchanged),
+            "first click on `{key}` must only select, got: {outcome:?}",
+        );
+        // Second click enters the line editor.
+        let outcome = handle_settings_mouse(
+            &mut s,
+            MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            10,
+            row_y,
+        );
+        assert!(
+            matches!(outcome, SettingsKeyOutcome::Changed),
+            "second click on focused `{key}` row must enter the editor, got: {outcome:?}",
+        );
+        assert!(
+            matches!(s.mode(), SettingsModalMode::EditingValue { key: k, .. } if k == key),
+            "mode must be EditingValue({key}), got {:?}",
+            s.mode(),
+        );
+    }
 }

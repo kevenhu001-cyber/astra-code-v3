@@ -121,19 +121,26 @@ fn seed_fake_oauth_with_opt_out(content: &ContentController, user: &str, opted_o
 /// spliced after `coding_data_retention_opt_out` (empty = no team; field
 /// names must match the shell's `GrokAuth` serde names in
 /// `xai-grok-shell/src/auth/model.rs`).
+///
+/// The scope key and `oidc_issuer` MUST match the shell's default OAuth2
+/// provider config (`issuer::client_id`, currently the Astra production
+/// issuer): `lookup_auth` resolves credentials by exact scope key, so an
+/// entry under any other issuer silently reads as logged-out and the pager
+/// boots to the browser-login screen.
 fn seed_fake_oauth_raw(
     content: &ContentController,
     user: &str,
     opted_out: bool,
     team_fields: &str,
 ) {
+    const OAUTH_ISSUER: &str = "https://astracode.topodrive.top";
     let grok_home = content.home().join(".astra");
     std::fs::create_dir_all(&grok_home).expect("create temp .astra");
     std::fs::write(
         grok_home.join("auth.json"),
         format!(
             r#"{{
-  "https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828": {{
+  "{OAUTH_ISSUER}::b1a00492-073a-47ea-816f-4c329264a828": {{
     "key": "pty-test-oauth-token",
     "auth_mode": "oidc",
     "create_time": "2026-01-01T00:00:00Z",
@@ -141,7 +148,7 @@ fn seed_fake_oauth_raw(
     "email": "{user}@test.invalid",
     "expires_at": "2030-01-01T00:00:00Z",
     "refresh_token": "pty-test-refresh-token",
-    "oidc_issuer": "https://auth.x.ai",
+    "oidc_issuer": "{OAUTH_ISSUER}",
     "oidc_client_id": "b1a00492-073a-47ea-816f-4c329264a828",
     "coding_data_retention_opt_out": {opted_out}{team_fields}
   }}
