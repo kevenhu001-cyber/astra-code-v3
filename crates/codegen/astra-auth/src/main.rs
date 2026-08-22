@@ -36,10 +36,10 @@ fn env_or(key: &str, default: impl AsRef<str>) -> String {
 }
 
 fn default_data_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("XDG_CONFIG_HOME") {
-        if !dir.is_empty() {
-            return PathBuf::from(dir).join("astra-auth");
-        }
+    if let Ok(dir) = std::env::var("XDG_CONFIG_HOME")
+        && !dir.is_empty()
+    {
+        return PathBuf::from(dir).join("astra-auth");
     }
     if let Ok(dir) = std::env::var("HOME") {
         return PathBuf::from(dir).join(".config").join("astra-auth");
@@ -66,10 +66,7 @@ async fn main() -> anyhow::Result<()> {
     let data_dir = parse_flag(
         &args,
         "data-dir",
-        env_or(
-            "ASTRA_AUTH_DATA_DIR",
-            default_data_dir().to_string_lossy().to_string(),
-        ),
+        env_or("ASTRA_AUTH_DATA_DIR", default_data_dir().to_string_lossy()),
     );
     let cookie_path = parse_flag(&args, "cookie-path", env_or("ASTRA_AUTH_COOKIE_PATH", "/"));
     let cookie_secure = parse_flag(&args, "cookie-secure", false);
