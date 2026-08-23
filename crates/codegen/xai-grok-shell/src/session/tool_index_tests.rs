@@ -907,7 +907,7 @@ fn split_numbers_in_identifiers() {
 #[test]
 fn split_mixed_formats() {
     assert_eq!(
-        split_identifier("grok_com_slack__slack_send_message"),
+        split_identifier("astra_com_slack__slack_send_message"),
         vec!["astra", "com", "slack", "slack", "send", "message"]
     );
 }

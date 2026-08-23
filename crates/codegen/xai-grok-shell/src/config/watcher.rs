@@ -1291,7 +1291,7 @@ mod tests {
 
     #[test]
     fn workflow_change_classifies_missing_directory_creation() {
-        let grok = Path::new("/tmp/project/.grok");
+        let grok = Path::new("/tmp/project/.astra");
         assert_eq!(
             discovery_change_for_path(grok),
             Some(DiscoveryChange::Skills)

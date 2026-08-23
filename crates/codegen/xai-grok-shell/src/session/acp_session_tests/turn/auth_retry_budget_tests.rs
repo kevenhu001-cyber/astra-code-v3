@@ -308,6 +308,7 @@ fn authenticated_401s_still_exhaust_after_three_retries() {
         .stack_size(256 * 1024 * 1024)
         .spawn(|| {
             let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_io()
                 .start_paused(true)
                 .build()
                 .expect("current-thread paused runtime");

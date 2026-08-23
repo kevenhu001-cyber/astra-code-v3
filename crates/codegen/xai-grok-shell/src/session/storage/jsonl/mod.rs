@@ -671,13 +671,25 @@ impl JsonlStorageAdapter {
             }
             Err(error) => return Err(error),
         };
+        // Scan a bounded overshoot and drop non-directory/symlinked/cleared
+        // entries BEFORE capping: with a plain take(cap) a lone
+        // attacker-planted symlink could crowd a legitimate run out of the
+        // restore window (the cap must count restorable runs only).
+        const SCAN_LIMIT: usize = MAX_RESTORED_WORKFLOW_RUNS.saturating_add(32);
         let mut entries: Vec<_> = std::fs::read_dir(&workflows_dir)?
             .filter_map(Result::ok)
-            .take(MAX_RESTORED_WORKFLOW_RUNS.saturating_add(1))
+            .take(SCAN_LIMIT)
+            .filter(|entry| {
+                let is_dir = std::fs::symlink_metadata(entry.path())
+                    .is_ok_and(|meta| meta.is_dir() && !meta.file_type().is_symlink());
+                let not_cleared = !std::fs::symlink_metadata(entry.path().join("cleared"))
+                    .is_ok_and(|meta| meta.is_file() && !meta.file_type().is_symlink());
+                is_dir && not_cleared
+            })
             .collect();
         let entries_truncated = entries.len() > MAX_RESTORED_WORKFLOW_RUNS;
-        entries.truncate(MAX_RESTORED_WORKFLOW_RUNS);
         entries.sort_by_key(|entry| entry.file_name());
+        entries.truncate(MAX_RESTORED_WORKFLOW_RUNS);
         if entries_truncated {
             tracing::warn!(
                 path = %workflows_dir.display(),

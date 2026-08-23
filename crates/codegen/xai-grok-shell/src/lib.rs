@@ -39,6 +39,19 @@ pub mod session;
 pub mod terminal;
 #[cfg(test)]
 pub(crate) mod test_support;
+
+/// Install the JWT crypto provider before any test runs.
+///
+/// The workspace unifies `jsonwebtoken`'s features across dependents: this
+/// crate enables `rust_crypto` while `gcloud-auth` pulls in `aws_lc_rs`, so
+/// the crate's automatic provider detection sees BOTH enabled and refuses to
+/// pick. Without a pre-main install, whichever test touches JWT first panics
+/// and takes the rest of the batch down with it.
+#[cfg(test)]
+#[ctor::ctor]
+fn install_jwt_crypto_provider_for_tests() {
+    let _ = jsonwebtoken::crypto::rust_crypto::DEFAULT_PROVIDER.install_default();
+}
 pub mod tier;
 pub mod tools;
 pub mod upload;

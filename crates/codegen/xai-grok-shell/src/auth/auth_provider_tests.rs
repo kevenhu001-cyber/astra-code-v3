@@ -770,6 +770,7 @@ async fn provider_helper_env_scrubs_first_party_credentials() {
         "GROK_AUTH",
         "GROK_AUTH_PATH",
         "ASTRA_DEPLOYMENT_KEY",
+        "GROK_DEPLOYMENT_KEY",
         "GROK_EXTRA_AUTH_KEY",
         "GROK_TRACE_UPLOAD_CREDENTIALS_FILE",
         "OTEL_EXPORTER_OTLP_HEADERS",

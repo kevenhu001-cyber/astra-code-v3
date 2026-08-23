@@ -1689,7 +1689,7 @@ fn user_override_adds_api_key_to_default_model() {
     assert_eq!(model.api_key, Some("user-custom-api-key".to_string()));
     assert_eq!(model.info.model, dm);
     assert_eq!(
-        model.info.base_url, "https://cli-chat-proxy.grok.com/v1",
+        model.info.base_url, "https://cli-chat-proxy.astracode.topodrive.top/v1",
         "base_url should inherit from default, not be stale"
     );
 }
@@ -3183,8 +3183,8 @@ fn e2e_default_model_with_session_routes_to_proxy() {
     let sampling = resolve_sampling(model, Some("session-token-123"));
     assert_eq!(sampling.api_key.as_deref(), Some("session-token-123"));
     assert_eq!(
-        sampling.base_url, "https://cli-chat-proxy.grok.com/v1",
-        "session auth should route to cli-chat-proxy, not api.topodrive.top"
+        sampling.base_url, "https://cli-chat-proxy.astracode.topodrive.top/v1",
+        "session auth should route to the Astra cli-chat-proxy"
     );
 }
 #[test]
@@ -3198,8 +3198,8 @@ fn e2e_default_model_with_external_api_key_routes_to_api_xai() {
     let sampling = resolve_sampling(model, None);
     assert_eq!(sampling.api_key.as_deref(), Some("xai-external-key"));
     assert_eq!(
-        sampling.base_url, "https://api.topodrive.top/v1",
-        "external API key should route to api.topodrive.top via api_base_url"
+        sampling.base_url, "https://api.astracode.topodrive.top/v1",
+        "external API key should route to api.astracode.topodrive.top via api_base_url"
     );
     unsafe { std::env::remove_var("XAI_API_KEY") };
 }
@@ -3323,7 +3323,10 @@ fn e2e_duplicate_model_field_both_entries_survive() {
     assert_eq!(sampling.base_url, "https://inference.example.com/v1");
     let sampling = resolve_sampling(default, Some("session-key"));
     assert_eq!(sampling.api_key.as_deref(), Some("session-key"));
-    assert_eq!(sampling.base_url, "https://cli-chat-proxy.grok.com/v1",);
+    assert_eq!(
+        sampling.base_url,
+        "https://cli-chat-proxy.astracode.topodrive.top/v1"
+    );
 }
 #[test]
 fn e2e_enterprise_custom_endpoint_skips_xai_defaults() {
@@ -6591,7 +6594,7 @@ default = "grok-4.5"
 /// context_window=500k for model="grok-4.5", but
 /// [models].default="grok-4.5" resolves to the bare
 /// prefetched entry (256k) because Layer 3 only overrides key
-/// "grok-build", not key "grok-4.5".
+/// "astra-build", not key "grok-4.5".
 ///
 /// After the Layer 4 slug propagation fix, both keys should have 500k.
 #[test]
@@ -6623,8 +6626,8 @@ fn slug_propagation_enterprise_managed_config_key_mismatch() {
     prefetched.insert("grok-4.5".to_owned(), entry);
     let resolved = resolve_model_list(&cfg, Some(prefetched));
     let by_key = resolved
-        .get("grok-build")
-        .expect("grok-build key must exist");
+        .get("astra-build")
+        .expect("astra-build key must exist");
     assert_eq!(by_key.info.context_window.get(), 500_000);
     assert_eq!(by_key.info.model, "grok-4.5");
     let by_latest = resolved.get("grok-4.5").expect("grok-4.5 key must exist");

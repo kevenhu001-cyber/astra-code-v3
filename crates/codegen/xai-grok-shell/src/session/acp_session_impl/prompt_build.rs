@@ -215,7 +215,7 @@ mod partition_rules_by_scope_tests {
         let vendor_homes = vec![(Path::new("/home/user/.claude").to_path_buf(), true)];
         let (workspace, user) = partition_rules_by_scope(
             files.clone(),
-            Path::new("/home/user/.grok"),
+            Path::new("/home/user/.astra"),
             &vendor_homes,
             &[Path::new("/repo")],
         );
@@ -249,7 +249,7 @@ mod partition_rules_by_scope_tests {
         ];
         let (workspace, user) = partition_rules_by_scope(
             files,
-            Path::new("/home/user/.grok"),
+            Path::new("/home/user/.astra"),
             &[],
             &[
                 Path::new("/home/user/.astra/worktrees/repo"),
