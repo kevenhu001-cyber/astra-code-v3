@@ -6994,9 +6994,11 @@ fn config_model_reasoning_efforts_parses_inline_tables_and_bare_strings() {
 }
 #[test]
 fn resolve_model_list_config_reasoning_efforts_beats_remote() {
+    // NB: the config key must equal the prefetched entry's key — the override
+    // lands on the map key, not on the model slug. Do not rebrand this key.
     let raw_config: toml::Value = toml::from_str(
         r#"
-            [model.astra-x]
+            [model.grok-x]
             reasoning_efforts = ["low"]
             "#,
     )

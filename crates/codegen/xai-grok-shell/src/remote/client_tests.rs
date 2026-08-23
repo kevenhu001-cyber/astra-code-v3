@@ -936,7 +936,7 @@ fn models_fetch_endpoint_matches_auth_mode() {
     let default = EndpointsConfig::from_config_value(&toml::Value::Table(Default::default()));
     assert_eq!(
         ListModelsEndpoint::from_endpoints(&default, ModelFetchAuth::ApiKey).url,
-        "https://api.topodrive.top/v1/models"
+        "https://api.astracode.topodrive.top/v1/models"
     );
     let custom = EndpointsConfig::from_config_value(
         &toml::from_str(

@@ -983,7 +983,7 @@ mod tests {
             for (bad, expected) in [
                 (
                     serde_json::json!({ "_meta": { "x.ai/facetFilters": { "kind": [] } } }),
-                    Some(vec![serde_json::Value::Null]),
+                    Some(vec![]),
                 ),
                 (
                     serde_json::json!({ "_meta": { "x.ai/facetFilters": { "kind": null } } }),

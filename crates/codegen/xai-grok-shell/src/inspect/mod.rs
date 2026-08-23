@@ -498,6 +498,9 @@ fn instruction_file_type(
         .parent()
         .is_some_and(|parent| parent == grok_home.join("rules"))
         || has_rules_directory(file_path, ".astra")
+        // Legacy pre-rebrand project config dir: repos that still carry
+        // `.grok/rules/` keep their rule classification after the migration.
+        || has_rules_directory(file_path, ".grok")
         || has_rules_directory(file_path, ".cursor")
         || (!claude_imported && has_rules_directory(file_path, ".claude"))
         || extra_rule_prefixes

@@ -1651,6 +1651,9 @@ async fn promote_queued_as_interjections_stops_at_send_now() {
 /// Product gate: with Steer off, a held plain row must not promote at a
 /// safe point (queue stays; no interjection in conversation).
 #[tokio::test]
+// Serializes against the other `set_follow_up_steer_cache` writers: the cache
+// is process-global and a concurrent steer-on test flips it mid-assert.
+#[serial_test::serial(follow_up_steer)]
 async fn drain_at_safe_point_with_steer_off_does_not_promote_held_row() {
     let local = tokio::task::LocalSet::new();
     local
@@ -1684,6 +1687,7 @@ async fn drain_at_safe_point_with_steer_off_does_not_promote_held_row() {
 /// Product gate: with Steer on, a held plain row promotes and drains into a
 /// synthetic interjection user item.
 #[tokio::test]
+#[serial_test::serial(follow_up_steer)]
 async fn drain_at_safe_point_with_steer_on_promotes_and_drains_held_row() {
     let local = tokio::task::LocalSet::new();
     local
@@ -1921,6 +1925,7 @@ async fn promote_queued_as_interjections_stops_when_protected_is_next() {
 /// Steer-on safe-point drain must not treat a protected pin as promotable held
 /// work (pair with direct promote tests above).
 #[tokio::test]
+#[serial_test::serial(follow_up_steer)]
 async fn drain_at_safe_point_with_steer_on_leaves_protected_row_queued() {
     let local = tokio::task::LocalSet::new();
     local

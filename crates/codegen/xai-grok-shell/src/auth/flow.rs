@@ -2054,23 +2054,29 @@ mod tests {
         // Force device explicitly so the assertion doesn't depend on ambient
         // GROK_LOGIN_DEVICE_FLOW / the real config file (the CLI override
         // short-circuits the config read).
+        //
+        // The device flow is reverse (RFC 8628 forward flow retired): it
+        // consumes a user-typed code through `AuthChannels`. Hand it a
+        // receiver whose sender is already dropped, so the fall-through is
+        // proven deterministically — no stdin, no network.
+        let (code_tx, code_rx) = tokio::sync::mpsc::channel::<String>(1);
+        drop(code_tx);
         let result = run_auth_flow(
             &mgr,
             &cfg,
             false,
             None,
             None,
-            None,
+            Some(code_rx),
             LoginTransportOverride::ForceDevice,
         )
         .await;
 
         let err = result.unwrap_err();
-        // Device flow fall-through hits the device-code endpoint (not OIDC
-        // discovery).
         assert!(
-            err.to_string().contains("/oauth2/device/code"),
-            "expected device-code request error (proves flow fell through to interactive login), got: {err}"
+            err.to_string().contains("Device code entry cancelled"),
+            "expected the reverse-device-flow cancellation error (proves flow fell through to \
+             interactive login), got: {err}"
         );
     }
 
