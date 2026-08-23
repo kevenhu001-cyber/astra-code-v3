@@ -49,7 +49,9 @@ mod palette {
     pub const YELLOW: Color = ORANGE_DIM;
 
     pub const RED_LIGHT: Color = rgb(255, 235, 220); // orange-tinted diff delete bg
-    pub const GREEN_LIGHT: Color = rgb(255, 235, 220); // orange-tinted diff insert bg
+    /// Distinct from [`Self::RED_LIGHT`]: insert and delete rows must stay
+    /// tellable apart (see the committed-edit diff-background test).
+    pub const GREEN_LIGHT: Color = rgb(224, 242, 226); // soft green diff insert bg
 }
 use palette::*;
 

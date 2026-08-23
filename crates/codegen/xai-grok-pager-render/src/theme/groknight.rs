@@ -59,8 +59,10 @@ mod palette {
     pub const TEAL: Color = ORANGE;
     pub const YELLOW: Color = ORANGE;
 
-    pub const RED_DARK: Color = rgb(64, 24, 4); //  Astra orange-tinted diff surface
-    pub const GREEN_DARK: Color = rgb(64, 24, 4); // Astra orange-tinted diff surface
+    pub const RED_DARK: Color = rgb(64, 24, 4); // Astra orange-tinted delete surface
+    /// Distinct from [`Self::RED_DARK`]: insert and delete rows must stay
+    /// tellable apart (see the committed-edit diff-background test).
+    pub const GREEN_DARK: Color = rgb(18, 46, 26);
 }
 use palette::*;
 
