@@ -168,6 +168,14 @@ mod tests {
         assert_eq!(AuthStatus::resolve(&Config::default()), AuthStatus::ApiKey);
     }
 
+    /// The login host the banner derives from the default ws origin.
+    fn prod_ws_host() -> String {
+        crate::env::PROD_WS_ORIGIN
+            .strip_prefix("https://")
+            .unwrap_or(crate::env::PROD_WS_ORIGIN)
+            .to_owned()
+    }
+
     #[test]
     #[serial]
     fn resolve_oauth_session() {
@@ -182,7 +190,7 @@ mod tests {
 
         assert_eq!(
             AuthStatus::resolve(&Config::default()),
-            AuthStatus::LoggedIn("grok.com".to_owned())
+            AuthStatus::LoggedIn(prod_ws_host())
         );
     }
 
@@ -298,7 +306,7 @@ mod tests {
         let cfg = config_from_toml(&byok_and_deployment_toml(dm));
         assert_eq!(
             AuthStatus::resolve(&cfg),
-            AuthStatus::LoggedIn("grok.com".to_owned())
+            AuthStatus::LoggedIn(prod_ws_host())
         );
     }
 

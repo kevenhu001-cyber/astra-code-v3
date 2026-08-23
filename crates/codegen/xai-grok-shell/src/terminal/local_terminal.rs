@@ -288,20 +288,21 @@ mod tests {
     #[tokio::test]
     #[cfg(unix)]
     async fn test_timeout_kills_grandchildren_and_returns_promptly() {
-        let mut request = make_request("sleep 5 & echo bgpid=$!; sleep 5");
-        // Generous vs the 5s sleeps but loose enough that a loaded runner
-        // still flushes the background echo before the kill lands.
-        request.timeout = std::time::Duration::from_millis(1200);
+        // Long sleeps vs a modest timeout keep the window wide even on a
+        // loaded runner, where `-lc` login-shell init (profile scripts) alone
+        // can eat seconds before the echo ever runs.
+        let mut request = make_request("sleep 30 & echo bgpid=$!; sleep 30");
+        request.timeout = std::time::Duration::from_secs(4);
 
         let started = std::time::Instant::now();
         let result = LocalTerminalRunner.run(request).await.unwrap();
 
         assert!(result.timed_out, "run should report the timeout");
-        // Prompt return: request timeout (0.3s) + pipe EOF from the group
-        // kill (normally instant; KILL_REAP_TIMEOUT-bounded worst case) —
-        // anything near the 5s sleeps means we waited for the grandchild.
+        // Prompt return: request timeout + pipe EOF from the group kill
+        // (normally instant; KILL_REAP_TIMEOUT-bounded worst case) — anything
+        // near the 30s sleeps means we waited for the grandchild.
         assert!(
-            started.elapsed() < std::time::Duration::from_secs(4),
+            started.elapsed() < std::time::Duration::from_secs(15),
             "timeout path must not wait for the killed tree (took {:?})",
             started.elapsed()
         );
