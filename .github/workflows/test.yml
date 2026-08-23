@@ -51,32 +51,12 @@ jobs:
           cargo install dotslash --locked
           dotslash --help
 
-      # TEMPORARY diagnostic: the auth-retry-budget tests overflow the stack
-      # (infinite recursion somewhere on the 401-recovery path). Run them
-      # under gdb and dump C + Rust frames at the guard-page fault so the
-      # recursion cycle becomes visible. Remove once fixed.
-      - name: Diagnose auth-retry stack overflow (temporary)
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          sudo apt-get update -qq && sudo apt-get install -y -qq gdb >/dev/null
-          cargo test -p xai-grok-shell --lib --locked --no-run
-          BIN=$(ls -t target/debug/deps/xai_grok_shell-* | grep -v '\.d$' | head -1)
-          echo "debugging $BIN"
-          gdb -batch \
-            -ex "handle SIGSEGV stop print nopass" \
-            -ex "run" \
-            -ex "echo \n=== FAULT BACKTRACE ===\n" \
-            -ex "bt 80" \
-            --args "$BIN" \
-            session::acp_session::auth_retry_budget_tests --test-threads=1 \
-            2>&1 | tail -200 || true
-
       - name: cargo test (workspace, lib + bins)
         env:
-          # Stack-overflow aborts (e.g. the auth-retry-budget scenario) print
-          # overflowing frames only when this is set.
-          RUST_BACKTRACE: 1
+          # Debug builds of the shell's giant turn-loop futures consume
+          # hundreds of KB per poll frame; the default 8 MiB test-thread
+          # stack overflows in the auth-retry-budget scenarios.
+          RUST_MIN_STACK: 67108864
         run: |
           set -euo pipefail
           # `--workspace --lib --bins` covers every crate's in-crate tests;
