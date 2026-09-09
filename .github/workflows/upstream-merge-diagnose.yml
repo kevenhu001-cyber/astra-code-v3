@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
           ref: sync/xai-upstream-2026-09-09
 
-      - name: Merge with Astra-biased conflict hunks and validate
+      - name: Resolve structural conflicts and validate build
         shell: bash
         run: |
           set -u
@@ -38,6 +38,26 @@ jobs:
           merge_rc=$?
           set -e
 
+          before="$RUNNER_TEMP/unmerged-before.txt"
+          git diff --name-only --diff-filter=U > "$before"
+
+          # Resolve only conflicts that the recursive strategy cannot settle.
+          # Upstream structural deletions/refactors win. Existing upstream tests
+          # and benchmarks also win. Astra keeps its existing npm launcher and
+          # therefore does not add the upstream-only grok-bootstrap.js path.
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            if [ "$path" = "crates/codegen/xai-grok-pager/npm/astra/bin/grok-bootstrap.js" ]; then
+              git rm -f --ignore-unmatch -- "$path" >/dev/null 2>&1 || true
+              git add -u -- "$path" 2>/dev/null || true
+            elif git cat-file -e "xai-upstream/main:$path" 2>/dev/null; then
+              git checkout xai-upstream/main -- "$path"
+              git add -- "$path"
+            else
+              git rm -f --ignore-unmatch -- "$path" >/dev/null 2>&1 || true
+            fi
+          done < "$before"
+
           report="$RUNNER_TEMP/upstream-merge-ours-report.txt"
           {
             echo "MERGE_EXIT=$merge_rc"
@@ -45,45 +65,39 @@ jobs:
             echo "UPSTREAM_MAIN=$(git rev-parse xai-upstream/main)"
             echo "MERGE_BASE=$(git merge-base origin/main xai-upstream/main)"
             echo
-            echo "=== REMAINING UNMERGED PATHS AFTER -X ours ==="
+            echo "=== STRUCTURAL CONFLICTS RESOLVED ==="
+            cat "$before"
+            echo
+            echo "=== REMAINING UNMERGED PATHS ==="
             git diff --name-status --diff-filter=U || true
             echo
             echo "=== DIFF CHECK ==="
             git diff --check || true
           } > "$report"
 
-          check_rc=125
-          if [ -z "$(git diff --name-only --diff-filter=U)" ]; then
-            set +e
-            cargo install dotslash --locked >/tmp/dotslash-install.log 2>&1
-            dotslash_rc=$?
-            if [ "$dotslash_rc" -eq 0 ]; then
-              cargo check -p xai-grok-pager-bin >/tmp/cargo-check.log 2>&1
-              check_rc=$?
-            else
-              check_rc=124
-              cp /tmp/dotslash-install.log /tmp/cargo-check.log
-            fi
-            set -e
-            {
-              echo
-              echo "CARGO_CHECK_EXIT=$check_rc"
-              echo "=== CARGO CHECK TAIL ==="
-              tail -n 300 /tmp/cargo-check.log 2>/dev/null || true
-            } >> "$report"
+          set +e
+          cargo install dotslash --locked >/tmp/dotslash-install.log 2>&1
+          dotslash_rc=$?
+          if [ "$dotslash_rc" -eq 0 ]; then
+            cargo check -p xai-grok-pager-bin >/tmp/cargo-check.log 2>&1
+            check_rc=$?
           else
-            {
-              echo
-              echo "CARGO_CHECK_EXIT=126"
-              echo "cargo check skipped because merge still has unmerged paths"
-            } >> "$report"
+            check_rc=124
+            cp /tmp/dotslash-install.log /tmp/cargo-check.log
           fi
+          set -e
+          {
+            echo
+            echo "CARGO_CHECK_EXIT=$check_rc"
+            echo "=== CARGO CHECK TAIL ==="
+            tail -n 400 /tmp/cargo-check.log 2>/dev/null || true
+          } >> "$report"
 
           git merge --abort 2>/dev/null || true
           git checkout sync/xai-upstream-2026-09-09
           cp "$report" .upstream-merge-ours-report.txt
           git add .upstream-merge-ours-report.txt
           if ! git diff --cached --quiet; then
-            git commit -m "chore: record Astra-biased merge validation"
+            git commit -m "chore: record resolved merge build validation"
             git push origin HEAD:sync/xai-upstream-2026-09-09
           fi
