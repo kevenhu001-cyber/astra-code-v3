@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - sync/xai-upstream-2026-09-09
+    paths-ignore:
+      - .upstream-merge-conflicts.txt
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   diagnose:
@@ -17,27 +19,46 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: sync/xai-upstream-2026-09-09
 
-      - name: Fetch local main and xAI upstream
-        run: |
-          git fetch origin main:refs/remotes/origin/main
-          git remote add xai-upstream https://github.com/xai-org/grok-build.git || true
-          git fetch xai-upstream main:refs/remotes/xai-upstream/main
-
-      - name: Attempt real three-way merge
+      - name: Diagnose real three-way merge and publish report
         shell: bash
         run: |
-          set +e
+          set -u
           git config user.name "Astra Upstream Sync"
           git config user.email "actions@users.noreply.github.com"
+          git fetch origin main:refs/remotes/origin/main
+          git remote add xai-upstream https://github.com/xai-org/grok-build.git 2>/dev/null || true
+          git fetch xai-upstream main:refs/remotes/xai-upstream/main
+
           git checkout --detach origin/main
+          set +e
           git merge --no-commit --no-ff xai-upstream/main
           rc=$?
-          echo "MERGE_EXIT=$rc"
-          echo "=== UNMERGED FILES ==="
-          git diff --name-status --diff-filter=U
-          echo "=== UNMERGED PATHS ONLY ==="
-          git diff --name-only --diff-filter=U
-          echo "=== STATUS ==="
-          git status --short
-          exit 0
+          set -e
+
+          report="$RUNNER_TEMP/upstream-merge-conflicts.txt"
+          {
+            echo "MERGE_EXIT=$rc"
+            echo "LOCAL_MAIN=$(git rev-parse origin/main)"
+            echo "UPSTREAM_MAIN=$(git rev-parse xai-upstream/main)"
+            echo "MERGE_BASE=$(git merge-base origin/main xai-upstream/main)"
+            echo
+            echo "=== UNMERGED NAME/STATUS ==="
+            git diff --name-status --diff-filter=U || true
+            echo
+            echo "=== UNMERGED INDEX STAGES ==="
+            git ls-files -u || true
+            echo
+            echo "=== UNMERGED PATHS ==="
+            git diff --name-only --diff-filter=U || true
+          } > "$report"
+
+          git merge --abort 2>/dev/null || true
+          git checkout sync/xai-upstream-2026-09-09
+          cp "$report" .upstream-merge-conflicts.txt
+          git add .upstream-merge-conflicts.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record upstream merge conflicts"
+            git push origin HEAD:sync/xai-upstream-2026-09-09
+          fi
