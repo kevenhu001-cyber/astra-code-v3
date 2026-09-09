@@ -39,9 +39,6 @@ jobs:
           merge_rc=$?
           set -e
 
-          # Settle modify/delete and rename-location conflicts that ort cannot
-          # resolve automatically. Upstream structural deletions/refactors win;
-          # Astra keeps its own launcher instead of the relocated Grok bootstrap.
           git diff --name-only --diff-filter=U > /tmp/unmerged.txt
           while IFS= read -r path; do
             [ -n "$path" ] || continue
@@ -62,21 +59,15 @@ jobs:
             exit 2
           fi
 
-          # These are upstream architectural extractions. Take the complete new
-          # implementations rather than letting rename detection splice old
-          # shell-auth/home code into them.
-          if git cat-file -e xai-upstream/main:crates/codegen/xai-grok-login/Cargo.toml 2>/dev/null; then
-            git checkout xai-upstream/main -- crates/codegen/xai-grok-login
-          fi
-          if git cat-file -e xai-upstream/main:crates/codegen/xai-dirs/Cargo.toml 2>/dev/null; then
-            git checkout xai-upstream/main -- crates/codegen/xai-dirs
-          fi
-          if git cat-file -e xai-upstream/main:crates/codegen/xai-grok-env/Cargo.toml 2>/dev/null; then
-            git checkout xai-upstream/main -- crates/codegen/xai-grok-env
-          fi
+          # Upstream extracted/refactored these layers as a coordinated API set.
+          # Take each complete latest implementation, then reapply only Astra's
+          # product-level directory and endpoint semantics below.
+          for crate in xai-grok-login xai-dirs xai-grok-env xai-grok-config; do
+            if git cat-file -e "xai-upstream/main:crates/codegen/$crate/Cargo.toml" 2>/dev/null; then
+              git checkout xai-upstream/main -- "crates/codegen/$crate"
+            fi
+          done
 
-          # Reapply Astra product semantics to the new upstream directory and
-          # endpoint layers while preserving their latest APIs and tests.
           python3 - <<'PY'
           from pathlib import Path
 
@@ -109,7 +100,6 @@ jobs:
           cargo install dotslash --locked
           cargo check -p xai-grok-pager-bin
 
-          # cargo may refresh Cargo.lock; include the validated lock state.
           git add -A
           git commit -m "merge: sync xAI upstream into Astra main"
           merge_sha=$(git rev-parse HEAD)
