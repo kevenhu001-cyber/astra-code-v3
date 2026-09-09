@@ -1,0 +1,43 @@
+name: Diagnose upstream merge
+
+on:
+  push:
+    branches:
+      - sync/xai-upstream-2026-09-09
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout diagnostic branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch local main and xAI upstream
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          git remote add xai-upstream https://github.com/xai-org/grok-build.git || true
+          git fetch xai-upstream main:refs/remotes/xai-upstream/main
+
+      - name: Attempt real three-way merge
+        shell: bash
+        run: |
+          set +e
+          git config user.name "Astra Upstream Sync"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout --detach origin/main
+          git merge --no-commit --no-ff xai-upstream/main
+          rc=$?
+          echo "MERGE_EXIT=$rc"
+          echo "=== UNMERGED FILES ==="
+          git diff --name-status --diff-filter=U
+          echo "=== UNMERGED PATHS ONLY ==="
+          git diff --name-only --diff-filter=U
+          echo "=== STATUS ==="
+          git status --short
+          exit 0
