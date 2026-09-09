@@ -59,14 +59,15 @@ jobs:
             exit 2
           fi
 
-          # Upstream extracted/refactored these layers as a coordinated API set.
-          # Take each complete latest implementation, then reapply only Astra's
-          # product-level directory and endpoint semantics below.
           for crate in xai-grok-login xai-dirs xai-grok-env xai-grok-config; do
             if git cat-file -e "xai-upstream/main:crates/codegen/$crate/Cargo.toml" 2>/dev/null; then
               git checkout xai-upstream/main -- "crates/codegen/$crate"
             fi
           done
+
+          # The tools build script gained compression/hash helpers together with
+          # new call sites; keep it as one upstream unit to avoid a split hunk.
+          git checkout xai-upstream/main -- crates/codegen/xai-grok-tools/build.rs
 
           python3 - <<'PY'
           from pathlib import Path
