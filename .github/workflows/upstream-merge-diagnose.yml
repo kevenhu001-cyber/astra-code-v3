@@ -6,6 +6,7 @@ on:
       - sync/xai-upstream-2026-09-09
     paths-ignore:
       - .upstream-merge-conflicts.txt
+      - .upstream-merge-ours-report.txt
   workflow_dispatch:
 
 permissions:
@@ -21,7 +22,7 @@ jobs:
           fetch-depth: 0
           ref: sync/xai-upstream-2026-09-09
 
-      - name: Diagnose real three-way merge and publish report
+      - name: Merge with Astra-biased conflict hunks and validate
         shell: bash
         run: |
           set -u
@@ -33,32 +34,56 @@ jobs:
 
           git checkout --detach origin/main
           set +e
-          git merge --no-commit --no-ff xai-upstream/main
-          rc=$?
+          git merge --no-commit --no-ff -X ours xai-upstream/main
+          merge_rc=$?
           set -e
 
-          report="$RUNNER_TEMP/upstream-merge-conflicts.txt"
+          report="$RUNNER_TEMP/upstream-merge-ours-report.txt"
           {
-            echo "MERGE_EXIT=$rc"
+            echo "MERGE_EXIT=$merge_rc"
             echo "LOCAL_MAIN=$(git rev-parse origin/main)"
             echo "UPSTREAM_MAIN=$(git rev-parse xai-upstream/main)"
             echo "MERGE_BASE=$(git merge-base origin/main xai-upstream/main)"
             echo
-            echo "=== UNMERGED NAME/STATUS ==="
+            echo "=== REMAINING UNMERGED PATHS AFTER -X ours ==="
             git diff --name-status --diff-filter=U || true
             echo
-            echo "=== UNMERGED INDEX STAGES ==="
-            git ls-files -u || true
-            echo
-            echo "=== UNMERGED PATHS ==="
-            git diff --name-only --diff-filter=U || true
+            echo "=== DIFF CHECK ==="
+            git diff --check || true
           } > "$report"
+
+          check_rc=125
+          if [ -z "$(git diff --name-only --diff-filter=U)" ]; then
+            set +e
+            cargo install dotslash --locked >/tmp/dotslash-install.log 2>&1
+            dotslash_rc=$?
+            if [ "$dotslash_rc" -eq 0 ]; then
+              cargo check -p xai-grok-pager-bin >/tmp/cargo-check.log 2>&1
+              check_rc=$?
+            else
+              check_rc=124
+              cp /tmp/dotslash-install.log /tmp/cargo-check.log
+            fi
+            set -e
+            {
+              echo
+              echo "CARGO_CHECK_EXIT=$check_rc"
+              echo "=== CARGO CHECK TAIL ==="
+              tail -n 300 /tmp/cargo-check.log 2>/dev/null || true
+            } >> "$report"
+          else
+            {
+              echo
+              echo "CARGO_CHECK_EXIT=126"
+              echo "cargo check skipped because merge still has unmerged paths"
+            } >> "$report"
+          fi
 
           git merge --abort 2>/dev/null || true
           git checkout sync/xai-upstream-2026-09-09
-          cp "$report" .upstream-merge-conflicts.txt
-          git add .upstream-merge-conflicts.txt
+          cp "$report" .upstream-merge-ours-report.txt
+          git add .upstream-merge-ours-report.txt
           if ! git diff --cached --quiet; then
-            git commit -m "chore: record upstream merge conflicts"
+            git commit -m "chore: record Astra-biased merge validation"
             git push origin HEAD:sync/xai-upstream-2026-09-09
           fi
