@@ -59,7 +59,10 @@ jobs:
             exit 2
           fi
 
-          for crate in xai-grok-login xai-dirs xai-grok-env xai-grok-config; do
+          # These crates were refactored upstream as coordinated API units.
+          # Take each complete latest implementation, then reapply only Astra's
+          # product-level directory and endpoint semantics below.
+          for crate in xai-grok-login xai-dirs xai-grok-env xai-grok-config xai-grok-sandbox; do
             if git cat-file -e "xai-upstream/main:crates/codegen/$crate/Cargo.toml" 2>/dev/null; then
               git checkout xai-upstream/main -- "crates/codegen/$crate"
             fi
