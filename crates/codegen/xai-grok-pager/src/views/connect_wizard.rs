@@ -643,9 +643,9 @@ async fn fetch_upstream_models_async(
     api_key: &str,
     protocol: ProtocolBackend,
 ) -> Result<Vec<String>, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
+    let client = xai_grok_extra_ca::build_reqwest_client(|builder| {
+        builder.timeout(std::time::Duration::from_secs(10))
+    })
         .map_err(|e| format!("HTTP Client error: {e}"))?;
 
     let trimmed_base = base_url.trim().trim_end_matches('/');

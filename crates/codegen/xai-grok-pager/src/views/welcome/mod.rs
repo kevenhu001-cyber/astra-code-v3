@@ -3295,68 +3295,78 @@ mod tests {
     /// overflows the viewport — and never renders under `--chat` (foreign
     /// scanning is disabled there, so the hint is dead weight).
     #[test]
-    fn headless_hidden_external_hint_pins_above_list() {
+    fn hidden_external_hint_renders_outside_chat_mode() {
         use ratatui::buffer::Buffer;
         use ratatui::layout::Rect;
 
         let theme = crate::theme::Theme::default();
-        let area = Rect::new(0, 0, 80, 24);
-        let mut entries: Vec<SessionPickerEntry> = (0..20)
-            .map(|i| {
-                let mut entry =
-                    make_entry(&format!("s{i}"), &format!("native session {i}"), "repo");
-                entry.session_kind = Some("headless".into());
-                entry
-            })
+        let area = Rect::new(0, 0, 80, 20);
+        let mut entries: Vec<SessionPickerEntry> = (0..30)
+            .map(|i| make_entry(&format!("s{i}"), &format!("native session {i}"), "repo"))
             .collect();
         let mut foreign = make_entry("f1", "Claude work", "repo");
         foreign.source = "claude".into();
         entries.push(foreign);
 
-        let mut buf = Buffer::empty(area);
-        let mut state = PickerState::default();
-        render_session_picker(
-            area,
-            &mut buf,
-            &theme,
-            SessionPickerRenderMode::Fullscreen,
-            &mut SessionPickerRenderCtx {
-                state: &mut state,
-                sessions: Some(&entries),
-                cwd: std::path::Path::new("/repo"),
-                loading: false,
-                pending_hint: None,
-                shortcuts_area: None,
-                content_results: None,
-                content_loading: false,
-                entries_query: None,
-                tick: 0,
-                grouped: false,
-                source_filter: crate::views::session_picker::SourceFilter::Headless,
-                pending_delete: false,
-                chat_mode: false,
-            },
-        );
-        let screen = (0..area.height)
-            .map(|y| {
-                (0..area.width)
-                    .map(|x| {
-                        buf.cell((x, y))
-                            .map_or(' ', |c| c.symbol().chars().next().unwrap_or(' '))
-                    })
-                    .collect::<String>()
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        let hint = screen.find("external session");
-        let first_row = screen.find("native session 0");
+        let render = |chat_mode: bool| -> String {
+            let mut buf = Buffer::empty(area);
+            let mut state = PickerState::default();
+            render_session_picker(
+                area,
+                &mut buf,
+                &theme,
+                SessionPickerRenderMode::Fullscreen,
+                &mut SessionPickerRenderCtx {
+                    state: &mut state,
+                    sessions: Some(&entries),
+                    cwd: std::path::Path::new("/repo"),
+                    loading: false,
+                    pending_hint: None,
+                    shortcuts_area: None,
+                    content_results: None,
+                    content_loading: false,
+                    entries_query: None,
+                    tick: 0,
+                    grouped: false,
+                    source_filter: crate::views::session_picker::SourceFilter::default(),
+                    pending_delete: false,
+                    chat_mode,
+                },
+            );
+            (0..area.height)
+                .map(|y| {
+                    (0..area.width)
+                        .map(|x| {
+                            buf.cell((x, y))
+                                .map_or(' ', |c| c.symbol().chars().next().unwrap_or(' '))
+                        })
+                        .collect::<String>()
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
+        let build_mode = render(false);
+        let hint = build_mode
+            .find("external session hidden")
+            .expect("hidden external hint must render");
+        let first_row = build_mode
+            .find("native session 0")
+            .expect("native session must render");
         assert!(
             build_mode.contains("1 external session hidden \u{b7} f to show"),
             "default Astra filter must pin the hidden-external hint:\n{build_mode}"
         );
+        assert!(hint < first_row, "hint must stay pinned above the first list row:\n{build_mode}");
         assert!(
-            first_row.is_none() || hint.unwrap() < first_row.unwrap(),
-            "hint must stay pinned above the first list row:\n{screen}"
+            !build_mode.contains("Claude work"),
+            "the foreign row itself stays hidden under the default filter:\n{build_mode}"
+        );
+
+        let chat = render(true);
+        assert!(
+            !chat.contains("external session"),
+            "chat mode must not render the hidden-external hint:\n{chat}"
         );
     }
 

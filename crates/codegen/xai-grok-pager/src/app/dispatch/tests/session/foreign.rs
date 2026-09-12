@@ -484,9 +484,8 @@ fn external_filter_clears_and_suppresses_native_content_state() {
     app.session_picker_content_results = Some(vec![content_hit("native-hit")]);
     app.session_picker_content_loading = true;
     app.session_picker_state.expanded.insert(0);
-    // Astra cycles straight into External.
-    app.session_picker_source_filter = SourceFilter::Astra;
-    let old_detail_generation = app.session_picker_detail_generation;
+    app.session_picker_source_filter = SourceFilter::Headless;
+    let old_detail_seq = app.session_picker_detail_seq;
 
     let effects = dispatch(Action::CycleSessionSourceFilter, &mut app);
 

@@ -2302,6 +2302,9 @@ mod tests {
             )
             .await
         }
+        async fn resume(arg: &str, cwd: &str) -> anyhow::Result<MaterializedStartup> {
+            resume_with(arg, cwd, RecentSessionSelection::Interactive).await
+        }
         /// Also covers letter-case insensitivity: the query case differs from
         /// the stored title.
         #[serial_test::serial(ASTRA_HOME)]
