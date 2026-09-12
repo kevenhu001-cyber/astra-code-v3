@@ -1434,10 +1434,13 @@ impl AgentDefinition {
         }
     }
     pub fn default_grok_build() -> Self {
-        Self::base(
-            BuiltinAgentName::GrokBuild,
-            "Astra agent for software engineering tasks.",
-        )
+        Self {
+            tool_config: default_grok_build_toolset(),
+            ..Self::base(
+                BuiltinAgentName::GrokBuild,
+                "Astra agent for software engineering tasks.",
+            )
+        }
     }
     /// Astra Concise agent definition — concise output format for SFT/RL.
     pub fn grok_build_concise() -> Self {

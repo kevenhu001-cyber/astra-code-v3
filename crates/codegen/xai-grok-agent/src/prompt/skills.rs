@@ -1726,7 +1726,7 @@ mod tests {
 
     #[tokio::test]
     async fn untrusted_project_skills_are_omitted() {
-        for config_dir in [".grok", ".agents", ".claude", ".cursor"] {
+        for config_dir in [".astra", ".agents", ".claude", ".cursor"] {
             let tmp = tempfile::tempdir().unwrap();
             let repo = tmp.path().join("repo");
             let config_root = repo.join(config_dir);

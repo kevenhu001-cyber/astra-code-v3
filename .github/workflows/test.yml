@@ -109,7 +109,7 @@ jobs:
         run: cargo test -p xai-grok-pager --test registered_features_are_documented
 
       - name: Doctor early dispatch
-        run: cargo test -p xai-grok-pager --test doctor_early_dispatch
+        run: cargo test -p xai-grok-pager-pty-harness --test doctor_early_dispatch
 
       - name: Grok home paths
         run: cargo test -p xai-grok-pager --test grok_home_paths
