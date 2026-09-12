@@ -505,7 +505,7 @@ fn authenticated_401s_still_exhaust_after_three_retries() {
 
 async fn authenticated_401s_still_exhaust_after_three_retries_inner() {
     let local = tokio::task::LocalSet::new();
-    local.run_until(async {
+    let future = local.run_until(async {
         // The server only accepts a token the refresher never mints, so
         // every authenticated send is rejected.
         let server = MockInferenceServer::start_with_required_auth(
@@ -562,8 +562,8 @@ async fn authenticated_401s_still_exhaust_after_three_retries_inner() {
             AuthRetrySchedule::MAX_RETRIES,
             &["Re-authenticated after 401"],
         );
-    })
-    .await;
+    });
+    future.await;
 }
 
 /// Refresh-outage refresher: every refresh fails transiently, counting `ServerRejected` and

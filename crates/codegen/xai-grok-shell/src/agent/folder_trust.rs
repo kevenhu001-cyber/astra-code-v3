@@ -582,9 +582,7 @@ mod tests {
         );
 
         let mut store = TrustStore::load();
-        store
-            .set_trusted(&workspace_key(parent.path()))
-            .unwrap();
+        store.set_trusted(&workspace_key(parent.path())).unwrap();
         assert!(
             TrustStore::load().is_trusted(&workspace_key(&child)),
             "ancestor grant must cascade to a child that was only revoked-when-untrusted"
