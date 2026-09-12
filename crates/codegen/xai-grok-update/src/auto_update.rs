@@ -1010,6 +1010,10 @@ const STALE_TMP_AGE: Duration = Duration::from_secs(60 * 60);
 /// Tighter budgets abort slow-link transfers mid-body and restart them from zero.
 const DOWNLOAD_REQUEST_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
+fn download_client() -> reqwest::Result<reqwest::Client> {
+    xai_grok_extra_ca::build_reqwest_client(|builder| builder.timeout(DOWNLOAD_REQUEST_TIMEOUT))
+}
+
 /// Unique temp path for an in-flight download of `dest`.
 ///
 /// Appends `.{pid}-{seq}.tmp` to the FULL file name instead of using
@@ -1630,6 +1634,11 @@ async fn download_verified_from_base(
 /// Local activation phase: swap the managed bin links to the downloaded binary and finish bookkeeping.
 /// Nothing here depends on which base URL served the download, so callers must not retry another base on failure.
 async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
+    let activate_span = xai_grok_telemetry::region::Region::from_span(tracing::info_span!(
+        "update.install",
+        elapsed_ms = tracing::field::Empty,
+    ));
+    let activate_started = Instant::now();
     let astra_home = grok_home();
     let download_dir = astra_home.join("downloads");
     let bin_dir = astra_home.join("bin");
