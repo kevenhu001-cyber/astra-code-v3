@@ -7,7 +7,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use portable_pty::{CommandBuilder, ExitStatus, PtySize, native_pty_system};
+use portable_pty::{ExitStatus, PtySize, native_pty_system};
 #[cfg(unix)]
 use xai_grok_test_support::process_has_exited_without_reap;
 use xai_grok_test_support::{TestProcessTree, TestSandbox};
@@ -591,6 +591,7 @@ fn spawn_reader(mut reader: Box<dyn Read + Send>) -> mpsc::Receiver<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use portable_pty::CommandBuilder;
 
     #[test]
     fn exit_poll_distinguishes_pending_running_and_errors() {
