@@ -399,7 +399,6 @@ fn fail_closed_401_is_uncharged_and_turn_survives() {
                 &["carried no credential"],
             );
         });
-    });
 }
 
 /// Rule: kill switch off, a recovered fail-closed 401 resubmits un-parked (no
