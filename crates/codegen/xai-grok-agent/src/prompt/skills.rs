@@ -218,7 +218,7 @@ fn collect_skill_config_dirs_from_sources(
 /// Determine the skill scope for a config directory based on its location relative to `cwd`, `git_root`, and the user's home directory.
 fn scope_for_config_dir(dir: &Path, cwd: Option<&Path>, git_root: Option<&Path>) -> SkillScope {
     // Home-level dirs (e.g. ~/.astra/, ~/.agents/, ~/.claude/) are User scope.
-    if let Some(home) = dirs::home_dir()
+    if let Some(home) = xai_dirs::home_dir()
         && dir.parent() == Some(home.as_path())
     {
         return SkillScope::User;

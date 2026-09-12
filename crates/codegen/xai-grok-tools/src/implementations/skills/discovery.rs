@@ -23,7 +23,7 @@ pub const MAX_SKILL_WALK_DEPTH: usize = 5;
 /// `skills` is the standard layout (`.astra/skills/`, `.claude/skills/`,
 /// `.cursor/skills/`). The product-specific `skills-cursor/` layout is no
 /// longer scanned — it pulled vendor default skills into Astra sessions.
-const SKILL_SUBDIRS: &[&str] = &["skills"];
+pub const SKILL_SUBDIRS: &[&str] = &["skills"];
 pub const COMMAND_SUBDIR: &str = "commands";
 
 /// Cursor ships these default skills in `~/.cursor/skills-cursor/` (per its `.cursor-managed-skills-manifest.json` /
