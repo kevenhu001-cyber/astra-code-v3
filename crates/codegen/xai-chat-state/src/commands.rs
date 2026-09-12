@@ -446,7 +446,7 @@ mod tests {
                 reasoning_effort: None,
                 stream_tool_calls: None,
                 injects_think_tags_in_content: false,
-            },
+            }),
         };
         let _ = ChatStateCommand::RecordAgentEditedPath {
             path: "src/main.rs".to_string(),

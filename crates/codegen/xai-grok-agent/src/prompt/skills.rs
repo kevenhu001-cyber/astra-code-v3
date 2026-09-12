@@ -13,8 +13,9 @@ pub use xai_grok_tools::implementations::skills::types::{SkillInfo, SkillScope};
 pub use xai_grok_tools::types::compat::CompatConfig;
 
 use xai_grok_tools::implementations::skills::discovery::{
-    find_command_paths, find_skill_md_paths, find_skill_paths, is_valid_skill_name,
-    normalize_skill_name, parse_skill_files, scan_md_files, walk_for_skill_md,
+    COMMAND_SUBDIR, SKILL_SUBDIRS, find_command_paths, find_skill_md_paths, find_skill_paths,
+    is_valid_skill_name, normalize_skill_name, parse_skill_files, scan_md_files,
+    walk_for_skill_md,
 };
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -44,6 +45,22 @@ pub struct SkillsConfig {
     /// Skill dirs the launcher injects for skills bundled with the platform (tagged `Bundled` scope).
     #[serde(default)]
     pub bundled_skill_dirs: Vec<String>,
+}
+
+/// Empty discovery roots still require trust; only the supplied project roots are checked.
+pub fn has_project_skill_dirs_in<'a>(chain_dirs: impl IntoIterator<Item = &'a Path>) -> bool {
+    // All vendors must gate regardless of the runtime compatibility settings.
+    let config_dirs = CompatConfig::default().skill_config_dirs();
+    chain_dirs.into_iter().any(|dir| {
+        config_dirs.iter().any(|config_dir| {
+            let config_dir = dir.join(config_dir);
+            SKILL_SUBDIRS
+                .iter()
+                .copied()
+                .chain(std::iter::once(COMMAND_SUBDIR))
+                .any(|subdir| config_dir.join(subdir).is_dir())
+        })
+    })
 }
 
 /// List all discovered skills with their metadata.

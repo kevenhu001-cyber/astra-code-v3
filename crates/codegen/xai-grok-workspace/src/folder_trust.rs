@@ -152,18 +152,14 @@ fn feature_enabled_for_build(remote: Option<&RemoteSettings>, is_local_build: bo
         .value
 }
 
-/// Persist an explicit `--trust` grant for `cwd`'s workspace so repo-local
-/// servers are honored on the next resolve. Done client-side because trust is
-/// durable: even when the agent runs in a separate leader process it reads the
-/// same `~/.astra/trusted_folders.toml`. Best-effort; a write failure is logged,
-/// not fatal.
-pub fn grant_folder_trust(cwd: &Path) {
-    // Local/dev builds never gate, so there is nothing to grant: `--trust` is a
-    // no-op and the store is left untouched (the whole feature is inert).
-    if folder_trust_inert() {
-        return;
-    }
-    persist_trust(&mut TrustStore::load(), &workspace_key(cwd));
+/// Process-local explicit grant/deny, separate from [`TrustStore`] durability.
+/// When the sandbox denies the store write, this process still honors the latest
+/// user decision. The consume side reads it via [`is_trusted_this_process`].
+static PROCESS_DECISIONS: LazyLock<Mutex<HashMap<PathBuf, bool>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn record_process_decision(key: &Path, trusted: bool) {
+    PROCESS_DECISIONS.lock().insert(key.to_path_buf(), trusted);
 }
 
 /// Latest process-local decision, else the durable store.
@@ -489,6 +485,14 @@ fn config_toml_permission_contributes(permission_value: &TomlValue) -> bool {
         .get("rules")
         .and_then(|v| v.as_array())
         .is_some_and(|a| !a.is_empty())
+}
+
+fn path_present_or_uncertain(path: &Path) -> bool {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(_) => true,
+    }
 }
 
 fn directory_present_or_uncertain(path: &Path) -> bool {

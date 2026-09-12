@@ -842,7 +842,7 @@ pub fn resolve_label_collision(base_dir: &Path, label: &str) -> String {
 /// This is not grok-config's cwd-relative `.grok`: worktree paths need an absolute, always-writable anchor that does not move with the process cwd.
 fn grok_home() -> std::path::PathBuf {
     xai_fast_worktree::resolve_grok_home().unwrap_or_else(|_| {
-        dirs::home_dir()
+        xai_dirs::home_dir()
             .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
             .join(".astra")
     })
@@ -854,6 +854,12 @@ fn grok_home() -> std::path::PathBuf {
 /// the last two meaningful path components.
 pub fn worktree_base_dir(git_root: &Path) -> std::path::PathBuf {
     worktree_base_dir_in(&grok_home(), git_root)
+}
+
+/// [`worktree_base_dir`] under an explicit Astra home.
+pub fn worktree_base_dir_in(grok_home: &Path, git_root: &Path) -> std::path::PathBuf {
+    let slug = repo_slug(git_root);
+    grok_home.join("worktrees").join(slug)
 }
 
 /// Resolves the worktree base directory (`~/.astra/worktrees/<repo_name>`)
@@ -2995,32 +3001,34 @@ fn load_local_worktree_auto_gc_settings(
     worktree_auto_gc_settings_from_config(root)
 }
 
-/// Env + `$ASTRA_HOME/config.toml` only — this process has no remote-settings
-/// blob (unlike shell agent init, which resolves env > TOML > remote). Because a
-/// server-side `worktree_auto_gc` kill-switch / staged-rollout / dry-run is
-/// invisible here, this path opts in only when local config explicitly enables
-/// it (`[worktree.auto_gc] enabled = true`); otherwise it returns `None` and the
-/// caller skips the pass entirely.
+/// Pull `[worktree.auto_gc]` out of an already-loaded `config.toml` document.
 ///
-/// Skipping (rather than running a forced dry-run) is deliberate: the shell
-/// agent already runs the authoritative remote-aware pass against the same
-/// `$ASTRA_HOME` DB. A forced dry-run here would still spend the pass budget and,
-/// worse, stamp the shared throttle meta — blacking out the real deleting pass
-/// for a full `min_interval`. Skipping keeps the same fail-safe (never delete
-/// against an unseen remote policy) at none of that cost.
-fn resolve_worktree_auto_gc_local() -> Option<xai_fast_worktree::ResolvedWorktreeAutoGc> {
-    let local = if let Ok(home) = resolve_grok_home() {
-        let path = home.join("config.toml");
-        if let Ok(text) = std::fs::read_to_string(&path)
-            && let Ok(root) = text.parse::<toml::Value>()
-        {
-            worktree_auto_gc_settings_from_toml(&root)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+/// Returns `None` when the root or `worktree` is not a table, `auto_gc` is absent,
+/// or it fails to deserialize.
+fn worktree_auto_gc_settings_from_config(
+    mut root: toml::Value,
+) -> Option<xai_grok_config_types::WorktreeAutoGcSettings> {
+    let auto_gc = root
+        .as_table_mut()?
+        .remove("worktree")?
+        .as_table_mut()?
+        .remove("auto_gc")?;
+    xai_grok_config_types::WorktreeAutoGcSettings::deserialize(auto_gc)
+        .inspect_err(|error| {
+            tracing::debug!(%error, "[worktree.auto_gc] did not deserialize; skipping the local auto-GC opt-in");
+        })
+        .ok()
+}
+
+/// Resolve the local auto-GC policy under an explicit Astra home.
+///
+/// This process has no remote-settings blob, so it opts in only when the local
+/// `[worktree.auto_gc] enabled = true` setting is present. The shell's remote-
+/// aware pass remains authoritative for the normal startup path.
+fn resolve_worktree_auto_gc_local_in(
+    grok_home: &Path,
+) -> Option<xai_fast_worktree::ResolvedWorktreeAutoGc> {
+    let local = load_local_worktree_auto_gc_settings(grok_home);
     local_auto_gc_policy(local.as_ref())
 }
 
