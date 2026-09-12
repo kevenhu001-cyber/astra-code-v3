@@ -14,8 +14,7 @@ pub use xai_grok_tools::types::compat::CompatConfig;
 
 use xai_grok_tools::implementations::skills::discovery::{
     COMMAND_SUBDIR, SKILL_SUBDIRS, find_command_paths, find_skill_md_paths, find_skill_paths,
-    is_valid_skill_name, normalize_skill_name, parse_skill_files, scan_md_files,
-    walk_for_skill_md,
+    is_valid_skill_name, normalize_skill_name, parse_skill_files, scan_md_files, walk_for_skill_md,
 };
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq)]

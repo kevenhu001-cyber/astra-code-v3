@@ -32,7 +32,7 @@ impl SlashCommand for TutorialCommand {
     fn mode_support(&self) -> ModeSupport {
         ModeSupport::FullscreenOnly(Remedy::SwitchMode {
             why: "the tutorial overlay needs fullscreen",
-        }),
+        })
     }
 
     fn run(&self, _ctx: &mut CommandExecCtx, _args: &str) -> CommandResult {
