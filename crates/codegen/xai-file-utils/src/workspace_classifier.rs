@@ -248,7 +248,7 @@ mod tests {
 
         #[test]
         fn grok_dirs_are_unsafe() {
-            if let Some(home) = dirs::home_dir() {
+            if let Some(home) = xai_dirs::home_dir() {
                 assert!(!is_project_dir(&home.join(".astra")));
                 assert!(!is_project_dir(&home.join(".astra/bin")));
             }
@@ -256,7 +256,7 @@ mod tests {
 
         #[test]
         fn grok_prefixed_dirs_are_unsafe() {
-            if let Some(home) = dirs::home_dir() {
+            if let Some(home) = xai_dirs::home_dir() {
                 assert!(!is_project_dir(&home.join(".astra-proxy-work")));
             }
         }

@@ -562,7 +562,8 @@ async fn authenticated_401s_still_exhaust_after_three_retries_inner() {
             AuthRetrySchedule::MAX_RETRIES,
             &["Re-authenticated after 401"],
         );
-    });
+    })
+    .await;
 }
 
 /// Refresh-outage refresher: every refresh fails transiently, counting `ServerRejected` and
