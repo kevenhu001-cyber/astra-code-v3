@@ -300,8 +300,7 @@ impl SourceFilter {
             Self::Headless => is_headless && !crate::app::is_foreign_picker_source(source),
             Self::Local => (source == "local" || source == "both") && !is_headless,
             Self::Remote => {
-                (source == "remote" || source == "both" || source == "conversation")
-                    && !is_headless
+                (source == "remote" || source == "both" || source == "conversation") && !is_headless
             }
             Self::External => crate::app::is_foreign_picker_source(source),
             Self::All => !is_headless,
