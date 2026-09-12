@@ -505,65 +505,64 @@ fn authenticated_401s_still_exhaust_after_three_retries() {
 
 async fn authenticated_401s_still_exhaust_after_three_retries_inner() {
     let local = tokio::task::LocalSet::new();
-    local
-        .run_until(async {
-            // The server only accepts a token the refresher never mints, so
-            // every authenticated send is rejected.
-            let server = MockInferenceServer::start_with_required_auth(
-                vec![MockModelEntry::new("test")],
-                "never-issued-token",
-            )
-            .await
-            .expect("mock inference server");
+    local.run_until(async {
+        // The server only accepts a token the refresher never mints, so
+        // every authenticated send is rejected.
+        let server = MockInferenceServer::start_with_required_auth(
+            vec![MockModelEntry::new("test")],
+            "never-issued-token",
+        )
+        .await
+        .expect("mock inference server");
 
-            let refresher = Arc::new(WakeGapRefresher {
-                calls: Arc::new(AtomicU32::new(0)),
-                fail_pre_request: false,
-                mint_ttl: chrono::Duration::hours(1),
-            });
-            let (_dir, am) = expired_auth_manager(refresher);
-            let (actor, updates) = session_token_actor(&server, am, ActorShape::default()).await;
-
-            let outcome = run_prompt_with_cap(&actor, "auth-retry-budget-exhaust", 86_400).await;
-            let err = outcome.expect_err("authenticated 401s must exhaust and fail the turn");
-            let rendered = serde_json::to_string(&err.data).unwrap_or_default();
-            assert!(
-                rendered.contains("authenticated inference requests were still rejected"),
-                "exhaustion must name authenticated rejections, got: {rendered}"
-            );
-
-            let authenticated = server
-                .requests()
-                .into_iter()
-                .filter(|r| r.path.contains("/responses"))
-                .filter(|r| r.authorization.as_deref() == Some(&format!("Bearer {FRESH_TOKEN}")))
-                .count();
-            assert_eq!(
-                authenticated,
-                (AuthRetrySchedule::MAX_RETRIES + 1) as usize,
-                "initial send plus MAX_RETRIES resubmits, all authenticated"
-            );
-
-            // The budget is the one terminal path outside `handle_sampling_failure`, and it used to return its error with no notification
-            // That left the pager with no re-auth prompt and no turn-failed block for a turn that died on 401s
-            let (error_type, message) = terminal_failure(&updates)
-                .expect("an exhausted turn must report a terminal retryState");
-            assert_eq!(
-                error_type, "auth",
-                "the client keys its re-auth prompt off this: {message}"
-            );
-            assert!(
-                message.contains("authenticated inference requests were still rejected"),
-                "the notification must carry the same story as the error: {message}"
-            );
-            // Inverse of the runaway test's leak guard: "attempt 2/50" here is the bug.
-            assert_retrying(
-                &updates,
-                AuthRetrySchedule::MAX_RETRIES as usize,
-                AuthRetrySchedule::MAX_RETRIES,
-                &["Re-authenticated after 401"],
-            );
+        let refresher = Arc::new(WakeGapRefresher {
+            calls: Arc::new(AtomicU32::new(0)),
+            fail_pre_request: false,
+            mint_ttl: chrono::Duration::hours(1),
         });
+        let (_dir, am) = expired_auth_manager(refresher);
+        let (actor, updates) = session_token_actor(&server, am, ActorShape::default()).await;
+
+        let outcome = run_prompt_with_cap(&actor, "auth-retry-budget-exhaust", 86_400).await;
+        let err = outcome.expect_err("authenticated 401s must exhaust and fail the turn");
+        let rendered = serde_json::to_string(&err.data).unwrap_or_default();
+        assert!(
+            rendered.contains("authenticated inference requests were still rejected"),
+            "exhaustion must name authenticated rejections, got: {rendered}"
+        );
+
+        let authenticated = server
+            .requests()
+            .into_iter()
+            .filter(|r| r.path.contains("/responses"))
+            .filter(|r| r.authorization.as_deref() == Some(&format!("Bearer {FRESH_TOKEN}")))
+            .count();
+        assert_eq!(
+            authenticated,
+            (AuthRetrySchedule::MAX_RETRIES + 1) as usize,
+            "initial send plus MAX_RETRIES resubmits, all authenticated"
+        );
+
+        // The budget is the one terminal path outside `handle_sampling_failure`, and it used to return its error with no notification
+        // That left the pager with no re-auth prompt and no turn-failed block for a turn that died on 401s
+        let (error_type, message) = terminal_failure(&updates)
+            .expect("an exhausted turn must report a terminal retryState");
+        assert_eq!(
+            error_type, "auth",
+            "the client keys its re-auth prompt off this: {message}"
+        );
+        assert!(
+            message.contains("authenticated inference requests were still rejected"),
+            "the notification must carry the same story as the error: {message}"
+        );
+        // Inverse of the runaway test's leak guard: "attempt 2/50" here is the bug.
+        assert_retrying(
+            &updates,
+            AuthRetrySchedule::MAX_RETRIES as usize,
+            AuthRetrySchedule::MAX_RETRIES,
+            &["Re-authenticated after 401"],
+        );
+    });
 }
 
 /// Refresh-outage refresher: every refresh fails transiently, counting `ServerRejected` and
