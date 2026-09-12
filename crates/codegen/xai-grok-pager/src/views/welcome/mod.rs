@@ -3357,7 +3357,10 @@ mod tests {
             build_mode.contains("1 external session hidden \u{b7} f to show"),
             "default Astra filter must pin the hidden-external hint:\n{build_mode}"
         );
-        assert!(hint < first_row, "hint must stay pinned above the first list row:\n{build_mode}");
+        assert!(
+            hint < first_row,
+            "hint must stay pinned above the first list row:\n{build_mode}"
+        );
         assert!(
             !build_mode.contains("Claude work"),
             "the foreign row itself stays hidden under the default filter:\n{build_mode}"
