@@ -245,8 +245,10 @@ try {
 
 $ConfigFile = Join-Path $AstraDir 'config.toml'
 $cliLines = @('installer = "internal"')
-if ($Channel -ne 'stable') {
-    $cliLines += "channel = `"$Channel`""
+if ($Channel -ceq 'alpha') {
+    $cliLines += 'channel = "alpha"'
+} elseif ($Channel -ceq 'enterprise') {
+    $cliLines += 'channel = "enterprise"'
 }
 
 if (-not (Test-Path $ConfigFile)) {

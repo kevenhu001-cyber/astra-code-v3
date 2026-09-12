@@ -46,10 +46,9 @@ pub const ENV_GROK_MAX_MCP_OUTPUT_BYTES: &str = "GROK_MAX_MCP_OUTPUT_BYTES";
 /// function tool dispatch (no live `Config`) sees the same value.
 static EFFECTIVE_MCP_MAX_OUTPUT_BYTES: AtomicUsize = AtomicUsize::new(0);
 
-/// Host (shell) sets the fully-resolved MCP output cap in bytes.
-///
-/// Pass the already-resolved limit (requirements > env > config > remote config >
-/// default). Pass `0` only in tests to clear and fall through to env / default.
+/// Host (shell) sets the fully-resolved MCP output cap in bytes. Pass the already-resolved limit
+/// (requirements > env > config > remote config > default). Pass `0` only in tests to clear and
+/// fall through to env / default.
 pub fn set_mcp_max_output_bytes(bytes: usize) {
     EFFECTIVE_MCP_MAX_OUTPUT_BYTES.store(bytes, Ordering::Relaxed);
 }
@@ -251,10 +250,9 @@ async fn truncate_mcp_text(text: &mut String, trunc_ctx: &McpTruncateContext) {
     );
 }
 
-/// Bound the `MCP`/`Text` variants to the inline size limit, keeping a preview
-/// and dumping the text that remains after any MCP image extract. Other
-/// variants pass through. MCP data-URI images go into `extracted_images`
-/// before the bound.
+/// Bound the `MCP`/`Text` variants to the inline size limit, keeping a preview and dumping the text
+/// that remains after any MCP image extract. Other variants pass through. MCP data-URI images go
+/// into `extracted_images` before the bound.
 pub async fn truncate_tool_output(
     mut output: ToolOutput,
     trunc_ctx: &McpTruncateContext,

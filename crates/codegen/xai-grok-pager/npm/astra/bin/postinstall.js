@@ -65,13 +65,13 @@ const EXE = IS_WINDOWS ? '.exe' : '';
 
 fs.mkdirSync(CANONICAL_DIR, { recursive: true });
 
-function writeVendorBinary(brPath, rawPath, destPath) {
+function writeVendorBinary(brotliPath, binaryPath, destPath) {
     const tmp = destPath + `.tmp.${process.pid}`;
     try {
-        if (fs.existsSync(brPath)) {
-            fs.writeFileSync(tmp, zlib.brotliDecompressSync(fs.readFileSync(brPath)));
-        } else if (fs.existsSync(rawPath)) {
-            fs.copyFileSync(rawPath, tmp);
+        if (fs.existsSync(brotliPath)) {
+            fs.writeFileSync(tmp, zlib.brotliDecompressSync(fs.readFileSync(brotliPath)));
+        } else if (fs.existsSync(binaryPath)) {
+            fs.copyFileSync(binaryPath, tmp);
         } else {
             return false;
         }
@@ -86,8 +86,8 @@ function writeVendorBinary(brPath, rawPath, destPath) {
 }
 
 function installBinary(binName, sourceDir, vendorSubpath) {
-    const brPath = path.join(sourceDir, 'bin', vendorSubpath + '.br');
-    const rawPath = path.join(sourceDir, 'bin', vendorSubpath);
+    const brotliPath = path.join(sourceDir, 'bin', vendorSubpath + '.br');
+    const binaryPath = path.join(sourceDir, 'bin', vendorSubpath);
 
     const versionedName = `${binName}-${version}${EXE}`;
     const versionedPath = path.join(CANONICAL_DIR, versionedName);

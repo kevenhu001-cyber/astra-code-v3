@@ -26,20 +26,17 @@ pub struct PluginCatalog {
     pub plugins: HashMap<String, CatalogEntry>,
 }
 
-/// Per-plugin catalog entry.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CatalogEntry {
-    /// Commit the components were extracted from (required for URL-sourced
-    /// entries; optional for in-repo plugins).
+    /// Commit the components were extracted from (required for URL-sourced entries; optional for in-repo plugins).
     #[serde(default)]
     pub sha: Option<String>,
     pub components: PluginComponents,
 }
 
 impl PluginCatalog {
-    /// Components for an index entry, gated on the pinned SHA for
-    /// URL-sourced entries: when `index_sha` is `Some`, the catalog entry
-    /// must carry an equal `sha` or the components are treated as absent.
+    /// Returns the components for an index entry, gated on the pinned SHA for URL-sourced entries.
+    /// When `index_sha` is `Some`, the catalog entry must carry an equal `sha` or the components are treated as absent.
     pub fn components_for(
         &self,
         index_name: &str,
@@ -61,9 +58,8 @@ impl PluginCatalog {
     }
 }
 
-/// Load `plugin-index.json` from a marketplace root, or `None` when absent,
-/// malformed, or of an unsupported version. A missing file falls through to
-/// the next candidate directory; a broken one does not (see module docs).
+/// Load `plugin-index.json` from a marketplace root, or `None` when absent, malformed, or of an unsupported version.
+/// A missing file falls through to the next candidate directory; a broken one does not (see module docs).
 pub fn load_catalog(marketplace_root: &Path) -> Option<PluginCatalog> {
     let candidates = [
         marketplace_root

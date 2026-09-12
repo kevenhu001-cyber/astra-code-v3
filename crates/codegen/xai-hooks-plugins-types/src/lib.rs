@@ -14,11 +14,8 @@ use serde::{Deserialize, Serialize};
 // Enums
 // ---------------------------------------------------------------------------
 
-/// Plugin scope.
-///
-/// Maps from `PluginScope` in `xai-grok-agent`. Variant renames:
-/// - source `CliOverride` -> DTO `Cli` (matches Display output "cli")
-/// - source `ConfigPath` -> DTO `Config` (matches Display output "config")
+/// Maps from `PluginScope` in `xai-grok-agent`. Variant renames: source `CliOverride` -> DTO `Cli` (matches Display
+/// output "cli"); source `ConfigPath` -> DTO `Config` (matches Display output "config").
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PluginScope {
@@ -28,10 +25,8 @@ pub enum PluginScope {
     Config,
 }
 
-/// The concrete discovery source a plugin came from.
-///
-/// Maps from `PluginOrigin` in `xai-grok-agent`. Optional on [`PluginInfo`]
-/// so older shells (which don't send it) deserialize to `None`.
+/// The concrete discovery source a plugin came from. Maps from `PluginOrigin` in `xai-grok-agent`. Optional on
+/// [`PluginInfo`] so older shells (which don't send it) deserialize to `None`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginOrigin {
@@ -74,11 +69,8 @@ pub enum PluginOrigin {
     Unknown,
 }
 
-/// Hook event type.
-///
-/// Maps from `HookEventName` in `xai-grok-hooks`. The source type's
-/// `SubagentEnd` variant (backward-compat alias) is collapsed into
-/// `SubagentStop` during conversion.
+/// Maps from `HookEventName` in `xai-grok-hooks`. The source type's `SubagentEnd` variant (backward-compat alias) is
+/// collapsed into `SubagentStop` during conversion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HookEvent {
@@ -244,6 +236,16 @@ pub struct HookInfo {
     /// Whether this hook is disabled via ~/.astra/disabled-hooks.
     #[serde(default)]
     pub disabled: bool,
+    /// Enforced by root-owned managed policy: disable actions are refused
+    /// and disable state is ignored, so surfaces should show the pinned
+    /// state up front rather than let a refusal be the first signal.
+    #[serde(default)]
+    pub pinned: bool,
+    /// Whether `HooksAction::Remove` can succeed for this hook's source: true only for user-registered hook directories
+    /// without a managed-policy member (removal targets the whole `source_dir`, and a pinned member makes it refused), so
+    /// surfaces don't offer removal elsewhere.
+    #[serde(default)]
+    pub removable: bool,
 }
 
 /// Response for `x.ai/hooks/list`.
@@ -442,12 +444,9 @@ fn truncate_chars(s: &str, max_chars: usize) -> String {
     }
 }
 
-/// Full inventory of a plugin's components, sourced from a marketplace
-/// catalog (`plugin-index.json`).
-///
-/// Serde deserialization bypasses [`ComponentItem::new`], so values are not
-/// sanitized by construction: every consumer that renders catalog-derived
-/// data to a terminal must call [`Self::sanitize`] at its ingestion point.
+/// Full inventory of a plugin's components, sourced from a marketplace catalog (`plugin-index.json`). Serde
+/// deserialization bypasses [`ComponentItem::new`], so values are not sanitized by construction: every consumer that
+/// renders catalog-derived data to a terminal must call [`Self::sanitize`] at its ingestion point.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginComponents {
@@ -748,6 +747,8 @@ mod tests {
             timeout_ms: 5000,
             source_dir: "/home/user/.astra/hooks".into(),
             disabled: false,
+            pinned: false,
+            removable: true,
         };
         let json = serde_json::to_string(&hook).unwrap();
         assert!(json.contains("handlerType"));
@@ -927,44 +928,6 @@ mod tests {
         );
         let parsed: HookEvent = serde_json::from_str(r#""some_future_event""#).unwrap();
         assert_eq!(parsed, HookEvent::Unknown);
-    }
-
-    #[test]
-    fn marketplace_plugin_entry_roundtrip_preserves_homepage_and_keywords() {
-        let entry = MarketplacePluginEntry {
-            name: "demo".into(),
-            version: Some("1.2.3".into()),
-            description: Some("A demo plugin".into()),
-            category: Some("development".into()),
-            author: Some("xai".into()),
-            tags: vec!["cli".into()],
-            keywords: vec!["search".into(), "index".into()],
-            domains: vec!["example.com".into()],
-            homepage: Some("https://example.com/demo".into()),
-            relative_path: "plugins/demo".into(),
-            skill_count: 1,
-            has_hooks: true,
-            has_agents: false,
-            has_mcp: false,
-            install_status: "not_installed".into(),
-            installed_version: None,
-            components: None,
-            remote_url: None,
-            remote_ref: None,
-            remote_sha: None,
-            remote_subdir: None,
-        };
-        let json = serde_json::to_string(&entry).unwrap();
-        assert!(json.contains("homepage"), "{json}");
-        assert!(json.contains("keywords"), "{json}");
-        let parsed: MarketplacePluginEntry = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed.homepage.as_deref(), Some("https://example.com/demo"));
-        assert_eq!(
-            parsed.keywords,
-            vec!["search".to_string(), "index".to_string()]
-        );
-        assert_eq!(parsed.domains, vec!["example.com".to_string()]);
-        assert_eq!(parsed.tags, vec!["cli".to_string()]);
     }
 
     #[test]

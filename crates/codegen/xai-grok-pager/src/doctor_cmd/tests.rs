@@ -143,7 +143,11 @@ fn mixed_report() -> DiagnosticReport {
     report.facts.ssh = true;
     report.facts.color = ColorFacts {
         level: RuntimeFact::Available(ColorLevel::Ansi256),
-        available_themes: vec![ThemeKind::GrokNight, ThemeKind::GrokDay],
+        available_themes: vec![
+            ThemeKind::GrokNight,
+            ThemeKind::GrokDay,
+            ThemeKind::Terminal,
+        ],
         total_themes: ThemeKind::ALL.len(),
     };
     report.facts.keyboard = Some(KeyboardFact {
@@ -697,7 +701,7 @@ fn json_empty_fixture_pins_null_policy() {
                 "color": {
                     "level": {"status": "unavailable", "value": null},
                     "availableThemes": [],
-                    "totalThemes": 5
+                    "totalThemes": 6
                 },
                 "keyboard": null,
                 "newline": null,

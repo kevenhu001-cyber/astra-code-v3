@@ -1,10 +1,9 @@
-//! Bounded worktree pool for fast fork setup.
+//! Startup cleanup of stale pooled worktrees.
 //!
-//! NOTE: This module is preserved as a future-use building block. Current
-//! production callers are limited to
-//! `cleanup_stale_pool_worktrees` (called from `MvpAgent::initialize` and
-//! `MvpAgent::new_session`). The `WorktreePool::new` / `try_claim` / etc.
-//! API has no callers today and is kept intentionally.
+//! A pre-warmed worktree pool (background fill, acquire/claim/release,
+//! orphan adoption) once lived here but was never wired into production and
+//! has been deleted. This cleanup path remains so `~/.grok/worktree_pool/`
+//! directories left behind by dead agent instances are still reclaimed.
 //!
 //! On startup the pool spawns a background fill task that pre-creates linked
 //! worktrees up to `pool_size`. When `acquire()` takes a worktree and the
@@ -33,39 +32,12 @@
 //!   file. Startup cleanup only removes directories for dead processes.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::Duration;
-
-use tokio::sync::Notify;
-use tokio_util::sync::CancellationToken;
-use xai_fast_worktree::{WorktreeBuilder, WorktreeSync};
-
-const WORKTREE_POOL_LOG: &str = "xai_worktree_pool";
-use crate::util::config::PoolConfig;
-use crate::util::grok_home::grok_home;
 
 use xai_tty_utils::git_command;
 
-/// Marker suffix appended to the worktree directory name to form a sibling
-/// marker file.  E.g. for worktree `<instance>/<pool_id>/` the ready marker
-/// is `<instance>/<pool_id>.ready`.  Keeping markers *outside* the worktree
-/// avoids dirtying the git working tree.
-const READY_SUFFIX: &str = ".ready";
-/// Marker suffix written by `acquire()` to atomically claim a worktree.
-const CLAIMED_SUFFIX: &str = ".claimed";
-/// Transient marker suffix used during atomic write (write then rename).
-const CLAIMING_SUFFIX: &str = ".claiming";
+use crate::util::grok_home::grok_home;
 
-/// Return the sibling marker path for a worktree directory.
-///
-/// Given `<instance_dir>/<pool_id>/` and suffix `.ready`, returns
-/// `<instance_dir>/<pool_id>.ready`.  The marker lives next to — not
-/// inside — the worktree, so `git status` stays clean.
-fn marker_path(worktree_dir: &Path, suffix: &str) -> PathBuf {
-    let mut p = worktree_dir.as_os_str().to_owned();
-    p.push(suffix);
-    PathBuf::from(p)
-}
+const WORKTREE_POOL_LOG: &str = "xai_worktree_pool";
 
 // Types
 
@@ -1158,7 +1130,6 @@ pub fn should_enable_pool(
 /// loop runs at most once per process.
 static CLEANUP_ONCE: std::sync::Once = std::sync::Once::new();
 
-/// Guard ensuring stale pool registration removal runs at most once per process.
 static REGISTRATION_CLEANUP_ONCE: std::sync::Once = std::sync::Once::new();
 
 // Orphan adoption
@@ -1220,27 +1191,11 @@ pub fn take_adoptable_worktrees() -> Vec<AdoptableWorktree> {
 /// `tokio::task::spawn_blocking` so it runs on the thread pool and
 /// never competes with the agent's single-threaded `LocalSet`.
 pub fn cleanup_stale_pool_worktrees(source_git_root: Option<&Path>) {
-    // Run the expensive directory walk + git worktree remove at most once.
-    // Adoptable candidates are stored in ADOPTABLE_CACHE for WorktreePool::new().
     CLEANUP_ONCE.call_once(|| {
-        let candidates = cleanup_stale_pool_worktrees_inner();
-        *ADOPTABLE_CACHE.lock().unwrap_or_else(|e| e.into_inner()) = Some(candidates);
+        cleanup_stale_pool_worktrees_inner();
     });
 
-    // Skip when adoptable candidates exist — adoption needs their
-    // .git/worktrees/ metadata entries.
-    let has_adoptable = ADOPTABLE_CACHE
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .as_ref()
-        .is_some_and(|v| !v.is_empty());
-
-    if has_adoptable {
-        tracing::debug!(
-            target: WORKTREE_POOL_LOG,
-            "CLEANUP_PRUNE_SKIP: skipping stale registration removal (adoptable candidates exist)"
-        );
-    } else if let Some(git_root) = source_git_root {
+    if let Some(git_root) = source_git_root {
         let root = git_root.to_path_buf();
         REGISTRATION_CLEANUP_ONCE.call_once(move || {
             let removed = xai_fast_worktree::remove_stale_worktree_registrations_under(
@@ -1257,43 +1212,7 @@ pub fn cleanup_stale_pool_worktrees(source_git_root: Option<&Path>) {
     }
 }
 
-/// Validate whether a worktree directory is structurally adoptable.
-///
-/// Checks:
-/// 1. Has a `.git` file (not a directory) containing `gitdir: <path>`
-/// 2. The gitdir target path exists on disk
-/// 3. The gitdir target has a `HEAD` file (basic sanity)
-///
-/// Does NOT check source-repo match — that semantic validation is
-/// deferred to `WorktreePool::new()` which knows the current repo.
-fn is_worktree_adoptable(wt_path: &Path) -> bool {
-    let git_file = wt_path.join(".git");
-
-    // Must be a file (not a directory) — linked worktrees have a .git file
-    if !git_file.is_file() {
-        return false;
-    }
-
-    // Parse "gitdir: <path>" from the .git file
-    let contents = match std::fs::read_to_string(&git_file) {
-        Ok(c) => c,
-        Err(_) => return false,
-    };
-    let gitdir_target = match contents.trim().strip_prefix("gitdir: ") {
-        Some(path) => PathBuf::from(path),
-        None => return false,
-    };
-
-    // The gitdir target (e.g. /repo/.git/worktrees/<pool_id>) must exist
-    if !gitdir_target.is_dir() {
-        return false;
-    }
-
-    // Must have a HEAD file (basic sanity — git worktree metadata is intact)
-    gitdir_target.join("HEAD").is_file()
-}
-
-fn cleanup_stale_pool_worktrees_inner() -> Vec<AdoptableWorktree> {
+fn cleanup_stale_pool_worktrees_inner() {
     let pool_dir = pool_base_directory();
     tracing::info!(
         target: WORKTREE_POOL_LOG,
@@ -1306,10 +1225,9 @@ fn cleanup_stale_pool_worktrees_inner() -> Vec<AdoptableWorktree> {
             pool_dir = %pool_dir.display(),
             "CLEANUP_SKIP: pool directory does not exist or unreadable"
         );
-        return Vec::new();
+        return;
     };
 
-    let mut adoptable = Vec::new();
     let mut cleaned_count = 0u32;
     let mut dead_instance_count = 0u32;
 
@@ -1346,11 +1264,6 @@ fn cleanup_stale_pool_worktrees_inner() -> Vec<AdoptableWorktree> {
         }
 
         dead_instance_count += 1;
-        let instance_id = instance_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
 
         tracing::info!(
             target: WORKTREE_POOL_LOG,
@@ -1358,9 +1271,8 @@ fn cleanup_stale_pool_worktrees_inner() -> Vec<AdoptableWorktree> {
             "CLEANUP_DEAD: found dead instance pool directory"
         );
 
-        // Examine each worktree subdirectory: adopt if structurally valid,
-        // destroy if broken.
-        let mut instance_has_adoptable = false;
+        // Deregister and delete every worktree subdirectory
+        // (The old pool adopted structurally valid worktrees here; with the pool gone they are reclaimed like any other stale directory.)
         if let Ok(entries) = std::fs::read_dir(&instance_path) {
             for wt_entry in entries.flatten() {
                 let wt_path = wt_entry.path();
@@ -1368,214 +1280,34 @@ fn cleanup_stale_pool_worktrees_inner() -> Vec<AdoptableWorktree> {
                     continue; // skip .pid, marker files
                 }
 
-                let pool_id = wt_path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-
-                if is_worktree_adoptable(&wt_path) {
-                    tracing::info!(
-                        target: WORKTREE_POOL_LOG,
-                        path = %wt_path.display(),
-                        pool_id = %pool_id,
-                        instance_id = %instance_id,
-                        "CLEANUP_ADOPTABLE_CANDIDATE: worktree passed structural validation"
-                    );
-                    adoptable.push(AdoptableWorktree {
-                        old_path: wt_path,
-                        pool_id,
-                        old_instance_id: instance_id.clone(),
-                    });
-                    instance_has_adoptable = true;
-                } else {
-                    // Broken worktree — destroy as before.
-                    let p = wt_path.to_string_lossy().to_string();
-                    tracing::info!(
-                        target: WORKTREE_POOL_LOG,
-                        path = %wt_path.display(),
-                        "CLEANUP_GIT_REMOVE: worktree failed validation, running git worktree remove --force"
-                    );
-                    let result = git_command()
-                        .args(["worktree", "remove", "--force", &p])
-                        .output();
-                    tracing::info!(
-                        target: WORKTREE_POOL_LOG,
-                        path = %wt_path.display(),
-                        success = result.as_ref().map(|o| o.status.success()).unwrap_or(false),
-                        "CLEANUP_GIT_REMOVE_DONE: git worktree remove completed"
-                    );
-                    let _ = std::fs::remove_dir_all(&wt_path);
-                }
+                let p = wt_path.to_string_lossy().to_string();
+                tracing::info!(
+                    target: WORKTREE_POOL_LOG,
+                    path = %wt_path.display(),
+                    "CLEANUP_GIT_REMOVE: running git worktree remove --force"
+                );
+                let result = git_command()
+                    .args(["worktree", "remove", "--force", &p])
+                    .output();
+                tracing::info!(
+                    target: WORKTREE_POOL_LOG,
+                    path = %wt_path.display(),
+                    success = result.as_ref().map(|o| o.status.success()).unwrap_or(false),
+                    "CLEANUP_GIT_REMOVE_DONE: git worktree remove completed"
+                );
+                let _ = std::fs::remove_dir_all(&wt_path);
             }
         }
 
-        // If the instance has adoptable worktrees, leave the directory in
-        // place — WorktreePool::new() will rename them out and clean up the
-        // empty dir. Otherwise, remove the entire instance directory now.
-        if !instance_has_adoptable {
-            let _ = std::fs::remove_dir_all(&instance_path);
-            cleaned_count += 1;
-        }
+        let _ = std::fs::remove_dir_all(&instance_path);
+        cleaned_count += 1;
     }
 
     tracing::info!(
         target: WORKTREE_POOL_LOG,
         dead_instance_count,
         cleaned_count,
-        adoptable_count = adoptable.len(),
         "CLEANUP_DONE: finished scanning for dead instances"
-    );
-
-    adoptable
-}
-
-// Helpers
-
-/// Set `core.fsmonitor`, `core.untrackedCache`, and `core.splitIndex` on
-/// the given repo. Only needs to run on the source repo -- linked worktrees
-/// inherit these via the shared `.git/config`.
-async fn configure_git_perf_features(repo_path: &Path) {
-    tracing::info!(
-        target: WORKTREE_POOL_LOG,
-        path = %repo_path.display(),
-        "GIT_PERF_CONFIG_START: setting core.fsmonitor, core.untrackedCache, core.splitIndex"
-    );
-    let p = repo_path.to_path_buf();
-    let _ = tokio::task::spawn_blocking(move || {
-        for (key, val) in [
-            ("core.fsmonitor", "true"),
-            ("core.untrackedCache", "true"),
-            ("core.splitIndex", "true"),
-        ] {
-            let result = git_command()
-                .args(["config", key, val])
-                .current_dir(&p)
-                .output();
-            tracing::info!(
-                target: WORKTREE_POOL_LOG,
-                path = %p.display(),
-                key,
-                val,
-                success = result.as_ref().map(|o| o.status.success()).unwrap_or(false),
-                "GIT_PERF_CONFIG_SET: git config {key} {val}"
-            );
-        }
-    })
-    .await;
-    tracing::debug!("Git perf features configured");
-    tracing::info!(
-        target: WORKTREE_POOL_LOG,
-        path = %repo_path.display(),
-        "GIT_PERF_CONFIG_DONE: all perf features configured"
-    );
-}
-
-/// Synchronously destroy a worktree via `git worktree remove --force` + `remove_dir_all`.
-/// Used during adoption for worktrees that fail validation or exceed hard_cap.
-fn destroy_worktree_sync(path: &Path) {
-    let p = path.to_string_lossy().to_string();
-    let _ = git_command()
-        .args(["worktree", "remove", "--force", &p])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .output();
-    let _ = std::fs::remove_dir_all(path);
-}
-
-/// Warm the **source repo's** git caches by running a full `git status`.
-///
-/// Unlike [`warm_git_caches`] (which uses `--no-optional-locks` on pool
-/// worktrees), this intentionally allows index writes so that fsmonitor,
-/// untracked-cache, and split-index data are persisted. Without this, the
-/// first `sync_dirty_state` in `acquire()` runs against a cold index and
-/// pays the full scanning cost (~1-2s on large repos).
-///
-/// May briefly contend with the fill task's `git worktree add` on the
-/// `.git` lock, but the hold time is short and the cache benefit is
-/// significant for subsequent `git status` calls.
-async fn warm_source_repo(repo_path: &Path) {
-    tracing::info!(
-        target: WORKTREE_POOL_LOG,
-        path = %repo_path.display(),
-        "SOURCE_WARM_START: running full git status to warm source caches"
-    );
-    let warm_start = std::time::Instant::now();
-    let p = repo_path.to_path_buf();
-    let _ = tokio::task::spawn_blocking(move || {
-        // Uses raw Command (not git_command()) to intentionally ALLOW index
-        // writes — --no-optional-locks from the helper would prevent fsmonitor,
-        // untracked-cache, and split-index data from being persisted.
-        let mut cmd = std::process::Command::new("git");
-        xai_grok_tools::util::detach_std_command(&mut cmd);
-        cmd.stdin(std::process::Stdio::null());
-        cmd.envs(xai_grok_tools::util::pager_env());
-        for &(key, val) in xai_tty_utils::GIT_AUTH_SUPPRESSION_ENVS.iter() {
-            cmd.env(key, val);
-        }
-        let result = cmd
-            .args(["status", "--porcelain", "--untracked-files=all"])
-            .current_dir(&p)
-            .stdout(std::process::Stdio::null())
-            .output();
-        tracing::info!(
-            target: WORKTREE_POOL_LOG,
-            path = %p.display(),
-            success = result.as_ref().map(|o| o.status.success()).unwrap_or(false),
-            "SOURCE_WARM_STATUS: git status completed"
-        );
-    })
-    .await;
-    let warm_ms = warm_start.elapsed().as_millis() as u64;
-    tracing::info!(
-        target: WORKTREE_POOL_LOG,
-        path = %repo_path.display(),
-        warm_ms,
-        "SOURCE_WARM_DONE: source repo caches warmed"
-    );
-}
-
-/// Run `git status` to populate the fsmonitor daemon cache, untracked cache,
-/// and split index. Called on each pool worktree after creation/adoption.
-///
-/// Uses `--no-optional-locks` to avoid contending on the pool worktree's
-/// index lock. This starts the fsmonitor daemon but does NOT write cache
-/// data back to the index (the source warmup handles that for the shared
-/// config).
-///
-/// This is intentionally **awaited** (not fire-and-forget) when called on
-/// pool worktrees so that the warmup completes before `.ready` is written.
-/// Otherwise `acquire()` could claim the worktree while `git status` still
-/// holds the index lock, racing with `WorktreeSync`.
-async fn warm_git_caches(repo_path: &Path) {
-    tracing::info!(
-        target: WORKTREE_POOL_LOG,
-        path = %repo_path.display(),
-        "GIT_WARM_START: running git status --porcelain to warm caches"
-    );
-    let warm_start = std::time::Instant::now();
-    let p = repo_path.to_path_buf();
-    let _ = tokio::task::spawn_blocking(move || {
-        let result = git_command()
-            .args(["status", "--porcelain"])
-            .current_dir(&p)
-            .stdout(std::process::Stdio::null())
-            .output();
-        tracing::info!(
-            target: WORKTREE_POOL_LOG,
-            path = %p.display(),
-            success = result.as_ref().map(|o| o.status.success()).unwrap_or(false),
-            "GIT_WARM_STATUS: git status completed"
-        );
-    })
-    .await;
-    let warm_ms = warm_start.elapsed().as_millis() as u64;
-    tracing::debug!("Git caches warmed");
-    tracing::info!(
-        target: WORKTREE_POOL_LOG,
-        path = %repo_path.display(),
-        warm_ms,
-        "GIT_WARM_DONE: git caches warmed"
     );
 }
 
@@ -1756,38 +1488,6 @@ async fn remove_worktree_registration(path: &Path) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serial_test::serial;
-
-    #[test]
-    fn test_pool_config_defaults() {
-        let config = PoolConfig::default();
-        assert!(config.enabled);
-        assert_eq!(config.pool_size, 2);
-        assert_eq!(config.file_count_threshold, 50_000);
-        assert_eq!(config.parallelism, 3);
-    }
-
-    #[test]
-    fn test_should_enable_pool_disabled_by_config() {
-        let config = PoolConfig {
-            enabled: false,
-            ..Default::default()
-        };
-        assert!(!should_enable_pool(100_000, &config, true));
-    }
-
-    #[test]
-    fn test_should_enable_pool_below_threshold() {
-        let config = PoolConfig::default();
-        assert!(!should_enable_pool(1_000, &config, true));
-    }
-
-    #[cfg(target_os = "macos")]
-    #[test]
-    fn test_should_enable_pool_all_gates_pass() {
-        let config = PoolConfig::default();
-        assert!(should_enable_pool(100_000, &config, true));
-    }
 
     #[test]
     fn test_pool_base_directory() {
@@ -1796,280 +1496,14 @@ mod tests {
     }
 
     #[test]
-    fn test_pool_config_from_toml() {
-        use crate::util::config::worktree_pool_from_toml;
+    fn test_cleanup_stale_only_removes_dead_instances() {
+        let live_dir =
+            pool_base_directory().join(format!("live-instance-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&live_dir).unwrap();
+        std::fs::write(live_dir.join(".pid"), std::process::id().to_string()).unwrap();
 
-        let toml_str = r#"
-[worktree_pool]
-enabled = true
-pool_size = 4
-file_count_threshold = 100000
-parallelism = 6
-"#;
-        let root: toml::Value = toml::from_str(toml_str).unwrap();
-        let config = worktree_pool_from_toml(&root);
-        assert!(config.enabled);
-        assert_eq!(config.pool_size, 4);
-        assert_eq!(config.file_count_threshold, 100_000);
-        assert_eq!(config.parallelism, 6);
-    }
-
-    #[test]
-    fn test_pool_config_from_toml_missing_section() {
-        use crate::util::config::worktree_pool_from_toml;
-
-        let toml_str = r#"
-[cli]
-auto_update = false
-"#;
-        let root: toml::Value = toml::from_str(toml_str).unwrap();
-        let config = worktree_pool_from_toml(&root);
-        assert!(config.enabled);
-        assert_eq!(config.pool_size, 2);
-    }
-
-    #[test]
-    fn test_pool_config_from_toml_partial() {
-        use crate::util::config::worktree_pool_from_toml;
-
-        let toml_str = r#"
-[worktree_pool]
-pool_size = 3
-"#;
-        let root: toml::Value = toml::from_str(toml_str).unwrap();
-        let config = worktree_pool_from_toml(&root);
-        assert!(config.enabled);
-        assert_eq!(config.pool_size, 3);
-        assert_eq!(config.file_count_threshold, 50_000);
-        assert_eq!(config.parallelism, 3);
-    }
-
-    #[test]
-    fn test_instance_dir_scoping() {
-        let base = pool_base_directory();
-        let instance_dir = base.join("test-instance-uuid");
-        assert!(instance_dir.starts_with(&base));
-        assert!(
-            instance_dir
-                .to_string_lossy()
-                .contains("worktree_pool/test-instance-uuid")
-        );
-    }
-
-    fn create_temp_git_repo(file_count: usize) -> (tempfile::TempDir, PathBuf) {
-        crate::test_support::ensure_hermetic_git_on_path();
-        let dir = tempfile::tempdir().expect("create tempdir");
-        let repo_path = dir.path().to_path_buf();
-
-        let out = std::process::Command::new("git")
-            .args(["init"])
-            .current_dir(&repo_path)
-            .output()
-            .expect("git init");
-        assert!(out.status.success(), "git init failed");
-
-        let _ = std::process::Command::new("git")
-            .args(["config", "user.email", "test@test.com"])
-            .current_dir(&repo_path)
-            .output();
-        let _ = std::process::Command::new("git")
-            .args(["config", "user.name", "Test"])
-            .current_dir(&repo_path)
-            .output();
-
-        for i in 0..file_count {
-            let file_path = repo_path.join(format!("file_{i}.txt"));
-            std::fs::write(&file_path, format!("content {i}")).expect("write file");
-        }
-
-        let _ = std::process::Command::new("git")
-            .args(["add", "."])
-            .current_dir(&repo_path)
-            .output()
-            .expect("git add");
-        let out = std::process::Command::new("git")
-            .args(["commit", "-m", "initial"])
-            .current_dir(&repo_path)
-            .output()
-            .expect("git commit");
-        assert!(out.status.success(), "git commit failed");
-
-        (dir, repo_path)
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_pool_fill_creates_worktrees() {
-        let (_dir, repo_path) = create_temp_git_repo(5);
-        let repo_path = dunce::canonicalize(&repo_path).expect("canonicalize repo path");
-
-        let config = PoolConfig {
-            pool_size: 2,
-            parallelism: 0,
-            ..Default::default()
-        };
-
-        let pool = WorktreePool::new(repo_path.clone(), config, 5);
-
-        // Wait for fill task to create worktrees
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        loop {
-            let count = count_instance_worktrees(&pool.instance_id);
-            if count >= 2 {
-                break;
-            }
-            if std::time::Instant::now() > deadline {
-                panic!("Fill task did not create 2 worktrees within timeout (got {count})");
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        }
-
-        // Should be able to acquire from the pre-filled pool
-        let acquired = pool.acquire("test-session", &repo_path, false).await;
-        assert!(acquired.is_some(), "should acquire from pre-filled pool");
-        assert!(acquired.unwrap().from_pool);
-
-        pool.shutdown();
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_pool_fill_replenishes_after_acquire() {
-        let (_dir, repo_path) = create_temp_git_repo(5);
-        let repo_path = dunce::canonicalize(&repo_path).expect("canonicalize repo path");
-
-        let config = PoolConfig {
-            pool_size: 2,
-            parallelism: 0,
-            ..Default::default()
-        };
-
-        let pool = WorktreePool::new(repo_path.clone(), config, 5);
-
-        // Wait for initial fill
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        loop {
-            if count_instance_worktrees(&pool.instance_id) >= 2 {
-                break;
-            }
-            if std::time::Instant::now() > deadline {
-                panic!("Fill task did not complete initial fill within timeout");
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        }
-
-        // Acquire one — fill task should wake and create a replacement
-        let acquired = pool.acquire("test-1", &repo_path, false).await;
-        assert!(acquired.is_some());
-
-        // Acquire a second one — this should succeed once the fill task
-        // creates a replacement (acquire waits for in-progress creations).
-        let acquired2 = pool.acquire("test-2", &repo_path, false).await;
-        assert!(
-            acquired2.is_some(),
-            "fill task should replenish after acquire"
-        );
-
-        pool.shutdown();
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_pool_release_and_reacquire() {
-        let (_dir, repo_path) = create_temp_git_repo(10);
-        let repo_path = dunce::canonicalize(&repo_path).expect("canonicalize repo path");
-
-        let config = PoolConfig {
-            pool_size: 2,
-            parallelism: 0,
-            ..Default::default()
-        };
-
-        let pool = WorktreePool::new(repo_path.clone(), config, 10);
-
-        // Wait for fill task to produce a ready worktree, then acquire it
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        let acquired = loop {
-            if let Some(acq) = pool.acquire("test-session", &repo_path, true).await {
-                break acq;
-            }
-            if std::time::Instant::now() > deadline {
-                panic!("Fill task did not produce a ready worktree within timeout");
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        };
-        assert!(acquired.path.exists());
-        assert!(acquired.from_pool);
-
-        // Release it back
-        pool.release(acquired.path);
-
-        // Should eventually be able to acquire again (either the released one
-        // or a newly filled one)
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        let reacquired = loop {
-            if let Some(acq) = pool.acquire("test-session-2", &repo_path, true).await {
-                break acq;
-            }
-            if std::time::Instant::now() > deadline {
-                panic!("Could not reacquire within timeout");
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        };
-        assert!(reacquired.path.exists());
-        assert!(reacquired.from_pool);
-
-        pool.shutdown();
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_pool_multi_instance_isolation() {
-        let (_dir, repo_path) = create_temp_git_repo(5);
-
-        let config = PoolConfig {
-            pool_size: 1,
-            parallelism: 0,
-            ..Default::default()
-        };
-
-        let pool_a = WorktreePool::new(repo_path.clone(), config.clone(), 5);
-        let pool_b = WorktreePool::new(repo_path.clone(), config, 5);
-
-        assert_ne!(pool_a.instance_id, pool_b.instance_id);
-
-        let base = pool_base_directory();
-        let dir_a = base.join(&pool_a.instance_id);
-        let dir_b = base.join(&pool_b.instance_id);
-        assert!(dir_a.exists());
-        assert!(dir_b.exists());
-        assert_ne!(dir_a, dir_b);
-
-        let pid = std::process::id().to_string();
-        assert_eq!(
-            std::fs::read_to_string(dir_a.join(".pid")).unwrap().trim(),
-            pid
-        );
-        assert_eq!(
-            std::fs::read_to_string(dir_b.join(".pid")).unwrap().trim(),
-            pid
-        );
-
-        pool_a.shutdown();
-        pool_b.shutdown();
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_cleanup_stale_only_removes_dead_instances() {
-        let (_dir, repo_path) = create_temp_git_repo(3);
-
-        let config = PoolConfig {
-            pool_size: 1,
-            parallelism: 0,
-            ..Default::default()
-        };
-
-        let pool = WorktreePool::new(repo_path.clone(), config, 3);
-        let live_dir = pool_base_directory().join(&pool.instance_id);
-        assert!(live_dir.exists());
-
-        let dead_dir = pool_base_directory().join("dead-instance-fake-uuid");
+        let dead_dir =
+            pool_base_directory().join(format!("dead-instance-{}", uuid::Uuid::now_v7()));
         std::fs::create_dir_all(&dead_dir).unwrap();
         std::fs::write(dead_dir.join(".pid"), "4000000000").unwrap();
         let fake_wt_a = dead_dir.join("fake-wt-aaa");
@@ -2079,10 +1513,7 @@ pool_size = 3
         std::fs::write(fake_wt_a.join("file.txt"), "leftover").unwrap();
         std::fs::write(fake_wt_b.join("file.txt"), "leftover").unwrap();
 
-        assert!(dead_dir.exists());
-
-        // Call the inner function directly to bypass the process-global
-        // `Once` guard (other tests may have already triggered it).
+        // Call the inner function directly to bypass the process-global `Once` guard (other tests may have already triggered it)
         cleanup_stale_pool_worktrees_inner();
 
         assert!(
@@ -2091,341 +1522,6 @@ pool_size = 3
         );
         assert!(!dead_dir.exists(), "Dead instance dir should be cleaned up");
 
-        pool.shutdown();
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_count_ready_worktrees() {
-        use tempfile::TempDir;
-
-        let repo_path = TempDir::new().unwrap();
-        let git = git2::Repository::init(&repo_path).unwrap();
-        git.remote("origin", "https://github.com/example/repo.git")
-            .unwrap();
-        // Create some files to meet the threshold
-        for i in 0..20 {
-            std::fs::write(
-                repo_path.path().join(format!("file_{}.txt", i)),
-                format!("content {}", i),
-            )
-            .unwrap();
-        }
-        // Commit the files
-        let mut index = git.index().unwrap();
-        index
-            .add_all(["*"], git2::IndexAddOption::DEFAULT, None)
-            .unwrap();
-        index.write().unwrap();
-        let tree_id = index.write_tree().unwrap();
-        let tree = git.find_tree(tree_id).unwrap();
-        let sig = git2::Signature::now("Test", "test@example.com").unwrap();
-        git.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])
-            .unwrap();
-
-        let config = PoolConfig {
-            enabled: true,
-            pool_size: 3,
-            file_count_threshold: 10,
-            parallelism: 3,
-        };
-
-        let pool = WorktreePool::new(repo_path.path().to_path_buf(), config, 20);
-
-        // Initially no worktrees
-        assert_eq!(pool.count_ready_worktrees(), 0);
-
-        // Wait for fill task to create worktrees
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        loop {
-            if pool.count_ready_worktrees() >= 2 {
-                break;
-            }
-            if std::time::Instant::now() > deadline {
-                panic!("Fill task did not create enough ready worktrees within timeout");
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        }
-
-        let ready_count = pool.count_ready_worktrees();
-        assert!(ready_count >= 2, "Should have at least 2 ready worktrees");
-
-        pool.shutdown();
-    }
-
-    // Orphan adoption tests
-
-    /// Helper: create a git repo and a linked worktree, simulating a dead
-    /// pool instance's orphaned worktree.
-    fn create_orphan_worktree(repo_path: &Path, instance_dir: &Path, pool_id: &str) -> PathBuf {
-        let wt_path = instance_dir.join(pool_id);
-        let out = std::process::Command::new("git")
-            .args(["worktree", "add", "--detach", &wt_path.to_string_lossy()])
-            .current_dir(repo_path)
-            .output()
-            .expect("git worktree add");
-        assert!(
-            out.status.success(),
-            "git worktree add failed: {}",
-            String::from_utf8_lossy(&out.stderr)
-        );
-        wt_path
-    }
-
-    #[test]
-    fn test_is_worktree_adoptable_valid() {
-        let (_dir, repo_path) = create_temp_git_repo(3);
-        let repo_path = dunce::canonicalize(&repo_path).unwrap();
-        let instance_dir = tempfile::tempdir().unwrap();
-        let wt_path = create_orphan_worktree(&repo_path, instance_dir.path(), "test-pool-id");
-
-        assert!(
-            is_worktree_adoptable(&wt_path),
-            "valid linked worktree should be adoptable"
-        );
-    }
-
-    #[test]
-    fn test_is_worktree_adoptable_no_git_file() {
-        let dir = tempfile::tempdir().unwrap();
-        let wt_path = dir.path().join("fake-worktree");
-        std::fs::create_dir_all(&wt_path).unwrap();
-        // No .git file at all
-        assert!(
-            !is_worktree_adoptable(&wt_path),
-            "directory without .git file should not be adoptable"
-        );
-    }
-
-    #[test]
-    fn test_is_worktree_adoptable_git_is_directory() {
-        let dir = tempfile::tempdir().unwrap();
-        let wt_path = dir.path().join("fake-worktree");
-        std::fs::create_dir_all(wt_path.join(".git")).unwrap();
-        // .git is a directory (regular repo, not linked worktree)
-        assert!(
-            !is_worktree_adoptable(&wt_path),
-            "directory with .git directory should not be adoptable"
-        );
-    }
-
-    #[test]
-    fn test_is_worktree_adoptable_broken_gitdir() {
-        let dir = tempfile::tempdir().unwrap();
-        let wt_path = dir.path().join("fake-worktree");
-        std::fs::create_dir_all(&wt_path).unwrap();
-        std::fs::write(wt_path.join(".git"), "gitdir: /nonexistent/path\n").unwrap();
-        assert!(
-            !is_worktree_adoptable(&wt_path),
-            "worktree with broken gitdir should not be adoptable"
-        );
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_adopt_orphan_worktrees_basic() {
-        let (_dir, repo_path) = create_temp_git_repo(5);
-        let repo_path = dunce::canonicalize(&repo_path).unwrap();
-
-        // Create a fake "dead instance" with a real linked worktree.
-        let old_instance_dir = tempfile::tempdir().unwrap();
-        let pool_id = "adopt-test-wt";
-        let wt_path = create_orphan_worktree(&repo_path, old_instance_dir.path(), pool_id);
-        assert!(wt_path.exists());
-
-        // Create candidates directly (no global state).
-        let candidates = vec![AdoptableWorktree {
-            old_path: wt_path.clone(),
-            pool_id: pool_id.to_string(),
-            old_instance_id: "old-instance".to_string(),
-        }];
-
-        // Create new instance dir for adoption target.
-        let new_instance_dir = tempfile::tempdir().unwrap();
-        let ready_notify = Notify::new();
-
-        // Use _impl directly to avoid global state.
-        let adopted = WorktreePool::adopt_orphan_worktrees_impl(
-            new_instance_dir.path(),
-            &repo_path,
-            2, // hard_cap
-            &ready_notify,
-            candidates,
-        )
-        .await;
-
-        assert_eq!(adopted, 1, "should adopt 1 worktree");
-
-        // Worktree should be in new instance dir with .ready marker.
-        let new_wt_path = new_instance_dir.path().join(pool_id);
-        assert!(
-            new_wt_path.exists(),
-            "adopted worktree should exist in new instance dir"
-        );
-        assert!(
-            marker_path(&new_wt_path, READY_SUFFIX).exists(),
-            "adopted worktree should have .ready marker"
-        );
-
-        // Old path should be gone (renamed away).
-        assert!(!wt_path.exists(), "old worktree path should not exist");
-
-        // Verify the adopted worktree has a clean git status.
-        let status = std::process::Command::new("git")
-            .args(["status", "--porcelain"])
-            .current_dir(&new_wt_path)
-            .output()
-            .expect("git status");
-        assert!(status.status.success(), "git status should succeed");
-        assert!(
-            status.stdout.is_empty(),
-            "adopted worktree should have clean git status"
-        );
-
-        // Verify backlink points to new location.
-        let git_worktrees = repo_path.join(".git/worktrees").join(pool_id);
-        let backlink = std::fs::read_to_string(git_worktrees.join("gitdir")).unwrap();
-        assert!(
-            backlink.contains(&new_instance_dir.path().to_string_lossy().to_string()),
-            "backlink should point to new instance dir, got: {backlink}"
-        );
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_adopt_rejects_cross_repo_worktree() {
-        // Create two separate repos.
-        let (_dir_a, repo_a) = create_temp_git_repo(3);
-        let repo_a = dunce::canonicalize(&repo_a).unwrap();
-        let (_dir_b, repo_b) = create_temp_git_repo(3);
-        let repo_b = dunce::canonicalize(&repo_b).unwrap();
-
-        // Create a worktree linked to repo_a.
-        let old_instance_dir = tempfile::tempdir().unwrap();
-        let pool_id = "cross-repo-wt";
-        let wt_path = create_orphan_worktree(&repo_a, old_instance_dir.path(), pool_id);
-
-        // Create candidates directly (no global state).
-        let candidates = vec![AdoptableWorktree {
-            old_path: wt_path.clone(),
-            pool_id: pool_id.to_string(),
-            old_instance_id: "old-instance".to_string(),
-        }];
-
-        // Try to adopt into a pool for repo_b — should reject.
-        let new_instance_dir = tempfile::tempdir().unwrap();
-        let ready_notify = Notify::new();
-
-        // Use _impl directly to avoid global state.
-        let adopted = WorktreePool::adopt_orphan_worktrees_impl(
-            new_instance_dir.path(),
-            &repo_b, // different repo!
-            2,
-            &ready_notify,
-            candidates,
-        )
-        .await;
-
-        assert_eq!(adopted, 0, "should not adopt worktree from different repo");
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    #[ignore = "flaky: worktree adoption count is timing-dependent on CI"]
-    async fn test_adopt_respects_hard_cap_limit() {
-        let (_dir, repo_path) = create_temp_git_repo(3);
-        let repo_path = dunce::canonicalize(&repo_path).unwrap();
-
-        // Create 3 orphan worktrees but hard_cap is 1.
-        let old_instance_dir = tempfile::tempdir().unwrap();
-        let mut candidates = Vec::new();
-        for i in 0..3 {
-            let pool_id = format!("excess-wt-{i}");
-            let wt_path = create_orphan_worktree(&repo_path, old_instance_dir.path(), &pool_id);
-            candidates.push(AdoptableWorktree {
-                old_path: wt_path,
-                pool_id,
-                old_instance_id: "old-instance".to_string(),
-            });
-        }
-
-        let new_instance_dir = tempfile::tempdir().unwrap();
-        let ready_notify = Notify::new();
-
-        // Use _impl directly to avoid global state.
-        let adopted = WorktreePool::adopt_orphan_worktrees_impl(
-            new_instance_dir.path(),
-            &repo_path,
-            1, // hard_cap = 1, but 3 candidates
-            &ready_notify,
-            candidates,
-        )
-        .await;
-
-        assert_eq!(adopted, 1, "should adopt only up to hard_cap worktrees");
-
-        // Only 1 worktree in new instance dir.
-        let ready_count = std::fs::read_dir(new_instance_dir.path())
-            .unwrap()
-            .flatten()
-            .filter(|e| e.path().is_dir())
-            .count();
-        assert_eq!(
-            ready_count, 1,
-            "new instance should have exactly 1 worktree"
-        );
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    #[serial]
-    async fn test_adopt_in_fill_loop_creates_deficit() {
-        let (_dir, repo_path) = create_temp_git_repo(5);
-        let repo_path = dunce::canonicalize(&repo_path).unwrap();
-
-        // Create 1 orphan worktree, pool_size = 2.
-        // The fill loop should adopt 1 and create 1 more.
-        // Use a tempdir to avoid collisions with parallel test runs on CI.
-        let old_instance_temp = tempfile::tempdir().unwrap();
-        let old_instance_dir = old_instance_temp.path().to_path_buf();
-
-        let pool_id = "fill-deficit-wt";
-        let wt_path = create_orphan_worktree(&repo_path, &old_instance_dir, pool_id);
-
-        // Manually populate the cache (since CLEANUP_ONCE already ran).
-        {
-            let mut cache = ADOPTABLE_CACHE.lock().unwrap();
-            *cache = Some(vec![AdoptableWorktree {
-                old_path: wt_path,
-                pool_id: pool_id.to_string(),
-                old_instance_id: "dead-instance-for-fill-test".to_string(),
-            }]);
-        }
-
-        let config = PoolConfig {
-            pool_size: 2,
-            parallelism: 0,
-            ..Default::default()
-        };
-
-        let pool = WorktreePool::new(repo_path.clone(), config, 5);
-
-        // Wait for the pool to have 2 ready worktrees (1 adopted + 1 created).
-        let deadline = std::time::Instant::now() + Duration::from_secs(30);
-        loop {
-            let count = count_instance_worktrees(&pool.instance_id);
-            if count >= 2 {
-                break;
-            }
-            if std::time::Instant::now() > deadline {
-                panic!("Pool did not reach 2 worktrees within timeout (got {count})");
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        }
-
-        // Should be able to acquire 2 worktrees.
-        let a = pool.acquire("test-a", &repo_path, false).await;
-        assert!(a.is_some(), "should acquire first worktree");
-
-        let b = pool.acquire("test-b", &repo_path, false).await;
-        assert!(b.is_some(), "should acquire second worktree");
-
-        pool.shutdown();
+        let _ = std::fs::remove_dir_all(&live_dir);
     }
 }

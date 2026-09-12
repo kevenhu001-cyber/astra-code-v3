@@ -34,10 +34,7 @@ pub use scroll_mode::ScrollMode;
 pub use text_selection::TextSelection;
 pub use watcher::ConfigWatcher;
 
-// -- Global tab_width --------------------------------------------------------
-//
-// Stored as an atomic so MarkdownContent can read the current value
-// without needing the AppearanceConfig threaded through its API.
+// Atomic so MarkdownContent can read tab width without an AppearanceConfig handle.
 // Updated by the event loop whenever pager.toml is (re)loaded.
 
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -54,9 +51,9 @@ pub fn set_tab_width(w: u8) {
     TAB_WIDTH.store(w, Ordering::Relaxed);
 }
 
-/// Tabs as spaces at [`tab_width`]. Beside the width because every caller that
-/// paints a tab has to agree on it: ratatui drops a cluster holding a control
-/// character, so a tab left in the text is deleted rather than drawn.
+/// Replaces tabs with spaces at [`tab_width`].
+/// This sits beside the width because every caller that paints a tab has to agree on it.
+/// ratatui drops a cluster holding a control character, so a tab left in the text is deleted rather than drawn.
 pub fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
     let width = tab_width();
     if width == 0 || !text.contains('\t') {

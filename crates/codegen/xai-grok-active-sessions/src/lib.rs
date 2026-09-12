@@ -30,8 +30,8 @@ pub fn register(session: ActiveSession) -> io::Result<()> {
     register_in(&xai_grok_config::grok_home(), session)
 }
 
-/// Non-blocking unregister for signal handlers. Returns `Ok(false)` on
-/// lock contention; the orphan is cleaned up by `collect_crashed` next launch.
+/// Non-blocking unregister for signal handlers.
+/// Returns `Ok(false)` on lock contention; the orphan is cleaned up by `collect_crashed` next launch.
 pub fn try_unregister(session_id: &acp::SessionId) -> io::Result<bool> {
     try_unregister_in(&xai_grok_config::grok_home(), session_id)
 }

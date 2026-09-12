@@ -1,12 +1,9 @@
-//! Memory system tracing target and optional file-based logging layer.
-//!
 //! Provides a dedicated tracing target (`xai_memory`) with an optional
 //! file logger that writes to `~/.astra/logs/memory.log`.
 //!
 //! ## When to use
 //!
-//! Use `tracing::info!(target: memory_log::TARGET, ...)` at memory system
-//! lifecycle points — config resolution, storage init, flush, search, etc.
+//! Use `tracing::info!(target: memory_log::TARGET, ...)` at memory system points such as config resolution, storage init, flush, and search.
 //! These events are always emitted (zero cost when the layer is absent).
 //!
 //! ## Enabling (debug builds)

@@ -44,8 +44,7 @@ fn grok_home_override_path_helpers() {
     ));
 }
 
-/// Isolated because `grok_home()`'s `OnceLock` is already initialized by the
-/// time the shared lib-test binary reaches a case like this.
+/// Isolated because `grok_home()`'s `OnceLock` is already initialized by the time the shared lib-test binary reaches a case like this.
 #[test]
 #[serial_test::serial(ASTRA_HOME)]
 fn disk_usage_run_creates_no_grok_home() {

@@ -36,15 +36,12 @@ fn is_stable_channel(channel: &str) -> bool {
     channel.is_empty() || channel == "stable"
 }
 
-/// Manual-install one-liner for this platform's bootstrap installer.
-///
-/// On Unix the variable must prefix `bash` (which runs install.sh), not
-/// `curl`: in `VAR=x curl … | bash` the assignment applies to `curl` only
-/// and install.sh would fall back to stable.
+/// Manual-install one-liner for this platform's bootstrap installer. On Unix the variable must prefix `bash` (which runs
+/// install.sh), not `curl`. In `VAR=x curl … | bash` the assignment applies to `curl` only and install.sh would fall back
+/// to stable.
 fn manual_install_cmd(channel: &str) -> String {
-    // Only interpolate a well-formed channel ([A-Za-z0-9._-]) into the
-    // shell one-liner; anything else falls back to stable (a working
-    // installer beats a broken quoted command).
+    // Only interpolate a well-formed channel ([A-Za-z0-9._-]) into the shell one-liner
+    // Anything else falls back to stable (a working installer beats a broken quoted command)
     let channel = channel.trim();
     let safe = !channel.is_empty()
         && channel
@@ -77,7 +74,6 @@ fn manual_install_cmd(channel: &str) -> String {
     }
 }
 
-/// Build a reinstall hint for a known installer type.
 fn reinstall_hint(installer: &str, channel: &str) -> String {
     match installer {
         "npm" => "Please reinstall via npm:\n  npm i -g @topodrive-ai-official/grok".to_string(),
@@ -86,15 +82,9 @@ fn reinstall_hint(installer: &str, channel: &str) -> String {
     }
 }
 
-/// True when this process is an x86_64 build translated by Rosetta on an
-/// Apple Silicon host. `hw.optional.arm64` is 1 on Apple Silicon — including
-/// from a translated process, where the compile-time arch says x86_64.
-///
-/// Read in-process via `sysctlbyname`: no spawn, no stdout parse, and no
-/// dependence on the `sysctl` binary being on PATH. A missing key (genuine
-/// Intel Mac) or any error means not Apple Silicon — the probe fails open
-/// to the compile-time arch. Cached: fixed host property, read from async
-/// paths via [`detect_platform`].
+/// True when this process is an x86_64 build translated by Rosetta on an Apple Silicon host. `hw.optional.arm64` is 1 on
+/// Apple Silicon, including from a translated process, where the compile-time arch says x86_64. A missing key (genuine
+/// Intel Mac) or any error means not Apple Silicon: the probe fails open to the compile-time arch.
 #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
 fn running_under_rosetta_on_apple_silicon() -> bool {
     static ROSETTA: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
@@ -122,9 +112,8 @@ fn running_under_rosetta_on_apple_silicon() -> bool {
     false
 }
 
-/// Arch to download artifacts for, given the compile-time arch and whether
-/// the host is Apple Silicon running this build under Rosetta. Separated
-/// from [`detect_platform`] so the decision is unit-testable.
+/// Arch to download artifacts for, given the compile-time arch and whether the host is Apple Silicon running this build under Rosetta.
+/// Separated from [`detect_platform`] so the decision is unit-testable.
 fn corrected_arch(
     os: &'static str,
     arch: &'static str,
@@ -137,16 +126,15 @@ fn corrected_arch(
     }
 }
 
-/// Artifact platform from [`detect_platform`]; compile-time values for
-/// combos the updater does not support.
+/// Artifact platform from [`detect_platform`]; falls back to the compile-time values for combos the updater does not support.
 fn platform_label() -> String {
     detect_platform()
         .map(|(os, arch)| format!("{os}-{arch}"))
         .unwrap_or_else(|_| format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH))
 }
 
-/// Typed phase marker for telemetry classification. Deliberately no
-/// `source()`, so anyhow's `{:#}` does not print the chain twice.
+/// Typed phase marker for telemetry classification.
+/// Deliberately no `source()`, so anyhow's `{:#}` does not print the chain twice.
 #[derive(Debug, thiserror::Error)]
 enum InstallPhaseError {
     #[error("{0:#}")]
@@ -155,8 +143,7 @@ enum InstallPhaseError {
     Activate(anyhow::Error),
 }
 
-/// Smoke failures stay unwrapped — already typed, and the base-retry abort
-/// in [`install_internal_from_bases`] must still downcast them.
+/// Smoke failures stay unwrapped: already typed, and the base-retry abort in [`install_internal_from_bases`] must still downcast them.
 fn wrap_download_err(e: anyhow::Error) -> anyhow::Error {
     if e.is::<SmokeTestFailure>() {
         e
@@ -194,7 +181,6 @@ pub struct UpdateStatus {
     pub error: Option<String>,
 }
 
-/// Format and print an [`UpdateStatus`] to stdout.
 pub fn print_update_status(status: &UpdateStatus, json: bool) -> anyhow::Result<()> {
     if json {
         let payload = serde_json::to_string(status)?;
@@ -254,8 +240,7 @@ pub async fn check_update_status(update_config: &UpdateConfig) -> UpdateStatus {
     };
 
     match get_latest_version(inst, update_config).await {
-        // --check shares the updater's decision, so it never advertises a version
-        // the policy would skip, clamp away, or can't satisfy.
+        // --check shares the updater's decision, so it never advertises a version the policy would skip, clamp away, or can't satisfy
         Ok(latest) => match plan_for(&config::VersionPolicy::resolve(), latest) {
             UpdatePlan::Install { target, .. } => {
                 let mut error = None;
@@ -332,14 +317,14 @@ enum UpdatePlan {
     },
 }
 
-/// Classify a fetched `latest` release under `policy`. Pure; `fetch_update_plan`
-/// is the IO wrapper. `--check` shares this so it can't diverge from the updater.
+/// Classify a fetched `latest` release under `policy`.
+/// Pure; `fetch_update_plan` is the IO wrapper.
+/// `--check` shares this so it can't diverge from the updater.
 fn plan_for(policy: &config::VersionPolicy, latest: String) -> UpdatePlan {
     let Some(target) = policy.resolve_target(&latest) else {
         return UpdatePlan::Skip { latest };
     };
-    // A hard `required_minimum` can clamp above the latest release; that version
-    // doesn't exist.
+    // A hard `required_minimum` can clamp above the latest release; that version doesn't exist
     if matches!(
         (semver::Version::parse(&target), semver::Version::parse(&latest)),
         (Ok(t), Ok(l)) if t > l
@@ -355,14 +340,15 @@ async fn fetch_update_plan(
     update_config: &UpdateConfig,
     policy: &config::VersionPolicy,
 ) -> Result<UpdatePlan> {
+    let _check_span =
+        xai_grok_telemetry::region!("update.check", xai_grok_telemetry::region::Parent::Inherit);
     let latest = fetch_latest_version(installer, update_config).await?;
     Ok(plan_for(policy, latest))
 }
 
-/// Installer + version the leader/background path should converge to: an
-/// upgrade OR an authoritative-installer rollback. `None` means stay put. Gates
-/// on the installer (via `installer_allows_downgrade`) so npm is never
-/// downgraded — the decision depends on the installer, never the caller.
+/// Installer and version the leader/background path should converge to: an upgrade OR an authoritative-installer rollback.
+/// `None` means stay put.
+/// Gates on the installer (via `installer_allows_downgrade`) so npm is never downgraded; the decision depends on the installer, never the caller.
 pub async fn auto_update_target(update_config: &UpdateConfig) -> Option<(&'static str, String)> {
     let installer = get_installer().await?;
     let current = get_installed_astra_version();
@@ -386,11 +372,10 @@ pub async fn auto_update_target(update_config: &UpdateConfig) -> Option<(&'stati
 /// Outcome of [`ensure_latest_on_disk`].
 #[derive(Debug)]
 pub struct EnsureLatestOutcome {
-    /// Version this call downloaded and installed; `None` when the disk was
-    /// already current (or there was no installer).
+    /// Version this call downloaded and installed; `None` when the disk was already current (or there was no installer).
     pub installed: Option<String>,
-    /// The running process differs from what is now on disk in the channel's
-    /// update direction — the caller should relaunch onto the on-disk binary.
+    /// The running process differs from what is now on disk in the channel's update direction.
+    /// The caller should relaunch onto the on-disk binary.
     pub relaunch_needed: bool,
 }
 
@@ -412,6 +397,10 @@ pub struct EnsureLatestOutcome {
 /// re-download is NOT fixed there; only the symlink layout can prove the
 /// disk is current without exec'ing the binary.
 pub async fn ensure_latest_on_disk(update_config: &UpdateConfig) -> Result<EnsureLatestOutcome> {
+    let _ensure_span = xai_grok_telemetry::region!(
+        "update.ensure_latest",
+        xai_grok_telemetry::region::Parent::Inherit
+    );
     let mut outcome = EnsureLatestOutcome {
         installed: None,
         relaunch_needed: false,
@@ -445,9 +434,8 @@ pub async fn ensure_latest_on_disk(update_config: &UpdateConfig) -> Result<Ensur
             CliUpdateTrigger::LeaderConverge,
         )
         .await?;
-        // The leader relaunches right after a successful converge and would
-        // die with the event still in flight (failures keep it alive, so
-        // successes would under-report). The install is already done.
+        // The leader relaunches right after a successful converge and would die with the event still in flight
+        // Failures keep it alive, so successes would under-report. The install is already done.
         xai_grok_telemetry::session_ctx::drain_pending(xai_grok_telemetry::session_ctx::CLI_DRAIN)
             .await;
         outcome.installed = Some(target.clone());
@@ -520,17 +508,32 @@ pub async fn get_installer() -> Option<&'static str> {
     match cfg.cli.installer.as_deref() {
         Some("npm") => Some("npm"),
         Some("gh-release") => Some("gh-release"),
-        _ => Some("internal"),
+        Some(_) => Some("internal"),
+        // A wiped config must not reclassify an npm install as internal:
+        // that re-enables downgrades and updates npm never sees.
+        None if path_resolves_to_npm_entry() => Some("npm"),
+        None => Some("internal"),
     }
+}
+
+/// The npm entry links to a binary inside the package, so the running
+/// executable's real path names the installer.
+fn path_resolves_to_npm_entry() -> bool {
+    std::env::current_exe()
+        .and_then(|exe| dunce::canonicalize(&exe))
+        .is_ok_and(|exe| is_under_node_modules(&exe))
+}
+
+fn is_under_node_modules(exe: &std::path::Path) -> bool {
+    exe.components().any(|c| c.as_os_str() == "node_modules")
 }
 
 fn needs_update(current: &str, target: &str, channel: &str, allow_downgrade: bool) -> Option<bool> {
     let current = semver::Version::parse(current).ok()?;
     let target = semver::Version::parse(target).ok()?;
     match channel {
-        // NOTE: With the 0.2.X versioning scheme, all versions are plain
-        // semver (no pre-release suffix). The pre-release checks in this
-        // match are dead code but kept as a safety net.
+        // NOTE: With the 0.2.X versioning scheme, all versions are plain semver (no pre-release suffix)
+        // The pre-release checks in this match are dead code but kept as a safety net
         "stable" | "enterprise" => {
             if !target.pre.is_empty() {
                 tracing::warn!(
@@ -554,13 +557,9 @@ fn needs_update(current: &str, target: &str, channel: &str, allow_downgrade: boo
     })
 }
 
-/// Returns `true` for installer backends whose version source is authoritative
-/// (managed by xAI directly), meaning a pointer rollback is intentional and
-/// should trigger a client downgrade. Returns `false` for backends like npm
-/// where stale corporate registries/proxies can return arbitrarily old versions.
-///
-/// Users who installed via `install.sh` are classified as `"internal"` by
-/// `get_installer()`, so they also get rollback support.
+/// Returns `true` for installer backends whose version source is authoritative (managed by xAI directly). Returns `false`
+/// for backends like npm where stale corporate registries/proxies can return arbitrarily old versions. Users who
+/// installed via `install.sh` are classified as `"internal"` by `get_installer()`, so they also get rollback support.
 fn installer_allows_downgrade(installer: &str) -> bool {
     match installer {
         "internal" | "gh-release" => true,
@@ -569,7 +568,6 @@ fn installer_allows_downgrade(installer: &str) -> bool {
     }
 }
 
-/// Result of a background update availability check.
 #[derive(Debug, Clone)]
 pub struct UpdateAvailable {
     /// The latest version string (e.g. "0.1.200").
@@ -578,8 +576,7 @@ pub struct UpdateAvailable {
 
 /// Outcome of [`check_update_background`].
 pub struct BackgroundUpdateCheck {
-    /// `Some` when the *running* binary is older than the channel pointer —
-    /// drives the in-TUI restart hint regardless of who downloads the binary.
+    /// `Some` when the *running* binary is older than the channel pointer; drives the in-TUI restart hint regardless of who downloads the binary.
     pub update: Option<UpdateAvailable>,
     /// Handle to the background `astra update` child, `Some` only when a
     /// download was actually started (the on-disk install was behind the
@@ -662,8 +659,7 @@ pub async fn check_update_background(update_config: &UpdateConfig) -> Background
         None => true,
     };
 
-    // Kick off a non-blocking download so the binary is ready when the
-    // user restarts (or accepts the in-TUI restart prompt).
+    // Kick off a non-blocking download so the binary is ready when the user restarts (or accepts the in-TUI restart prompt)
     let download = if disk_needs_download {
         match run_update_subcommand(UpdateRunMode::NonBlocking, CliUpdateTrigger::AutoBackground)
             .await
@@ -698,7 +694,6 @@ pub async fn run_update_if_available(
     update_config: &UpdateConfig,
 ) -> Result<bool> {
     let Some(inst) = get_installer().await else {
-        // Skip update check if no known installer.
         return Ok(false);
     };
 
@@ -710,7 +705,6 @@ pub async fn run_update_if_available(
 
     let current_config = config::load_config().await;
 
-    // Skip update check if auto-update is explicitly disabled.
     if current_config.cli.auto_update == Some(false) {
         return Ok(false);
     }
@@ -731,9 +725,9 @@ pub async fn run_update_if_available(
 
     let current_version = get_installed_astra_version();
     let policy = config::VersionPolicy::resolve();
-    // Don't write version.json here; only cache after confirming no update is
-    // needed or after a successful install, so a failed background download
-    // doesn't suppress retries for the TTL window.
+    // Don't write version.json here
+    // Only cache after confirming no update is needed or after a successful install
+    // Otherwise a failed background download would suppress retries for the TTL window
     let latest_version = match fetch_update_plan(inst, update_config, &policy).await {
         Ok(UpdatePlan::Install { target, .. }) => target,
         Ok(UpdatePlan::Skip { .. } | UpdatePlan::Unavailable { .. }) | Err(_) => return Ok(false),
@@ -791,7 +785,7 @@ pub async fn run_update_if_available(
             if io::stdin().read_line(&mut line).is_ok() {
                 let ans = line.trim().to_ascii_lowercase();
                 if ans.is_empty() || ans == "y" || ans == "yes" {
-                    // Accepted prompt = consent, whatever the caller was.
+                    // Accepting the prompt is consent, whatever the caller was
                     if let Err(e) =
                         run_update_subcommand(run_mode, CliUpdateTrigger::UserCommand).await
                     {
@@ -820,49 +814,37 @@ pub async fn run_update_if_available(
     Ok(false)
 }
 
-/// Launch "grok update" in blocking or non-blocking mode.
-///
-/// In `NonBlocking` mode the spawned child's handle is returned so the caller
-/// can later `wait()` on the in-flight download (e.g. the TUI's
-/// quit-for-update path) instead of blind-spawning a second downloader.
-/// Dropping the handle does not kill the child (`kill_on_drop` is off), so
-/// callers that don't care can ignore it. `Blocking` mode returns `None`.
+/// Launch "grok update" in blocking or non-blocking mode. `NonBlocking` mode returns the spawned child's handle. The
+/// TUI's quit-for-update path `wait()`s on that in-flight download instead of spawning a second downloader. Dropping the
+/// handle does not kill the child (`kill_on_drop` is off), so callers that don't care can ignore it.
 async fn run_update_subcommand(
     run_mode: UpdateRunMode,
     trigger: CliUpdateTrigger,
 ) -> Result<Option<tokio::process::Child>> {
     let exe = std::env::current_exe()?;
     let mut cmd = tokio::process::Command::new(exe);
-    // One trigger representation end to end: the enum crosses the process
-    // boundary as --trigger=<value> (FromStr on the other side).
+    // One trigger representation end to end: the enum crosses the process boundary as --trigger=<value> (FromStr on the other side)
     cmd.arg("update");
-    cmd.arg(format!("--trigger={}", trigger.as_str()));
-    // Hand the resolved telemetry mode to the child, which cannot see the
-    // remote-settings layer (requirement pins still beat env). None at the
-    // startup spawns — they run before the settings prefetch, when this
-    // process knows no more than the child; waiting would let telemetry
-    // delay an update.
+    cmd.arg(format!("--trigger={}", trigger.as_ref()));
+    // Hand the resolved telemetry mode to the child, which cannot see the remote-settings layer (requirement pins still beat env)
+    // None at the startup spawns: they run before the settings prefetch, when this process knows no more than the child
+    // Waiting would let telemetry delay an update
     if let Some(mode) = xai_grok_telemetry::client::current_mode() {
         cmd.env("ASTRA_TELEMETRY_ENABLED", mode.to_string());
     }
     match run_mode {
         UpdateRunMode::Blocking => {
-            // stderr must be null, not piped: `.status()` does not drain
-            // pipes, so if the child writes more than the OS pipe buffer
-            // (~16 KB macOS / ~64 KB Linux) to stderr (e.g. download
-            // progress bars), the child blocks on the write while the
-            // parent blocks on waitpid — deadlocking both processes.
-            // With `panic = "abort"`, the blocked child eventually
-            // receives SIGABRT.
+            // stderr must be null, not piped: `.status()` does not drain pipes, so if the child writes more than the OS pipe buffer
+            // (~16 KB macOS / ~64 KB Linux) to stderr (e.g. download progress bars), the child blocks on the write while the parent
+            // blocks on waitpid — deadlocking both processes. With `panic = "abort"`, the blocked child eventually receives SIGABRT.
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
-                // inherit, not piped: the TUI is already restored so the
-                // parent's stderr fd is a normal terminal. inherit lets
-                // the child's diagnostic output reach the user. piped +
-                // status() would immediately close the read end → EPIPE
-                // → panic → SIGABRT (signal 6) under panic=abort.
+                // inherit, not piped: the TUI is already restored so the parent's stderr fd is a normal terminal inherit lets the
+                // child's diagnostic output reach the user. With piped stderr, `status()` would immediately close the read end. The
+                // child then hits EPIPE and panics, which is SIGABRT (signal 6) under panic=abort
                 .stderr(Stdio::inherit());
-            // No detach: the child must stay in the foreground process group so Ctrl+C cancels it with the parent; the atomic install protocol makes mid-download kills safe.
+            // No detach: the child must stay in the foreground process group so Ctrl+C cancels it with the parent
+            // The atomic install protocol makes mid-download kills safe
             let status = cmd.status().await?;
             if !status.success() {
                 anyhow::bail!("astra update failed with {}", status);
@@ -873,8 +855,7 @@ async fn run_update_subcommand(
             cmd.stdin(Stdio::null())
                 .stdout(Stdio::null())
                 .stderr(Stdio::null());
-            // Detach = new session (Ctrl+C isolation), not handle abandonment:
-            // the child is still ours to wait() on.
+            // Detach means a new session (Ctrl+C isolation), not handle abandonment: the child is still ours to wait() on
             xai_grok_tools::util::detach_command(&mut cmd);
             #[allow(clippy::disallowed_methods)] // the caller owns the returned handle
             let child = cmd.spawn()?;
@@ -907,8 +888,8 @@ pub fn restart_astra() -> Result<()> {
     cmd.envs(std::env::vars_os().filter(|(k, _)| k != "ASTRA_AUTO_UPDATE"));
     eprintln!("Restarting Astra...");
 
-    // Use exec on Unix to replace the current process, avoiding stdio issues
-    // when the parent exits. On Windows, fall back to spawn + exit.
+    // Use exec on Unix to replace the current process, avoiding stdio issues when the parent exits
+    // On Windows, fall back to spawn and exit
     #[cfg(unix)]
     {
         // Flush output before exec to ensure messages are visible
@@ -939,13 +920,11 @@ pub async fn run_install_script(
     update_config: &UpdateConfig,
     trigger: CliUpdateTrigger,
 ) -> Result<()> {
-    // What's on disk is being replaced, not this (possibly stale) process's
-    // version; npm has no trustworthy disk version, so it falls back.
+    // What's on disk is being replaced, not this (possibly stale) process's version; npm has no trustworthy disk version, so it falls back
     let from_version =
         disk_version_for_installer(installer).unwrap_or_else(get_installed_astra_version);
     let started = Instant::now();
-    // Internal reports the version it actually activated; npm/gh-release
-    // resolve their own artifact, so the requested target stands in.
+    // Internal reports the version it actually activated; npm/gh-release resolve their own artifact, so the requested target stands in
     let result: Result<Option<String>> = match installer {
         "npm" => install_npm(
             target,
@@ -956,7 +935,7 @@ pub async fn run_install_script(
         "gh-release" => install_gh_release(target).await.map(|()| None),
         _ => install_internal(target, update_config).await.map(Some),
     };
-    // Before the success-only cache sweep, so it cannot inflate successes.
+    // Measured before the success-only cache sweep, so the sweep cannot inflate success durations
     let duration_ms = started.elapsed().as_millis() as u64;
     if result.is_ok() {
         remove_stale_models_cache().await;
@@ -1022,18 +1001,13 @@ pub(crate) fn detect_platform() -> Result<(&'static str, &'static str)> {
     ))
 }
 
-/// Age past which a leftover `.tmp` download file (or a freshly-renamed
-/// versioned binary) is considered abandoned (crashed/killed updater) and
-/// safe for `cleanup_old_downloads` to sweep. Generous compared to the
-/// longest plausible download (per-request budget is
-/// [`DOWNLOAD_REQUEST_TIMEOUT`]; the leader check+download pass matches) so
-/// a concurrent updater's in-flight or just-landed file is never deleted
-/// out from under it.
+/// Age past which a leftover `.tmp` download file or freshly-renamed versioned binary counts as abandoned (crashed or
+/// killed updater). The per-request budget is [`DOWNLOAD_REQUEST_TIMEOUT`] and the leader's check-and-download pass
+/// matches it. So a concurrent updater's in-flight or just-landed file is never deleted out from under it.
 const STALE_TMP_AGE: Duration = Duration::from_secs(60 * 60);
 
 /// Total timeout for a CLI artifact download request (including body).
-/// Previously 5 minutes, which was too tight on slow links and caused the
-/// transfer to abort and restart from zero repeatedly.
+/// Tighter budgets abort slow-link transfers mid-body and restart them from zero.
 const DOWNLOAD_REQUEST_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
 /// Unique temp path for an in-flight download of `dest`.
@@ -1069,8 +1043,7 @@ fn unique_temp_sibling(base: &std::path::Path, ext: &str) -> std::path::PathBuf 
     base.with_file_name(name)
 }
 
-/// Set `+x` on the temp file before renaming onto `dest`, so a concurrent
-/// same-version installer never execs `dest` while it is still 0644.
+/// Set `+x` on the temp file before renaming onto `dest`, so a concurrent same-version installer never execs `dest` while it is still 0644.
 async fn publish_downloaded_artifact(tmp: &std::path::Path, dest: &std::path::Path) -> Result<()> {
     #[cfg(unix)]
     {
@@ -1090,18 +1063,15 @@ fn parallel_chunk_count(size: u64) -> u64 {
     (size_mb / 16).clamp(1, 8)
 }
 
-/// Try a parallel byte-range download to `dest`. Returns Err if the server
-/// doesn't advertise a Content-Length, the file is too small to be worth
-/// splitting, the range request is rejected, or any chunk transfer fails.
+/// Try a parallel byte-range download to `dest`.
+/// Returns Err when the server doesn't advertise a Content-Length, the file is too small to split, the range request is rejected, or a chunk fails.
 /// The caller is expected to fall back to a single-connection download on Err.
 async fn try_parallel_download(
     url: &str,
     dest: &std::path::Path,
     with_progress: bool,
 ) -> Result<()> {
-    let client = reqwest::Client::builder()
-        .timeout(DOWNLOAD_REQUEST_TIMEOUT)
-        .build()?;
+    let client = download_client()?;
 
     let head = client.head(url).send().await?;
     if !head.status().is_success() {
@@ -1113,6 +1083,11 @@ async fn try_parallel_download(
     if size < PARALLEL_DOWNLOAD_MIN_BYTES {
         anyhow::bail!("file too small for parallel download ({} bytes)", size);
     }
+
+    let _dl_span = xai_grok_telemetry::region::Region::from_span(tracing::info_span!(
+        "update.download",
+        bytes = size as i64,
+    ));
 
     let n_chunks = parallel_chunk_count(size);
     if n_chunks < 2 {
@@ -1137,8 +1112,8 @@ async fn try_parallel_download(
     };
 
     let tmp = tmp_download_path(dest);
-    // Pre-allocate so each task can seek+write to its own range concurrently.
-    // One blocking-pool hop instead of two per tokio::fs call.
+    // Pre-allocate so each task can seek and write to its own range concurrently
+    // One spawn_blocking call costs one blocking-pool hop; separate tokio::fs calls would each cost their own
     let tmp_for_alloc = tmp.clone();
     tokio::task::spawn_blocking(move || -> std::io::Result<()> {
         let f = std::fs::File::create(&tmp_for_alloc)?;
@@ -1175,14 +1150,9 @@ async fn try_parallel_download(
     }
 }
 
-/// Fetch bytes `[start, end]` (inclusive) of `url` and write them at `start`
-/// in `dest`. Errors if the server doesn't return `206 Partial Content`.
-///
-/// Streams from the network into a `Vec<u8>` (so progress ticks smoothly as
-/// bytes arrive), then issues a single `spawn_blocking` per chunk to do the
-/// open + seek + write_all in `std::fs`. This avoids the per-write hop into
-/// tokio's blocking pool that `tokio::fs::File::write_all` performs on every
-/// ~8 KiB Bytes item from `bytes_stream()`.
+/// Streams from the network into a `Vec<u8>` so progress ticks smoothly as bytes arrive. A single `spawn_blocking` per
+/// chunk then does the open, seek, and write_all in `std::fs`. This avoids the per-write hop into tokio's blocking pool
+/// that `tokio::fs::File::write_all` performs on every ~8 KiB Bytes item.
 async fn download_range(
     client: &reqwest::Client,
     url: &str,
@@ -1221,15 +1191,13 @@ async fn download_range(
     Ok(())
 }
 
-/// Download a file from `url` to `dest` with a terminal progress bar.
-///
-/// If the server provides a `Content-Length` header, a determinate bar is shown
-/// with bytes downloaded, total size, and ETA. Otherwise a spinner with a byte
-/// counter is used as a fallback.
+/// Download a file from `url` to `dest` with a terminal progress bar. If the server provides a `Content-Length` header, a
+/// determinate bar is shown with bytes downloaded, total size, and ETA. Otherwise a spinner with a byte counter is used
+/// as a fallback.
 #[doc(hidden)]
 pub async fn download_with_progress(url: &str, dest: &std::path::Path) -> Result<()> {
-    // Try parallel byte-range first. Falls through to single-connection on any
-    // failure (HEAD missing Content-Length, ranges rejected, partial-fetch error).
+    // Try parallel byte-range first
+    // Falls through to single-connection on any failure (HEAD missing Content-Length, ranges rejected, partial-fetch error)
     match try_parallel_download(url, dest, true).await {
         Ok(()) => return Ok(()),
         Err(e) => {
@@ -1237,9 +1205,7 @@ pub async fn download_with_progress(url: &str, dest: &std::path::Path) -> Result
         }
     }
 
-    let client = reqwest::Client::builder()
-        .timeout(DOWNLOAD_REQUEST_TIMEOUT)
-        .build()?;
+    let client = download_client()?;
     let resp = client.get(url).send().await?;
 
     if !resp.status().is_success() {
@@ -1297,9 +1263,7 @@ pub async fn download_silent(url: &str, dest: &std::path::Path) -> Result<()> {
         }
     }
 
-    let client = reqwest::Client::builder()
-        .timeout(DOWNLOAD_REQUEST_TIMEOUT)
-        .build()?;
+    let client = download_client()?;
     let resp = client.get(url).send().await?;
 
     if !resp.status().is_success() {
@@ -1349,8 +1313,83 @@ async fn remove_stale_pager(bin_dir: &std::path::Path) {
     }
 }
 
-/// Fetch a CLI object from GCS. On Windows the public bucket may use a `.exe`
-/// suffix; try that first, then the extensionless name used on macOS/Linux.
+async fn download_plain(url: &str, dest: &std::path::Path, with_progress: bool) -> Result<()> {
+    if with_progress {
+        download_with_progress(url, dest).await
+    } else {
+        download_silent(url, dest).await
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Codec {
+    Zstd,
+    Gzip,
+}
+
+// Cap decode output so a crafted or corrupt archive cannot expand unbounded and fill the disk
+// A real CLI binary is ~170 MiB; 512 MiB leaves 3x headroom
+const MAX_DECODED_BYTES: u64 = 512 * 1024 * 1024;
+
+async fn download_and_decode(
+    url: &str,
+    dest: &std::path::Path,
+    codec: Codec,
+    with_progress: bool,
+) -> Result<()> {
+    let comp_tmp = tmp_download_path(dest);
+    if let Err(e) = download_plain(url, &comp_tmp, with_progress).await {
+        let _ = tokio::fs::remove_file(&comp_tmp).await;
+        return Err(e);
+    }
+
+    let bin_tmp = tmp_download_path(dest);
+    let (comp_in, bin_out) = (comp_tmp.clone(), bin_tmp.clone());
+    let decoded = tokio::task::spawn_blocking(move || -> Result<()> {
+        use std::io::Read as _;
+        let src = std::fs::File::open(&comp_in)
+            .with_context(|| format!("open compressed download {}", comp_in.display()))?;
+        let decoder: Box<dyn std::io::Read> = match codec {
+            Codec::Zstd => {
+                Box::new(zstd::stream::read::Decoder::new(src).context("init zstd decoder")?)
+            }
+            Codec::Gzip => Box::new(flate2::read::GzDecoder::new(src)),
+        };
+        let mut out = std::fs::File::create(&bin_out)
+            .with_context(|| format!("create decoded binary {}", bin_out.display()))?;
+        let mut capped = decoder.take(MAX_DECODED_BYTES + 1);
+        let written = std::io::copy(&mut capped, &mut out).context("decode")?;
+        if written > MAX_DECODED_BYTES {
+            anyhow::bail!("decoded artifact exceeds the {MAX_DECODED_BYTES}-byte cap");
+        }
+        Ok(())
+    })
+    .await;
+    let _ = tokio::fs::remove_file(&comp_tmp).await;
+
+    match decoded {
+        Ok(Ok(())) => publish_downloaded_artifact(&bin_tmp, dest).await,
+        Ok(Err(e)) => {
+            let _ = tokio::fs::remove_file(&bin_tmp).await;
+            Err(e)
+        }
+        Err(e) => {
+            let _ = tokio::fs::remove_file(&bin_tmp).await;
+            Err(anyhow::anyhow!("decode task panicked: {e}"))
+        }
+    }
+}
+
+/// Object-name candidates in fetch order; on Windows the `.exe` name comes first.
+fn cli_object_candidates(object_name: &str, windows: bool) -> Vec<String> {
+    if windows {
+        vec![format!("{object_name}.exe"), object_name.to_string()]
+    } else {
+        vec![object_name.to_string()]
+    }
+}
+
+/// Download a CLI object from GCS, preferring a `.zst`/`.gz` sidecar over the plain object.
 async fn download_cli_artifact_from_gcs(
     gcs_base_url: &str,
     object_name: &str,
@@ -1358,25 +1397,23 @@ async fn download_cli_artifact_from_gcs(
     with_progress: bool,
 ) -> Result<()> {
     let base = gcs_base_url.trim_end_matches('/');
-    #[cfg(windows)]
-    {
-        let with_exe = format!("{}/{}.exe", base, object_name);
-        let r = if with_progress {
-            download_with_progress(&with_exe, dest).await
-        } else {
-            download_silent(&with_exe, dest).await
-        };
-        match r {
+    let names = cli_object_candidates(object_name, cfg!(windows));
+
+    let mut last_err = None;
+    for name in &names {
+        for (suffix, codec) in [("zst", Codec::Zstd), ("gz", Codec::Gzip)] {
+            let url = format!("{base}/{name}.{suffix}");
+            match download_and_decode(&url, dest, codec, with_progress).await {
+                Ok(()) => return Ok(()),
+                Err(e) => tracing::debug!("compressed {name}.{suffix} unusable, trying next: {e}"),
+            }
+        }
+        match download_plain(&format!("{base}/{name}"), dest, with_progress).await {
             Ok(()) => return Ok(()),
-            Err(e) => tracing::debug!("{with_exe} not found, trying extensionless: {e}"),
+            Err(e) => last_err = Some(e),
         }
     }
-    let url = format!("{}/{}", base, object_name);
-    if with_progress {
-        download_with_progress(&url, dest).await
-    } else {
-        download_silent(&url, dest).await
-    }
+    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("no artifact at {base}/{object_name}")))
 }
 
 /// Returns the version that was actually activated.
@@ -1386,20 +1423,9 @@ async fn install_internal(target: Option<&str>, update_config: &UpdateConfig) ->
     install_internal_from_bases(target, update_config, &base_refs).await
 }
 
-/// Try the base-dependent install phase ([`download_verified_from_base`]:
-/// version resolution, download, smoke test) against each base URL in turn,
-/// falling through to the next on any failure. Used to keep installs working
-/// when the primary CDN endpoint (Cloudflare) is unreachable but the fallback
-/// (direct GCS) still resolves.
-///
-/// Download-phase side effects (download dir creation, binary fetch) are
-/// idempotent, so retrying with a different base after a partial failure is
-/// safe. Smoke-test failures ([`SmokeTestFailure`]) are a property of the
-/// published artifact, not the CDN — retrying another base will not help.
-/// Local activation ([`activate_verified_download`]: link swap, cleanup,
-/// config persist) runs once after the first successful download — its
-/// failures are not base-dependent, so they abort the install instead of
-/// triggering a pointless re-download from the next base.
+/// Download-phase side effects (download dir creation, binary fetch) are idempotent, so retrying with a different base
+/// after a partial failure is safe. Its failures are not base-dependent, so they abort the install instead of triggering
+/// a pointless re-download from the next base.
 #[doc(hidden)]
 pub async fn install_internal_from_bases(
     target: Option<&str>,
@@ -1416,9 +1442,8 @@ pub async fn install_internal_from_bases(
                     .map_err(|e| InstallPhaseError::Activate(e).into());
             }
             Err(e) if e.is::<SmokeTestFailure>() => {
-                // Same published artifact on every base — retrying will not
-                // change a --version timeout or crash. Left unwrapped so
-                // telemetry classification sees the typed failure.
+                // Same published artifact on every base; retrying will not change a --version timeout or crash
+                // Left unwrapped so telemetry classification sees the typed failure
                 return Err(e);
             }
             Err(e) => {
@@ -1437,15 +1462,13 @@ pub async fn install_internal_from_bases(
     Err(last_err.unwrap_or_else(|| anyhow::anyhow!("no CLI base URLs to try")))
 }
 
-/// First-launch of a freshly downloaded macOS binary can exceed 10s (Rosetta
-/// AOT + Gatekeeper on ~140MB). A short cap false-fails a good artifact.
+/// First-launch of a freshly downloaded macOS binary can exceed 10s (Rosetta AOT and Gatekeeper on ~140MB).
+/// A short cap would fail a good artifact.
 const SMOKE_TEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
-/// Retry budget for exec attempts refused with ETXTBSY. The failure window
-/// is normally the microseconds another spawn in this process sits between
-/// fork and exec (see [`smoke_test_binary`]), but on a heavily loaded
-/// machine that window can stretch, so the budget errs generous — a false
-/// "failed to run" both aborts this install and deletes the binary.
+/// Retry budget for exec attempts refused with ETXTBSY. The failure window is normally the microseconds another spawn in
+/// this process sits between fork and exec (see [`smoke_test_binary`]). On a heavily loaded machine that window can
+/// stretch, so the budget errs generous. A false "failed to run" both aborts this install and deletes the binary.
 const SMOKE_TEST_ETXTBSY_ATTEMPTS: u32 = 8;
 const SMOKE_TEST_ETXTBSY_BACKOFF: std::time::Duration = std::time::Duration::from_millis(25);
 
@@ -1492,13 +1515,9 @@ fn nonzero_message(status: &str, stderr: &str) -> String {
 }
 
 async fn smoke_test_binary(binary_path: &std::path::Path) -> Result<(), SmokeTestFailure> {
-    // ETXTBSY race: while a concurrent updater in this process is between
-    // fork and exec (pre_exec in detach_command forces the fork/exec path),
-    // its child briefly holds every open fd — including the write-side fd of
-    // a download that has just been renamed onto `binary_path`. Exec'ing a
-    // binary whose inode is still open for write fails with ETXTBSY even
-    // though the file is complete and healthy, so retry instead of failing
-    // the install (and deleting a racer's freshly installed binary).
+    // ETXTBSY race: a concurrent updater's child in this process briefly holds every open fd between fork and exec pre_exec
+    // in detach_command forces the fork/exec path. The held fds include the write side of a download just renamed onto
+    // `binary_path`. So retry instead of failing the install (and deleting a racer's freshly installed binary)
     let mut last_spawn = String::new();
     for attempt in 1..=SMOKE_TEST_ETXTBSY_ATTEMPTS {
         let mut cmd = tokio::process::Command::new(binary_path);
@@ -1529,8 +1548,7 @@ async fn smoke_test_binary(binary_path: &std::path::Path) -> Result<(), SmokeTes
             Ok(Err(e)) => return Err(SmokeTestFailure::Spawn(e.to_string())),
         }
     }
-    // Reached only when every attempt hit ETXTBSY; `last_spawn` holds the
-    // final spawn error.
+    // Reached only when every attempt hit ETXTBSY; `last_spawn` holds the final spawn error
     Err(SmokeTestFailure::Spawn(last_spawn))
 }
 
@@ -1560,10 +1578,9 @@ struct VerifiedDownload {
     binary_path: std::path::PathBuf,
 }
 
-/// Base-dependent install phase: resolve the version (per base when no
-/// target is pinned), download the binary, and smoke-test it. Network /
-/// fetch failures here are worth retrying against another base URL.
-/// [`SmokeTestFailure`] is not — see [`install_internal_from_bases`].
+/// Base-dependent install phase: resolve the version (per base when no target is pinned), download the binary, and smoke-test it.
+/// Network / fetch failures here are worth retrying against another base URL.
+/// [`SmokeTestFailure`] is not; see [`install_internal_from_bases`].
 async fn download_verified_from_base(
     target: Option<&str>,
     update_config: &UpdateConfig,
@@ -1593,7 +1610,7 @@ async fn download_verified_from_base(
 
     eprintln!("  Downloading astra v{} ({})...", version, platform);
 
-    // Published already +x (see `publish_downloaded_artifact`).
+    // The downloaded binary is already +x (see `publish_downloaded_artifact`)
     download_cli_artifact_from_gcs(gcs_base_url, &binary_name, &binary_path, true).await?;
 
     // Smoke-test: run the binary before activating it. A truncated or
@@ -1610,9 +1627,8 @@ async fn download_verified_from_base(
     })
 }
 
-/// Local activation phase: swap the managed bin links to the downloaded
-/// binary and finish bookkeeping. Nothing here depends on which base URL
-/// served the download, so callers must not retry another base on failure.
+/// Local activation phase: swap the managed bin links to the downloaded binary and finish bookkeeping.
+/// Nothing here depends on which base URL served the download, so callers must not retry another base on failure.
 async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
     let astra_home = grok_home();
     let download_dir = astra_home.join("downloads");
@@ -1640,6 +1656,9 @@ async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
     // Best-effort: failures are silently ignored (same as the installer).
     regenerate_completions(&link_path, &astra_home).await;
 
+    activate_span
+        .span()
+        .record("elapsed_ms", activate_started.elapsed().as_millis() as i64);
     Ok(())
 }
 
@@ -1705,7 +1724,7 @@ fn relative_symlink_target(target: &std::path::Path, link: &std::path::Path) -> 
     {
         return std::path::PathBuf::from(name);
     }
-    // Sibling directories — ../target_dir/filename (e.g. bin/grok -> ../downloads/grok-…)
+    // Sibling directories: ../target_dir/filename (e.g. bin/grok -> ../downloads/grok-…)
     if let (Some(tp), Some(lp)) = (target_parent.parent(), link_parent.parent())
         && tp == lp
         && let (Some(dir_name), Some(file_name)) = (target_parent.file_name(), target.file_name())
@@ -1743,8 +1762,7 @@ async fn swap_managed_bin_links(
     let agent_link = bin_dir.join(agent_name);
     let link_paths: [std::path::PathBuf; 2] = [astra_link.clone(), agent_link];
 
-    // Capture every link up-front so a 2nd-link capture failure can't
-    // strand the 1st mid-swap.
+    // Capture every link up-front so a second-link capture failure can't strand the first mid-swap
     let mut captured: Vec<LinkRollback> = Vec::with_capacity(link_paths.len());
     for path in &link_paths {
         match LinkRollback::capture(path).await {
@@ -1779,10 +1797,8 @@ async fn swap_managed_bin_links(
         match swap_result {
             Ok(()) => completed.push(rollback),
             Err(e) => {
-                // Restore each successful swap in reverse. On restore
-                // failure keep the .rollback.bak as a recovery artifact
-                // (Windows only) and warn!; the swap error propagates so
-                // `reinstall_hint` is the user-visible message.
+                // Restore each successful swap in reverse
+                // A failed restore keeps its .rollback.bak as a recovery artifact (Windows only)
                 for prior in completed.iter().rev() {
                     if let Err(restore_err) = prior.restore().await {
                         let backup_note = prior.backup_path().map_or(String::new(), |p| {
@@ -1813,10 +1829,8 @@ async fn swap_managed_bin_links(
     Ok(astra_link)
 }
 
-/// Snapshot of a managed-bin link's prior state for rollback in
-/// [`swap_managed_bin_links`]. `Absent` vs `Present` is discriminated up
-/// front via `symlink_metadata` so capture errors never get misread as
-/// "link was absent".
+/// Snapshot of a managed-bin link's prior state for rollback in [`swap_managed_bin_links`].
+/// `Absent` vs `Present` is discriminated up front via `symlink_metadata` so capture errors never get misread as "link was absent".
 enum LinkRollback {
     /// Link was absent before the swap; rollback removes the one we created.
     Absent { link_path: std::path::PathBuf },
@@ -1836,9 +1850,8 @@ impl LinkRollback {
     async fn capture(link_path: &std::path::Path) -> Result<Self> {
         let lp = link_path.to_path_buf();
 
-        // `symlink_metadata` (lstat) handles valid symlinks, broken
-        // symlinks, and regular files alike. Any IO error other than
-        // NotFound aborts the swap before mutation.
+        // `symlink_metadata` (lstat) handles valid symlinks, broken symlinks, and regular files alike
+        // Any IO error other than NotFound aborts the swap before mutation
         match tokio::fs::symlink_metadata(&lp).await {
             Ok(_) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -1861,8 +1874,7 @@ impl LinkRollback {
         }
         #[cfg(windows)]
         {
-            // Per-process+sequence backup name via `unique_temp_sibling`
-            // so concurrent updaters can't clobber each other's backups.
+            // The backup name comes from `unique_temp_sibling` (PID and sequence), so concurrent updaters can't clobber each other's backups
             let backup_path = unique_temp_sibling(&lp, "rollback.bak");
             tokio::fs::copy(&lp, &backup_path).await.with_context(|| {
                 format!(
@@ -1885,7 +1897,7 @@ impl LinkRollback {
         }
     }
 
-    /// Path to the on-disk backup (Windows only — Unix is in-memory).
+    /// Path to the on-disk backup (Windows only; Unix is in-memory).
     #[cfg(windows)]
     fn backup_path(&self) -> Option<&std::path::Path> {
         match self {
@@ -1901,8 +1913,8 @@ impl LinkRollback {
     async fn restore(&self) -> Result<()> {
         match self {
             LinkRollback::Absent { link_path } => {
-                // Remove the link we created. NotFound (someone else
-                // cleaned up) is fine; anything else is a real failure.
+                // Remove the link we created
+                // NotFound (someone else cleaned up) is fine; anything else is a real failure
                 match tokio::fs::remove_file(link_path).await {
                     Ok(()) => Ok(()),
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -1925,9 +1937,8 @@ impl LinkRollback {
                 link_path,
                 backup_path,
             } => {
-                // Route through `windows_replace_exe` so rollback inherits
-                // the same ERROR_SHARING_VIOLATION rename-aside fallback
-                // as the forward path.
+                // Route through `windows_replace_exe`
+                // Rollback then inherits the same ERROR_SHARING_VIOLATION rename-aside fallback as the forward path
                 windows_replace_exe(backup_path, link_path)
                     .await
                     .with_context(|| {
@@ -1951,18 +1962,12 @@ impl LinkRollback {
     }
 }
 
-/// Atomically swap a symlink to point to a new target.
-///
-/// Creates a temporary symlink next to `link_path`, then renames it over the
-/// old symlink.  This avoids the remove-then-create race where the path
-/// briefly doesn't exist, and — crucially — never deletes the old target
-/// file.  On macOS (especially Apple Silicon), deleting a binary that a
-/// running process has mmap'd causes SIGKILL because the kernel can no longer
-/// verify the code signature of the executable pages.
+/// Creates a temporary symlink next to `link_path`, then renames it over the old symlink. This avoids the
+/// remove-then-create race where the path briefly doesn't exist, and never deletes the old target file. On macOS
+/// (especially Apple Silicon), deleting a binary that a running process has mmap'd causes SIGKILL.
 #[cfg(unix)]
 async fn atomic_symlink_swap(target: &std::path::Path, link_path: &std::path::Path) -> Result<()> {
-    // Per-racer temp name: a shared one makes remove_file → symlink racy
-    // (EEXIST, or ENOENT when another racer renames the link away).
+    // Per-racer temp name: a shared one makes remove_file then symlink racy (EEXIST, or ENOENT when another racer renames the link away)
     sweep_stale_tmp_links(link_path, STALE_TMP_AGE).await;
     let tmp_link = unique_temp_sibling(link_path, "tmp-link");
     let _ = tokio::fs::remove_file(&tmp_link).await;
@@ -1971,9 +1976,8 @@ async fn atomic_symlink_swap(target: &std::path::Path, link_path: &std::path::Pa
     Ok(())
 }
 
-/// Remove `<link>.*.tmp-link` siblings left by a swap that crashed between
-/// symlink and rename. Only those older than `max_age` are removed, so a
-/// concurrent racer's in-flight link is never deleted out from under it.
+/// Remove `<link>.*.tmp-link` siblings left by a swap that crashed between symlink and rename.
+/// Only those older than `max_age` are removed, so a concurrent racer's in-flight link is never deleted out from under it.
 #[cfg(unix)]
 async fn sweep_stale_tmp_links(link_path: &std::path::Path, max_age: Duration) {
     let (Some(dir), Some(name)) = (
@@ -2006,21 +2010,9 @@ async fn sweep_stale_tmp_links(link_path: &std::path::Path, max_age: Duration) {
     }
 }
 
-/// Replace an executable that may be locked by a running process (Windows).
-///
-/// On Windows the kernel prevents writes to a running executable but allows
-/// renames. If a direct copy fails with a sharing violation, this renames
-/// `dest` aside and copies `src` into the freed path. If the copy then
-/// fails, the rename is rolled back to avoid a broken install.
-///
-/// The aside target is normally `<dest>.old`, but a leftover `.old` can
-/// itself still be a running image (the session that was live during the
-/// previous update keeps executing the renamed-aside file), and a running
-/// image can neither be deleted nor rename-replaced. In that case `dest` is
-/// renamed to a unique `<dest>.old.{pid}-{seq}.old` sibling instead, so a
-/// locked leftover can never block the update. All `.old` leftovers are
-/// swept best-effort at the start of each cycle; still-locked ones survive
-/// until a later update runs after those processes exit.
+/// If the copy then fails, the rename is rolled back to avoid a broken install. In that case `dest` is renamed to a
+/// unique `<dest>.old.{pid}-{seq}.old` sibling instead, so a locked leftover can never block the update. Still-locked
+/// ones survive until a later update runs after those processes exit.
 #[cfg(windows)]
 async fn windows_replace_exe(src: &std::path::Path, dest: &std::path::Path) -> Result<()> {
     let file_name = dest
@@ -2033,16 +2025,15 @@ async fn windows_replace_exe(src: &std::path::Path, dest: &std::path::Path) -> R
 
     match tokio::fs::copy(src, dest).await {
         Ok(_) => return Ok(()),
-        // ERROR_SHARING_VIOLATION (32) / ERROR_ACCESS_DENIED (5): exe is
-        // locked by a running process. Fall through to rename-and-replace.
+        // ERROR_SHARING_VIOLATION (32) / ERROR_ACCESS_DENIED (5): exe is locked by a running process
+        // Fall through to rename-and-replace
         Err(e) if matches!(e.raw_os_error(), Some(32) | Some(5)) => {
             tracing::debug!("exe locked, falling back to rename: {e}");
         }
         Err(e) => return Err(e.into()),
     }
 
-    // A .old that survived the sweep is locked; renaming onto it would need
-    // to delete-replace it and fail, so divert to a guaranteed-free name.
+    // A .old that survived the sweep is locked; renaming onto it would need to delete-replace it and fail, so divert to a guaranteed-free name
     let old_is_free = matches!(
         tokio::fs::symlink_metadata(&old).await,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound
@@ -2061,9 +2052,8 @@ async fn windows_replace_exe(src: &std::path::Path, dest: &std::path::Path) -> R
 
     // Move the locked file aside, then copy the new binary into place.
     let mut rename_result = tokio::fs::rename(dest, &aside).await;
-    // Pid reuse can collide a diverted name with a dead updater's
-    // still-locked leftover, and a racer can occupy a just-checked-free
-    // .old; a fresh unique sibling clears both tails (3 attempts total).
+    // Pid reuse can collide a diverted name with a dead updater's still-locked leftover, and a racer can occupy a just-checked-free .old
+    // A fresh unique sibling handles both (3 attempts total)
     for _ in 0..2 {
         match &rename_result {
             Err(e) if matches!(e.raw_os_error(), Some(32) | Some(5)) => {
@@ -2094,19 +2084,9 @@ async fn windows_replace_exe(src: &std::path::Path, dest: &std::path::Path) -> R
     }
 }
 
-/// Best-effort removal of `<exe>.old` plus the unique
-/// `<exe>.old.{pid}-{seq}.old` asides accumulated by prior update cycles.
-/// Locked ones (still-running images) survive and are collected by a later
-/// update once those processes exit. The `<exe>.old` prefix keeps the sweep
-/// away from `<exe>` itself, other executables' leftovers, and the
-/// `.rollback.bak` / `.tmp` sibling shapes.
-///
-/// Unlike `sweep_stale_tmp_links` there is deliberately no `max_age` gate:
-/// rename preserves mtime, so a racer's seconds-old aside already looks
-/// days old and age cannot distinguish it; in-use asides survive deletion
-/// by being locked; and deleting a racer's fresh unlocked aside (its
-/// rollback source while both racers converge on the same dest) is the
-/// accepted lock-free residual race (see `tmp_download_path`).
+/// The `<exe>.old` prefix keeps the sweep away from `<exe>` itself, other executables' leftovers, and the `.rollback.bak`
+/// / `.tmp` sibling shapes. Rename preserves mtime, so a racer's seconds-old aside already looks days old and age cannot
+/// distinguish it. Deleting a racer's fresh unlocked aside is the same accepted race as in `tmp_download_path`.
 #[cfg(windows)]
 async fn sweep_old_exe_backups(old: &std::path::Path) {
     let _ = tokio::fs::remove_file(old).await;
@@ -2178,17 +2158,15 @@ async fn cleanup_old_downloads(dir: &std::path::Path, bin_prefix: &str, current_
         if !name.starts_with(&prefix) {
             continue;
         }
-        // Temp/partial files: sweep only STALE ones. A fresh `.tmp` may be a
-        // concurrent updater's in-flight download — deleting it would make
-        // that updater's atomic rename fail with ENOENT.
+        // Temp/partial files: sweep only STALE ones (a fresh `.tmp` may be a concurrent updater's in-flight download)
         if name.contains(".tmp") {
             let stale = match entry.metadata().await.and_then(|m| m.modified()) {
                 Ok(modified) => std::time::SystemTime::now()
                     .duration_since(modified)
                     .map(|age| age > STALE_TMP_AGE)
-                    // Future mtime (clock skew): can't tell — leave it.
+                    // Future mtime (clock skew): can't tell; leave it
                     .unwrap_or(false),
-                // Unknown mtime: leave it; it is swept once readable+old.
+                // Unknown mtime: leave it; it is swept once readable and old
                 Err(_) => false,
             };
             if stale && let Err(e) = tokio::fs::remove_file(entry.path()).await {
@@ -2216,7 +2194,7 @@ async fn cleanup_old_downloads(dir: &std::path::Path, bin_prefix: &str, current_
             continue;
         };
         if let Ok(v) = semver::Version::parse(&ver_str) {
-            // Skip the current version — never delete it.
+            // Never delete the current version
             if v == current_semver {
                 continue;
             }
@@ -2224,18 +2202,14 @@ async fn cleanup_old_downloads(dir: &std::path::Path, bin_prefix: &str, current_
         }
     }
 
-    // Sort descending by version so the newest is first.
     versioned.sort_by(|a, b| b.0.cmp(&a.0));
 
-    // Keep the most recent old version (index 0), delete the rest (index 1+).
-    // This matches the npm policy: current + 1 previous.
+    // Keep the most recent old version (the newest sorts first) and delete the rest
     for (_, name) in versioned.iter().skip(1) {
         let path = dir.join(name);
-        // Same freshness guard as the `.tmp` sweep: a versioned binary
-        // written moments ago is likely a concurrent installer's
-        // just-renamed download (its symlink swap hasn't happened yet) —
-        // deleting it would leave that installer's swap pointing at
-        // nothing. Old binaries from previous releases are days old.
+        // Same freshness guard as the `.tmp` sweep: a versioned binary written moments ago is likely a concurrent installer's just-renamed download
+        // Its symlink swap hasn't happened yet; deleting the binary would leave that swap pointing at nothing
+        // Old binaries from previous releases are days old
         let fresh = tokio::fs::metadata(&path)
             .await
             .and_then(|m| m.modified())
@@ -2548,8 +2522,7 @@ fn warn_if_other_grok_processes_running() {
     }
 }
 
-/// Test-only entry point: invokes the private [`install_npm`] for tests
-/// that swap in a fake `npm` via PATH.
+/// Test-only entry point: invokes the private [`install_npm`] for tests that swap in a fake `npm` via PATH.
 #[doc(hidden)]
 pub fn install_npm_for_test(
     target: Option<&str>,
@@ -2560,17 +2533,14 @@ pub fn install_npm_for_test(
 }
 
 fn install_npm(target: Option<&str>, channel: &str, npm_registry: Option<&str>) -> Result<()> {
-    // Warn on macOS about potential impact on other running processes.
     #[cfg(target_os = "macos")]
     warn_if_other_grok_processes_running();
 
     let version_arg = match target {
         Some(ver) => format!("@topodrive-ai-official/grok@{ver}"),
         None => {
-            // All current callers resolve the version via get_latest_version
-            // (which applies max(stable, alpha) for the alpha channel) before
-            // reaching here.  Falling back to a raw dist-tag would bypass that
-            // logic, so warn loudly if this path is ever hit.
+            // All current callers resolve the version via get_latest_version (max(stable, alpha) for the alpha channel) before reaching here
+            // Falling back to a raw dist-tag would bypass that logic, so warn loudly if this path is ever hit
             tracing::warn!(
                 channel,
                 "install_npm called without a resolved version, falling back to dist-tag"
@@ -2608,7 +2578,7 @@ fn install_npm(target: Option<&str>, channel: &str, npm_registry: Option<&str>) 
 
     cmd.stdin(Stdio::null())
         .stdout(Stdio::null())
-        // inherit, not piped — same rationale as run_update_subcommand.
+        // inherit, not piped; same rationale as run_update_subcommand
         .stderr(Stdio::inherit());
     xai_grok_tools::util::detach_std_command(&mut cmd);
     let status = cmd.status()?;
@@ -2739,12 +2709,9 @@ pub async fn run_update(
         );
     }
 
-    // What's on disk wins over this process's compiled-in version: a
-    // concurrent or earlier updater (TUI background download, leader hourly
-    // checker) may already have installed the target, in which case there is
-    // nothing to download. Gated on the installer maintaining the managed
-    // symlink — for npm a leftover symlink would lie (see
-    // `disk_version_for_installer`).
+    // What's on disk wins over this process's compiled-in version. A concurrent or earlier updater (TUI background download,
+    // leader hourly checker) may already have installed the target. In that case there is nothing to download. Gated on the
+    // installer maintaining the managed symlink. For npm a leftover symlink would lie (see `disk_version_for_installer`)
     let effective_current =
         disk_version_for_installer(installer).unwrap_or_else(|| current_version.clone());
 
@@ -2757,10 +2724,9 @@ pub async fn run_update(
         ) {
             Some(true) => {}
             Some(false) => {
-                // Explicit channel switch (--stable / --alpha) with a
-                // different target version: install even though the current
-                // version is "newer" by semver. This handles switching from
-                // alpha 0.2.X back to stable 0.1.220 where 0.2.X > 0.1.220.
+                // An explicit channel switch (--stable / --alpha) can target a different version
+                // Install it even though the current version is "newer" by semver
+                // This handles switching from alpha 0.2.X back to stable 0.1.220 where 0.2.X > 0.1.220
                 if channel_switch.is_some() && effective_current != install_target {
                     // Fall through to install
                 } else {
@@ -2769,10 +2735,9 @@ pub async fn run_update(
                     eprintln!("Already up to date ({}).", effective_current);
                     // Retry if a prior sync failed.
                     refresh_deployment_config().await;
-                    // The target is on disk even though this call installed
-                    // nothing — report it so the caller still signals stale
-                    // leaders to relaunch onto it (signalling is directional
-                    // and skips leaders already at/after this version).
+                    // The target is on disk even though this call installed nothing
+                    // Report it so the caller still signals stale leaders to relaunch onto it
+                    // Signalling is directional and skips leaders already at/after this version
                     return Ok(Some(install_target));
                 }
             }
@@ -2821,9 +2786,8 @@ pub async fn run_update(
 
     eprintln!();
     run_install_script(installer, Some(target_version), update_config, trigger).await?;
-    // Fetch the stable pointer now so the new binary has it immediately
-    // for channel_label() display, rather than waiting for the next
-    // TTL-gated update check (~30 min).
+    // Fetch the stable pointer now so the new binary has it immediately for channel_label() display
+    // Otherwise it would wait for the next TTL-gated update check (~30 min)
     let stable_ptr = try_fetch_stable_pointer().await;
     write_version_cache(target_version, stable_ptr.as_deref()).await;
     refresh_deployment_config().await;
@@ -2839,8 +2803,7 @@ pub async fn run_update(
     Ok(Some(target_version.to_string()))
 }
 
-/// Refresh managed config post-update (best-effort, staleness-gated), for
-/// deployment-key and team principals alike.
+/// Refresh managed config post-update (best-effort, staleness-gated), for deployment-key and team principals alike.
 async fn refresh_deployment_config() {
     if !xai_grok_shell::managed_config::has_principal() {
         return;

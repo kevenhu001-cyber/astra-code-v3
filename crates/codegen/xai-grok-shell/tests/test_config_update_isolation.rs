@@ -1,11 +1,8 @@
-//! Regression test: `update_config` must not leak values from
-//! `managed_config.toml` or `requirements.toml` into the user's `config.toml`.
+//! Regression test: `update_config` must not leak values from `managed_config.toml` or `requirements.toml` into the user's `config.toml`.
 //!
-//! Bug: `update_config` used `load_effective_config()` (which merges all config
-//! layers) to populate the `Config` struct, then `save_config` wrote that merged
-//! result back to the user's `config.toml`. If `requirements.toml` contained
-//! `auto_update = false`, any unrelated config write (theme change, model
-//! preference, yolo toggle) would permanently poison the user's config.
+//! Bug: `update_config` used `load_effective_config()` (which merges all config layers) to populate the `Config` struct.
+//! `save_config` then wrote that merged result back to the user's `config.toml`.
+//! With `auto_update = false` in `requirements.toml`, any unrelated config write (even a theme change) would permanently poison the user's config.
 
 use std::fs;
 use std::path::PathBuf;
@@ -28,7 +25,6 @@ fn test_home() -> &'static PathBuf {
     })
 }
 
-/// Clean up config files between tests.
 fn reset_config_files(home: &std::path::Path) {
     let _ = fs::remove_file(home.join("config.toml"));
     let _ = fs::remove_file(home.join("requirements.toml"));
@@ -43,7 +39,6 @@ async fn update_config_does_not_leak_requirements_into_user_config() {
 
     // --- Arrange ---
 
-    // User's config.toml: auto_update = true
     fs::write(
         home.join("config.toml"),
         "[cli]\nauto_update = true\ninstaller = \"internal\"\n",
@@ -57,8 +52,7 @@ async fn update_config_does_not_leak_requirements_into_user_config() {
     )
     .unwrap();
 
-    // Sanity-check: effective config should show auto_update = false
-    // (requirements wins over user config).
+    // Sanity-check: effective config should show auto_update = false (requirements wins over user config)
     let effective = xai_grok_shell::config::load_effective_config().unwrap();
     let effective_cfg = xai_grok_shell::util::config::load_config_from_toml(&effective);
     assert_eq!(
@@ -98,14 +92,13 @@ async fn update_config_preserves_none_when_only_requirements_sets_value() {
     let home = test_home();
     reset_config_files(home);
 
-    // User config has no auto_update field at all
+    // User config has no auto_update field
     fs::write(
         home.join("config.toml"),
         "[cli]\ninstaller = \"internal\"\n",
     )
     .unwrap();
 
-    // requirements.toml sets auto_update = false
     fs::write(
         home.join("requirements.toml"),
         "[cli]\nauto_update = false\n",
@@ -137,14 +130,13 @@ async fn update_config_does_not_leak_managed_config_values() {
     let home = test_home();
     reset_config_files(home);
 
-    // User config has no auto_update — only installer
+    // User config has no auto_update, only installer
     fs::write(
         home.join("config.toml"),
         "[cli]\ninstaller = \"internal\"\n",
     )
     .unwrap();
 
-    // managed_config.toml sets auto_update = false and channel = "stable"
     fs::write(
         home.join("managed_config.toml"),
         "[cli]\nauto_update = false\nchannel = \"stable\"\n",

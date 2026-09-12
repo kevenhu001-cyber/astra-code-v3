@@ -62,8 +62,8 @@ mod system_prompt_label_tests {
     };
 
     /// Serialize access to `GROK_SYSTEM_PROMPT_LABEL` and clear it for tier tests.
-    /// `env_wins_over_all_tiers` mutates the env; without this lock, parallel tests
-    /// that expect the var unset (e.g. `gb_per_model_beats_gb_global`) flake.
+    /// `env_wins_over_all_tiers` mutates the env.
+    /// Without this lock, parallel tests that expect the var unset (e.g. `gb_per_model_beats_gb_global`) flake.
     fn with_env_cleared<R>(f: impl FnOnce() -> R) -> R {
         let _guard = ENV_LOCK.lock().unwrap();
         let prev = std::env::var(ENV_SYSTEM_PROMPT_LABEL).ok();

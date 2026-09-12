@@ -1,13 +1,10 @@
-//! Hooks and plugins tracing target and optional file-based logging layer.
-//!
 //! A dedicated tracing target for hooks and plugins subsystems with an optional
 //! file logger that writes to `~/.astra/logs/hooks.log`.
 //!
 //! ## When to use
 //!
-//! Use regular `tracing::info!` / `tracing::debug!` / `tracing::warn!` with
-//! targets `xai_grok_hooks` or `xai_grok_agent::plugins` at key lifecycle
-//! points — discovery, dispatch, execution, errors.
+//! Use regular `tracing::info!` / `tracing::debug!` / `tracing::warn!` with targets `xai_grok_hooks` or `xai_grok_agent::plugins`.
+//! Log at discovery, dispatch, execution, and error points.
 //!
 //! ## Enabling
 //!
@@ -90,7 +87,6 @@ where
         *slot = Some(guard);
     }
 
-    // Filter for both hooks and plugins targets at debug level
     let filter = tracing_subscriber::filter::EnvFilter::new(
         "xai_grok_hooks=debug,xai_grok_agent::plugins=debug",
     );

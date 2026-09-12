@@ -122,8 +122,8 @@ pub fn make_update_config(channel: &str) -> xai_grok_update::UpdateConfig {
     }
 }
 
-/// True if shell-script artifacts can execute in this environment. False in
-/// restricted sandboxes (e.g. hermetic remote execution) that lack /bin/sh.
+/// True if shell-script artifacts can execute in this environment.
+/// False in restricted sandboxes (e.g. hermetic remote execution) that lack /bin/sh.
 #[cfg(unix)]
 pub fn can_exec_shell_scripts() -> bool {
     use std::os::unix::fs::PermissionsExt;
@@ -171,10 +171,8 @@ pub fn backdate_downloads() {
 // PATH-override fake binary
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// RAII guard that places a sh-script with name `name` at the head of `PATH`.
-/// Restores `PATH` on drop.
-///
-/// All tests using this MUST be `#[serial]` because `PATH` is process-global.
+/// RAII guard that places a sh-script with name `name` at the head of `PATH`. Restores `PATH` on drop. All tests using
+/// this MUST be `#[serial]` because `PATH` is process-global.
 pub struct FakeBinGuard {
     pub tmp: tempfile::TempDir,
     pub name: String,
@@ -182,8 +180,7 @@ pub struct FakeBinGuard {
 }
 
 impl FakeBinGuard {
-    /// Install a fake binary at `<tmp>/<name>` whose body is produced by
-    /// `script_body(<tmp>)`, and prepend `<tmp>` to `PATH`.
+    /// Install a fake binary at `<tmp>/<name>` whose body is produced by `script_body(<tmp>)`, and prepend `<tmp>` to `PATH`.
     pub fn install<F>(name: &str, script_body: F) -> Self
     where
         F: FnOnce(&Path) -> String,
@@ -225,13 +222,12 @@ impl FakeBinGuard {
         Self::install("gh", fake_gh_script)
     }
 
-    /// The tempdir backing this guard (where canned stdout/stderr/exit files
-    /// can be written by tests, and where `<name>-args.log` is appended).
+    /// The tempdir backing this guard (where canned stdout/stderr/exit files can be written by tests, and where `<name>-args.log` is appended).
     pub fn dir(&self) -> PathBuf {
         self.tmp.path().to_path_buf()
     }
 
-    /// Argv lines logged by the fake script — one line per invocation.
+    /// Argv lines logged by the fake script, one line per invocation.
     pub fn args_log(&self) -> Vec<String> {
         std::fs::read_to_string(self.dir().join(format!("{}-args.log", self.name)))
             .unwrap_or_default()
@@ -291,20 +287,14 @@ impl Drop for FakeBinGuard {
 /// Single-quote a path for safe substitution into a sh script.
 fn single_quote_for_sh(p: &Path) -> String {
     let s = p.to_string_lossy();
-    // Escape any embedded single quotes (paranoid — tempdir paths shouldn't
-    // contain them, but defensively quote).
+    // Escape any embedded single quotes (paranoid: tempdir paths shouldn't contain them, but defensively quote)
     let escaped = s.replace('\'', "'\\''");
     format!("'{escaped}'")
 }
 
-/// sh script body for a fake `npm`. Logs argv to `<dir>/npm-args.log` and
-/// dispatches stdout based on the first matching argv pattern:
-///
-/// - argv contains `@alpha`     → cat `<dir>/npm-alpha-stdout`
-/// - else                       → cat `<dir>/npm-stdout`
-///
-/// Always cats `<dir>/npm-stderr` to stderr (if exists). Exits with the integer
-/// in `<dir>/npm-exit` (default 0).
+/// sh script body for a fake `npm`. Logs argv to `<dir>/npm-args.log` and dispatches stdout based on the first matching
+/// argv pattern: argv contains `@alpha` → cat `<dir>/npm-alpha-stdout`; else → cat `<dir>/npm-stdout`. Always cats
+/// `<dir>/npm-stderr` to stderr (if exists). Exits with the integer in `<dir>/npm-exit` (default 0).
 pub fn fake_npm_script(dir: &Path) -> String {
     let dq = single_quote_for_sh(dir);
     format!(
@@ -323,14 +313,9 @@ exit "$exit_code"
     )
 }
 
-/// sh script body for a fake `gh`. Logs argv to `<dir>/gh-args.log` and
-/// dispatches stdout based on `release list` argv:
-///
-/// - argv contains `release list --exclude-pre-releases` → `<dir>/gh-stable-only-stdout`
-/// - argv contains `release list` (no exclude flag)      → `<dir>/gh-with-pre-stdout`
-/// - else                                                 → `<dir>/gh-stdout`
-///
-/// Exits with `<dir>/gh-exit` (default 0).
+/// sh script body for a fake `gh`. Logs argv to `<dir>/gh-args.log` and dispatches stdout based on `release list` argv:
+/// argv contains `release list --exclude-pre-releases` → `<dir>/gh-stable-only-stdout`; argv contains `release list` (no
+/// exclude flag) → `<dir>/gh-with-pre-stdout`; else → `<dir>/gh-stdout`. Exits with `<dir>/gh-exit` (default 0).
 pub fn fake_gh_script(dir: &Path) -> String {
     let dq = single_quote_for_sh(dir);
     format!(

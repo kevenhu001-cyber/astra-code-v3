@@ -21,16 +21,16 @@ pub struct HookMatcher {
 #[derive(Debug, Clone)]
 enum MatcherKind {
     All,
-    /// Matches no tool names. Used when a configured matcher fails to compile
-    /// after deserialization; fail closed rather than widen to match-all.
+    /// Matches no tool names.
+    /// Used when a configured matcher fails to compile after deserialization; fail closed rather than widen to match-all.
     Never,
     Exact(Vec<String>),
     Regex(Regex),
 }
 
 impl HookMatcher {
-    /// Compile a matcher from a user pattern. Errors only when a regex-form pattern is
-    /// itself invalid regex (simple/empty/`*` forms never error).
+    /// Compile a matcher from a user pattern.
+    /// Errors only when a regex-form pattern is itself invalid regex (simple/empty/`*` forms never error).
     pub fn new(pattern: &str) -> Result<Self, regex::Error> {
         let kind = if pattern.is_empty() || pattern == "*" {
             MatcherKind::All
@@ -42,8 +42,8 @@ impl HookMatcher {
         Ok(Self { kind })
     }
 
-    /// Matcher that never matches. Prefer this over `None` on a [`HookSpec`] when a
-    /// pattern was configured but could not be compiled (fail-closed).
+    /// Matcher that never matches.
+    /// Prefer this over `None` on a [`HookSpec`] when a pattern was configured but could not be compiled (fail-closed).
     pub(crate) fn never() -> Self {
         Self {
             kind: MatcherKind::Never,
@@ -63,8 +63,7 @@ impl HookMatcher {
     }
 }
 
-/// Shared matcher-application rule: a missing matcher or missing value fires
-/// (fail-open); otherwise the compiled matcher decides.
+/// Shared matcher-application rule: a missing matcher or missing value fires (fail-open); otherwise the compiled matcher decides.
 pub fn matcher_allows(matcher: Option<&HookMatcher>, value: Option<&str>) -> bool {
     match (matcher, value) {
         (Some(matcher), Some(value)) => matcher.is_match(value),
@@ -72,8 +71,7 @@ pub fn matcher_allows(matcher: Option<&HookMatcher>, value: Option<&str>) -> boo
     }
 }
 
-/// A pattern is "simple" (exact/`|`-list, not regex) when it contains only
-/// ASCII alphanumerics, `_`, and `|`.
+/// A pattern is "simple" (exact/`|`-list, not regex) when it contains only ASCII alphanumerics, `_`, and `|`.
 fn is_simple_form(pattern: &str) -> bool {
     !pattern.is_empty()
         && pattern
@@ -119,14 +117,12 @@ mod tests {
         assert!(m.is_match("read_file"));
         assert!(m.is_match("list_dir"));
         assert!(!m.is_match("grep"));
-        // Regression for the old `^a|b$` anchoring bug: terms must not substring-match.
         assert!(!m.is_match("my_read_file"));
         assert!(!m.is_match("list_dir_v2"));
     }
 
     #[test]
     fn pipe_skips_empty_terms() {
-        // Leading/trailing/double pipes contribute no spurious empty-string match.
         let m = HookMatcher::new("|read_file||grep|").unwrap();
         assert!(m.is_match("read_file"));
         assert!(m.is_match("grep"));
@@ -135,10 +131,9 @@ mod tests {
 
     #[test]
     fn regex_form_is_unanchored() {
-        // Contains regex metachars -> regex mode, unanchored.
         let m = HookMatcher::new("run_.*").unwrap();
         assert!(m.is_match("run_terminal_command"));
-        assert!(m.is_match("xrun_yyy")); // unanchored: substring match
+        assert!(m.is_match("xrun_yyy"));
         assert!(!m.is_match("read_file"));
     }
 
@@ -175,8 +170,6 @@ mod tests {
 
     #[test]
     fn whitespace_matcher_matches_nothing() {
-        // Whitespace is NOT trimmed; `"   "` is a regex that matches no
-        // real tool name (NOT match-all, which would turn a deny gate into deny-all).
         let m = HookMatcher::new("   ").unwrap();
         assert!(!m.is_match("read_file"));
         assert!(!m.is_match("run_terminal_command"));
@@ -188,7 +181,6 @@ mod tests {
         assert!(m.is_match("Bash")); // external alias name
         assert!(m.is_match("run_terminal_command")); // Astra name
         assert!(!m.is_match("read_file"));
-        // Bug-fix regression: exact, not prefix.
         assert!(!m.is_match("run_terminal_command_v2"));
     }
 
@@ -200,7 +192,6 @@ mod tests {
         assert!(m.is_match("search_replace")); // Astra equivalent
         assert!(m.is_match("hashline_edit")); // second Astra alias
         assert!(!m.is_match("read_file"));
-        // The old anchoring bug matched these; the exact-list mode must not.
         assert!(!m.is_match("Editorial"));
         assert!(!m.is_match("my_search_replace"));
     }

@@ -4,7 +4,7 @@
 //! only way the tutorial opens — it never auto-shows.
 
 use crate::app::actions::Action;
-use crate::slash::command::{CommandExecCtx, CommandResult, SlashCommand};
+use crate::slash::command::{CommandExecCtx, CommandResult, SlashCommand, slash_meta};
 use crate::slash::{ModeSupport, Remedy};
 
 /// Open the onboarding tutorial.
@@ -32,7 +32,7 @@ impl SlashCommand for TutorialCommand {
     fn mode_support(&self) -> ModeSupport {
         ModeSupport::FullscreenOnly(Remedy::SwitchMode {
             why: "the tutorial overlay needs fullscreen",
-        })
+        }),
     }
 
     fn run(&self, _ctx: &mut CommandExecCtx, _args: &str) -> CommandResult {

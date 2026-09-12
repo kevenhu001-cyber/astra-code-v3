@@ -4,11 +4,10 @@
 //! telemetry engine can stamp events without depending on shell internals.
 //! `$ASTRA_HOME` is resolved through `xai-grok-config::grok_home`.
 
-use std::sync::OnceLock;
+/// Overrides the agent ID for this process; nothing is computed or persisted.
+const ENV_AGENT_ID: &str = "GROK_AGENT_ID";
 
-/// Cached agent ID - stored in memory after first load.
 static AGENT_ID: OnceLock<String> = OnceLock::new();
-/// Cached agent instance ID - per-process lifetime.
 static AGENT_INSTANCE_ID: OnceLock<String> = OnceLock::new();
 
 /// Returns the agent ID, using a file-based cache to avoid expensive system calls.
@@ -22,9 +21,36 @@ pub fn agent_id() -> String {
     AGENT_ID.get_or_init(load_or_compute_agent_id).clone()
 }
 
-/// Returns a per-process agent instance ID.
-/// This is stable across WebSocket reconnects within the same process,
-/// but changes on process restart.
+/// Reads [`agent_id`] without stalling async workers on the first computation.
+pub async fn agent_id_async() -> String {
+    if let Some(id) = AGENT_ID.get() {
+        return id.clone();
+    }
+    match tokio::task::spawn_blocking(agent_id).await {
+        Ok(id) => id,
+        Err(err) => {
+            tracing::warn!(error = %err, "agent id blocking task failed; reading inline");
+            agent_id()
+        }
+    }
+}
+
+/// Starts the agent ID computation on a background thread so later calls to [`agent_id`] find the value ready, or wait only for the remaining work.
+pub fn prefetch_agent_id() {
+    static PREFETCH: Once = Once::new();
+    PREFETCH.call_once(|| {
+        if let Err(err) = std::thread::Builder::new()
+            .name("agent-id-fetch".into())
+            .spawn(|| {
+                agent_id();
+            })
+        {
+            tracing::warn!(error = %err, "failed to spawn the agent id prefetch thread");
+        }
+    });
+}
+
+/// Returns a per-process instance ID: stable across reconnects within the process, new on restart.
 pub fn agent_instance_id() -> String {
     AGENT_INSTANCE_ID
         .get_or_init(|| uuid::Uuid::new_v4().to_string())
@@ -32,9 +58,14 @@ pub fn agent_instance_id() -> String {
 }
 
 fn load_or_compute_agent_id() -> String {
-    let cache_path = xai_grok_config::grok_home().join("agent_id");
+    if let Ok(id) = std::env::var(ENV_AGENT_ID) {
+        let id = id.trim();
+        if !id.is_empty() {
+            return id.to_string();
+        }
+    }
 
-    // Try to read from cache file first (fast path)
+    let cache_path = xai_grok_config::grok_home().join("agent_id");
     if let Ok(cached) = std::fs::read_to_string(&cache_path) {
         let cached = cached.trim();
         if !cached.is_empty() {
@@ -43,12 +74,17 @@ fn load_or_compute_agent_id() -> String {
         }
     }
 
-    // Compute a unique machine hash:
-    // - macOS: mid uses unique hardware IDs (serial, UUID, SEID).
-    // - Linux: /etc/machine-id is shared across containers from the same base
-    //   image, so include $HOSTNAME (container/host name) for uniqueness.
-    // - Fallback: random UUIDv4 if mid or hostname are unavailable.
-    let machine_hash = if cfg!(target_os = "linux") {
+    let hash = compute_machine_hash();
+    let id = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, hash.as_bytes()).to_string();
+    let _ = write_agent_id_cache(&cache_path, &id);
+    id
+}
+
+/// - macOS: mid uses unique hardware IDs (serial, UUID, SEID).
+/// - Linux: /etc/machine-id is shared across containers from the same base image, so include $HOSTNAME (container/host name) for uniqueness.
+/// - Fallback: random UUIDv4 if mid or hostname are unavailable.
+fn compute_machine_hash() -> String {
+    if cfg!(target_os = "linux") {
         match std::env::var("HOSTNAME") {
             Ok(hostname) if !hostname.is_empty() => {
                 let key = format!("agent_id:{hostname}");
@@ -58,13 +94,7 @@ fn load_or_compute_agent_id() -> String {
         }
     } else {
         mid::get("agent_id").unwrap_or_else(|_| uuid::Uuid::new_v4().to_string())
-    };
-    let id = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, machine_hash.as_bytes()).to_string();
-
-    // Save to cache file with owner-only perms (best effort).
-    let _ = write_agent_id_cache(&cache_path, &id);
-
-    id
+    }
 }
 
 /// Write `$ASTRA_HOME/agent_id` as owner-read/write only (Unix 0o600) — it is a
@@ -78,8 +108,7 @@ fn write_agent_id_cache(path: &std::path::Path, id: &str) -> std::io::Result<()>
     xai_grok_config::fs_atomic::write_atomically(path, id, Some(0o600))
 }
 
-/// Best-effort 0o600 on an existing cache: tightens caches written world-readable
-/// by older builds. No-op off Unix or on error (the id itself still loads).
+/// Best effort: tightens caches written world-readable by older builds.
 fn tighten_agent_id_cache_perms(path: &std::path::Path) {
     #[cfg(unix)]
     {
@@ -111,8 +140,6 @@ mod tests {
         );
     }
 
-    /// Overwriting an existing loose-perms cache (e.g. an old build's empty or
-    /// torn write) must still land 0600 — mode-at-create alone would keep 0644.
     #[test]
     fn rewrite_over_loose_perms_cache_lands_owner_only() {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -136,18 +163,12 @@ mod tests {
     }
 }
 
-/// Returns true when workspace marker env vars (`XAI_ROOT` and `XAI_USER`) are set.
-///
-/// Used as a coarse local gate for features that require a full workspace
-/// checkout. External installs typically leave both unset.
+/// Coarse gate for features that need a full workspace checkout; external installs leave `XAI_ROOT` and `XAI_USER` unset.
 pub fn has_workspace_env_markers() -> bool {
     std::env::var("XAI_ROOT").is_ok() && std::env::var("XAI_USER").is_ok()
 }
 
-/// Opt-in special-user gate for telemetry.
-///
-/// Enabled only when `GROK_TELEMETRY_SPECIAL_USER=1` (or `true`). There is no
-/// hardcoded username allowlist.
+/// Opt-in special-user gate for telemetry (`GROK_TELEMETRY_SPECIAL_USER`).
 pub fn is_special_user() -> bool {
     matches!(
         std::env::var("GROK_TELEMETRY_SPECIAL_USER").as_deref(),

@@ -1,12 +1,9 @@
-//! Data APIs for `grok models`. Clients own display.
-
+//! Data APIs for `grok models`. Rendering is the client's job.
+use crate::agent::config::Config as AgentConfig;
 use agent_client_protocol as acp;
 use anyhow::Result;
 use xai_acp_lib::{AcpAgentTx, acp_send};
-
-use crate::agent::config::Config as AgentConfig;
-
-/// Status for the `grok models` banner (display order ≠ sampling priority; see [`AuthStatus::resolve`]).
+/// Status for the `grok models` banner (the display order is not the sampling priority; see [`AuthStatus::resolve`]).
 #[derive(Debug, PartialEq, Eq)]
 pub enum AuthStatus {
     ApiKey,
@@ -17,25 +14,20 @@ pub enum AuthStatus {
     DeploymentKey,
     NotAuthenticated,
 }
-
 impl AuthStatus {
-    /// Banner status: env key → session → BYOK → deployment → none.
-    ///
-    /// Differs from sampling (`resolve_credentials`: BYOK → session → env) so a
-    /// logged-in user sees the login host. BYOK uses
-    /// [`crate::agent::auth_method::should_advertise_xai_api_key`] so
-    /// `disable_api_key_auth` is honored.
+    /// Banner status precedence: env key, then session, then BYOK, then deployment, then none.
+    /// Differs from sampling (`resolve_credentials`: BYOK, then session, then env) so a logged-in user sees the login host.
+    /// BYOK uses [`crate::agent::auth_method::should_advertise_xai_api_key`] so `disable_api_key_auth` is honored.
     pub fn resolve(agent_config: &AgentConfig) -> Self {
         if crate::agent::auth_method::has_xai_api_key_env() {
             return Self::ApiKey;
         }
         if agent_config.create_auth_manager().current().is_some() {
-            let origin = &agent_config.grok_com_config.grok_ws_origin;
-            let host = origin
-                .strip_prefix("https://")
-                .or_else(|| origin.strip_prefix("http://"))
-                .unwrap_or(origin);
-            return Self::LoggedIn(host.to_owned());
+            let backend = xai_grok_login::backend::ActiveAuthBackend::default();
+            return Self::LoggedIn(xai_grok_login::backend::AuthBackend::login_host(
+                &backend,
+                &agent_config.grok_com_config,
+            ));
         }
         let models = crate::agent::config::resolve_model_list(agent_config, None);
         if crate::agent::auth_method::should_advertise_xai_api_key(
@@ -53,8 +45,7 @@ impl AuthStatus {
         Self::NotAuthenticated
     }
 }
-
-/// Fetch model state (available models + default) over an ACP channel.
+/// Fetch model state (available models and the default) over an ACP channel.
 pub async fn list_models(
     acp_tx: &AcpAgentTx,
     client_type: &str,
@@ -78,10 +69,8 @@ pub async fn list_models(
         acp_tx,
     )
     .await?;
-
     fetch_model_state(acp_tx).await
 }
-
 /// Fetch model state via `x.ai/models/list` over an initialized channel.
 pub async fn fetch_model_state(acp_tx: &AcpAgentTx) -> Result<acp::SessionModelState> {
     let params = serde_json::value::to_raw_value(&serde_json::json!({}))?;
@@ -92,9 +81,7 @@ pub async fn fetch_model_state(acp_tx: &AcpAgentTx) -> Result<acp::SessionModelS
     .await?;
     parse_models_list_response(resp.0.get())
 }
-
-/// Parse an `x.ai/models/list` payload; a handler error wins over a
-/// missing result.
+/// Parse an `x.ai/models/list` payload; a handler error wins over a missing result.
 fn parse_models_list_response(raw: &str) -> Result<acp::SessionModelState> {
     let parsed: crate::session::ExtMethodResult<acp::SessionModelState> =
         serde_json::from_str(raw)?;
@@ -105,16 +92,23 @@ fn parse_models_list_response(raw: &str) -> Result<acp::SessionModelState> {
         .result
         .ok_or_else(|| anyhow::anyhow!("models/list response missing result"))
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::agent::auth_method::{LEGACY_XAI_API_KEY_ENV_VAR, XAI_API_KEY_ENV_VAR};
     use crate::agent::config::Config;
-    use crate::auth::{AuthMode, GrokAuth};
     use serial_test::serial;
+    use xai_grok_login::{AuthMode, GrokAuth};
     use xai_grok_test_support::EnvGuard;
-
+    const EXPECTED_LOGIN_HOST: &str = "grok.com";
+    /// A session the compiled-in backend recognises as its own, which `AuthBackend::owns` requires.
+    fn session_credential() -> GrokAuth {
+        GrokAuth {
+            key: "session-token".into(),
+            auth_mode: AuthMode::WebLogin,
+            ..GrokAuth::test_default()
+        }
+    }
     /// Isolate process-global auth sources that `AuthStatus::resolve` consults.
     ///
     /// Uses `GROK_AUTH_PATH` (not `ASTRA_HOME`) so a OnceLock-cached real home
@@ -133,7 +127,6 @@ mod tests {
         ];
         (dir, guards)
     }
-
     fn byok_and_deployment_toml(model_id: &str) -> String {
         format!(
             r#"
@@ -146,12 +139,10 @@ mod tests {
             "#
         )
     }
-
     fn config_from_toml(toml_src: &str) -> Config {
         let toml: toml::Value = toml::from_str(toml_src).unwrap();
         Config::new_from_toml_cfg(&toml).expect("config should parse")
     }
-
     #[test]
     #[serial]
     fn resolve_api_key_env() {
@@ -159,7 +150,6 @@ mod tests {
         let _key = EnvGuard::set(XAI_API_KEY_ENV_VAR, "xai-test-key");
         assert_eq!(AuthStatus::resolve(&Config::default()), AuthStatus::ApiKey);
     }
-
     #[test]
     #[serial]
     fn resolve_legacy_api_key_env() {
@@ -180,20 +170,13 @@ mod tests {
     #[serial]
     fn resolve_oauth_session() {
         let (_dir, _g) = isolate_auth_sources();
-        let token = GrokAuth {
-            key: "session-token".into(),
-            auth_mode: AuthMode::WebLogin,
-            ..GrokAuth::test_default()
-        };
-        let json = serde_json::to_string(&token).unwrap();
+        let json = serde_json::to_string(&session_credential()).unwrap();
         let _auth = EnvGuard::set("GROK_AUTH", &json);
-
         assert_eq!(
             AuthStatus::resolve(&Config::default()),
             AuthStatus::LoggedIn(prod_ws_host())
         );
     }
-
     #[test]
     #[serial]
     fn resolve_model_api_key_byok() {
@@ -211,7 +194,6 @@ mod tests {
             AuthStatus::ModelCredentials(dm.to_owned())
         );
     }
-
     #[test]
     #[serial]
     fn resolve_model_env_key_byok() {
@@ -225,7 +207,6 @@ mod tests {
             env_key = "{TEST_ENV}"
             "#
         ));
-
         {
             let _unset = EnvGuard::unset(TEST_ENV);
             assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::NotAuthenticated);
@@ -238,7 +219,6 @@ mod tests {
             );
         }
     }
-
     #[test]
     #[serial]
     fn resolve_deployment_key() {
@@ -247,7 +227,6 @@ mod tests {
         cfg.endpoints.deployment_key = Some("deploy-key".into());
         assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::DeploymentKey);
     }
-
     #[test]
     fn models_list_response_round_trips() {
         let state = acp::SessionModelState::new(
@@ -260,7 +239,6 @@ mod tests {
         let parsed = parse_models_list_response(ok.0.get()).unwrap();
         assert_eq!(parsed.current_model_id.0.as_ref(), "grok-4");
         assert_eq!(parsed.available_models.len(), 1);
-
         let err = crate::session::ExtMethodResult::<acp::SessionModelState>::failure("boom")
             .to_ext_response()
             .unwrap();
@@ -269,7 +247,6 @@ mod tests {
             .to_string();
         assert!(msg.contains("boom"), "{msg}");
     }
-
     #[test]
     #[serial]
     fn resolve_not_authenticated() {
@@ -279,7 +256,6 @@ mod tests {
             AuthStatus::NotAuthenticated
         );
     }
-
     #[test]
     #[serial]
     fn resolve_priority_api_key_over_byok_and_deployment() {
@@ -289,19 +265,12 @@ mod tests {
         let cfg = config_from_toml(&byok_and_deployment_toml(dm));
         assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::ApiKey);
     }
-
     #[test]
     #[serial]
     fn resolve_priority_session_over_byok_and_deployment() {
         let (_dir, _g) = isolate_auth_sources();
-        let token = GrokAuth {
-            key: "session-token".into(),
-            auth_mode: AuthMode::WebLogin,
-            ..GrokAuth::test_default()
-        };
-        let json = serde_json::to_string(&token).unwrap();
+        let json = serde_json::to_string(&session_credential()).unwrap();
         let _auth = EnvGuard::set("GROK_AUTH", &json);
-
         let dm = crate::models::default_model();
         let cfg = config_from_toml(&byok_and_deployment_toml(dm));
         assert_eq!(
@@ -309,7 +278,6 @@ mod tests {
             AuthStatus::LoggedIn(prod_ws_host())
         );
     }
-
     #[test]
     #[serial]
     fn resolve_priority_byok_over_deployment() {
@@ -321,7 +289,6 @@ mod tests {
             AuthStatus::ModelCredentials(dm.to_owned())
         );
     }
-
     #[test]
     #[serial]
     fn resolve_disable_api_key_auth_suppresses_byok_banner() {
@@ -339,7 +306,6 @@ mod tests {
         ));
         assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::NotAuthenticated);
     }
-
     #[test]
     #[serial]
     fn resolve_disable_api_key_auth_falls_through_to_deployment() {
@@ -360,7 +326,6 @@ mod tests {
         ));
         assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::DeploymentKey);
     }
-
     #[test]
     #[serial]
     fn resolve_model_credentials_uses_first_catalog_key() {

@@ -5,8 +5,7 @@
     unreachable_code,
     dead_code
 )]
-//! Shared test utilities for grok-build crates: mock inference server, SSE
-//! generators, ACP stdio client, headless runner, env/process sandbox.
+//! Shared test utilities for grok-build crates.
 //!
 //! Provides:
 //! - [`MockInferenceServer`] — Mock /v1/chat/completions + /v1/responses with request logging
@@ -50,7 +49,7 @@ pub mod sse;
 pub mod uds_proxy;
 pub use acp_client::{GrokStdioClient, RawStdioClient};
 pub use counting_server::spawn_counting_server;
-pub use env::{EnvGuard, git_workdir, grok_binary};
+pub use env::{EnvGuard, git_workdir, grok_binary, isolate_grok_env};
 pub use headless::{
     HeadlessResult, assert_headless_success, assert_no_crashes, run_headless,
     run_headless_in_sandbox, run_headless_in_sandbox_borrowed,
@@ -61,7 +60,8 @@ pub use inference_override::{InferenceEndpoint, InferenceExpectation, InferenceR
 #[cfg(unix)]
 pub use leader::LeaderFixture;
 pub use mock_server::{
-    MockInferenceServer, MockModelEntry, ScriptedResponse, SseEvent, StorageUpload,
+    GatedUploadProxy, MockInferenceServer, MockModelEntry, ScriptedResponse, SseEvent,
+    StorageUpload,
 };
 #[cfg(unix)]
 pub use process::process_has_exited_without_reap;

@@ -100,38 +100,66 @@ impl std::fmt::Display for GrokBuildEnvironment {
 #[cfg(any(test, feature = "test-support"))]
 static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 #[cfg(any(test, feature = "test-support"))]
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner())
+thread_local! {
+    /// Set while this thread owns [`ENV_LOCK`].
+    /// `ENV_LOCK` is not reentrant, so without this a second guard on one thread blocks forever on the first guard's lock.
+    static ENV_LOCK_HELD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
-/// RAII env-var override for tests: constructors snapshot the prior value
-/// under [`ENV_LOCK`], `Drop` restores it, panics included.
+#[cfg(any(test, feature = "test-support"))]
+fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+    assert!(
+        !ENV_LOCK_HELD.get(),
+        "EnvVarGuard: this thread already holds a live guard. Stacking guards \
+         self-deadlocks on the non-reentrant ENV_LOCK; chain the extra keys \
+         onto the first guard with `and_set`/`and_remove` instead."
+    );
+    let lock = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+    ENV_LOCK_HELD.set(true);
+    lock
+}
+/// RAII env-var override for tests: constructors snapshot the prior value under [`ENV_LOCK`], `Drop` restores it, panics included.
+/// A guard owns [`ENV_LOCK`] for its whole lifetime, so one thread can only ever hold one.
+/// To override several keys at once, chain [`Self::and_set`] / [`Self::and_remove`] onto a single guard.
 #[cfg(any(test, feature = "test-support"))]
 pub struct EnvVarGuard {
+    /// The constructor's key; [`Self::set_value`] targets it.
     key: &'static str,
-    prev: Option<String>,
+    /// Every overridden key with its pre-guard value, restored in reverse.
+    restore: Vec<(&'static str, Option<String>)>,
     _lock: std::sync::MutexGuard<'static, ()>,
 }
 #[cfg(any(test, feature = "test-support"))]
 impl EnvVarGuard {
     pub fn set(key: &'static str, value: &str) -> Self {
-        let lock = env_lock();
-        let prev = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, value) };
-        Self {
-            key,
-            prev,
-            _lock: lock,
-        }
+        Self::acquire(key).override_var(key, Some(value))
     }
     pub fn remove(key: &'static str) -> Self {
-        let lock = env_lock();
-        let prev = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
+        Self::acquire(key).override_var(key, None)
+    }
+    /// Override a further key under this guard's existing lock.
+    #[must_use]
+    pub fn and_set(self, key: &'static str, value: &str) -> Self {
+        self.override_var(key, Some(value))
+    }
+    /// Unset a further key under this guard's existing lock.
+    #[must_use]
+    pub fn and_remove(self, key: &'static str) -> Self {
+        self.override_var(key, None)
+    }
+    fn acquire(key: &'static str) -> Self {
         Self {
             key,
-            prev,
-            _lock: lock,
+            restore: Vec::new(),
+            _lock: env_lock(),
         }
+    }
+    fn override_var(mut self, key: &'static str, value: Option<&str>) -> Self {
+        self.restore.push((key, std::env::var(key).ok()));
+        match value {
+            Some(value) => unsafe { std::env::set_var(key, value) },
+            None => unsafe { std::env::remove_var(key) },
+        }
+        self
     }
     /// Update the value while still holding the env lock.
     pub fn set_value(&self, value: &str) {
@@ -141,10 +169,13 @@ impl EnvVarGuard {
 #[cfg(any(test, feature = "test-support"))]
 impl Drop for EnvVarGuard {
     fn drop(&mut self) {
-        match self.prev.take() {
-            Some(prev) => unsafe { std::env::set_var(self.key, prev) },
-            None => unsafe { std::env::remove_var(self.key) },
+        for (key, prev) in self.restore.drain(..).rev() {
+            match prev {
+                Some(prev) => unsafe { std::env::set_var(key, prev) },
+                None => unsafe { std::env::remove_var(key) },
+            }
         }
+        ENV_LOCK_HELD.set(false);
     }
 }
 #[cfg(test)]

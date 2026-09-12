@@ -18,8 +18,7 @@ pub fn extract_builtin_files(grok_home: &std::path::Path) {
 
     let _ = std::fs::create_dir_all(grok_home);
 
-    // Clean up cached changelog files from previous version so
-    // /release-notes fetches fresh content for the new version.
+    // Clean up cached changelog files from previous version so /release-notes fetches fresh content for the new version
     for stale in &["CHANGELOG.json", "CHANGELOG.md"] {
         let _ = std::fs::remove_file(grok_home.join(stale));
     }

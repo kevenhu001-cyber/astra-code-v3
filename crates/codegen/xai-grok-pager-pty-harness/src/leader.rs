@@ -1,6 +1,4 @@
-//! Multi-client leader cluster: one shared leader, N pager clients, plus
-//! inspection of the durable session log so reattach tests can assert on
-//! what actually persisted.
+//! Multi-client leader cluster: one shared leader plus N pager clients.
 //!
 //! Every other leader test is single-client/single-leader; [`LeaderCluster`]
 //! is the missing abstraction for "one leader, several pager clients sharing
@@ -50,21 +48,18 @@ impl LeaderCluster {
         })
     }
 
-    /// Spawn the leader-electing client (`--leader --leader-socket <S>` plus
-    /// `extra_args`); it starts a fresh session and brings up the leader.
+    /// Spawn the leader-electing client (`--leader --leader-socket <S>` plus `extra_args`); it starts a fresh session and brings up the leader.
     pub fn spawn_leader(&self, extra_args: &[&str]) -> Result<PtyHarness> {
         self.spawn_client(&[], extra_args)
     }
 
-    /// Attach another client that resumes the shared session through the SAME
-    /// leader (`--leader --leader-socket <S> --resume` plus `extra_args`).
+    /// Attach another client that resumes the shared session through the SAME leader (`--leader --leader-socket <S> --resume` plus `extra_args`).
     pub fn attach(&self, extra_args: &[&str]) -> Result<PtyHarness> {
         self.spawn_client(&["--resume"], extra_args)
     }
 
-    /// Spawn a client wired to the shared leader socket. `mode_args` carries
-    /// the per-role flag (`--resume` for attachers); `extra_args` is the
-    /// caller's.
+    /// Spawn a client wired to the shared leader socket.
+    /// `mode_args` carries the per-role flag (`--resume` for attachers); `extra_args` is the caller's.
     fn spawn_client(&self, mode_args: &[&str], extra_args: &[&str]) -> Result<PtyHarness> {
         let socket = self.socket.to_str().context("socket path is utf-8")?;
         let mut args: Vec<&str> = vec!["--leader", "--leader-socket", socket];
@@ -74,7 +69,7 @@ impl LeaderCluster {
             .context("spawn pager client on shared leader")
     }
 
-    /// The shared content controller (mock inference server + sandbox env).
+    /// The shared content controller (mock inference server and sandbox env).
     pub fn content(&self) -> &ContentController {
         &self.content
     }
@@ -85,15 +80,7 @@ impl LeaderCluster {
         self.content.home().join(".astra").join("sessions")
     }
 
-    /// The session-update payload of every record across every `updates.jsonl`
-    /// under the cluster's [`sessions_dir`](Self::sessions_dir) — i.e. the
-    /// `params.update` object of each persisted envelope line, so a caller can
-    /// match on its `sessionUpdate` tag directly. Scans ALL sessions under the
-    /// cluster (fine for the single-session clusters these tests build).
-    ///
-    /// Infallible by design: a file that vanishes mid-walk, or whose appended
-    /// tail tore across a multi-byte UTF-8 boundary (so `read_to_string`
-    /// fails), is skipped for this call and picked up on the next one.
+    /// `params.update` from every session file. A vanished or torn multi-byte tail is skipped; the next call retries.
     pub fn session_updates(&self) -> Vec<Value> {
         let mut files = Vec::new();
         collect_updates_files(&self.sessions_dir(), &mut files);
@@ -107,10 +94,9 @@ impl LeaderCluster {
         out
     }
 
-    /// Poll [`session_updates`](Self::session_updates) until a record with
-    /// `sessionUpdate == "turn_completed"` appears, returning that (inner)
-    /// update payload, or error on timeout. Scans ALL sessions under the
-    /// cluster (fine for the single-session clusters these tests build).
+    /// Poll [`session_updates`](Self::session_updates) until a record with `sessionUpdate == "turn_completed"` appears.
+    /// Returns that (inner) update payload, or errors on timeout.
+    /// Scans ALL sessions under the cluster (fine for the single-session clusters these tests build).
     pub fn wait_for_turn_completed(&self, timeout: Duration) -> Result<Value> {
         let deadline = Instant::now() + timeout;
         loop {
@@ -119,9 +105,8 @@ impl LeaderCluster {
                 return Ok(rec.clone());
             }
             if Instant::now() >= deadline {
-                // Surface what WAS persisted so "zero records / env problem" is
-                // distinguishable from "records present but no turn_completed /
-                // producer regression".
+                // Include what WAS persisted in the error
+                // Zero records means an env problem; records without a turn_completed mean a producer regression
                 let tags: std::collections::BTreeSet<&str> = updates
                     .iter()
                     .filter_map(|u| u.get("sessionUpdate").and_then(Value::as_str))
@@ -133,8 +118,7 @@ impl LeaderCluster {
                     updates.len(),
                 );
             }
-            // Sync FS poll mirrors the harness's blocking wait_for_text; a stat
-            // every 150ms is cheap and fine on a multi_thread runtime worker.
+            // Sync FS poll mirrors the harness's blocking wait_for_text; a stat every 150ms is cheap and fine on a multi_thread runtime worker
             std::thread::sleep(Duration::from_millis(150));
         }
     }
@@ -145,13 +129,7 @@ fn is_turn_completed(update: &Value) -> bool {
     update.get("sessionUpdate").and_then(Value::as_str) == Some("turn_completed")
 }
 
-/// Parse the `params.update` payload out of each non-blank line of an
-/// `updates.jsonl` body, assuming the enveloped on-disk shape current sessions
-/// always write (`{..,"params":{"update":{..}}}`). A line that is blank, fails
-/// to parse (a torn trailing line that is still valid UTF-8), or carries no
-/// `params.update` is skipped — never failing the batch. (A torn *multi-byte*
-/// tail instead fails the file read upstream, skipping the whole file for that
-/// poll; see [`LeaderCluster::session_updates`].)
+/// Skips blank, unparseable, or update-less lines. A torn multi-byte tail fails the file read upstream instead.
 fn parse_update_payloads(text: &str) -> Vec<Value> {
     text.lines()
         .filter_map(|line| {
@@ -165,16 +143,14 @@ fn parse_update_payloads(text: &str) -> Vec<Value> {
         .collect()
 }
 
-/// Recursively collect every `updates.jsonl` beneath `dir` (a manual walk to
-/// avoid a new crate dep). A missing/unreadable dir yields nothing — sessions
-/// may not exist yet, and the walk is re-run on every poll.
+/// Recursively collect every `updates.jsonl` beneath `dir` (a manual walk to avoid a new crate dep).
+/// A missing/unreadable dir yields nothing; sessions may not exist yet, and the walk is re-run on every poll.
 fn collect_updates_files(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
     for entry in entries.flatten() {
-        // No-follow file type: a symlinked directory has `is_dir() == false`,
-        // so a symlink cycle can never recurse forever here.
+        // No-follow file type: a symlinked directory has `is_dir() == false`, so a symlink cycle can never recurse forever here
         let Ok(file_type) = entry.file_type() else {
             continue;
         };

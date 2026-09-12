@@ -1,15 +1,13 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
     use super::*;
 
-    /// Stale or duplicate gens short-circuit BEFORE the seam (and its config
-    /// disk loads) runs — nothing observable may change.
+    /// Stale or duplicate gens short-circuit BEFORE the apply (and its config disk loads) runs; nothing observable may change.
     #[test]
     fn announcements_update_stale_gen_short_circuits_before_apply() {
         let mut app = make_app_with_agent("sess-ann");
         app.announcements_last_gen = 5;
         app.active_announcements = vec![critical_announcement("current")];
-        // Marker the seam cannot leave intact: it matches no pushed
-        // announcement, so any apply would prune it (and queue a persist).
+        // This marker cannot survive an apply: it matches no pushed announcement, so any apply would prune it (and queue a persist)
         app.hidden_announcement_ids = ["stale-key".to_string()].into_iter().collect();
 
         for stale_gen in [4, 5] {
@@ -35,15 +33,14 @@
         );
     }
 
-    /// The watermark is connection-scoped: the event loop's leader-reconnected
-    /// branch resets it to 0, so a re-elected shell's fresh (possibly lower)
-    /// gen sequence applies, and a duplicate broadcast seed copy stays a no-op.
+    /// The watermark lasts one connection: the event loop resets it to 0 on leader reconnect.
+    /// A re-elected shell's fresh (possibly lower) gen sequence then applies, and a second copy of the seed broadcast stays a no-op.
     #[test]
     fn announcements_update_applies_after_reconnect_watermark_reset() {
         let mut app = make_app_with_agent("sess-ann");
-        // Watermark from the previous connection, ahead of the new shell's gens.
+        // The previous connection left a watermark ahead of the new shell's gens
         app.announcements_last_gen = 9_999_999_999;
-        // The leader-reconnected branch's connection-scoped reset.
+        // The event loop's leader-reconnected branch does this reset
         app.announcements_last_gen = 0;
 
         let first = handle_ext_notification(
@@ -142,9 +139,8 @@
         assert!(app.hidden_announcement_ids.is_empty());
     }
 
-    /// A push must not drop config-layer announcements, and prune must not
-    /// erase their persisted hide keys — they re-resolve every launch and a
-    /// dropped key would re-show a critical the user already hid.
+    /// A push must not drop config-layer announcements, and prune must not erase their persisted hide keys.
+    /// Config layers re-resolve every launch, so a dropped key would re-show a critical the user already hid.
     #[test]
     fn announcements_update_remerges_config_layers_and_keeps_their_hide_keys() {
         let mut app = make_app_with_agent("sess-ann");

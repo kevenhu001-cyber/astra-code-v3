@@ -1,14 +1,12 @@
 //! Astra Night theme — neutral black/white base with a pixel-orange accent.
 //!
-//! The canonical palette is defined in RGB (`Color::Rgb`). At startup the
-//! theme is run through [`Theme::quantized`] which downgrades every color
-//! to the terminal's detected capability level (256-color, 16-color, etc.).
+//! The canonical palette is defined in RGB (`Color::Rgb`).
+//! At startup [`Theme::quantized`] downgrades every color to the terminal's detected capability level (256-color, 16-color, etc.).
 
 use ratatui::style::{Color, Modifier};
 
 use super::tokyonight::Theme;
 
-/// Helper for concise const `Color::Rgb` definitions.
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color::Rgb(r, g, b)
 }
