@@ -26,13 +26,22 @@
 
 pub use rmcp;
 
+#[cfg(test)]
+#[ctor::ctor]
+fn initialize_test_astra_home() {
+    let dir = std::env::temp_dir().join(format!("astra-mcp-tests-{}", std::process::id()));
+    // SAFETY: this runs before the test harness starts any test threads, so the
+    // cached home resolver observes one deterministic, process-local directory.
+    unsafe { std::env::set_var("ASTRA_HOME", dir) };
+}
+
 #[doc(hidden)]
 pub fn isolate_grok_home_for_tests() {
     static HOME: std::sync::OnceLock<()> = std::sync::OnceLock::new();
     HOME.get_or_init(|| {
-        let dir = tempfile::TempDir::new().expect("test grok home").keep();
-        // SAFETY: OnceLock-guarded single set; the concurrent env-read race is accepted in tests.
-        unsafe { std::env::set_var("GROK_HOME", &dir) };
+        let dir = std::path::PathBuf::from(
+            std::env::var_os("ASTRA_HOME").expect("test astra home"),
+        );
         let memo = xai_grok_config::grok_home();
         assert!(
             memo.starts_with(&dir),

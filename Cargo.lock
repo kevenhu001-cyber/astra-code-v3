@@ -14079,6 +14079,7 @@ dependencies = [
  "agent-client-protocol",
  "async-trait",
  "axum",
+ "ctor",
  "futures",
  "http 1.4.0",
  "libc",
