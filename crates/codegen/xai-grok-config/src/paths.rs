@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub use xai_grok_home::{
+pub use xai_dirs::{
     astra_home, default_astra_home, default_grok_home, grok_home, user_astra_home, user_grok_home,
 };
 

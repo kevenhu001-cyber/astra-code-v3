@@ -5,11 +5,16 @@
     unreachable_code,
     dead_code
 )]
+
 //! Backend environment presets for the Astra CLI crate family: endpoint URL
 //! defaults, environment selection, and env-var test support.
 //!
 //! Public builds expose production endpoints. Values resolve as a `GROK_*`
 //! env-var override when set, else the compiled production default.
+
+mod registry;
+pub use registry::{FIRST_PARTY_CREDENTIAL_ENV_VARS, env_bool, env_string};
+
 /// The endpoint set for one backend environment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GrokBuildEndpoints {

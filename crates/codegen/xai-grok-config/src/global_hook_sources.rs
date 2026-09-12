@@ -281,6 +281,28 @@ fn require_real_file(path: &Path) -> Result<(), GlobalHookSourceError> {
     Ok(())
 }
 
+fn ensure_real_file_slot(path: &Path) -> Result<(), GlobalHookSourceError> {
+    match open_registry_create_new(path) {
+        Ok(file) => drop(file),
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+            require_real_file(path)?;
+        }
+        Err(source) => {
+            return Err(GlobalHookSourceError::CreateRegistryFile {
+                path: path.to_path_buf(),
+                source,
+            });
+        }
+    }
+    require_real_file(path)?;
+    if path_has_symlink_component(path) {
+        return Err(GlobalHookSourceError::SymlinkedSource {
+            path: path.to_path_buf(),
+        });
+    }
+    Ok(())
+}
+
 /// Ensure real `$ASTRA_HOME/hooks` dir + `hooks-paths` file (create if missing).
 /// Race-resistant create (`create_dir` / `create_new`+`O_NOFOLLOW`); never
 /// truncates an existing registry; rejects symlinks/wrong types.

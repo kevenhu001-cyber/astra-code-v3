@@ -197,6 +197,8 @@ pub enum HookProvenance {
     Managed,
     /// System-tier `requirements.toml` (root-owned, e.g. `/etc/grok`).
     Requirements,
+    /// `$ASTRA_HOME/requirements.toml` (user-writable).
+    UserRequirements,
     /// `$ASTRA_HOME/config.toml`.
     User,
     /// A JSON hook file (the hooks directory, a vendor settings file, or a configured hooks path).
