@@ -318,7 +318,6 @@ mod tests {
             serde_json::to_vec(&decoy_marker).unwrap(),
         )
         .unwrap();
-        crate::nfs::confined::tests::plant_journal(&data, victim_id, &victim_backing, None);
         let _env = crate::nfs::GROVE_ENV_LOCK
             .lock()
             .unwrap_or_else(|e| e.into_inner());

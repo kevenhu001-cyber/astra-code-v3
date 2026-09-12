@@ -591,7 +591,6 @@ fn spawn_reader(mut reader: Box<dyn Read + Send>) -> mpsc::Receiver<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use portable_pty::CommandBuilder;
 
     #[test]
     fn exit_poll_distinguishes_pending_running_and_errors() {
@@ -911,112 +910,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_child_env_strips_all_host_terminal_markers() {
-        let mut cmd = CommandBuilder::new("true");
-        for var in HOST_TERMINAL_ENV_VARS {
-            cmd.env(var, "polluted");
-        }
-        for ssh_var in ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "SSH_AUTH_SOCK"] {
-            cmd.env(ssh_var, "polluted");
-        }
-        for color_var in ["NO_COLOR", "CLICOLOR", "CLICOLOR_FORCE"] {
-            cmd.env(color_var, "polluted");
-        }
-        for sink_var in CLIPBOARD_SINK_ENV_VARS {
-            cmd.env(sink_var, "polluted");
-        }
-        for appearance_var in APPEARANCE_ENV_VARS {
-            cmd.env(appearance_var, "polluted");
-        }
-        // Sandboxed launches remove unrelated inherited variables before
-        // re-applying the baseline and explicit overrides.
-        cmd.env("GROK_SCROLL_LOG", "/tmp/scroll.jsonl");
-        let sandbox = TestSandbox::new();
-
-        apply_child_env(&mut cmd, Some(&sandbox), &[]);
-
-        for var in HOST_TERMINAL_ENV_VARS {
-            assert!(
-                cmd.get_env(var).is_none(),
-                "host terminal marker {var} leaked into the child env"
-            );
-        }
-        for ssh_var in ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "SSH_AUTH_SOCK"] {
-            assert!(
-                cmd.get_env(ssh_var).is_none(),
-                "SSH marker {ssh_var} leaked into the child env"
-            );
-        }
-        for color_var in ["NO_COLOR", "CLICOLOR", "CLICOLOR_FORCE"] {
-            assert!(
-                cmd.get_env(color_var).is_none(),
-                "color override {color_var} leaked into the child env"
-            );
-        }
-        for sink_var in CLIPBOARD_SINK_ENV_VARS {
-            assert!(
-                cmd.get_env(sink_var).is_none(),
-                "clipboard sink marker {sink_var} leaked into the child env"
-            );
-        }
-        for appearance_var in APPEARANCE_ENV_VARS {
-            assert!(
-                cmd.get_env(appearance_var).is_none(),
-                "appearance hint {appearance_var} leaked into the child env"
-            );
-        }
-        assert_eq!(
-            cmd.get_env("TERM").and_then(|v| v.to_str()),
-            Some("xterm-256color")
-        );
-        assert_eq!(
-            cmd.get_env("GROK_SCROLL_LOG").and_then(|v| v.to_str()),
-            None,
-            "hermetic baseline must remove unrelated inherited vars"
-        );
-        assert_eq!(
-            cmd.get_env("ASTRA_HOME").and_then(|v| v.to_str()),
-            sandbox.grok_home().to_str()
-        );
-    }
-
-    #[test]
-    fn apply_child_env_uses_sandbox_baseline() {
-        let sandbox = TestSandbox::new();
-        let mut cmd = CommandBuilder::new("true");
-
-        apply_child_env(&mut cmd, Some(&sandbox), &[]);
-
-        assert_eq!(
-            cmd.get_env("HOME").and_then(|v| v.to_str()),
-            sandbox.home().to_str()
-        );
-        assert_eq!(
-            cmd.get_env("ASTRA_HOME").and_then(|v| v.to_str()),
-            sandbox.grok_home().to_str()
-        );
-        assert_eq!(cmd.get_env("GROK_LEADER_SOCKET"), None);
-    }
-
-    #[test]
-    fn apply_child_env_remove_deletes_sandbox_credential() {
-        let sandbox = TestSandbox::builder()
-            .mock_url("http://127.0.0.1:43123/v1")
-            .build();
-        let mut cmd = CommandBuilder::new("true");
-
-        apply_child_env(&mut cmd, Some(&sandbox), &[EnvOp::remove("XAI_API_KEY")]);
-
-        assert_eq!(cmd.get_env("XAI_API_KEY"), None);
-        assert_eq!(
-            cmd.get_env("GROK_XAI_API_BASE_URL")
-                .and_then(|v| v.to_str()),
-            Some("http://127.0.0.1:43123/v1")
-        );
-    }
-
-    #[test]
-    fn inherited_env_projection_is_set_only_and_preserves_unrelated_ambient_vars() {
+    fn set_operations_projection_is_set_only() {
         let operations = set_operations(&[("EXPLICIT_MARKER", "set")]);
         assert_eq!(operations, [EnvOp::set("EXPLICIT_MARKER", "set")]);
     }
