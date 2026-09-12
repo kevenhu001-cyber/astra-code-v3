@@ -73,3 +73,13 @@ pub use model::{TOKEN_TTL, UserInfo, default_coding_data_retention_opt_out, is_e
 pub use refresh::DiagnosticUploader;
 pub use storage::auth_json_path;
 pub use storage::{clear_api_key, read_api_key, read_auth_json, store_api_key};
+
+// `jsonwebtoken` 10 uses a process-level crypto provider. Install the selected
+// RustCrypto backend before the unit-test harness starts any tests; otherwise
+// a test that encodes a JWT can race a later test helper and permanently lock
+// the process into jsonwebtoken's unconfigured fallback provider.
+#[cfg(test)]
+#[ctor::ctor]
+fn install_test_jsonwebtoken_crypto_provider() {
+    let _ = jsonwebtoken::crypto::rust_crypto::DEFAULT_PROVIDER.install_default();
+}
