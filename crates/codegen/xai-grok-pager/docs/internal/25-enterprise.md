@@ -15,6 +15,7 @@ is missing from this table. Update both together.
 | `voice_mode` | `features.voice_mode` | enabled |
 | `write_file` | `features.write_file` | enabled |
 | `feedback` | `features.feedback` | enabled |
+| `feedback_trace_card` | `features.feedback_trace_card` | disabled |
 | `turn_summary` | `features.turn_summary` | enabled |
 | `cancel_rewind` | `features.cancel_rewind` | enabled |
 | `compaction_verbatim_input` | `features.compaction_verbatim_input` | enabled |
@@ -22,6 +23,10 @@ is missing from this table. Update both together.
 | `backend_tools` | `features.backend_tools` | enabled |
 | `auto_wake` | `features.auto_wake` | enabled |
 | `subagent_worktree_snapshot` | `features.subagent_worktree_snapshot` | disabled |
+| `active_agent_messages` | `features.active_agent_messages` | disabled |
+| `repo_status_in_system_prompt` | `features.repo_status_in_system_prompt` | enabled |
+| `dock` | `features.dock` | disabled |
+| `terminal_theme` | `features.terminal_theme` | disabled |
 
 Enterprise deployments can pin any of these per managed-config layer; remote
 settings targeting rules override the local defaults listed above.

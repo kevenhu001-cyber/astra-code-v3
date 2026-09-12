@@ -5,5 +5,5 @@ pub fn is_safe_worktree_id(id: &str) -> bool {
         && !id.starts_with('.')
         && !id.contains('/')
         && !id.contains('\\')
-        && !id.contains('\0')
+        && !id.chars().any(char::is_control)
 }

@@ -15,6 +15,7 @@ missing from this table. Update both together.
 | `GROK_VOICE_MODE` | `voice_mode` | enabled |
 | `GROK_WRITE_FILE` | `write_file` | enabled |
 | `GROK_FEEDBACK_ENABLED` | `feedback` | enabled |
+| `GROK_FEEDBACK_TRACE_CARD` | `feedback_trace_card` | disabled |
 | `GROK_TURN_SUMMARY` | `turn_summary` | enabled |
 | `GROK_CANCEL_REWIND` | `cancel_rewind` | enabled |
 | `GROK_COMPACTION_VERBATIM_INPUT` | `compaction_verbatim_input` | enabled |
@@ -22,6 +23,10 @@ missing from this table. Update both together.
 | `GROK_BACKEND_SEARCH` | `backend_tools` | enabled |
 | `GROK_AUTO_WAKE` | `auto_wake` | enabled |
 | `GROK_SUBAGENT_WORKTREE_SNAPSHOT` | `subagent_worktree_snapshot` | disabled |
+| `GROK_ACTIVE_AGENT_MESSAGES` | `active_agent_messages` | disabled |
+| `GROK_REPO_STATUS_IN_SYSTEM_PROMPT` | `repo_status_in_system_prompt` | enabled |
+| `GROK_DOCK` | `dock` | disabled |
+| `GROK_TERMINAL_THEME` | `terminal_theme` | disabled |
 
 Set a variable to `1`/`0` to override the default for the session; config
 files take precedence over unset variables.
