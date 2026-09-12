@@ -524,7 +524,7 @@ pub(super) fn notify_session_ready(
     notification_service.notify(NotificationEvent {
         kind: NotificationEventKind::SessionReady,
         title: "Astra".into(),
-        body: NotificationEventKind::SessionReady.as_str().into(),
+        body: NotificationEventKind::SessionReady.as_ref().into(),
         session_id: agent.session.session_id.as_ref().map(|s| s.0.to_string()),
     });
 }

@@ -542,31 +542,11 @@ fn print_leader_disabled_by_sandbox(profile: &str, w: &mut impl Write) {
          managed requirement) to use the leader."
     );
 }
-/// Join early prefetch to get remote settings (with timeout).
-///
-/// Remote settings come from the product settings API and contain `leader_mode`,
-/// announcements, etc.  Waits up to 2 s for the background thread.
-pub fn join_early_prefetch(
-    handle: Option<xai_grok_shell::agent::models::EarlyPrefetchHandle>,
-) -> Option<xai_grok_shell::util::config::RemoteSettings> {
-    let handle = handle?;
-    if handle.is_finished() {
-        return match handle.join() {
-            Ok(r) => r.settings,
-            Err(_) => None,
-        };
-    }
-    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let _ = tx.send(handle.join());
-    });
-    match rx.recv_timeout(std::time::Duration::from_millis(50)) {
-        Ok(Ok(r)) => r.settings,
-        _ => None,
-    }
-}
-/// First non-blank of CLI > env > config (precedence + blank-skip). `None` →
-/// nothing set; `acp::initialize` canonicalizes and applies the default.
+/// Startup proceeds without remote settings (`leader_mode`, announcements)
+/// after this; the fetch keeps running and the agent boot consumes it.
+pub const EARLY_PREFETCH_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
+/// First non-blank value of CLI, then env, then config.
+/// `None` means nothing was set; `acp::initialize` canonicalizes and applies the default.
 fn resolve_hunk_tracker_mode(
     cli: Option<&str>,
     env: Option<&str>,
@@ -688,38 +668,47 @@ pub async fn run(
     let startup_start = std::time::Instant::now();
     let raw_config = xai_grok_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {e}"))?;
-    let grok_com_config = match xai_grok_shell::agent::config::Config::new_from_toml_cfg(
-        &raw_config,
-    ) {
-        Ok(c) => c.grok_com_config,
-        Err(e) => {
-            tracing::warn!(error = %e, "failed to parse config for auth refresh, using defaults");
-            xai_grok_shell::auth::GrokComConfig::default()
-        }
-    };
-    let grok_home_path = xai_grok_shell::util::grok_home::grok_home();
-    let local_auth =
-        xai_grok_shell::auth::AuthManager::new(&grok_home_path, grok_com_config.clone()).current();
-    let refreshed_auth = if let Some(auth) = local_auth {
-        // Local cached auth available immediately: spawn background refresh and proceed instantly
-        let cfg = grok_com_config.clone();
-        tokio::spawn(async move {
-            let _ = xai_grok_shell::auth::try_ensure_fresh_auth(&cfg).await;
-        });
-        Some(auth)
-    } else {
-        // Cold start without cached auth: short 80ms bounded check so UI doesn't freeze
-        tokio::time::timeout(
-            std::time::Duration::from_millis(80),
-            xai_grok_shell::auth::try_ensure_fresh_auth(&grok_com_config),
+    let (grok_com_config, proxy_base_url) =
+        match xai_grok_shell::agent::config::Config::new_from_toml_cfg(&raw_config) {
+            Ok(c) => (c.grok_com_config, c.endpoints.proxy_url()),
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to parse config for auth refresh, using defaults");
+                (
+                    xai_grok_login::GrokComConfig::default(),
+                    xai_grok_shell::agent::config::EndpointsConfig::default().proxy_url(),
+                )
+            }
+        };
+    if let xai_grok_login::PreTuiLoginOutcome::SignedIn(auth) =
+        xai_grok_login::maybe_run_pre_tui_external_login(
+            &grok_com_config,
+            proxy_base_url.clone(),
+            args.force_login,
+            io::stdin().is_terminal(),
         )
-        .await
-        .unwrap_or(None)
-    };
-    let early_prefetch = match refreshed_auth {
-        Some(auth) => xai_grok_shell::agent::models::start_early_prefetch_with_auth(Some(auth)),
-        None => xai_grok_shell::agent::models::start_early_prefetch(Some(grok_com_config.clone())),
-    };
+        .await?
+    {
+        xai_grok_shell::agent::init::apply_post_login_config(*auth).await?;
+        args.force_login = false;
+    }
+    xai_tty_utils::redirect_native_stderr();
+    let refreshed_auth = tokio::time::timeout(
+        xai_grok_shell::http::STARTUP_AUTH_REFRESH_TIMEOUT,
+        xai_grok_login::try_ensure_fresh_auth(&grok_com_config, proxy_base_url),
+    )
+    .await
+    .unwrap_or(None);
+    let settings_query = xai_grok_shell::agent::remote_config::settings_get::SettingsQuery::resolve(
+        refreshed_auth,
+        Some(grok_com_config.clone()),
+    );
+    let had_prefetch =
+        xai_grok_shell::agent::remote_config::settings_get::is_eligible(&settings_query);
+    if had_prefetch {
+        xai_grok_shell::agent::remote_config::settings_get::warm_startup_settings(
+            settings_query.clone(),
+        );
+    }
     xai_grok_shell::agent::mvp_agent::warm_async_http_client();
     tokio::task::spawn_blocking(|| {});
     if let Ok(cwd) = std::env::current_dir() {

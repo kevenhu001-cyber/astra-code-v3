@@ -1338,7 +1338,7 @@ pub(crate) async fn run(
     app.plugin_cta_enabled = xai_grok_config::env_bool("GROK_PLUGIN_CTA")
         .or_else(|| remote_settings.as_ref().and_then(|s| s.plugin_cta))
         .unwrap_or(false);
-    app.plugin_cta_marketplace = launch_effective_config
+    app.plugin_cta_marketplace = effective_root
         .as_ref()
         .and_then(plugin_cta_marketplace_from);
     app.workspace_dashboard_enabled = xai_grok_config::env_bool("GROK_WORKSPACE_DASHBOARD")

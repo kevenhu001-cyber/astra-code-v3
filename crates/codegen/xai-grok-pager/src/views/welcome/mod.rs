@@ -20,6 +20,9 @@ use crate::app::consent::ConsentState;
 use crate::startup::StartupWarning;
 use crate::theme::Theme;
 use crate::views::prompt_widget::{PromptFlag, PromptInfo, PromptWidget};
+use crate::views::session_picker_surface::{
+    SessionPickerRenderCtx, SessionPickerRenderMode, render_session_picker,
+};
 mod astra_logo;
 mod consent;
 mod hero_box;
@@ -392,59 +395,10 @@ impl WelcomeLayout {
             ..
         } = input;
         let zero = Rect::default();
-        // Pick hero vs stacked first, independent of the announcement's height:
-        // the changelog isn't clamped so it must fit as-is, but an announcement
-        // clamps to fit, so with one present the box only needs to fit empty.
-        let gate_info = if announcement.is_some() {
-            0
-        } else {
-            changelog_height
-        };
-        let use_hero_box = allow_hero_box
-            && !compact
-            && content_area.width >= HERO_BOX_MIN_WIDTH
-            && menu_height > 0
-            && content_area.height
-                >= hero_box::min_content_height(error_height, menu_height, tip_height, gate_info);
-
-        if use_hero_box {
-            // The hero box measures + clamps the announcement itself.
-            return hero_box::compute_hero_box(
-                content_area,
-                error_height,
-                menu_height,
-                tip_height,
-                changelog_height,
-                announcement,
-                expanded,
-                has_upgrade_cta,
-            );
-        }
-
-        // Stacked info slot: the announcement clamped to the column budget, else
-        // the changelog. Measure at the centered menu width inside the inset.
-        let info_height = match announcement {
-            Some(ann) => {
-                let avail = content_area
-                    .width
-                    .saturating_sub(prompt::prompt_inset(prompt_compact) * 2);
-                let width = stacked_info_width(avail, content_area.height, MENU_MIN_WIDTH);
-                hero_box::announcement_desired_rows(ann, width, expanded, has_upgrade_cta).min(
-                    stacked_info_budget(
-                        content_area,
-                        error_height,
-                        menu_height,
-                        tip_height,
-                        compact,
-                    ),
-                )
-            }
-            None => changelog_height,
-        };
-
-        // Stacked layout: central braille Grok logo removed per design — never allocate logo rows.
-        // The sole brand mark is the top ASTRA pixel wordmark painted in render_welcome.
-        let logo_rows = 0u16;
+        let prompt_height = prompt_height.unwrap_or(PROMPT_HEIGHT);
+        // Centering and the info budget see the one-line box, so a growing draft does not shift the column or reflow the slot.
+        // The consent screen passes 0 rows and must not be charged for a box it never paints.
+        let one_line_prompt = prompt_height.min(PROMPT_HEIGHT);
 
         let gap_after_logo = if error_height > 0 { 1 } else { 0 };
         let tip_gap = if tip_height > 0 { 1u16 } else { 0 };
@@ -485,8 +439,9 @@ impl WelcomeLayout {
             (0, 0)
         };
         let eff_changelog_gap = if eff_changelog_height > 0 { 1u16 } else { 0 };
-        // Compute top_pad using the *default* menu height (4 items = 7 rows) so
-        // the menu position stays constant regardless of picker/focus state.
+        let logo_gap = 1u16;
+        let flex_gap = 1u16;
+        // Compute top_pad using the default menu height and one-line prompt so the menu position stays constant regardless of picker/focus state or draft length.
         let top_pad = if compact {
             0
         } else {
@@ -507,8 +462,6 @@ impl WelcomeLayout {
                     + fixed_below,
             ))
         };
-        let logo_gap = if logo_rows > 0 { 1u16 } else { 0 };
-        let flex_gap = 1u16;
         let [
             _,
             logo,

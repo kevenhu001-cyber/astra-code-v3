@@ -229,18 +229,18 @@ pub(crate) fn loading_spinner_active(
 // Source filter
 // ---------------------------------------------------------------------------
 
-/// Filter session entries by native, remote, or external source.
+/// Filter session entries by native, headless, remote, or external source.
 ///
 /// Default is [`Self::Astra`]: native Astra sessions only (local / remote /
 /// conversation), so `/resume` does not mix Claude/Codex/Cursor foreign
-/// sessions into the list. `f` cycles Astra → External → All → Local →
-/// Remote — External first so one press from the default reveals foreign
-/// sessions.
+/// sessions into the list.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SourceFilter {
     /// Native Astra sessions only — excludes Claude/Codex/Cursor foreign rows.
     #[default]
     Astra,
+    /// `astra -p` one-shots only (`session_kind == "headless"`).
+    Headless,
     Local,
     Remote,
     External,
@@ -252,6 +252,7 @@ impl SourceFilter {
     pub fn label(self) -> &'static str {
         match self {
             Self::Astra => "Astra",
+            Self::Headless => "Headless",
             Self::Local => "Local",
             Self::Remote => "Remote",
             Self::External => "External",
@@ -261,7 +262,8 @@ impl SourceFilter {
 
     pub fn next(self) -> Self {
         match self {
-            Self::Astra => Self::External,
+            Self::Astra => Self::Headless,
+            Self::Headless => Self::External,
             Self::External => Self::All,
             Self::All => Self::Local,
             Self::Local => Self::Remote,
@@ -274,17 +276,33 @@ impl SourceFilter {
         self != Self::Astra
     }
 
-    /// Returns `true` if a session with the given `source` string passes the filter.
-    ///
-    /// grok.com conversations carry `source == "conversation"` and live remotely,
-    /// so they pass the `Remote` filter (and `Astra` / `All`) but not `Local`.
-    /// Foreign sources (`claude` / `codex` / `cursor`) only pass `External` and
-    /// `All`.
-    pub fn matches(self, source: &str) -> bool {
+    /// Whether deep content search is unavailable on this page: foreign stores are not FTS-indexed.
+    /// The Headless page searches like every native page; the server filters hits by page policy.
+    pub fn is_content_search_disabled(self) -> bool {
+        self == Self::External
+    }
+
+    /// The server-side headless policy used when fetching sessions or content for this page.
+    pub fn headless_policy(self) -> xai_grok_shell::session::unified_list::HeadlessPolicy {
+        use xai_grok_shell::session::unified_list::HeadlessPolicy;
+        if self == Self::Headless {
+            HeadlessPolicy::Only
+        } else {
+            HeadlessPolicy::Exclude
+        }
+    }
+
+    /// Returns `true` if a session with the given source and session kind passes the filter.
+    pub fn matches(self, source: &str, session_kind: Option<&str>) -> bool {
+        let is_headless = session_kind == Some("headless");
         match self {
-            Self::Astra => !crate::app::is_foreign_picker_source(source),
-            Self::Local => source == "local" || source == "both",
-            Self::Remote => source == "remote" || source == "both" || source == "conversation",
+            Self::Astra => !crate::app::is_foreign_picker_source(source) && !is_headless,
+            Self::Headless => is_headless && !crate::app::is_foreign_picker_source(source),
+            Self::Local => (source == "local" || source == "both") && !is_headless,
+            Self::Remote => {
+                (source == "remote" || source == "both" || source == "conversation")
+                    && !is_headless
+            }
             Self::External => crate::app::is_foreign_picker_source(source),
             Self::All => !is_headless,
         }
@@ -1398,13 +1416,13 @@ mod tests {
     #[test]
     fn source_filter_matches() {
         // Default Astra filter: native only (not Claude/Codex/Cursor).
-        assert!(SourceFilter::Astra.matches("local"));
-        assert!(SourceFilter::Astra.matches("remote"));
-        assert!(SourceFilter::Astra.matches("both"));
-        assert!(SourceFilter::Astra.matches("conversation"));
-        assert!(!SourceFilter::Astra.matches("claude"));
-        assert!(!SourceFilter::Astra.matches("codex"));
-        assert!(!SourceFilter::Astra.matches("cursor"));
+        assert!(SourceFilter::Astra.matches("local", None));
+        assert!(SourceFilter::Astra.matches("remote", None));
+        assert!(SourceFilter::Astra.matches("both", None));
+        assert!(SourceFilter::Astra.matches("conversation", None));
+        assert!(!SourceFilter::Astra.matches("claude", None));
+        assert!(!SourceFilter::Astra.matches("codex", None));
+        assert!(!SourceFilter::Astra.matches("cursor", None));
 
         assert!(SourceFilter::All.matches("local", None));
         assert!(SourceFilter::All.matches("remote", None));
@@ -1424,9 +1442,9 @@ mod tests {
         assert!(!SourceFilter::Remote.matches("cursor", None));
 
         // grok.com conversations are remote: visible under Astra + All + Remote, not Local.
-        assert!(SourceFilter::All.matches("conversation"));
-        assert!(SourceFilter::Remote.matches("conversation"));
-        assert!(!SourceFilter::Local.matches("conversation"));
+        assert!(SourceFilter::All.matches("conversation", None));
+        assert!(SourceFilter::Remote.matches("conversation", None));
+        assert!(!SourceFilter::Local.matches("conversation", None));
 
         assert!(SourceFilter::External.matches("claude", None));
         assert!(SourceFilter::External.matches("codex", None));
@@ -1439,8 +1457,8 @@ mod tests {
 
     #[test]
     fn source_filter_cycles() {
-        // External first: one press from the default reveals foreign sessions.
-        assert_eq!(SourceFilter::Astra.next(), SourceFilter::External);
+        assert_eq!(SourceFilter::Astra.next(), SourceFilter::Headless);
+        assert_eq!(SourceFilter::Headless.next(), SourceFilter::External);
         assert_eq!(SourceFilter::External.next(), SourceFilter::All);
         assert_eq!(SourceFilter::All.next(), SourceFilter::Local);
         assert_eq!(SourceFilter::Local.next(), SourceFilter::Remote);
@@ -1488,17 +1506,17 @@ mod tests {
     fn source_filter_empty_and_unknown_source() {
         // Empty / unknown source (e.g. from old data or test fixtures) is not
         // foreign, so it passes Astra + All but never Local, Remote, or External.
-        assert!(SourceFilter::Astra.matches(""));
-        assert!(SourceFilter::All.matches(""));
-        assert!(!SourceFilter::Local.matches(""));
-        assert!(!SourceFilter::Remote.matches(""));
-        assert!(!SourceFilter::External.matches(""));
+        assert!(SourceFilter::Astra.matches("", None));
+        assert!(SourceFilter::All.matches("", None));
+        assert!(!SourceFilter::Local.matches("", None));
+        assert!(!SourceFilter::Remote.matches("", None));
+        assert!(!SourceFilter::External.matches("", None));
 
-        assert!(SourceFilter::Astra.matches("unknown"));
-        assert!(SourceFilter::All.matches("unknown"));
-        assert!(!SourceFilter::Local.matches("unknown"));
-        assert!(!SourceFilter::Remote.matches("unknown"));
-        assert!(!SourceFilter::External.matches("unknown"));
+        assert!(SourceFilter::Astra.matches("unknown", None));
+        assert!(SourceFilter::All.matches("unknown", None));
+        assert!(!SourceFilter::Local.matches("unknown", None));
+        assert!(!SourceFilter::Remote.matches("unknown", None));
+        assert!(!SourceFilter::External.matches("unknown", None));
     }
 
     #[test]

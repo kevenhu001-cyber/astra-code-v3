@@ -17,6 +17,10 @@ fn next_rewrite_nonce() -> u64 {
     REWRITE_NONCE.fetch_add(1, Ordering::Relaxed)
 }
 
+/// One copy of the send-time thank-you, shared by the immediate and modal commit paths.
+pub(crate) const FEEDBACK_THANKS_NOTICE: &str =
+    "Thanks for the feedback! The Astra team is on it.";
+
 /// Bare `/feedback` pane label (first paragraph of the question chrome).
 pub(crate) const FEEDBACK_QUESTION_LABEL: &str = "How can we improve Astra?";
 
