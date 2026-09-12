@@ -188,6 +188,25 @@ fn hex_encode(bytes: &[u8]) -> String {
     out
 }
 
+fn compress_and_pin(
+    dest: &std::path::Path,
+    name_uc: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let bytes = fs::read(dest)?;
+    let sha = {
+        use sha2::Digest as _;
+        hex_encode(&sha2::Sha256::digest(&bytes))
+    };
+
+    let compressed = zstd::encode_all(&bytes[..], 19)?;
+    let mut zst = dest.to_path_buf().into_os_string();
+    zst.push(".zst");
+    fs::write(&zst, &compressed)?;
+
+    println!("cargo:rustc-env=GROK_TOOLS_{name_uc}_SHA256={sha}");
+    Ok(())
+}
+
 /// Bundle a prebuilt **static** search-tool binary (`bfs`/`ugrep`) when
 /// `GROK_TOOLS_BUNDLE_<NAME>_PATH` points at one (supplied by the release
 /// pipeline). Emits
