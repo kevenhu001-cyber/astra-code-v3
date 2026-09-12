@@ -33,6 +33,7 @@ pub enum SaveRememberNoteError {
 /// named `{project-slug}-{hash8}`, e.g. `~/.astra/memory/xai-a3f7b2c9/`.
 #[derive(Debug, Clone)]
 pub struct MemoryStorage {
+    mode: MemoryMode,
     /// `~/.astra/memory/`
     global_dir: PathBuf,
     /// `~/.astra/memory/{project-slug}-{hash8}/`

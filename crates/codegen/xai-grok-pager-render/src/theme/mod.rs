@@ -25,6 +25,8 @@ pub mod transition;
 pub use color_support::quantize;
 pub use tokyonight::{Theme, pulse_brightness, wave_brightness};
 
+use std::sync::LazyLock;
+
 /// Available theme variants.
 ///
 /// **Brand note:** the `GrokNight` / `GrokDay` variants are the
@@ -171,9 +173,9 @@ impl ThemeKind {
     /// Alternate lowercase spellings accepted by [`from_name`](Self::from_name), excluding [`display_name`](Self::display_name).
     pub fn aliases(self) -> &'static [&'static str] {
         match self {
-            Self::GrokNight => &["grok-night", "dark"],
+            Self::GrokNight => &["astra-night", "groknight", "grok-night", "dark"],
             Self::TokyoNight => &["tokyo-night", "tokyo"],
-            Self::GrokDay => &["grok-day", "light", "day"],
+            Self::GrokDay => &["astra-day", "grokday", "grok-day", "light", "day"],
             Self::RosePineMoon => &["rosepine", "rose-pine", "rose-pine-moon"],
             Self::OscuraMidnight => &["oscura"],
             Self::Terminal => &["terminal-default", "transparent", "native"],
@@ -186,20 +188,15 @@ impl ThemeKind {
     /// While the `terminal` rollout gate is off its names do not parse, so a configured or typed value falls back like any unknown name.
     pub fn from_name(name: &str) -> Option<Self> {
         let lower = name.to_lowercase();
-        match lower.as_str() {
-            "auto" | "system" => Some(Self::Auto),
-            "astranight" | "astra-night" | "groknight" | "grok-night" | "dark" => {
-                Some(Self::GrokNight)
-            }
-            "tokyonight" | "tokyo-night" | "tokyo" => Some(Self::TokyoNight),
-            "astraday" | "astra-day" | "grokday" | "grok-day" | "light" | "day" => {
-                Some(Self::GrokDay)
-            }
-            "rosepine" | "rose-pine" | "rosepine-moon" | "rose-pine-moon" => {
-                Some(Self::RosePineMoon)
-            }
-            "oscura" | "oscura-midnight" => Some(Self::OscuraMidnight),
-            _ => None,
+        let kind = Self::ALL
+            .iter()
+            .chain(std::iter::once(&Self::Auto))
+            .copied()
+            .find(|kind| {
+                kind.display_name() == lower || kind.aliases().contains(&lower.as_str())
+            })?;
+        if kind.is_terminal_native() && !cache::terminal_theme_enabled() {
+            return None;
         }
         Some(kind)
     }
@@ -468,6 +465,7 @@ impl Theme {
             ThemeKind::GrokDay => Self::grokday(),
             ThemeKind::RosePineMoon => Self::rosepine_moon(),
             ThemeKind::OscuraMidnight => Self::oscura_midnight(),
+            ThemeKind::Terminal => Self::terminal(),
             // `Auto` is resolved before `apply_kind` is ever called, so
             // this branch is defensive only.
             ThemeKind::Auto => Self::groknight(),
