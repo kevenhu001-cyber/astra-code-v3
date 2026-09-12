@@ -52,8 +52,8 @@ pub(super) fn min_content_height(
     info_height: u16,
     prompt_height: u16,
 ) -> u16 {
-    // Central Grok braille logo removed — hero inner height driven solely by right column.
-    let inner = right_col_height(menu_height, info_height);
+    let inner =
+        super::logo::full_logo_line_count().max(right_col_height(input.menu_height, info_height));
     let hero_box_height = 2 + V_PAD * 2 + inner;
     let gap_after_error = if input.error_height > 0 { 1u16 } else { 0 };
     gap_after_error

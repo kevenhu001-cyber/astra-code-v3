@@ -962,6 +962,14 @@ pub(crate) fn hidden_external_hint(
     if source_filter != SourceFilter::Astra {
         return None;
     }
+    let hidden = entries?
+        .iter()
+        .filter(|entry| crate::app::is_foreign_picker_source(&entry.source))
+        .count();
+    (hidden > 0).then(|| {
+        let plural = if hidden == 1 { "" } else { "s" };
+        format!("{hidden} external session{plural} hidden \u{b7} f to show")
+    })
 }
 
 // ---------------------------------------------------------------------------

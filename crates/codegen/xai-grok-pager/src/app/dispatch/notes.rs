@@ -466,9 +466,18 @@ pub(super) fn dispatch_send_feedback(
         return vec![];
     };
 
-    agent.scrollback.push_block(RenderBlock::system(
-        "Thanks for the feedback! The Astra team is on it.".to_string(),
-    ));
+    let Some(send) = commit_feedback(
+        agent,
+        coding_data_retention_opt_out,
+        id,
+        session_id.clone(),
+        text,
+        images,
+        trace,
+    ) else {
+        // Nothing went out, so no trace-upload side effects either.
+        return vec![];
+    };
 
     let mut effects = vec![send];
     match trace {
