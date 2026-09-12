@@ -1087,6 +1087,7 @@ fn test_model_entry(
             show_model_fingerprint: false,
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
+            variants: Vec::new(),
             injects_think_tags_in_content: false,
         },
         mtls_cert_dir: None,
@@ -2180,6 +2181,7 @@ fn model_info_from_config_propagates_use_concise() {
         show_model_fingerprint: false,
         stream_tool_calls: None,
         laziness_detector: LazinessDetectorPerModelConfig::default(),
+        variants: Vec::new(),
         injects_think_tags_in_content: false,
     };
     let info = ModelInfo::from_config(&entry);
@@ -2343,6 +2345,7 @@ fn model_info_from_config_propagates_agent_type() {
         show_model_fingerprint: false,
         stream_tool_calls: None,
         laziness_detector: LazinessDetectorPerModelConfig::default(),
+        variants: Vec::new(),
         injects_think_tags_in_content: false,
     };
     let info = ModelInfo::from_config(&entry);
@@ -2798,6 +2801,7 @@ fn inference_idle_timeout_propagates_to_model_info() {
         show_model_fingerprint: false,
         stream_tool_calls: None,
         laziness_detector: LazinessDetectorPerModelConfig::default(),
+        variants: Vec::new(),
         injects_think_tags_in_content: false,
     };
     let info = ModelInfo::from_config(&entry);

@@ -1655,6 +1655,7 @@ async fn switch_to_first_party_model_drops_minted_provider_token() {
             let cfg = xai_grok_sampler::SamplerConfig {
                 api_key: Some("session-jwt".to_string()),
                 base_url: "https://api.topodrive.top/v1".to_string(),
+                mtls_cert_dir: None,
                 model,
                 max_completion_tokens: None,
                 temperature: None,

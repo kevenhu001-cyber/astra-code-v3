@@ -415,18 +415,14 @@ mod tests {
 
     #[test]
     fn abbreviate_path_uses_home_when_under_default_grok() {
-        if let Ok(home) = std::env::var("HOME") {
-            if home.is_empty() {
-                return;
-            }
-            let full = format!("{home}/.astra/memory/MEMORY.md");
-            let abbreviated = abbreviate_path(&full);
-            assert!(
-                abbreviated.contains("memory/MEMORY.md"),
-                "got {abbreviated}"
-            );
+        let Some(home) = xai_dirs::home_dir() else {
+            return;
+        };
+        let home = home.to_string_lossy();
+        if home.is_empty() {
+            return;
         }
-        let full = format!("{home}/.grok/memory/MEMORY.md");
+        let full = format!("{home}/.astra/memory/MEMORY.md");
         let abbreviated = abbreviate_path(&full);
         assert!(
             abbreviated.contains("memory/MEMORY.md"),
@@ -442,7 +438,7 @@ mod tests {
         if home.as_os_str().is_empty() {
             return;
         }
-        // Stay outside grok_home so this hits the $HOME branch, not ~/.grok.
+        // Stay outside grok_home so this hits the $HOME branch, not ~/.astra.
         let full = home.join("not-grok-home").join("file.txt");
         let full_str = full.to_string_lossy();
         let abbreviated = abbreviate_path(&full_str);
