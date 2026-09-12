@@ -223,19 +223,37 @@ pub(crate) fn trust_env(feature_on: bool) -> [(&'static str, &'static str); 2] {
     ]
 }
 
-/// Whether the isolated trust store has recorded a grant for `repo`'s workspace.
-pub(crate) fn folder_is_trusted(content: &ContentController, repo: &std::path::Path) -> bool {
-    let store_path = content
-        .home()
-        .join(".astra")
-        .join(xai_grok_workspace::trust::TRUST_FILE_NAME);
-    let store = xai_grok_workspace::trust::TrustStore::load_from(store_path);
-    store.is_trusted(&xai_grok_workspace::trust::workspace_key(repo))
+/// Filename of the folder-trust store under `$HOME/.astra`. Mirrors
+/// `xai_grok_workspace::trust::TRUST_FILE_NAME`; the harness does not link the workspace crate.
+pub(crate) const TRUST_FILE_NAME: &str = "trusted_folders.toml";
+
+/// Whether the `trusted_folders.toml` at `store_path` records a grant covering `query`.
+/// Reads the on-disk document (`[folders."<canonical path>"] trusted = <bool>`) the way
+/// `TrustStore::is_trusted` does: the most specific recorded ancestor of the canonical query decides.
+pub(crate) fn store_trusts(store_path: &Path, query: &Path) -> bool {
+    let Ok(text) = std::fs::read_to_string(store_path) else {
+        return false;
+    };
+    let Ok(doc) = text.parse::<toml::Table>() else {
+        return false;
+    };
+    let Some(folders) = doc.get("folders").and_then(toml::Value::as_table) else {
+        return false;
+    };
+    let query = dunce::canonicalize(query).unwrap_or_else(|_| query.to_path_buf());
+    folders
+        .iter()
+        .filter(|(folder, _)| query.starts_with(folder))
+        .max_by_key(|(folder, _)| Path::new(folder).components().count())
+        .is_some_and(|(_, record)| {
+            record.get("trusted").and_then(toml::Value::as_bool) == Some(true)
+        })
 }
 
-/// Whether the isolated trust store has recorded a grant covering `repo` (a repo root, so its own workspace key).
+/// Whether the isolated Astra trust store has recorded a grant covering `repo`
+/// (a repo root, so its own workspace key).
 pub(crate) fn folder_is_trusted(content: &ContentController, repo: &Path) -> bool {
-    store_trusts(&content.home().join(".grok").join(TRUST_FILE_NAME), repo)
+    store_trusts(&content.home().join(".astra").join(TRUST_FILE_NAME), repo)
 }
 
 // Leader mode e2e. The leader cluster cases moved to the dedicated `tests/leader_pty_e2e` target.
@@ -390,10 +408,6 @@ pub(crate) const CTRL_L: &[u8] = b"\x0c";
 /// On Apple Terminal this is the InterjectPrompt / send-now chord.
 /// In minimal mode it also doubles as the transcript-pager remap when interject would no-op.
 pub(crate) const CTRL_O: &[u8] = b"\x0f";
-
-/// Suffix of the mid-turn send-now tip: `Queued · Enter to send now` (or the
-/// interject chord in multiline). Chord-agnostic like [`UNDO_TIP_SENTINEL`].
-pub(crate) const SEND_NOW_TIP_SENTINEL: &str = "to send now";
 
 // NOTE: The SessionStart hook exactly-once e2e test is deferred.
 // The core fix (deduplication in load_hooks_from_sources) is verified by
