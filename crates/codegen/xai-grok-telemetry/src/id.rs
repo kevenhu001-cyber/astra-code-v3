@@ -4,6 +4,8 @@
 //! telemetry engine can stamp events without depending on shell internals.
 //! `$ASTRA_HOME` is resolved through `xai-grok-config::grok_home`.
 
+use std::sync::{Once, OnceLock};
+
 /// Overrides the agent ID for this process; nothing is computed or persisted.
 const ENV_AGENT_ID: &str = "GROK_AGENT_ID";
 

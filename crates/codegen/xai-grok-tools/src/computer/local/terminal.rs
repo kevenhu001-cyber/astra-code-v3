@@ -1580,10 +1580,10 @@ impl LocalTerminalActor {
         }
     }
 
-    async fn collect_shell_state_dumps(&mut self, task_ids: &[String]) {
+    async fn collect_shell_state_dumps(&mut self, _task_ids: &[String]) {
         #[cfg(unix)]
         if self.persistent_shell {
-            for task_id in task_ids {
+            for task_id in _task_ids {
                 let handle = {
                     let Some(process) = self.processes.get_mut(task_id) else {
                         continue;
