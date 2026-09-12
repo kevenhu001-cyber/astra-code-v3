@@ -90,6 +90,9 @@ pub(crate) fn try_grove_worktree(plan: &WorktreePlan) -> Result<Option<GroveTry>
     if !opts.enabled {
         return Ok(None);
     }
+    if !confined::is_safe_worktree_id(&plan.worktree_id) {
+        anyhow::bail!("invalid worktree id {:?}", plan.worktree_id);
+    }
     #[cfg(target_os = "linux")]
     {
         if !grove_fuse_ready() {
@@ -106,9 +109,6 @@ pub(crate) fn try_grove_worktree(plan: &WorktreePlan) -> Result<Option<GroveTry>
             tracing::info!("grove-fuse skipped: private mount namespace");
             return grove_skipped(GroveSkip::PrivateMountNamespace);
         }
-    }
-    if !confined::is_safe_worktree_id(&plan.worktree_id) {
-        anyhow::bail!("invalid worktree id {:?}", plan.worktree_id);
     }
     let linked = source_is_linked_local_view(opts, &plan.source);
     if dest_is_projected_mount(&plan.source) {

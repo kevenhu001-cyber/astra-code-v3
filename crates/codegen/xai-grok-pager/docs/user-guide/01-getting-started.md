@@ -56,7 +56,7 @@ grok clone <url> [dir]
 The default is a depth-1 checkout of the selected branch. Pass `--full-history`
 for a complete clone. Clone enablement is independent of session / `-w` Grove
 worktrees. Git credentials for the remote come from the Grove daemon, not from
-the grok.com sign-in below — see [grok clone](27-grok-clone.md#authentication)
+the Astra sign-in below — see [grok clone](27-grok-clone.md#authentication)
 and [Configuration reference](26-config-reference.md).
 
 ---

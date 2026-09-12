@@ -6,7 +6,7 @@
 //! (id → `refs/grok/worktrees/<id>` only).
 use super::confined::is_safe_worktree_id;
 use super::mount_table::{dest_is_mountpoint, dest_is_nfs_mount};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
@@ -518,15 +518,45 @@ fn read_marker_capped(path: &Path) -> Option<Vec<u8>> {
     Some(buf)
 }
 fn pin_exists(source: &Path, worktree_id: &str) -> Result<bool> {
-    {
-        let _ = (source, worktree_id);
-        Ok(false)
+    if !is_safe_worktree_id(worktree_id) {
+        anyhow::bail!("invalid worktree id {:?}", worktree_id);
+    }
+    let pin = format!("refs/grok/worktrees/{worktree_id}");
+    let mut cmd = std::process::Command::new("git");
+    xai_tty_utils::detach_std_command(&mut cmd);
+    let status = cmd
+        .current_dir(source)
+        .args(["show-ref", "--verify", "--quiet", &pin])
+        .status()
+        .with_context(|| format!("check Grove pin {pin} in {}", source.display()))?;
+    match status.code() {
+        Some(0) => Ok(true),
+        Some(1) => Ok(false),
+        _ => anyhow::bail!(
+            "git show-ref failed while checking Grove pin {pin} in {}",
+            source.display()
+        ),
     }
 }
 fn delete_pin_ref_gated(source: &Path, worktree_id: &str) -> Result<()> {
-    {
-        let _ = (source, worktree_id);
-        anyhow::bail!("pin delete requires grove")
+    if !is_safe_worktree_id(worktree_id) {
+        anyhow::bail!("invalid worktree id {:?}", worktree_id);
+    }
+    let pin = format!("refs/grok/worktrees/{worktree_id}");
+    let mut cmd = std::process::Command::new("git");
+    xai_tty_utils::detach_std_command(&mut cmd);
+    let status = cmd
+        .current_dir(source)
+        .args(["update-ref", "-d", &pin])
+        .status()
+        .with_context(|| format!("delete Grove pin {pin} in {}", source.display()))?;
+    if status.success() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "git update-ref failed while deleting Grove pin {pin} in {}",
+            source.display()
+        )
     }
 }
 #[cfg(feature = "metadata")]
