@@ -52,6 +52,10 @@ pub enum Scenario {
 }
 
 impl Scenario {
+    pub fn as_str(self) -> &'static str {
+        self.into()
+    }
+
     /// Every scenario, in dispatch order.
     pub const ALL: &'static [Scenario] = &[
         Scenario::ScrollStress,
