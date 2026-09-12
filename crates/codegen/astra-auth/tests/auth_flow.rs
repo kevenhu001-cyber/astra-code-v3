@@ -4,6 +4,7 @@
 //! The server runs on a background thread with its own tokio runtime; the
 //! tests drive it with `reqwest::blocking` (a blocking client cannot live
 //! inside a tokio runtime, so the tests themselves are plain `#[test]`).
+#![allow(clippy::disallowed_methods)] // test clients only call the ephemeral localhost server
 
 use std::sync::Arc;
 
