@@ -4341,6 +4341,7 @@ async fn sampling_config_survives_compaction_replacement() {
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
+        mtls_cert_dir: None,
         stream_tool_calls: None,
         injects_think_tags_in_content: false,
     };
