@@ -188,7 +188,7 @@ pub fn is_xai_oauth2_issuer(issuer: &str) -> bool {
 /// Retained so the manager can scrub stale entries from `auth.json` on every
 /// load — users migrating from the old `accounts.topodrive.top` relay auth still need
 /// these removed from their on-disk credentials. Never used as a URL or issuer.
-pub(crate) const LEGACY_AUTH_SCOPE: &str = "https://accounts.topodrive.top/sign-in";
+pub const LEGACY_AUTH_SCOPE: &str = "https://accounts.topodrive.top/sign-in";
 impl GrokComConfig {
     /// Pinning a team (`force_login_team_uuid`) disables `xai.api_key` auth: team membership can't be verified from a bare API key.
     /// The `GROK_DISABLE_API_KEY_AUTH` env lockdown is read at call time and OR-ed in, so a lower-trust user `config.toml` cannot turn it back off.

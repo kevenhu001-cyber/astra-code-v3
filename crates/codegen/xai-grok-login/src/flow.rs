@@ -576,12 +576,18 @@ pub(super) async fn run_auth_flow_steps(
         return crate::oidc::run_login_flow(grok_com_config, auth_manager, channels).await;
     }
     if let Some(ref oauth2_cfg) = grok_com_config.oauth2 {
-        if should_use_device_flow(login_override).await {
+        if should_use_device_flow(
+            login_override,
+            config_device_flow,
+            auth_manager.proxy_base_url(),
+        )
+        .await
+        {
             // Reverse device flow (replaces the RFC 8628 forward flow that
             // required `accounts.topodrive.top`'s `/oauth2/device/code` endpoint).
             return match channels.take() {
                 Some(channels) => {
-                    crate::auth::device_code::run_reverse_device_login_channels(
+                    crate::device_code::run_reverse_device_login_channels(
                         &oauth2_cfg.issuer,
                         auth_manager,
                         channels,
@@ -589,7 +595,7 @@ pub(super) async fn run_auth_flow_steps(
                     .await
                 }
                 None => {
-                    crate::auth::device_code::run_reverse_device_login_cli(
+                    crate::device_code::run_reverse_device_login_cli(
                         &oauth2_cfg.issuer,
                         auth_manager,
                     )

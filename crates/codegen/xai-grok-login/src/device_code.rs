@@ -529,7 +529,7 @@ pub(crate) async fn consume_reverse_device_code(
     auth_manager: &Arc<AuthManager>,
 ) -> anyhow::Result<(GrokAuth, bool)> {
     let url = format!("{}/api/auth/device/consume", issuer.trim_end_matches('/'));
-    let client = crate::http::shared_client();
+    let client = xai_grok_http::shared_client();
 
     let resp = client
         .post(&url)
@@ -592,7 +592,7 @@ async fn build_auth_from_reverse_device(
         team_role: None,
         user_blocked_reason: None,
         team_blocked_reasons: vec![],
-        coding_data_retention_opt_out: crate::auth::default_coding_data_retention_opt_out(),
+        coding_data_retention_opt_out: crate::default_coding_data_retention_opt_out(),
         has_grok_code_access: None,
         refresh_token: None,
         expires_at: Some(now + Duration::days(30)),

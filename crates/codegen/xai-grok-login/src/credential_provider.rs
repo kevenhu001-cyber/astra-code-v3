@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use reqwest::RequestBuilder;
-use xai_grok_auth::{AuthCredentialProvider, CredentialSnapshot, HttpAuth};
+use xai_grok_auth::{
+    AuthCredentialProvider, CredentialSnapshot, HttpAuth, StaticAuthCredentialProvider,
+};
 
 use crate::AuthManager;
 use crate::backend::{ActiveAuthBackend, AuthBackend};
@@ -218,7 +220,7 @@ pub fn embedding_session_credentials(
     });
     xai_grok_memory::EndpointScopedCredentials::for_endpoint(
         embed_base_url,
-        crate::util::is_topodrive_api_bearer_url,
+        xai_grok_shell_base::util::is_topodrive_api_bearer_url,
         auth_credentials,
         api_key_provider,
     )
@@ -263,7 +265,7 @@ pub fn build_storage_client_for_proxy(
     session_id: Option<String>,
     client_identifier: &str,
 ) -> xai_file_utils::storage_client::StorageClient {
-    let http_client = crate::http::shared_upload_client();
+    let http_client = xai_grok_http::shared_upload_client();
     if let Some(am) = auth_manager {
         let provider: Arc<dyn AuthCredentialProvider> = Arc::new(ShellAuthCredentialProvider::new(
             am.clone(),
@@ -278,7 +280,7 @@ pub fn build_storage_client_for_proxy(
             provider,
         )
         .with_client_identity(xai_grok_version::VERSION, client_identifier)
-        .with_client_mode(crate::http::process_client_mode())
+        .with_client_mode(xai_grok_http::process_client_mode())
         .with_attribution(bridge)
     } else {
         let mut creds = GrokAuthCredentials::new(user_token);
@@ -297,7 +299,7 @@ pub fn build_storage_client_for_proxy(
             provider,
         )
         .with_client_identity(xai_grok_version::VERSION, client_identifier)
-        .with_client_mode(crate::http::process_client_mode())
+        .with_client_mode(xai_grok_http::process_client_mode())
     }
 }
 /// Bridge that lets `StorageClient` (which lives in xai-file-utils)
@@ -962,7 +964,7 @@ mod tests {
             Some(make_auth("xai-session-token", ChronoDuration::hours(1))),
         );
         let api_key_provider: xai_grok_tools::types::SharedApiKeyProvider =
-            Arc::new(crate::auth::manager::SharedAuthKeyProvider(mgr.clone()));
+            Arc::new(crate::manager::SharedAuthKeyProvider(mgr.clone()));
         for denied in [
             "https://byok.attacker.example/v1",
             "http://api.topodrive.top/v1",
