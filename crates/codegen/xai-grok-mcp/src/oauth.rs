@@ -23,6 +23,30 @@ const BROWSER_AUTH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 const AUTH_LOCK_WAIT: std::time::Duration =
     BROWSER_AUTH_TIMEOUT.saturating_add(std::time::Duration::from_secs(60));
 
+/// rmcp's discovery client has no request timeout; a hung authorization server would otherwise wedge the flow and the manager lock.
+pub(crate) const OAUTH_DISCOVERY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+pub(crate) async fn discover_metadata_bounded(
+    manager: &AuthorizationManager,
+) -> Result<AuthorizationMetadata, AuthError> {
+    // rmcp 3.x `resolve_metadata` never fails discovery: it degrades to legacy endpoints guessed from the base URL. The probe's auth decision needs the rmcp 2.x "no OAuth support" signal back, so the fallback maps to `NoAuthorizationSupport` instead of guessing endpoints.
+    let resolve = async {
+        let resolution = manager.resolve_metadata().await?;
+        if resolution.source == AuthorizationMetadataSource::LegacyEndpointFallback {
+            return Err(AuthError::NoAuthorizationSupport);
+        }
+        Ok(resolution.metadata)
+    };
+    tokio::time::timeout(OAUTH_DISCOVERY_TIMEOUT, resolve)
+        .await
+        .unwrap_or_else(|_| {
+            Err(AuthError::InternalError(format!(
+                "OAuth metadata discovery timed out after {}s",
+                OAUTH_DISCOVERY_TIMEOUT.as_secs()
+            )))
+        })
+}
+
 // ---------------------------------------------------------------------------
 // Two-layer dedup: prevents duplicate browser tabs both within one process
 // (multiple async tasks / sessions) and across separate processes (leader

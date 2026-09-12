@@ -223,14 +223,32 @@ pub fn sweep_dead(conn: &Connection) -> Result<u64> {
     };
 
     let mut marked = 0u64;
-    for (id, path_str) in alive_paths {
-        let path = Path::new(&path_str);
-        // `exists()` follows symlinks: a dangling worktree symlink reads as
-        // absent while the link itself is still on disk. It must stay alive
-        // here so the age pass reclaims it as a no-repo path (unlinked +
-        // counted); marking it dead would leak the link and bypass that
-        // accounting. Truly-gone paths (no link either) sweep as dead.
-        if !path.exists() && std::fs::symlink_metadata(path).is_err() {
+    for (id, path_str, mode) in alive_paths {
+        // Grove dests can be a leftover mountpoint dir or a wedged mount.
+        // `exists()` follows the mount and can hang; nfs_row_is_dead is
+        // the only liveness probe for those rows.
+        if crate::worktree::is_grove_strategy(&mode) {
+            if crate::nfs::nfs_record_is_dead(Path::new(&path_str), None) {
+                conn.execute(
+                    "UPDATE worktrees SET status = 'dead' WHERE id = ?1",
+                    params![id],
+                )?;
+                marked += 1;
+            }
+            continue;
+        }
+        // Linked/copy rows on a live grove dest: exists() hangs.
+        let dest = Path::new(&path_str);
+        if crate::nfs::dest_is_nfs_mount(dest)
+            || crate::nfs::dest_is_mountpoint(dest)
+            || !crate::nfs::dest_is_known_unmounted(dest)
+        {
+            continue;
+        }
+        // `exists()` follows the dest. A dangling worktree symlink still
+        // occupies the path and must be unlinked by the age pass, not marked
+        // dead and forgotten.
+        if std::fs::symlink_metadata(dest).is_err() {
             conn.execute(
                 "UPDATE worktrees SET status = 'dead' WHERE id = ?1",
                 params![id],

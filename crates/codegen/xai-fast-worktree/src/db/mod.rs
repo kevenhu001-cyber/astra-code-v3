@@ -451,7 +451,7 @@ pub fn now_epoch_secs() -> i64 {
 
 /// Resolve the grok home: `$ASTRA_HOME`, else `<home>/.grok`.
 pub fn resolve_grok_home() -> Result<PathBuf> {
-    xai_grok_home::resolve_grok_home()
+    xai_dirs::resolve_grok_home()
         .context("neither $ASTRA_HOME nor a home directory could be resolved")
 }
 

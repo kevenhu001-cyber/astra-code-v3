@@ -39,37 +39,9 @@ fn eligible_or_record_skip(
     crate::matcher::matcher_allows(spec.matcher.as_ref(), match_value)
 }
 
-/// A tool-input rewrite tagged with the hook that produced it.
-pub struct InputRewrite {
-    pub hook_name: String,
-    pub input: serde_json::Value,
-}
-
-/// Result of a `pre_tool_use` dispatch: the final decision plus per-hook
-/// execution details (for scrollback enrichment).
-pub struct PreToolUseResult {
-    pub decision: HookDecision,
-    pub updated_input: Option<InputRewrite>,
-    pub results: Vec<HookRunResult>,
-}
-
-/// Dispatch a `pre_tool_use` event against all matching hooks.
-///
-/// Runs hooks sequentially in config order. Only an explicit `deny`
-/// decision from a hook stops the chain and blocks the tool call.
-///
-/// Hook failures (timeouts, crashes, command-not-found, env-var
-/// pre-spawn refusals, malformed output) are **fail-open**: the failure
-/// is logged and surfaced in the per-hook results for the UI scrollback,
-/// but the tool call continues as if the hook had allowed it. Astra
-/// runs in protected environments where induced-failure bypass of
-/// security hooks is not part of the threat model; the previous
-/// fail-closed posture over-blocked innocent tool calls when
-/// hooks timed out or had unrelated configuration errors.
-///
-/// Returns `Allow` if no hooks match, all hooks allow, or all failing
-/// hooks are non-blocking by virtue of this fail-open policy.
-pub async fn dispatch_pre_tool_use(
+/// How many hooks dispatching `envelope` would run, so the caller can announce the batch before awaiting it.
+/// Filters exactly like the dispatch loops (payload match value, disabled snapshot), so the count never over-announces.
+pub fn runnable_count(
     registry: &HookRegistry,
     envelope: &HookEventEnvelope,
     ctx: &RunContext<'_>,

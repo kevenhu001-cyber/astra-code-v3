@@ -291,7 +291,17 @@ pub enum BackgroundTaskType {
 
 /// `StopFailure` error type. Astra emits a subset: capacity errors fold into
 /// `RateLimit`, and there is no `billing_error`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, strum::IntoStaticStr, strum::EnumIter)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    strum::AsRefStr,
+    strum::IntoStaticStr,
+    strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum StopFailureKind {
