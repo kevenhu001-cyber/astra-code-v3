@@ -399,6 +399,7 @@ fn fail_closed_401_is_uncharged_and_turn_survives() {
                 &["carried no credential"],
             );
         });
+    });
 }
 
 /// Rule: kill switch off, a recovered fail-closed 401 resubmits un-parked (no
@@ -563,7 +564,6 @@ async fn authenticated_401s_still_exhaust_after_three_retries_inner() {
                 &["Re-authenticated after 401"],
             );
         });
-    });
 }
 
 /// Refresh-outage refresher: every refresh fails transiently, counting `ServerRejected` and
