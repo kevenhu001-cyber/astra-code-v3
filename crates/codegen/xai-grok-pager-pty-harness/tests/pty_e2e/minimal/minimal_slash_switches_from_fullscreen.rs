@@ -72,6 +72,8 @@ async fn minimal_slash_switches_from_fullscreen() {
             )
         });
 
+    let screen = harness.screen_contents();
+
     // "Reopening session…" only prints on the legacy exec path.
     assert!(
         !screen.contains("Reopening session"),
