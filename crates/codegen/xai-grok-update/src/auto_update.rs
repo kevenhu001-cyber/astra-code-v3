@@ -1680,8 +1680,7 @@ async fn activate_verified_download(download: &VerifiedDownload) -> Result<()> {
 async fn regenerate_completions(binary: &std::path::Path, astra_home: &std::path::Path) {
     // Derive $HOME independently — astra_home may be overridden via ASTRA_HOME
     // env var, so astra_home.parent() isn't necessarily the user's home dir.
-    #[allow(deprecated)]
-    let user_home = std::env::home_dir().unwrap_or_default();
+    let user_home = xai_dirs::home_dir().unwrap_or_default();
 
     let completions: &[(&str, std::path::PathBuf)] = &[
         ("bash", astra_home.join("completions/bash/astra.bash")),
