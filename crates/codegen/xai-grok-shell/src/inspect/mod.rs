@@ -638,6 +638,35 @@ async fn list_instructions(cwd: &Path, project_trusted: bool) -> Vec<Instruction
         .collect()
 }
 
+/// The full-lockdown sources (MCP, marketplace): they block everything they
+/// bind while listing no entries, so an unnamed lockdown is invisible.
+fn policy_lockdown_sources(
+    ms: &xai_grok_workspace::permission::resolution::ManagedSettings,
+) -> (Vec<LockdownSource>, Vec<LockdownSource>) {
+    use xai_grok_workspace::permission::resolution::PolicySourceAuthority;
+    let lockdown = |path: Option<&Path>, authority: PolicySourceAuthority| LockdownSource {
+        source: path
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| "(unknown source)".to_string()),
+        advisory: authority == PolicySourceAuthority::Advisory,
+    };
+    let mcp = ms
+        .mcp_allowlist
+        .sources
+        .iter()
+        .filter(|s| s.is_lockdown())
+        .map(|s| lockdown(s.source_path.as_deref(), s.authority()))
+        .collect();
+    let marketplace = ms
+        .marketplace_allowlist
+        .sources
+        .iter()
+        .filter(|s| s.is_lockdown())
+        .map(|s| lockdown(s.source_path.as_deref(), s.authority))
+        .collect();
+    (mcp, marketplace)
+}
+
 /// Calls the production permission resolver (`resolve_permissions_with_provenance`)
 /// which handles both Astra TOML and vendor settings fallback in one codepath.
 async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsReport {

@@ -306,7 +306,7 @@ pub fn build_storage_client_for_proxy(
 /// emit shell's 401-attribution event without the data-collector crate
 /// having a direct dependency on shell. Holds a reference to the live
 /// `AuthManager` so attribution events carry the correct user_id.
-pub(crate) struct StorageClientAttributionBridge {
+pub struct StorageClientAttributionBridge {
     auth_manager: Arc<AuthManager>,
     session_id: Option<String>,
 }

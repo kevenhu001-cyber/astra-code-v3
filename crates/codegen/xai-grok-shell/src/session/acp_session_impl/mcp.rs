@@ -795,6 +795,15 @@ impl SessionActor {
         }
         announcements_changed
     }
+    /// Clears the announced episodes and marks the reminder dirty so the next injection re-announces servers that are still down.
+    /// Persists the cleared tracking so a resume starts from it.
+    /// A rewind's kept prefix usually retains the initial listing, so clearing would inject a duplicate.
+    pub(crate) async fn rearm_failed_server_announcements(&self) {
+        self.mcp_announcements.lock().rearm_failed();
+        self.mcp_reminder_dirty
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        self.persist_announcement_state().await;
+    }
     /// Returns `true` iff `server` has a `Stdio` entry in
     /// [`McpState::configs`] AND is not on the per-cwd disabled list
     /// (`util::config::disabled_mcp_server_names`). Used by the

@@ -2423,6 +2423,35 @@ impl SessionPersistence {
         })
         .await?
     }
+
+    async fn persist_usage_turn(
+        &mut self,
+        turn_number: u32,
+        live: &crate::session::usage_file::UsageSummary,
+    ) -> io::Result<()> {
+        let mut file = self
+            .storage
+            .read_usage(&self.info)
+            .await?
+            .unwrap_or_else(|| {
+                crate::session::usage_file::SessionUsageFile::new(self.info.id.to_string())
+            });
+        // Fork copies parent usage.json verbatim; always restamp so the child is not attributed to the parent after new turns.
+        file.session_id = self.info.id.to_string();
+        file.restore_apply_cursor(self.last_incoming_turn, self.last_usage_turn);
+        file.apply_turn(
+            turn_number,
+            Utc::now().to_rfc3339(),
+            live,
+            self.last_usage_live.as_ref(),
+        );
+        let (incoming, written) = file.apply_cursor();
+        self.storage.write_usage(&self.info, &file).await?;
+        self.last_usage_live = Some(live.clone());
+        self.last_incoming_turn = incoming;
+        self.last_usage_turn = written;
+        Ok(())
+    }
 }
 
 /// Collect MCP server stderr logs from `~/.astra/logs/mcp/` for inclusion in the session archive.

@@ -912,8 +912,8 @@ impl SessionActor {
                 }
             }
             Err(e) => {
-                tracing::debug!(error = %e, "memory note rewrite inference failed");
-                Err(format!("rewrite inference failed: {e}"))
+                tracing::debug!(error = ?e, "memory note rewrite inference failed");
+                Err(format!("rewrite inference failed: {e:?}"))
             }
         }
     }

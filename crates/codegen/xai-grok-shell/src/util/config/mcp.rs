@@ -183,22 +183,6 @@ pub(crate) fn load_mcp_servers_with_oauth(
     (acp_servers, oauth_configs)
 }
 
-/// Load the worktree pool configuration from config.toml.
-/// Returns the default config if the section is missing.
-pub fn worktree_pool_from_toml(root: &TomlValue) -> PoolConfig {
-    if let TomlValue::Table(table) = root
-        && let Some(pool_val) = table.get("worktree_pool")
-    {
-        // Try to deserialize the section; fall back to defaults on error
-        pool_val
-            .clone()
-            .try_into::<PoolConfig>()
-            .unwrap_or_default()
-    } else {
-        PoolConfig::default()
-    }
-}
-
 /// Load MCP servers with project-scoped overrides from `.astra/config.toml`.
 ///
 /// Merge strategy:

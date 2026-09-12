@@ -568,7 +568,7 @@ impl SessionActor {
                 if text.is_empty() { None } else { Some(text) }
             }
             Err(e) => {
-                tracing::debug!(error = %e, "AI suggest inference failed");
+                tracing::debug!(error = ?e, "AI suggest inference failed");
                 None
             }
         }

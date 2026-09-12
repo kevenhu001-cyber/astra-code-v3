@@ -65,7 +65,7 @@ pub(crate) fn discover_hook_source_paths(
     let include_cursor = include_cursor_hooks(compat);
 
     // Soft hooks-paths I/O keeps fixed slots; hard resolve omits Astra globals.
-    let mut global: Vec<PathBuf> =
+    let mut global: Vec<HookSourceConfig> =
         match resolve_global_hook_sources(grok.as_deref(), /* reject_symlinks */ false) {
             Ok(resolved) => {
                 if let Some(e) = &resolved.configured_error {
@@ -114,7 +114,7 @@ pub(crate) fn discover_hook_source_paths(
                 root.join(".claude").join("settings.local.json"),
             ));
         }
-        project.push(root.join(".astra").join("hooks"));
+        project.push(classify_grok_hook_source(root.join(".astra").join("hooks")));
         if include_cursor {
             project.push(HookSourceConfig::SettingsFile(
                 root.join(".cursor").join("hooks.json"),
