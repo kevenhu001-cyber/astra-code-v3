@@ -547,7 +547,7 @@ mod tests {
         let cfg = ImageGenConfig::Enabled {
             api_key: "k".into(),
             base_url: "https://api.astracode.topodrive.top/v1".into(),
-            extra_headers: headers,
+            extra_headers: preset,
             image_gen_enabled: true,
             image_edit_enabled: true,
             model_override: None,
