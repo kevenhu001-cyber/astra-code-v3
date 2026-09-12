@@ -127,7 +127,7 @@ jobs:
         run: |
           # Sample scenarios chosen for fast / low-flake feedback. The full
           # 45+ scenarios run nightly.
-          cargo test -p xai-grok-pager --test scripted_scenarios -- --ignored \
+          cargo test -p xai-grok-pager-pty-harness --test scripted_scenarios -- --ignored \
             scripted_welcome_screen \
             scripted_mock_response \
             scripted_bracket_prompt_input \
