@@ -1625,13 +1625,15 @@ pub(crate) fn resolve_effective_plugins_config(
     plugins_cfg
 }
 pub use xai_grok_config::{deep_merge_toml, expand_env_vars_in_string, expand_env_vars_in_toml};
-/// Add a plugin path to `[plugins].paths` in `~/.astra/config.toml`.
-///
-/// Creates the `[plugins]` section and `paths` array if they don't exist.
-/// Deduplicates: if the path is already present, this is a no-op.
-pub(crate) fn add_plugin_path(path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::grok_home::grok_home().join("config.toml");
-    let content = std::fs::read_to_string(&config_path).unwrap_or_default();
+/// Locked read-modify-write of `~/.astra/config.toml`: the whole window runs under the config-init
+/// flock and lands via atomic replace; unchanged configs skip the write.
+fn update_config_toml_locked(
+    grok_home: &std::path::Path,
+    mutate: impl FnOnce(&mut toml::value::Table) -> Result<bool, Box<dyn std::error::Error>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config_path = grok_home.join("config.toml");
+    let _flock = crate::util::config::acquire_init_lock(grok_home)?;
+    let content = crate::util::config::read_to_string_or_empty(&config_path)?;
     let mut config: toml::Value = if content.is_empty() {
         toml::Value::Table(toml::map::Map::new())
     } else {

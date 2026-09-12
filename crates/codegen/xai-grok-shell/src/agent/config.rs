@@ -653,16 +653,6 @@ pub(crate) const FIRST_PARTY_CREDENTIAL_ENV_VARS: &[&str] = &[
     "OTEL_EXPORTER_OTLP_HEADERS",
     "GROK_INTERNAL_OTLP_HEADERS",
 ];
-/// Read an env var as a trimmed string. Returns `None` if unset or empty/whitespace-only.
-pub(crate) fn env_string(name: &str) -> Option<String> {
-    let value = std::env::var(name).ok()?;
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
 pub use xai_grok_config::env_bool;
 pub(crate) use xai_grok_env::env_string;
 /// Compaction-mode precedence (env > config > remote settings > default, with unrecognized values at each source falling through).

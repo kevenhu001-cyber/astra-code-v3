@@ -1357,7 +1357,7 @@ pub fn try_remove_source_from_json_files(source_url_or_path: &str) -> bool {
     // Resolve user grok via user_grok_home() (None when no home resolves) and
     // home separately, so removal still runs from $ASTRA_HOME when no home dir
     // exists, and never touches a cwd-relative .grok.
-    let home = dirs::home_dir();
+    let home = xai_dirs::home_dir();
     let grok = xai_grok_config::user_grok_home();
 
     let mut settings_candidates: Vec<std::path::PathBuf> = Vec::new();

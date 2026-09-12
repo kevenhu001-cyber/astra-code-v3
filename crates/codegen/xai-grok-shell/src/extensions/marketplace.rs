@@ -823,89 +823,6 @@ async fn handle_add_source(url: &str) -> xai_hooks_plugins_types::ActionOutcome 
     }
 }
 
-/// Append a `[[marketplace.sources]]` entry (and optionally set the official
-/// flag) in one atomic `toml_edit` write, so a crash can't leave a source
-/// without its flag. Idempotent on normalized git URL / local path; preserves
-/// comments.
-fn add_marketplace_source(
-    config_path: &std::path::Path,
-    name: &str,
-    source: &crate::plugin::MarketplaceAddInput,
-    set_official_flag: bool,
-) -> std::io::Result<()> {
-    if let Some(parent) = config_path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    let existing = crate::util::config::read_to_string_or_empty(config_path)?;
-    let mut doc = existing.parse::<toml_edit::DocumentMut>().map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            format!("invalid TOML: {e}"),
-        )
-    })?;
-
-    let marketplace_item = doc
-        .entry("marketplace")
-        .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
-    let marketplace = marketplace_item.as_table_mut().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "[marketplace] is not a table",
-        )
-    })?;
-
-    let sources_item = marketplace
-        .entry("sources")
-        .or_insert_with(|| toml_edit::Item::ArrayOfTables(toml_edit::ArrayOfTables::new()));
-    let sources = sources_item.as_array_of_tables_mut().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "[[marketplace.sources]] is not an array of tables",
-        )
-    })?;
-
-    // Skip if the normalized URL / path already exists: the pre-lock dup check
-    // in handle_add_source can let two serialized adds reach here.
-    use crate::plugin::MarketplaceAddInput;
-    let already_present = match source {
-        MarketplaceAddInput::GitUrl(git_url) => {
-            let normalized = git_url.trim_end_matches(".git");
-            sources.iter().any(|t| {
-                t.get("git")
-                    .and_then(|v| v.as_str())
-                    .is_some_and(|u| u.trim_end_matches(".git") == normalized)
-            })
-        }
-        MarketplaceAddInput::LocalPath(path) => {
-            let path_str = path.display().to_string();
-            sources.iter().any(|t| {
-                t.get("path")
-                    .and_then(|v| v.as_str())
-                    .is_some_and(|p| p == path_str)
-            })
-        }
-    };
-    if !already_present {
-        let mut entry = toml_edit::Table::new();
-        entry["name"] = toml_edit::value(name.to_string());
-        match source {
-            MarketplaceAddInput::GitUrl(git_url) => {
-                entry["git"] = toml_edit::value(git_url.to_string());
-            }
-            MarketplaceAddInput::LocalPath(path) => {
-                entry["path"] = toml_edit::value(path.display().to_string());
-            }
-        }
-        sources.push(entry);
-    }
-
-    if set_official_flag {
-        marketplace["official_marketplace_auto_installed"] = toml_edit::value(true);
-    }
-
-    crate::util::config::atomic_write_string(config_path, &doc.to_string())
-}
-
 /// Remove a marketplace source from `~/.astra/config.toml` and uninstall all
 /// plugins that were installed from it.
 async fn handle_remove_source(source_url_or_path: &str) -> xai_hooks_plugins_types::ActionOutcome {
@@ -1015,36 +932,7 @@ fn read_marketplace_bool_flag(config_path: &std::path::Path, key: &str) -> bool 
 }
 
 fn read_official_marketplace_auto_installed(config_path: &std::path::Path) -> bool {
-    read_marketplace_bool_flag(config_path, "official_marketplace_auto_installed")
-}
-
-/// Acquire an advisory exclusive `flock` on `<astra_home>/.config-init.lock`,
-/// retrying briefly under contention, to serialize first-run auto-register
-/// across processes. Only `WouldBlock` retries; other I/O errors return early.
-/// The lock file is intentionally never removed (flock releases on exit).
-fn acquire_init_lock(grok_home: &std::path::Path) -> std::io::Result<std::fs::File> {
-    use fs2::FileExt;
-    let _ = std::fs::create_dir_all(grok_home);
-    let lock_path = grok_home.join(".config-init.lock");
-    let file = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        // Contents are irrelevant; truncate(false) silences clippy::suspicious_open_options.
-        .truncate(false)
-        .open(&lock_path)?;
-    for _ in 0..50 {
-        match file.try_lock_exclusive() {
-            Ok(()) => return Ok(file),
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(std::time::Duration::from_millis(20));
-            }
-            Err(e) => return Err(e),
-        }
-    }
-    Err(std::io::Error::new(
-        std::io::ErrorKind::WouldBlock,
-        format!("timed out waiting for {} after 1s", lock_path.display()),
-    ))
+    read_marketplace_bool_flag(config_path, OFFICIAL_MARKETPLACE_FLAG)
 }
 
 fn is_default_skills_plugin_subdir(plugin_subdir: &str) -> bool {

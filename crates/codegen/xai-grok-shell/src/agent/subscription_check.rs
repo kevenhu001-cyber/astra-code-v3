@@ -9,6 +9,10 @@
 //! See the pager's `app::subscription` module.
 use std::sync::Arc;
 use std::time::Duration;
+use xai_grok_login::AuthManager;
+use xai_grok_login::UserInfo;
+use xai_grok_login::manager::{BEST_EFFORT_REFRESH_TIMEOUT, BoundedRefresh, RefreshReason};
+use xai_grok_login::token_type::TokenType;
 /// Whether a `/user?include=subscription` tier qualifies for Astra
 /// access. Any active subscription qualifies -- the proxy only returns a
 /// tier when an active subscription exists (`None` otherwise), and the
