@@ -132,7 +132,7 @@ jobs:
 
       - name: leader_pty_e2e (full, single-threaded)
         run: |
-          cargo test -p xai-grok-pager --test leader_pty_e2e \
+          cargo test -p xai-grok-pager-pty-harness --test leader_pty_e2e \
             -- --ignored --test-threads=1 --nocapture
 
   bench:
