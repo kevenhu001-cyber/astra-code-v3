@@ -39,9 +39,8 @@ fn initialize_test_astra_home() {
 pub fn isolate_grok_home_for_tests() {
     static HOME: std::sync::OnceLock<()> = std::sync::OnceLock::new();
     HOME.get_or_init(|| {
-        let dir = std::path::PathBuf::from(
-            std::env::var_os("ASTRA_HOME").expect("test astra home"),
-        );
+        let dir =
+            std::path::PathBuf::from(std::env::var_os("ASTRA_HOME").expect("test astra home"));
         let memo = xai_grok_config::grok_home();
         assert!(
             memo.starts_with(&dir),
