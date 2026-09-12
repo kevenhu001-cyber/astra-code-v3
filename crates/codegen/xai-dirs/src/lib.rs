@@ -14,6 +14,13 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+/// The user's home directory. `std::env::home_dir` follows `USERPROFILE` on
+/// Windows, which is important for redirected user profiles.
+#[allow(deprecated, clippy::disallowed_methods)]
+pub fn home_dir() -> Option<PathBuf> {
+    std::env::home_dir()
+}
+
 /// `<home>/.astra`, canonicalized via `dunce` (not `std::fs::canonicalize`,
 /// which yields Windows `\\?\` verbatim paths).
 fn astra_home_in(home: &Path) -> PathBuf {
@@ -40,13 +47,13 @@ fn resolve_astra_home_from(
 pub fn resolve_astra_home() -> Option<PathBuf> {
     resolve_astra_home_from(
         std::env::var_os("ASTRA_HOME").as_deref(),
-        dirs::home_dir().as_deref(),
+        home_dir().as_deref(),
     )
 }
 
 /// The default `<home>/.astra`, used when `$ASTRA_HOME` is unset.
 pub fn default_astra_home() -> PathBuf {
-    astra_home_in(&dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+    astra_home_in(&home_dir().unwrap_or_else(|| PathBuf::from(".")))
 }
 
 /// The Astra home, created if missing and cached for the process; falls back to

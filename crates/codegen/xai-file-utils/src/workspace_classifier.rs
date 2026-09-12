@@ -41,7 +41,7 @@ pub fn is_project_dir(cwd: &Path) -> bool {
         return false;
     };
 
-    if cwd == home {
+    if cwd == home.as_path() {
         return false;
     }
 
