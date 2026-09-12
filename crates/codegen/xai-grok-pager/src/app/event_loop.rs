@@ -1157,16 +1157,6 @@ pub(crate) async fn run(
     >,
     mut writer_event_rx: tokio::sync::mpsc::UnboundedReceiver<WriterEvent>,
 ) -> anyhow::Result<RunResult> {
-    // Initialize tracing capture. The channel `rx` will be wired to a
-    // TracingModel (and ultimately a tracing pane) once integrated.
-    // For now we drain-and-discard in `AppView::tick()` to avoid unbounded
-    // memory growth.
-    if args.log_sampling {
-        // SAFETY: called before any threads are spawned by init_tracing.
-        unsafe { std::env::set_var("ASTRA_LOG_SAMPLING", "1") };
-    }
-    let tracing_handle = crate::tracing::init_tracing();
-
     crate::unified_log::init(connection.tx.clone());
     crate::unified_log::info("pager started", None, None);
     xai_grok_telemetry::startup::enter(xai_grok_telemetry::startup::StartupPhase::AppInit);
