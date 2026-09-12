@@ -31,8 +31,8 @@ fn resolve_bundled_rg() -> Result<Option<PathBuf>, crate::util::vendor::InstallE
 /// In release builds with bundling enabled, this extracts the bundled ripgrep
 /// binary to ~/.astra/vendor/ and returns that path.
 /// Otherwise, assumes `rg` is in PATH.
-pub fn rg_path() -> PathBuf {
-    static RG_EXEC: OnceLock<PathBuf> = OnceLock::new();
+pub fn rg_path() -> Result<PathBuf, ToolError> {
+    static RG_EXEC: OnceLock<Result<PathBuf, String>> = OnceLock::new();
     RG_EXEC
         .get_or_init(|| {
             #[cfg(bundle_rg)]

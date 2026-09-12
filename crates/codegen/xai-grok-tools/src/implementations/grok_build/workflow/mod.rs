@@ -181,6 +181,9 @@ impl<'de> serde::Deserialize<'de> for WorkflowToolInput {
         Ok(Self {
             source,
             agent_budget: wire.agent_budget,
+            name: None,
+            script: None,
+            script_path: None,
             args: wire.args,
             validate_only: wire.validate_only,
         })
@@ -715,6 +718,9 @@ mod tests {
             let input = WorkflowToolInput {
                 source,
                 agent_budget: None,
+                name: None,
+                script: None,
+                script_path: None,
                 args: None,
                 validate_only: false,
             };
@@ -727,6 +733,9 @@ mod tests {
                     name: "deep-research".into(),
                 },
                 agent_budget: Some(agent_budget),
+                name: None,
+                script: None,
+                script_path: None,
                 args: None,
                 validate_only: false,
             };

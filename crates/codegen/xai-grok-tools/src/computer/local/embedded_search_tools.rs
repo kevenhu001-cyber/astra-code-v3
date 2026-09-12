@@ -156,7 +156,7 @@ fn extract_bundled(versioned_name: &str, bytes: &[u8]) -> std::io::Result<PathBu
 }
 
 /// Path to the bundled `bfs` (extracted on first use), or `None` when not bundled.
-fn bundled_bfs() -> Option<PathBuf> {
+fn bundled_bfs() -> Result<Option<PathBuf>, String> {
     #[cfg(bundle_bfs)]
     {
         crate::util::vendor::resolve(

@@ -684,6 +684,14 @@ impl SamplingClient {
         self.defaults.injects_think_tags_in_content
     }
 
+    /// Give the bearer resolver its pre-send hook before [`Self::post`] reads it.
+    /// Awaited separately because `post` is sync (its callers hand the builder straight to `send()`).
+    async fn prepare_bearer(&self) {
+        if let Some(resolver) = &self.bearer_resolver {
+            resolver.prepare_for_send().await;
+        }
+    }
+
     /// POST with default headers, returning the builder coupled to the tail
     /// fragment of the credential actually placed in its headers (`None` =
     /// no credential) — captured at build time because a record-time
