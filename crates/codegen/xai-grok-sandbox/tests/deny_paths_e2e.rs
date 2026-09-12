@@ -468,6 +468,181 @@ fn subprocess_hook_write_deny_marker_spoof(_grok_home: &Path) {
     }
 }
 
+/// Marker spoof: claim to be inside bwrap while a denied path is still readable; read-deny verification must fail.
+/// Uses a devbox-extending restrict-network profile, the shape the hook write-deny arm does not cover.
+/// Linux-only (verify is a Seatbelt no-op on macOS). Isolated subprocess.
+fn subprocess_read_deny_marker_spoof(workspace: &Path) {
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = workspace;
+        eprintln!("OK: read-deny marker spoof N/A on non-linux");
+        std::process::exit(0);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        unsafe {
+            std::env::set_var("__GROK_INSIDE_BWRAP", "1");
+        }
+        let profile = profile_from_env();
+        match xai_grok_sandbox::verify_read_deny_enforced(&profile, workspace) {
+            Ok(()) => {
+                eprintln!("FAIL: marker alone must not satisfy read-deny verification");
+                std::process::exit(1);
+            }
+            Err(msg) => {
+                eprintln!("OK: read-deny marker spoof refused ({msg})");
+                std::process::exit(0);
+            }
+        }
+    }
+}
+
+/// Caller-created bwrap with a valid sentinel and a mode-000 deny inode on its ordinary writable mount must fail startup verification.
+fn subprocess_read_deny_forged_mounts(workspace: &Path) {
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = workspace;
+        eprintln!("OK: forged read-deny mounts N/A on non-linux");
+        std::process::exit(0);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let profile = profile_from_env();
+        match xai_grok_sandbox::verify_read_deny_enforced(&profile, workspace) {
+            Ok(()) => {
+                eprintln!("FAIL: writable mode-000 deny path passed verification");
+                std::process::exit(1);
+            }
+            Err(msg) if msg.contains("not the mountpoint") || msg.contains("not read-only") => {
+                eprintln!("OK: forged read-deny mounts refused ({msg})");
+                std::process::exit(0);
+            }
+            Err(msg) => {
+                eprintln!("FAIL: unexpected forged-mount verification error: {msg}");
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+/// Genuine bwrap with an EMPTY dynamic deny set: no custom deny entries, and any runtime-socket denials are host-dependent.
+/// The unconditional sentinel mount must let verification pass inside the real re-exec.
+/// The re-exec itself must happen (devbox-based profiles always compose the /data write-deny plan).
+fn subprocess_read_deny_empty_set(workspace: &Path) {
+    let profile = profile_from_env();
+    subprocess_profile_and_bwrap_reexec(&profile, workspace);
+    #[cfg(target_os = "linux")]
+    match xai_grok_sandbox::verify_read_deny_enforced(&profile, workspace) {
+        Ok(()) => {
+            eprintln!("OK: empty-set read-deny verified inside bwrap");
+            std::process::exit(0);
+        }
+        Err(e) => {
+            eprintln!("FAIL: empty-set verification must pass inside bwrap: {e}");
+            std::process::exit(1);
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        eprintln!("OK: empty-set read-deny N/A on non-linux");
+        std::process::exit(0);
+    }
+}
+
+/// Caller-created bwrap forgery: the marker AND a read-only sentinel self-bind are both present, the complete spoof an unprivileged caller can stage.
+/// Yet devbox `apply` must still install Landlock; the mount-shape proof must never short-circuit enforcement.
+/// The parent bound a writable dir over a devbox-excluded mountpoint, so only Landlock can deny the write below.
+fn subprocess_devbox_marker_spoof(workspace: &Path) {
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = workspace;
+        eprintln!("OK: devbox marker spoof N/A on non-linux");
+        std::process::exit(0);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if !xai_grok_sandbox::is_inside_bwrap() {
+            eprintln!("FAIL: spoof subprocess expected the forged marker");
+            std::process::exit(2);
+        }
+        let verified = xai_grok_sandbox::verify_data_write_deny_enforced(
+            &xai_grok_sandbox::ProfileName::Devbox,
+            workspace,
+        );
+        if std::env::var(DATA_STAGED_ENV).is_ok() {
+            match verified {
+                Err(e) if e.contains("not the mountpoint") => {}
+                Err(e) => {
+                    eprintln!("FAIL: unexpected forged /data verification error: {e}");
+                    std::process::exit(5);
+                }
+                Ok(()) => {
+                    eprintln!("FAIL: verification accepted a forged /data alias");
+                    std::process::exit(5);
+                }
+            }
+        } else if let Err(e) = verified {
+            eprintln!("FAIL: verification failed without a /data mount to check: {e}");
+            std::process::exit(5);
+        }
+        let mut sandbox =
+            xai_grok_sandbox::SandboxManager::new(xai_grok_sandbox::ProfileName::Devbox, workspace);
+        if let Err(e) = sandbox.apply(workspace) {
+            eprintln!("sandbox apply failed: {e}");
+            std::process::exit(3);
+        }
+        if !sandbox.is_applied() {
+            eprintln!("FAIL: devbox must apply Landlock despite the forged marker");
+            std::process::exit(4);
+        }
+        match fs::write("/sys/spoof-probe.txt", b"x") {
+            Err(e) if is_permission_denied(&e) => {
+                eprintln!("OK: devbox write denied under forged bwrap");
+                std::process::exit(0);
+            }
+            Err(e) => {
+                eprintln!("FAIL: unexpected probe write error: {e}");
+                std::process::exit(1);
+            }
+            Ok(_) => {
+                eprintln!("FAIL: forged bwrap skipped devbox enforcement (probe writable)");
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+/// Genuine devbox re-exec: with the marker fast path removed, Landlock must now also apply inside the real bwrap without breaking startup.
+fn subprocess_devbox_genuine(workspace: &Path) {
+    let profile = xai_grok_sandbox::ProfileName::Devbox;
+    subprocess_profile_and_bwrap_reexec(&profile, workspace);
+    let mut sandbox = xai_grok_sandbox::SandboxManager::new(profile, workspace);
+    if let Err(e) = sandbox.apply(workspace) {
+        eprintln!("sandbox apply failed: {e}");
+        std::process::exit(3);
+    }
+    if !sandbox.is_applied() {
+        eprintln!("FAIL: devbox must apply Landlock inside genuine bwrap");
+        std::process::exit(4);
+    }
+    #[cfg(target_os = "linux")]
+    if let Err(e) = xai_grok_sandbox::verify_data_write_deny_enforced(
+        &xai_grok_sandbox::ProfileName::Devbox,
+        workspace,
+    ) {
+        eprintln!("FAIL: genuine devbox bwrap failed startup verification: {e}");
+        std::process::exit(5);
+    }
+    if Path::new("/data").exists()
+        && let Err(e) = fs::read_dir("/data")
+    {
+        eprintln!("FAIL: genuine devbox /data must remain readable: {e}");
+        std::process::exit(5);
+    }
+    eprintln!("OK: devbox enforcement applied inside genuine bwrap");
+    std::process::exit(0);
+}
+
 /// Workspace-profile Astra-owned hook write-deny probes (existing sources + first-run).
 fn subprocess_hook_write_deny(workspace: &Path, first_run: bool) {
     let home = PathBuf::from(std::env::var(ASTRA_HOME_ENV).expect(ASTRA_HOME_ENV));
