@@ -77,6 +77,14 @@ pub(crate) fn essential_writable_paths(workspace: &Path) -> Vec<PathBuf> {
     paths
 }
 
+/// Writable directory paths for the strict profile (workspace, sessions, and temp).
+/// Strict may read `grok_home()` but only its sessions directory is writable.
+pub(crate) fn essential_writable_paths_strict(workspace: &Path) -> Vec<PathBuf> {
+    let mut paths = vec![workspace.to_path_buf(), grok_home().join("sessions")];
+    paths.extend(temp_writable_paths());
+    paths
+}
+
 /// Writable directory paths for the read-only profile (minimal: just ~/.astra + temp).
 /// Device files are handled separately via `allow_file` in `to_capability_set_with_config`.
 pub(crate) fn essential_writable_paths_minimal() -> Vec<PathBuf> {

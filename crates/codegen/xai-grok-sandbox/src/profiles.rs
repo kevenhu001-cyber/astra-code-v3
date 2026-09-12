@@ -284,6 +284,7 @@ impl ProfileName {
         // apply time (it opens an O_PATH fd), but new files within it can
         // be created freely after the sandbox is applied. Pre-create
         // directories like ~/.astra/ that may not exist on first run.
+        let home = grok_home();
         for path in &profile.read_write {
             let Some(grant) = Self::read_write_grant_path(path, &home) else {
                 tracing::warn!(path = ?path, "skipping read_write grant");
