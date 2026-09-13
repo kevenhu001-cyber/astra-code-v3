@@ -139,6 +139,9 @@ mod tests {
             "GROK_CLI_CHAT_PROXY_BASE_URL",
             "GROK_XAI_API_BASE_URL",
             "GROK_MODELS_LIST_URL",
+            "ASTRA_CLI_CHAT_PROXY_BASE_URL",
+            "ASTRA_XAI_API_BASE_URL",
+            "ASTRA_MODELS_LIST_URL",
         ] {
             unsafe { std::env::remove_var(k) };
         }
@@ -150,10 +153,16 @@ mod tests {
             .unwrap(),
         );
         let session = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::Session);
-        assert_eq!(session.url, "https://cli-chat-proxy.grok.com/v1/models");
+        assert_eq!(
+            session.url,
+            "https://cli-chat-proxy.astracode.topodrive.top/v1/models"
+        );
         assert_eq!(session.auth, EndpointAuth::Session);
         let deployment = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::Deployment);
-        assert_eq!(deployment.url, "https://cli-chat-proxy.grok.com/v1/models");
+        assert_eq!(
+            deployment.url,
+            "https://cli-chat-proxy.astracode.topodrive.top/v1/models"
+        );
         assert_eq!(deployment.auth, EndpointAuth::Session);
         let api = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::ApiKey);
         assert_eq!(api.url, "https://inference.acme-corp.example/xai/v1/models");
@@ -161,7 +170,7 @@ mod tests {
         let default = EndpointsConfig::from_config_value(&toml::Value::Table(Default::default()));
         assert_eq!(
             ListModelsEndpoint::from_endpoints(&default, ModelFetchAuth::ApiKey).url,
-            "https://api.x.ai/v1/models"
+            "https://api.astracode.topodrive.top/v1/models"
         );
         let custom = EndpointsConfig::from_config_value(
             &toml::from_str(

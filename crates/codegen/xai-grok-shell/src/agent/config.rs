@@ -2402,6 +2402,13 @@ impl Config {
         if let Some(mode) = self.requirements.telemetry.pinned() {
             return Resolved::new(mode, ConfigSource::Requirement);
         }
+        // DISABLE_TELEMETRY force-off beats env opt-in (mirrors
+        // is_telemetry_disabled_sync); requirements pin above still wins.
+        if managed_settings_env_flag("DISABLE_TELEMETRY") == Some(true)
+            || env_bool("DISABLE_TELEMETRY") == Some(true)
+        {
+            return Resolved::new(TelemetryMode::Disabled, ConfigSource::Env);
+        }
         if let Some(mode) = env_telemetry_mode("ASTRA_TELEMETRY_ENABLED")
             .or_else(|| env_telemetry_mode("GROK_TELEMETRY_ENABLED"))
         {

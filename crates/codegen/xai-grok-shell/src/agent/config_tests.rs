@@ -7170,8 +7170,8 @@ fn is_telemetry_explicitly_disabled_sync_env_signals() {
 #[serial]
 fn resolve_telemetry_mode_disable_env_beats_opt_in_but_not_requirements_pin() {
     let home = tempfile::tempdir().unwrap();
-    let _home = EnvGuard::set("GROK_HOME", home.path());
-    let _enable = EnvGuard::set("GROK_TELEMETRY_ENABLED", "true");
+    let _home = EnvGuard::set("ASTRA_HOME", home.path());
+    let _enable = EnvGuard::set("ASTRA_TELEMETRY_ENABLED", "true");
     let mut cfg = Config::default();
     cfg.features.telemetry = Some(TelemetryMode::Enabled);
     let _falsy = EnvGuard::set("DISABLE_TELEMETRY", "0");

@@ -559,6 +559,9 @@ impl ProjectDiscoveryWatcher {
     ) -> Option<(Self, mpsc::UnboundedReceiver<DiscoveryChange>)> {
         let project_root = crate::session::workflow::registry::project_root(cwd);
         let project_grok = project_root.join(".astra");
+        if paths_equal(&project_grok, grok_home) {
+            return None;
+        }
         let (tx, rx) = mpsc::unbounded_channel();
         let project_grok_for_events = project_grok.clone();
         let mut debouncer =
@@ -1302,9 +1305,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let project = tmp.path();
         git2::Repository::init(project).unwrap();
-        let project_grok = project.join(".grok");
+        let project_grok = project.join(".astra");
         fs::create_dir_all(project_grok.join("workflows")).unwrap();
-        // Nested cwd: the guard must compare the discovered git root's .grok, not cwd's
+        // Nested cwd: the guard must compare the discovered git root's .astra, not cwd's
         let cwd = project.join("sub");
         fs::create_dir(&cwd).unwrap();
 
@@ -1318,7 +1321,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let project = tmp.path();
         git2::Repository::init(project).unwrap();
-        let project_grok = project.join(".grok");
+        let project_grok = project.join(".astra");
         fs::create_dir_all(project_grok.join("workflows")).unwrap();
 
         let (_w, mut rx) = ProjectDiscoveryWatcher::start(project, &project.join("other-home"))

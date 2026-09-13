@@ -562,12 +562,12 @@ mod tests {
         // store; `#[serial]` because ASTRA_HOME is global.
         let home = tempfile::tempdir().unwrap();
         let _env = EnvGuard::set("ASTRA_HOME", home.path());
-        // Distinct git roots for parent/child so `workspace_key` does not collapse
-        // them onto one key (the child's own `.git` stops discovery at the child).
+        // Plain subdir child so it shares the parent workspace key and the
+        // ancestor grant cascades (nested git roots are intentionally not
+        // covered by parent grants; see xai-grok-workspace/src/trust.rs).
         let parent = repo_tmp();
         let child = parent.path().join("child");
         std::fs::create_dir_all(&child).unwrap();
-        git2::Repository::init(&child).unwrap();
 
         record(&workspace_key(&child), true);
 
@@ -600,12 +600,11 @@ mod tests {
         // `#[serial]` because ASTRA_HOME is process-global.
         let home = tempfile::tempdir().unwrap();
         let _env = EnvGuard::set("ASTRA_HOME", home.path());
-        // Distinct git roots so `workspace_key` keeps parent/child as separate
-        // keys (the child's own `.git` stops discovery at the child).
+        // Plain subdir so parent/child share one workspace key and the cascade
+        // applies (nested git roots are intentionally not covered).
         let parent = repo_tmp();
         let child = parent.path().join("child");
         std::fs::create_dir_all(&child).unwrap();
-        git2::Repository::init(&child).unwrap();
 
         // Trust the parent only; the child inherits trust via the cascade.
         let mut store = TrustStore::load();
@@ -980,7 +979,7 @@ mod tests {
     async fn project_scope_allowed_denies_workspace_user_only_instructions() {
         let _sim = simulate_release_build();
         let home = tempfile::tempdir().unwrap();
-        let _env = EnvGuard::set("GROK_HOME", home.path());
+        let _env = EnvGuard::set("ASTRA_HOME", home.path());
         let _flag = EnvGuard::unset("GROK_FOLDER_TRUST");
         let tmp = repo_tmp();
         let workspace_user = tmp.path().join("x/alice");
@@ -990,7 +989,7 @@ mod tests {
             "workspace-user-only-instructions",
         )
         .unwrap();
-        let skill_dir = workspace_user.join(".grok/skills/workspace-user-only-skill");
+        let skill_dir = workspace_user.join(".astra/skills/workspace-user-only-skill");
         std::fs::create_dir_all(&skill_dir).unwrap();
         std::fs::write(
             skill_dir.join("SKILL.md"),
