@@ -21,7 +21,7 @@ fn json_schema_and_reasoning_effort_are_orthogonal_in_output_config() {
         .with_json_schema(schema);
     req.reasoning_effort = Some(crate::ReasoningEffort::High);
 
-    let msgs = build_messages_request(&req);
+    let msgs = build_messages_request(&req, None);
     let oc = msgs.output_config.expect("output_config present");
     assert_eq!(oc.effort.as_deref(), Some("high"));
     assert!(oc.format.is_some());
@@ -41,7 +41,7 @@ fn test_messages_request_wire_format_for_supported_variants() {
         (crate::ReasoningEffort::Max, "max"),
     ] {
         let req = messages_test_request(Some(variant));
-        let msgs = build_messages_request(&req);
+        let msgs = build_messages_request(&req, None);
         let json = serde_json::to_value(&msgs).unwrap();
         assert_eq!(
             json.pointer("/output_config/effort")
@@ -66,7 +66,7 @@ fn test_messages_request_omits_output_config_when_no_supported_effort() {
     ];
     for input in none_or_unsupported {
         let req = messages_test_request(input);
-        let msgs = build_messages_request(&req);
+        let msgs = build_messages_request(&req, None);
         assert!(
             msgs.output_config.is_none(),
             "input {input:?} must not produce output_config",
@@ -85,7 +85,7 @@ fn test_messages_request_thinking_carries_summarized_display() {
         ..ConversationRequest::from_items(vec![ConversationItem::user("hi")])
             .with_model("messages-compatible-model")
     };
-    let msg = build_messages_request(&req);
+    let msg = build_messages_request(&req, None);
     let json = serde_json::to_value(&msg).unwrap();
     assert_eq!(
         json.pointer("/thinking/type").and_then(|v| v.as_str()),
@@ -103,7 +103,7 @@ fn test_messages_request_thinking_carries_summarized_display() {
 fn test_messages_request_omits_thinking_when_effort_unset() {
     let req = ConversationRequest::from_items(vec![ConversationItem::user("hi")])
         .with_model("messages-compatible-model");
-    let msg = build_messages_request(&req);
+    let msg = build_messages_request(&req, None);
     let json = serde_json::to_value(&msg).unwrap();
     assert!(
         json.get("thinking").is_none()
@@ -123,6 +123,60 @@ fn test_messages_request_omits_thinking_when_effort_unset() {
     );
 }
 
+/// An explicit model budget selects extended thinking (`enabled`) and must not
+/// also emit the adaptive-only `output_config.effort`.
+#[test]
+fn explicit_thinking_budget_uses_enabled_config_without_effort() {
+    let req = ConversationRequest {
+        reasoning_effort: Some(crate::ReasoningEffort::High),
+        ..ConversationRequest::from_items(vec![ConversationItem::user("hi")])
+            .with_model("claude-sonnet-4-5")
+    };
+    let msg = build_messages_request(&req, Some(8192));
+    let json = serde_json::to_value(&msg).unwrap();
+    assert_eq!(
+        json.pointer("/thinking/type").and_then(|v| v.as_str()),
+        Some("enabled"),
+        "explicit budget must use extended thinking; got: {json:#}",
+    );
+    assert_eq!(
+        json.pointer("/thinking/budget_tokens")
+            .and_then(|v| v.as_u64()),
+        Some(8192),
+        "budget_tokens must ride the thinking config; got: {json:#}",
+    );
+    assert!(
+        json.pointer("/output_config/effort").is_none(),
+        "extended thinking must not send output_config.effort; got: {json:#}",
+    );
+}
+
+/// A `redacted_thinking` block round-trips: the sentinel reasoning item's
+/// opaque payload is replayed verbatim as a `redacted_thinking` block.
+#[test]
+fn redacted_thinking_reasoning_item_replays_as_redacted_block() {
+    let redacted = rs::ReasoningItem {
+        id: REDACTED_THINKING_ITEM_ID.to_string(),
+        summary: vec![],
+        content: None,
+        encrypted_content: Some("opaque-blob".to_string()),
+        status: None,
+    };
+    let mut req = ConversationRequest::from_items(vec![
+        ConversationItem::user("hi"),
+        ConversationItem::Reasoning(redacted),
+        ConversationItem::assistant("answer"),
+    ]);
+    req.model = Some("messages-compatible-model".to_string());
+
+    let msg = build_messages_request(&req, None);
+    let json = serde_json::to_value(&msg).unwrap();
+    let blocks = json["messages"][1]["content"].as_array().unwrap();
+    assert_eq!(blocks[0]["type"].as_str(), Some("redacted_thinking"));
+    assert_eq!(blocks[0]["data"].as_str(), Some("opaque-blob"));
+    assert_eq!(blocks[1]["type"].as_str(), Some("text"));
+}
+
 #[test]
 fn test_messages_request_previous_tip_skips_a_trailing_user_run() {
     let mut items = vec![
@@ -137,6 +191,7 @@ fn test_messages_request_previous_tip_skips_a_trailing_user_run() {
 
     let json = serde_json::to_value(build_messages_request(
         &ConversationRequest::from_items(items).with_model("messages-compatible-model"),
+        None,
     ))
     .unwrap();
     let messages = json["messages"].as_array().unwrap();
@@ -175,7 +230,7 @@ fn test_messages_request_cache_breakpoint_marks_an_image_tip() {
     ])
     .with_model("messages-compatible-model");
 
-    let json = serde_json::to_value(build_messages_request(&req)).unwrap();
+    let json = serde_json::to_value(build_messages_request(&req, None)).unwrap();
     let blocks = json["messages"][0]["content"].as_array().unwrap();
 
     assert_eq!(blocks.last().unwrap()["type"].as_str(), Some("image"));
@@ -196,7 +251,7 @@ fn test_messages_request_cache_breakpoint_skips_thinking() {
     ])
     .with_model("messages-compatible-model");
 
-    let json = serde_json::to_value(build_messages_request(&req)).unwrap();
+    let json = serde_json::to_value(build_messages_request(&req, None)).unwrap();
     let blocks = json["messages"][1]["content"].as_array().unwrap();
 
     let thinking = blocks
@@ -215,7 +270,7 @@ fn test_messages_request_cache_breakpoint_skips_thinking() {
 fn test_btw_cross_api_messages_no_regressions() {
     let items = btw_prepare_items(btw_mid_turn_conversation());
     let req = ConversationRequest::from_items(items);
-    let msg = build_messages_request(&req);
+    let msg = build_messages_request(&req, None);
     let json = serde_json::to_value(&msg).unwrap();
 
     let messages = json.get("messages").unwrap().as_array().unwrap();
@@ -317,7 +372,7 @@ fn test_tool_result_with_images_to_anthropic() {
         ),
     ]);
 
-    let messages_req = build_messages_request(&req);
+    let messages_req = build_messages_request(&req, None);
 
     // Find the user message that contains the tool result (the Messages API wraps tool results in user messages)
     let tool_result_msg = messages_req

@@ -23,6 +23,8 @@ use crate::events::{SamplingChannel, SamplingErrorInfo, SamplingEvent};
 use crate::metrics::InferenceLatencyStats;
 use crate::types::RequestId;
 
+use super::think_tags::{ThinkRun, ThinkTagSplitter, split_think_tags};
+
 /// Wire values of `incomplete_details.reason` on an `Incomplete` response.
 /// The xAI server emits the three `max_*` values; `content_filter` is OpenAI vocabulary, kept for spec compatibility.
 const INCOMPLETE_REASON_CONTENT_FILTER: &str = "content_filter";
@@ -189,12 +191,15 @@ fn observe_for_recovery(capture: &FailedResponseCapture, event: &rs::ResponseStr
 
 /// Transform a raw Responses API event stream into a stream of [`SamplingEvent`]s.
 /// `None` (check disabled) leaves the response untouched.
+/// `injects_think_tags_in_content` routes inline thinking tags found in output
+/// text to the reasoning channel (see [`super::think_tags`]).
 pub fn stream_responses<'a>(
     raw_stream: BoxStream<'a, Result<rs::ResponseStreamEvent, SamplingError>>,
     model_metadata: Option<ResponseModelMetadata>,
     request_id: RequestId,
     idle_timeout: Duration,
     doom_loop: Option<crate::doom_loop::DoomLoopSignalCollector>,
+    injects_think_tags_in_content: bool,
 ) -> impl Stream<Item = SamplingEvent> + Send + 'a {
     stream_responses_tracked(
         raw_stream,
@@ -204,6 +209,7 @@ pub fn stream_responses<'a>(
         doom_loop,
         Arc::new(AtomicBool::new(false)),
         FailedResponseCapture::default(),
+        injects_think_tags_in_content,
     )
 }
 
@@ -215,6 +221,7 @@ pub(crate) fn stream_responses_tracked<'a>(
     doom_loop: Option<crate::doom_loop::DoomLoopSignalCollector>,
     output_observed: Arc<AtomicBool>,
     failed_response: FailedResponseCapture,
+    injects_think_tags_in_content: bool,
 ) -> impl Stream<Item = SamplingEvent> + Send + 'a {
     async_stream::stream! {
         use rs::{ResponseStreamEvent, Status};
@@ -248,11 +255,24 @@ pub(crate) fn stream_responses_tracked<'a>(
         let mut reasoning_acc = String::new();
         let mut last_content_chunk_at = Instant::now();
 
+        // Inline-thinking splitter for providers that embed reasoning tags in
+        // `output_text` deltas. The final response text is post-processed with
+        // the pure splitter so the persisted transcript matches the stream.
+        let mut think_splitter = ThinkTagSplitter::default();
+
         // Maps Responses API `output_index` to our tool-only `tool_index`.
         // Populated when `ResponseOutputItemAdded` carries a `FunctionCall`
         // Later `ResponseFunctionCallArgumentsDelta` events look up `output_index` here to find the matching `tool_index`
         let mut output_to_tool_index: BTreeMap<u32, u32> = BTreeMap::new();
         let mut next_tool_index: u32 = 0;
+        // Argument deltas whose `output_index` had no registered function call
+        // yet (providers may emit deltas before/without `OutputItemAdded`).
+        // Flushed as a single delta once the item is registered or completes.
+        let mut orphan_function_args: BTreeMap<u32, String> = BTreeMap::new();
+        // `output_index`es whose arguments were already forwarded as deltas, so
+        // the terminal `OutputItemDone` does not replay them.
+        let mut forwarded_arg_outputs: std::collections::BTreeSet<u32> =
+            std::collections::BTreeSet::new();
 
         let mut stream = raw_stream;
         loop {
@@ -341,15 +361,29 @@ pub(crate) fn stream_responses_tracked<'a>(
                                 request_id: request_id.clone(),
                             };
                         }
-                        chunk_timestamps.push(Instant::now());
-                        chunk_index += 1;
-                        message_chunk_count += 1;
-                        yield SamplingEvent::ChannelToken {
-                            request_id: request_id.clone(),
-                            channel: SamplingChannel::Text,
-                            text: delta,
-                            chunk_index,
+                        let runs: Vec<ThinkRun> = if injects_think_tags_in_content {
+                            think_splitter.split(&delta)
+                        } else {
+                            vec![ThinkRun::Text(delta)]
                         };
+                        for run in runs {
+                            let (channel, text) = match run {
+                                ThinkRun::Text(t) => (SamplingChannel::Text, t),
+                                ThinkRun::Reasoning(t) => (SamplingChannel::Reasoning, t),
+                            };
+                            chunk_index += 1;
+                            if channel == SamplingChannel::Text {
+                                // Text-only tally, mirroring the other backends.
+                                chunk_timestamps.push(Instant::now());
+                                message_chunk_count += 1;
+                            }
+                            yield SamplingEvent::ChannelToken {
+                                request_id: request_id.clone(),
+                                channel,
+                                text,
+                                chunk_index,
+                            };
+                        }
                     }
                 }
 
@@ -406,24 +440,46 @@ pub(crate) fn stream_responses_tracked<'a>(
                             name: Some(fc.name),
                             arguments_delta: None,
                         };
+
+                        // The provider may have streamed argument deltas before
+                        // registering the call; forward them now that the
+                        // output_index is addressable.
+                        if let Some(buffered) = orphan_function_args.remove(&added_event.output_index) {
+                            forwarded_arg_outputs.insert(added_event.output_index);
+                            yield SamplingEvent::ToolCallDelta {
+                                request_id: request_id.clone(),
+                                tool_index,
+                                id: None,
+                                name: None,
+                                arguments_delta: Some(buffered),
+                            };
+                        }
                     }
                 }
 
                 // Continuation chunk for a streaming FunctionCall's args.
-                // The delta is dropped silently when no preceding OutputItemAdded mapped its output_index
+                // Deltas arriving before the call is registered are buffered and
+                // forwarded when `OutputItemAdded` arrives (or once, at completion).
                 ResponseStreamEvent::ResponseFunctionCallArgumentsDelta(args_event) => {
                     let delta = args_event.delta;
-                    if !delta.is_empty()
-                        && let Some(&tool_index) =
+                    if !delta.is_empty() {
+                        if let Some(&tool_index) =
                             output_to_tool_index.get(&args_event.output_index)
-                    {
-                        yield SamplingEvent::ToolCallDelta {
-                            request_id: request_id.clone(),
-                            tool_index,
-                            id: None,
-                            name: None,
-                            arguments_delta: Some(delta),
-                        };
+                        {
+                            forwarded_arg_outputs.insert(args_event.output_index);
+                            yield SamplingEvent::ToolCallDelta {
+                                request_id: request_id.clone(),
+                                tool_index,
+                                id: None,
+                                name: None,
+                                arguments_delta: Some(delta),
+                            };
+                        } else {
+                            orphan_function_args
+                                .entry(args_event.output_index)
+                                .or_default()
+                                .push_str(&delta);
+                        }
                     }
                 }
 
@@ -521,6 +577,48 @@ pub(crate) fn stream_responses_tracked<'a>(
                 // For CustomToolCall this includes x_search results.
                 ResponseStreamEvent::ResponseOutputItemDone(done_event) => {
                     match &done_event.item {
+                        // Some providers never emit `ResponseOutputItemAdded` for a
+                        // function call (or emit no argument deltas at all). The
+                        // done item is then the only place the streamed UI can
+                        // learn the call; emit a single delta for it.
+                        rs::OutputItem::FunctionCall(fc) => {
+                            let output_index = done_event.output_index;
+                            if let std::collections::btree_map::Entry::Vacant(entry) =
+                                output_to_tool_index.entry(output_index)
+                            {
+                                let tool_index = next_tool_index;
+                                next_tool_index += 1;
+                                entry.insert(tool_index);
+                                // The done item carries the complete arguments;
+                                // prefer them over any partial orphan deltas.
+                                let args = if fc.arguments.is_empty() {
+                                    orphan_function_args
+                                        .remove(&output_index)
+                                        .unwrap_or_default()
+                                } else {
+                                    orphan_function_args.remove(&output_index);
+                                    fc.arguments.clone()
+                                };
+                                yield SamplingEvent::ToolCallDelta {
+                                    request_id: request_id.clone(),
+                                    tool_index,
+                                    id: Some(fc.call_id.clone()),
+                                    name: Some(fc.name.clone()),
+                                    arguments_delta: if args.is_empty() { None } else { Some(args) },
+                                };
+                            } else if !forwarded_arg_outputs.contains(&output_index)
+                                && !fc.arguments.is_empty()
+                            {
+                                let tool_index = output_to_tool_index[&output_index];
+                                yield SamplingEvent::ToolCallDelta {
+                                    request_id: request_id.clone(),
+                                    tool_index,
+                                    id: None,
+                                    name: None,
+                                    arguments_delta: Some(fc.arguments.clone()),
+                                };
+                            }
+                        }
                         rs::OutputItem::WebSearchCall(ws) => {
                             let result = serde_json::to_value(ws).ok();
                             yield SamplingEvent::BackendToolCallCompleted {
@@ -637,10 +735,36 @@ pub(crate) fn stream_responses_tracked<'a>(
             .as_ref()
             .map(|d| d.reason.clone());
 
+        // Provider response id and any refusal text, captured before `response` is consumed.
+        let message_id = Some(response.id.clone()).filter(|id| !id.is_empty());
+        let refusal_text: Option<String> = response.output.iter().find_map(|item| match item {
+            rs::OutputItem::Message(msg) => msg.content.iter().find_map(|content| match content {
+                rs::OutputMessageContent::Refusal(refusal) => Some(refusal.refusal.clone()),
+                rs::OutputMessageContent::OutputText(_) => None,
+            }),
+            _ => None,
+        });
+
         // Convert to ConversationItem(s); patch in accumulated reasoning text as a fallback when the final response lacks `content` or `summary`
         // The streaming deltas may have arrived out of band
         // Splice policy lives in `inject_streaming_reasoning_fallback`.
         let mut items = xai_grok_sampling_types::response_to_conversation_items(response);
+        if injects_think_tags_in_content {
+            // Strip inline thinking tags from the persisted assistant text and
+            // fold the extracted thinking into the reasoning fallback so the
+            // transcript matches what was streamed on the text/reasoning channels.
+            if let Some(assistant) = items.iter_mut().find_map(|item| match item {
+                ConversationItem::Assistant(a) => Some(a),
+                _ => None,
+            }) && !assistant.content.is_empty()
+            {
+                let (visible, tag_reasoning) = split_think_tags(&assistant.content);
+                assistant.content = Arc::<str>::from(visible);
+                if !tag_reasoning.is_empty() {
+                    reasoning_acc.push_str(&tag_reasoning);
+                }
+            }
+        }
         xai_grok_sampling_types::inject_streaming_reasoning_fallback(&mut items, reasoning_acc);
 
         let has_tool_calls = items.iter().any(|i| match i {
@@ -701,6 +825,10 @@ pub(crate) fn stream_responses_tracked<'a>(
             // Keep the pair coherent: a tool-bearing turn reports ToolCalls with no raw length reason (the warn above is the truncation signal)
             // That preserves the headless output's `tool_use`
             (Some(StopReason::ToolCalls), None)
+        } else if refusal_text.is_some() {
+            // A refusal is a legitimate terminal turn, not an empty response.
+            // Classify it as ContentFilter so drive_l2 never resamples it.
+            (Some(StopReason::ContentFilter), None)
         } else {
             match status {
                 Status::Completed => (Some(StopReason::Stop), None),
@@ -752,8 +880,9 @@ pub(crate) fn stream_responses_tracked<'a>(
             cost_usd_ticks,
             message_chunks_emitted: message_chunk_count,
             doom_loop_signals,
-            stop_message: None, // not reported on the Responses API
-            message_id: None,   // no provider message id on the Responses API
+            // A refusal's explanation, when the provider reported one.
+            stop_message: refusal_text,
+            message_id,
             raw_stop_reason,
             stop_sequence: None,
         };
@@ -898,6 +1027,7 @@ mod tests {
                 Some(collector),
                 Arc::new(AtomicBool::new(false)),
                 capture.clone(),
+                false,
             ))
             .await;
 
@@ -922,6 +1052,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -958,6 +1089,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         match events.last().unwrap() {
@@ -1028,6 +1160,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         match events.last().unwrap() {
@@ -1068,6 +1201,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         match events.last().unwrap() {
@@ -1098,6 +1232,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -1144,6 +1279,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -1181,6 +1317,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -1208,6 +1345,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -1234,6 +1372,7 @@ mod tests {
             rid(),
             Duration::from_millis(100),
             None,
+            false,
         ))
         .await;
 
@@ -1258,6 +1397,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -1330,6 +1470,7 @@ mod tests {
             None,
             Arc::clone(&output_observed),
             FailedResponseCapture::default(),
+            false,
         ))
         .await;
 
@@ -1369,6 +1510,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
 
@@ -1462,6 +1604,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         let deltas = tool_call_deltas(&evs);
@@ -1492,6 +1635,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         assert_eq!(tool_call_deltas(&evs).len(), 0);
@@ -1513,6 +1657,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         let deltas = tool_call_deltas(&evs);
@@ -1542,6 +1687,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             Some(collector),
+            false,
         ))
         .await;
 
@@ -1572,6 +1718,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             Some(collector),
+            false,
         ))
         .await;
         assert!(matches!(
@@ -1612,6 +1759,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             Some(collector),
+            false,
         ))
         .await;
         match events.last().unwrap() {
@@ -1631,6 +1779,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             None,
+            false,
         ))
         .await;
         match events.last().unwrap() {
@@ -1648,6 +1797,7 @@ mod tests {
             rid(),
             Duration::from_secs(60),
             Some(crate::doom_loop::DoomLoopSignalCollector::default()),
+            false,
         ))
         .await;
         match events.last().unwrap() {
@@ -1656,5 +1806,316 @@ mod tests {
             }
             other => panic!("expected Completed, got {other:?}"),
         }
+    }
+
+    fn message_output_response(text: &str) -> rs_types::Response {
+        let mut response = build_response(rs_types::Status::Completed);
+        response.output = vec![rs_types::OutputItem::Message(rs_types::OutputMessage {
+            content: vec![rs_types::OutputMessageContent::OutputText(
+                rs_types::OutputTextContent {
+                    annotations: vec![],
+                    logprobs: None,
+                    text: text.into(),
+                },
+            )],
+            id: "msg-1".into(),
+            role: rs_types::AssistantRole::Assistant,
+            status: rs_types::OutputStatus::Completed,
+        })];
+        response
+    }
+
+    fn completed_event_with_output(text: &str) -> rs::ResponseStreamEvent {
+        rs::ResponseStreamEvent::ResponseCompleted(rs_types::ResponseCompletedEvent {
+            response: message_output_response(text),
+            sequence_number: 0,
+        })
+    }
+
+    /// Inline thinking tags in `output_text` route to the reasoning channel and
+    /// are stripped from the persisted assistant content.
+    #[tokio::test]
+    async fn output_text_think_tags_route_to_reasoning_and_strip_final() {
+        let raw = stream::iter(vec![
+            Ok(text_delta_event("<thinking>reason</thinking>answer")),
+            Ok(completed_event_with_output(
+                "<thinking>reason</thinking>answer",
+            )),
+        ])
+        .boxed();
+        let events = collect(stream_responses(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            None,
+            true,
+        ))
+        .await;
+
+        let mut reasoning = String::new();
+        let mut text = String::new();
+        for e in &events {
+            if let SamplingEvent::ChannelToken {
+                channel, text: t, ..
+            } = e
+            {
+                match channel {
+                    SamplingChannel::Reasoning => reasoning.push_str(t),
+                    SamplingChannel::Text => text.push_str(t),
+                }
+            }
+        }
+        assert_eq!(reasoning, "reason");
+        assert_eq!(text, "answer");
+
+        match events.last().unwrap() {
+            SamplingEvent::Completed { response, .. } => {
+                assert_eq!(response.assistant_text(), "answer");
+                let r = response
+                    .reasoning_items()
+                    .next()
+                    .expect("reasoning sibling preserved");
+                let rs::SummaryPart::SummaryText(t) = &r.summary[0];
+                assert_eq!(t.text, "reason");
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
+    }
+
+    /// A tag straddling two deltas must not leak into either channel.
+    #[tokio::test]
+    async fn output_text_think_tag_straddles_deltas() {
+        let raw = stream::iter(vec![
+            Ok(text_delta_event("pre <thi")),
+            Ok(text_delta_event("nk>x</think>post")),
+            Ok(completed_event_with_output("pre <think>x</think>post")),
+        ])
+        .boxed();
+        let events = collect(stream_responses(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            None,
+            true,
+        ))
+        .await;
+
+        let mut reasoning = String::new();
+        let mut text = String::new();
+        for e in &events {
+            if let SamplingEvent::ChannelToken {
+                channel, text: t, ..
+            } = e
+            {
+                match channel {
+                    SamplingChannel::Reasoning => reasoning.push_str(t),
+                    SamplingChannel::Text => text.push_str(t),
+                }
+            }
+        }
+        assert_eq!(reasoning, "x");
+        assert_eq!(text, "pre post");
+
+        match events.last().unwrap() {
+            SamplingEvent::Completed { response, .. } => {
+                assert_eq!(response.assistant_text(), "pre post");
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
+    }
+
+    /// With the flag off, output text passes through untouched.
+    #[tokio::test]
+    async fn output_text_think_tags_disabled_passthrough() {
+        let raw = stream::iter(vec![
+            Ok(text_delta_event("<think>nope</think>text")),
+            Ok(completed_event_with_output("<think>nope</think>text")),
+        ])
+        .boxed();
+        let events = collect(stream_responses(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            None,
+            false,
+        ))
+        .await;
+
+        match events.last().unwrap() {
+            SamplingEvent::Completed { response, .. } => {
+                assert_eq!(response.assistant_text(), "<think>nope</think>text");
+                assert!(response.reasoning_items().next().is_none());
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
+    }
+
+    /// A refusal output part is a legitimate terminal turn: it maps to
+    /// ContentFilter with the explanation preserved, and it must never be
+    /// resampled as an empty response.
+    #[tokio::test]
+    async fn refusal_output_maps_to_content_filter_with_stop_message() {
+        let mut response = build_response(rs_types::Status::Completed);
+        response.output = vec![rs_types::OutputItem::Message(rs_types::OutputMessage {
+            content: vec![rs_types::OutputMessageContent::Refusal(
+                rs_types::RefusalContent {
+                    refusal: "I can't help with that.".into(),
+                },
+            )],
+            id: "msg-refusal".into(),
+            role: rs_types::AssistantRole::Assistant,
+            status: rs_types::OutputStatus::Completed,
+        })];
+        let raw = stream::iter(vec![Ok(rs::ResponseStreamEvent::ResponseCompleted(
+            rs_types::ResponseCompletedEvent {
+                response,
+                sequence_number: 0,
+            },
+        ))])
+        .boxed();
+        let events = collect(stream_responses(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            None,
+            false,
+        ))
+        .await;
+
+        match events.last().unwrap() {
+            SamplingEvent::Completed { response, .. } => {
+                assert_eq!(response.stop_reason, Some(StopReason::ContentFilter));
+                assert_eq!(
+                    response.stop_message.as_deref(),
+                    Some("I can't help with that.")
+                );
+                assert_eq!(response.message_id.as_deref(), Some("resp_1"));
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
+    }
+
+    /// A provider that emits argument deltas and a done item but never
+    /// `ResponseOutputItemAdded` must still surface a complete tool call.
+    #[tokio::test]
+    async fn function_call_without_output_item_added_emits_delta() {
+        let raw = stream::iter(vec![
+            Ok(rs::ResponseStreamEvent::ResponseFunctionCallArgumentsDelta(
+                rs_types::ResponseFunctionCallArgumentsDeltaEvent {
+                    sequence_number: 1,
+                    item_id: "item-1".into(),
+                    output_index: 0,
+                    delta: "{\"x\":".into(),
+                },
+            )),
+            Ok(rs::ResponseStreamEvent::ResponseOutputItemDone(
+                rs_types::ResponseOutputItemDoneEvent {
+                    sequence_number: 2,
+                    output_index: 0,
+                    item: rs_types::OutputItem::FunctionCall(rs_types::FunctionToolCall {
+                        arguments: "{\"x\":1}".into(),
+                        call_id: "call_1".into(),
+                        name: "do_thing".into(),
+                        id: Some("fc_1".into()),
+                        status: Some(rs_types::OutputStatus::Completed),
+                    }),
+                },
+            )),
+            Ok(completed_event()),
+        ])
+        .boxed();
+        let events = collect(stream_responses(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            None,
+            false,
+        ))
+        .await;
+
+        let deltas: Vec<(u32, Option<String>, Option<String>, Option<String>)> = events
+            .iter()
+            .filter_map(|e| match e {
+                SamplingEvent::ToolCallDelta {
+                    tool_index,
+                    id,
+                    name,
+                    arguments_delta,
+                    ..
+                } => Some((
+                    *tool_index,
+                    id.clone(),
+                    name.clone(),
+                    arguments_delta.clone(),
+                )),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(deltas.len(), 1);
+        assert_eq!(deltas[0].0, 0);
+        assert_eq!(deltas[0].1.as_deref(), Some("call_1"));
+        assert_eq!(deltas[0].2.as_deref(), Some("do_thing"));
+        assert_eq!(deltas[0].3.as_deref(), Some("{\"x\":1}"));
+    }
+
+    /// A mapped call whose arguments only arrive on the done item must still
+    /// forward them once for the streaming UI.
+    #[tokio::test]
+    async fn function_call_done_replays_arguments_when_no_deltas() {
+        let raw = stream::iter(vec![
+            Ok(rs::ResponseStreamEvent::ResponseOutputItemAdded(
+                rs_types::ResponseOutputItemAddedEvent {
+                    sequence_number: 0,
+                    output_index: 0,
+                    item: rs_types::OutputItem::FunctionCall(rs_types::FunctionToolCall {
+                        arguments: String::new(),
+                        call_id: "call_1".into(),
+                        name: "do_thing".into(),
+                        id: None,
+                        status: None,
+                    }),
+                },
+            )),
+            Ok(rs::ResponseStreamEvent::ResponseOutputItemDone(
+                rs_types::ResponseOutputItemDoneEvent {
+                    sequence_number: 1,
+                    output_index: 0,
+                    item: rs_types::OutputItem::FunctionCall(rs_types::FunctionToolCall {
+                        arguments: "{\"y\":2}".into(),
+                        call_id: "call_1".into(),
+                        name: "do_thing".into(),
+                        id: None,
+                        status: None,
+                    }),
+                },
+            )),
+            Ok(completed_event()),
+        ])
+        .boxed();
+        let events = collect(stream_responses(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            None,
+            false,
+        ))
+        .await;
+
+        let deltas: Vec<Option<String>> = events
+            .iter()
+            .filter_map(|e| match e {
+                SamplingEvent::ToolCallDelta {
+                    arguments_delta, ..
+                } => Some(arguments_delta.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(deltas, vec![None, Some("{\"y\":2}".to_string())]);
     }
 }

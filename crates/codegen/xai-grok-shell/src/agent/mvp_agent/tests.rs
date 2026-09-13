@@ -3271,6 +3271,7 @@ fn find_model_by_id_prefers_key_then_falls_back_to_slug() {
             show_model_fingerprint: false,
             stream_tool_calls: None,
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
             laziness_detector: crate::agent::config::LazinessDetectorPerModelConfig::default(),
         },
         mtls_cert_dir: None,

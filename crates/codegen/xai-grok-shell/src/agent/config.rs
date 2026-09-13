@@ -3718,6 +3718,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 stream_tool_calls: None,
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
                 injects_think_tags_in_content: false,
+                messages_thinking_budget: None,
             };
             (key, config)
         })
@@ -3850,6 +3851,12 @@ pub struct ModelEntryConfig {
     /// stream. Default is `false`.
     #[serde(default, skip_serializing_if = "is_false")]
     pub injects_think_tags_in_content: bool,
+    /// Explicit thinking budget (tokens) for the Anthropic Messages backend.
+    /// Set it for models that predate adaptive thinking (Claude 4.5 and
+    /// earlier): the request uses `thinking.type = "enabled"` with this budget
+    /// instead of adaptive thinking.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub messages_thinking_budget: Option<u32>,
 }
 /// Derives `PartialEq` on `f32`, which is fine for the current shape. Both `f32` fields default to `None`, so there's no parsed-vs-literal `0.7` float equality footgun.
 /// If a future default introduces `Some(0.7)`, this helper must be reworked (e.g. compare on tolerance, or switch to a bit-pattern compare).
@@ -3921,6 +3928,10 @@ pub struct ConfigModelOverride {
     /// is `false`.
     #[serde(default)]
     pub injects_think_tags_in_content: Option<bool>,
+    /// Explicit thinking budget (tokens) for the Anthropic Messages backend.
+    /// Mirrors [`ModelEntryConfig::messages_thinking_budget`].
+    #[serde(default)]
+    pub messages_thinking_budget: Option<u32>,
 }
 impl ConfigModelOverride {
     pub(crate) fn apply(
@@ -4030,6 +4041,9 @@ impl ConfigModelOverride {
         if self.injects_think_tags_in_content.unwrap_or(false) {
             entry.info.injects_think_tags_in_content = true;
         }
+        if self.messages_thinking_budget.is_some() {
+            entry.info.messages_thinking_budget = self.messages_thinking_budget;
+        }
         if self.api_key.is_some() {
             entry.api_key.clone_from(&self.api_key);
         }
@@ -4133,6 +4147,10 @@ pub struct ModelInfo {
     /// inside-tag text to the reasoning channel. Mirrors
     /// [`ModelEntryConfig::injects_think_tags_in_content`].
     pub injects_think_tags_in_content: bool,
+    /// Explicit thinking budget (tokens) for the Anthropic Messages backend.
+    /// Mirrors [`ModelEntryConfig::messages_thinking_budget`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub messages_thinking_budget: Option<u32>,
 }
 impl ModelInfo {
     /// Minimal fallback descriptor for an unknown model slug.
@@ -4176,6 +4194,7 @@ impl ModelInfo {
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
         }
     }
     pub(crate) fn from_config(entry: &ModelEntryConfig) -> Self {
@@ -4217,6 +4236,7 @@ impl ModelInfo {
             stream_tool_calls: entry.stream_tool_calls,
             laziness_detector: entry.laziness_detector.clone(),
             injects_think_tags_in_content: entry.injects_think_tags_in_content,
+            messages_thinking_budget: entry.messages_thinking_budget,
         }
     }
     /// Whether `id` is one of the ids this model sends: its own, or the one it uses at some effort.
@@ -4959,6 +4979,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 stream_tool_calls: None,
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
                 injects_think_tags_in_content: false,
+                messages_thinking_budget: None,
             },
             mtls_cert_dir: None,
             api_key: Some(bearer),
@@ -5100,6 +5121,7 @@ pub(crate) fn sampling_config_for_model(
         rate_limit_retry_threshold: info.rate_limit_retry_threshold,
         stream_tool_calls: info.stream_tool_calls.unwrap_or(false),
         injects_think_tags_in_content: info.injects_think_tags_in_content,
+        messages_thinking_budget: info.messages_thinking_budget,
         idle_timeout_secs: None,
         client_identifier: None,
         deployment_id,
@@ -5183,6 +5205,7 @@ fn resolve_hidden_default_web_search_sampling_config(
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
         },
         mtls_cert_dir: None,
         api_key: None,

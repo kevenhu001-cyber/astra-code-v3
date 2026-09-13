@@ -269,6 +269,7 @@ mod tests {
             reasoning_effort: None,
             stream_tool_calls: None,
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
         }
     }
 

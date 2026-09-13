@@ -792,8 +792,17 @@ fn test_conversation_request_with_tools_to_responses_api() {
 
 #[test]
 fn test_tool_choice_to_responses_api() {
+    let tools = || {
+        vec![ToolSpec {
+            name: "bash".to_string(),
+            description: None,
+            parameters: serde_json::json!({"type": "object"}),
+        }]
+    };
+
     // Test Auto
     let req = ConversationRequest::from_items(vec![ConversationItem::user("test")])
+        .with_tools(tools())
         .with_tool_choice(ConversationToolChoice::Auto);
     let responses_req: rs::CreateResponse = (&req).into();
     assert_matches!(
@@ -803,6 +812,7 @@ fn test_tool_choice_to_responses_api() {
 
     // Test Required
     let req = ConversationRequest::from_items(vec![ConversationItem::user("test")])
+        .with_tools(tools())
         .with_tool_choice(ConversationToolChoice::Required);
     let responses_req: rs::CreateResponse = (&req).into();
     assert_matches!(
@@ -812,12 +822,26 @@ fn test_tool_choice_to_responses_api() {
 
     // Test Function
     let req = ConversationRequest::from_items(vec![ConversationItem::user("test")])
+        .with_tools(tools())
         .with_tool_choice(ConversationToolChoice::Function("bash".to_string()));
     let responses_req: rs::CreateResponse = (&req).into();
     let Some(rs::ToolChoiceParam::Function(fc)) = responses_req.tool_choice else {
         panic!("Expected Function tool choice");
     };
     assert_eq!(fc.name, "bash");
+}
+
+/// A `tool_choice` without any tools is rejected by some providers; the
+/// conversion must drop it rather than send an unsatisfiable choice.
+#[test]
+fn test_tool_choice_omitted_when_no_tools() {
+    let req = ConversationRequest::from_items(vec![ConversationItem::user("test")])
+        .with_tool_choice(ConversationToolChoice::Required);
+    let responses_req: rs::CreateResponse = (&req).into();
+    assert!(
+        responses_req.tool_choice.is_none(),
+        "tool_choice must be omitted when the tools array is empty"
+    );
 }
 
 #[test]

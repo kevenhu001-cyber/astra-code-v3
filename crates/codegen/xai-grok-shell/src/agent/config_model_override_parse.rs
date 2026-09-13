@@ -714,6 +714,7 @@ mod tests {
             show_model_fingerprint: Some(true),
             stream_tool_calls: Some(false),
             injects_think_tags_in_content: Some(true),
+            messages_thinking_budget: Some(8192),
         }
     }
 

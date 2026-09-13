@@ -1081,6 +1081,11 @@ pub struct SamplingConfig {
     /// is unchanged for providers that already do the right thing.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub injects_think_tags_in_content: bool,
+    /// Explicit thinking budget for the Anthropic Messages backend, in tokens.
+    /// `Some` selects extended thinking for models that predate adaptive
+    /// thinking; `None` keeps adaptive thinking driven by `reasoning_effort`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub messages_thinking_budget: Option<u32>,
 }
 
 // ============ Responses API wrapper ============
