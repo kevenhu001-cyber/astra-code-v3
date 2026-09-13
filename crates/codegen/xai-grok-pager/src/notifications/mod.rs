@@ -652,10 +652,10 @@ mod tests {
             ..Default::default()
         });
         svc.escape_writer = EscapeWriter::new(tx, WriterSync::new());
-        svc.terminal_ctx = TerminalContext {
+        svc.terminal_ctx = Box::leak(Box::new(TerminalContext {
             brand: TerminalName::Ghostty,
             ..Default::default()
-        };
+        }));
         svc.on_tick(&make_title_state(true));
 
         svc.shutdown();
