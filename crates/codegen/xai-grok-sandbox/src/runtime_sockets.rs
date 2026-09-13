@@ -143,7 +143,7 @@ fn materialize_runtime_socket_deny_paths_from(
                     io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
                 ) =>
             {
-                continue
+                continue;
             }
             Err(error) => return Err(with_context(error)),
         };
@@ -229,7 +229,7 @@ fn normalize_existing_parent_alias(parent: &Path) -> io::Result<PathBuf> {
             Ok(_) => break,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
             Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
-                return Ok(parent.to_path_buf())
+                return Ok(parent.to_path_buf());
             }
             Err(error) => return Err(error),
         }
