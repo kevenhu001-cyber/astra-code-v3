@@ -63,7 +63,7 @@ jobs:
           # `--tests` would also compile ignored PTY / leader / scripted
           # targets — those are exercised by `regressions` / `pty-e2e` /
           # `leader-pty-e2e` jobs (and the full sweep lives in nightly.yml).
-          cargo test --workspace --lib --bins --locked
+          cargo test --workspace --lib --bins --locked -- --quiet
 
   # ── Regression / consistency tests that aren't part of `cargo test` because
   # they're either integration tests inside the pager crate, or live in
