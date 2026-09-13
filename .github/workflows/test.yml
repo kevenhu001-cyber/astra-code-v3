@@ -51,6 +51,10 @@ jobs:
           cargo install dotslash --locked
           dotslash --help
 
+      # The search-tool suites spawn `rg` from PATH; debug builds don't bundle it.
+      - name: Install ripgrep (search-tool tests)
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: cargo test (workspace, lib + bins)
         env:
           # Debug builds of the shell's giant turn-loop futures consume

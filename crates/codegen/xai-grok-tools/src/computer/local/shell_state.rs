@@ -919,6 +919,14 @@ mod tests {
 
         let code = output.status.code().unwrap_or(-1);
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        if code != 0 {
+            // Surface the shell's stderr on failure: the wrapper discards it
+            // otherwise, leaving bare exit codes with no diagnostic.
+            eprintln!(
+                "run_command exit {code} for {command:?}; stderr: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
         (code, stdout)
     }
 
