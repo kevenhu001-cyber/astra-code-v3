@@ -51,20 +51,6 @@ jobs:
           cargo install dotslash --locked
           dotslash --help
 
-      # Keep the first packages after xai-grok-login isolated while diagnosing
-      # a runner-only workspace test exit; remove this probe once identified.
-      - name: Probe markdown and MCP unit-test binaries
-        run: |
-          cargo test -p xai-grok-markdown --lib --locked -- --quiet
-          cargo test -p xai-grok-mcp --lib --locked -- --quiet
-          for package in xai-grok-memory xai-grok-mermaid xai-grok-models; do
-            echo "::group::probe $package"
-            cargo test -p "$package" --lib --locked -- --quiet
-            echo "::endgroup::"
-          done
-          cargo test -p xai-grok-pager-diff --lib --locked -- --quiet
-          cargo test -p xai-grok-pager-minimal --lib --locked -- --quiet
-
       - name: cargo test (workspace, lib + bins)
         env:
           # Debug builds of the shell's giant turn-loop futures consume
