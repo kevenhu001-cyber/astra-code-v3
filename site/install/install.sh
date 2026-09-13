@@ -43,14 +43,32 @@ fi
 echo "Latest release: $TAG"
 
 asset="astra-${TAG}-${target_arch}-${target_os}.tar.gz"
-BASE_URL="https://github.com/$REPO/releases/download/$TAG"
+GH_URL="https://github.com/$REPO/releases/download/$TAG"
+# GitHub serves release assets from release-assets.githubusercontent.com, which
+# is intermittently unreachable from some networks (0-byte/truncated downloads).
+# ghproxy.net fronts the same asset without that hop and is used as a fallback.
+PROXY_URL="https://ghproxy.net/https://github.com/$REPO/releases/download/$TAG"
 
+# Download with retries.
 tmpdir="$(mktemp -d)"
 trap "rm -rf \"\$tmpdir\"" EXIT HUP INT TERM
 
+download_with_retry() {
+  local url="$1" out="$2"
+  curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors --connect-timeout 15 --max-time 300 "$url" -o "$out"
+}
+
 echo "Downloading $asset ..."
-curl -fsSL "$BASE_URL/$asset" -o "$tmpdir/$asset"
-curl -fsSL "$BASE_URL/$asset.sha256" -o "$tmpdir/$asset.sha256"
+if download_with_retry "$GH_URL/$asset" "$tmpdir/$asset"; then
+  echo "Downloaded from GitHub releases."
+elif download_with_retry "$PROXY_URL/$asset" "$tmpdir/$asset"; then
+  echo "Downloaded via proxy (ghproxy.net)."
+else
+  echo "error: failed to download $asset from all sources" >&2
+  exit 1
+fi
+
+curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors "$GH_URL/$asset.sha256" -o "$tmpdir/$asset.sha256" 2>/dev/null || true
 
 # Verify the download against the published SHA-256 checksum.
 if command -v sha256sum >/dev/null 2>&1; then
