@@ -226,9 +226,9 @@ fn stacked_announcement_rows(input: &WelcomeLayoutInput<'_>) -> u16 {
     let width = stacked_info_width(avail, content_area.height, MENU_MIN_WIDTH);
     let column = StackedColumn::new(input, PROMPT_HEIGHT);
     // +1 info-slot gap, +1 min flex gap above the tip
-    let budget = content_area.height.saturating_sub(
-        column.fixed_above() + input.menu_height + 1 + column.fixed_below + 1,
-    );
+    let budget = content_area
+        .height
+        .saturating_sub(column.fixed_above() + input.menu_height + 1 + column.fixed_below + 1);
     hero_box::announcement_desired_rows(ann, width, input.expanded, input.has_upgrade_cta)
         .min(budget)
 }

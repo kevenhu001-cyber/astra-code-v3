@@ -53,10 +53,7 @@ pub fn resolve_astra_home() -> Option<PathBuf> {
         .as_deref()
         .filter(|env| !env.is_empty())
         .or_else(|| legacy_grok_home.as_deref().filter(|env| !env.is_empty()));
-    resolve_astra_home_from(
-        selected_env,
-        home_dir().as_deref(),
-    )
+    resolve_astra_home_from(selected_env, home_dir().as_deref())
 }
 
 /// The default `<home>/.astra`, used when `$ASTRA_HOME` is unset.
