@@ -785,6 +785,11 @@ fn committed_edit_keeps_diff_line_backgrounds() {
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
     use similar::ChangeTag;
+    use xai_grok_pager::theme::cache as theme_cache;
+
+    // Theme::current() is process-global; serialize against the terminal-native
+    // tests so their temporary Reset palette cannot race this RGB assertion.
+    let _theme_guard = theme_cache::pin_theme();
 
     let hunk = vec![
         DiffLine {
