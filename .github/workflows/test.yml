@@ -57,6 +57,11 @@ jobs:
         run: |
           cargo test -p xai-grok-markdown --lib --locked -- --quiet
           cargo test -p xai-grok-mcp --lib --locked -- --quiet
+          for package in xai-grok-memory xai-grok-mermaid xai-grok-models; do
+            echo "::group::probe $package"
+            cargo test -p "$package" --lib --locked -- --quiet
+            echo "::endgroup::"
+          done
 
       - name: cargo test (workspace, lib + bins)
         env:
