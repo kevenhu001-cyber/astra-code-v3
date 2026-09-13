@@ -62,6 +62,8 @@ jobs:
             cargo test -p "$package" --lib --locked -- --quiet
             echo "::endgroup::"
           done
+          cargo test -p xai-grok-pager-diff --lib --locked -- --quiet
+          cargo test -p xai-grok-pager-minimal --lib --locked -- --quiet
 
       - name: cargo test (workspace, lib + bins)
         env:
