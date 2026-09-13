@@ -581,8 +581,8 @@ fn modal_external_filter_clears_native_content_and_blocks_forced_search() {
         .active_modal
         .as_mut()
     {
-        // Astra cycles straight into External.
-        *source_filter = SourceFilter::Astra;
+        // Headless sits between Astra and External in the shared filter cycle.
+        *source_filter = SourceFilter::Headless;
         *content_results = Some(vec![content_hit("native-hit")]);
         *content_loading = true;
         state.set_query("native");

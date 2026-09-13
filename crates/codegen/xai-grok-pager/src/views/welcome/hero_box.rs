@@ -46,14 +46,13 @@ fn right_col_height(menu_height: u16, info_height: u16) -> u16 {
 
 /// Minimum content-area height the hero box needs to render without truncating.
 /// That covers the optional error row, the box, a one-row flex gap, and the fixed rows below (tip + prompt + version).
-/// The box always shows the full-height logo, so a terminal shorter than this falls back to the stacked layout instead of overflowing.
+/// The central logo is intentionally removed for Astra, so the right column is the only vertical content that determines the box height.
 pub(super) fn min_content_height(
     input: &WelcomeLayoutInput<'_>,
     info_height: u16,
     prompt_height: u16,
 ) -> u16 {
-    let inner =
-        super::logo::full_logo_line_count().max(right_col_height(input.menu_height, info_height));
+    let inner = right_col_height(input.menu_height, info_height);
     let hero_box_height = 2 + V_PAD * 2 + inner;
     let gap_after_error = if input.error_height > 0 { 1u16 } else { 0 };
     gap_after_error

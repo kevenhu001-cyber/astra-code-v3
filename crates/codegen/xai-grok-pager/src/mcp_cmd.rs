@@ -1018,12 +1018,12 @@ mod tests {
     }
 
     #[test]
-    fn add_default_transport_warns_on_url_looking_command() {
+    fn add_default_transport_infers_http_for_url_and_warns_for_scheme_less_command() {
         let add = parse_add(&["astra", "mcp", "add", "api", "https://mcp.example.com/mcp"]);
-        let resolved = resolve_add(&add).expect("defaults to stdio with a warning");
+        let resolved = resolve_add(&add).expect("bare URL defaults to HTTP with a warning");
         assert!(matches!(
             resolved.transport,
-            McpServerTransportConfig::Stdio { .. }
+            McpServerTransportConfig::StreamableHttp { .. }
         ));
         assert_eq!(resolved.warnings.len(), 1);
         assert!(resolved.warnings[0].contains("--transport http"));

@@ -107,7 +107,7 @@ pub(super) fn open_credit_limit_upsell(
             heading: "You hit your weekly limit.",
             upgrade_tier_desc: "Upgrade to a higher tier for more usage",
             secondary_label: "Buy more credits",
-            secondary_desc: "Purchase credits to keep using Grok Build",
+            secondary_desc: "Purchase credits to keep using Astra",
             second_choice: xai_grok_telemetry::events::CreditLimitChoice::PurchaseCredits,
             payg_telemetry: false,
         },

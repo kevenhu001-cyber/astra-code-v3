@@ -173,20 +173,11 @@ impl NotificationService {
         if buf.is_empty() { None } else { Some(buf) }
     }
 
-    /// Reset the tab title back to "grok" and clear the progress bar so neither lingers after exit. Enqueued, never
+    /// Reset the tab title back to "astra" and clear the progress bar so neither lingers after exit. Enqueued, never
     /// inline: `/quit` can land while the writer is parked holding the stderr lock, and the queue orders the reset
     /// after any still-queued busy-title escape.
     pub fn shutdown(&mut self) {
-        // Reset the tab title back to "astra" so it doesn't linger on the
-        // last activity label after exit.
-        let title_esc = self.title_manager.reset();
-        xai_grok_shell::util::with_locked_stderr(|stderr| {
-            use std::io::Write as _;
-            let _ = stderr.write_all(title_esc.as_bytes());
-            let _ = stderr.flush();
-        });
-
-        let mut buf = String::new();
+        let mut buf = self.title_manager.reset();
         self.clear_progress_into(&mut buf);
         self.escape_writer.emit(buf);
     }
@@ -661,6 +652,10 @@ mod tests {
             ..Default::default()
         });
         svc.escape_writer = EscapeWriter::new(tx, WriterSync::new());
+        svc.terminal_ctx = TerminalContext {
+            brand: TerminalName::Ghostty,
+            ..Default::default()
+        };
         svc.on_tick(&make_title_state(true));
 
         svc.shutdown();
@@ -669,9 +664,14 @@ mod tests {
         let payload = rx
             .try_recv()
             .expect("shutdown escapes must ride the writer queue");
+        let payload = String::from_utf8_lossy(payload.data());
         assert!(
-            String::from_utf8_lossy(payload.data()).contains("grok"),
+            payload.contains("astra"),
             "expected the title reset in the queued escape"
+        );
+        assert!(
+            payload.contains(progress::OSC_CLEAR),
+            "expected the progress reset in the queued escape"
         );
         assert!(rx.try_recv().is_err(), "one combined payload expected");
     }

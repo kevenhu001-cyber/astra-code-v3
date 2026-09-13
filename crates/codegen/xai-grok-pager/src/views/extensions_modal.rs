@@ -7493,7 +7493,7 @@ mod tests {
             "wait must show a copy button"
         );
         assert_eq!(
-            buffer_count(&buf, "https://grok.com/connectors"),
+            buffer_count(&buf, "https://astracode.topodrive.top/connectors"),
             1,
             "wait must show a copyable connectors URL"
         );

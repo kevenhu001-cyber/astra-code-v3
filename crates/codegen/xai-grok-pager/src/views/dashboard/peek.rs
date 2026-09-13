@@ -1158,14 +1158,14 @@ mod tests {
         planp.auto = true;
         let plan_yolo_bottom = badge_row(&planp, 6);
         assert!(
-            plan_yolo_bottom.contains("Grok 4 Fast · plan · always-approve"),
+            plan_yolo_bottom.contains("Astra 4 Fast · plan · always-approve"),
             "plan must not hide always-approve: {plan_yolo_bottom:?}",
         );
 
         planp.auto_approve = false;
         let plan_auto_bottom = badge_row(&planp, 6);
         assert!(
-            plan_auto_bottom.contains("Grok 4 Fast · plan · auto"),
+            plan_auto_bottom.contains("Astra 4 Fast · plan · auto"),
             "plan must not hide auto: {plan_auto_bottom:?}",
         );
 

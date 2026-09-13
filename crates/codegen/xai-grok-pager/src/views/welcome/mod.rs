@@ -204,12 +204,7 @@ fn prompt_max_height(input: &WelcomeLayoutInput<'_>) -> u16 {
     let info = stacked_announcement_rows(input);
     let info_gap = if info > 0 { 1u16 } else { 0 };
     let column_fit = content_height.saturating_sub(
-        column.fixed_above(LogoTier::Hidden)
-            + input.menu_height
-            + info_gap
-            + info
-            + 1
-            + column.fixed_below,
+        column.fixed_above() + input.menu_height + info_gap + info + 1 + column.fixed_below,
     );
     (content_height / 2).min(column_fit).max(PROMPT_HEIGHT)
 }
@@ -232,53 +227,33 @@ fn stacked_announcement_rows(input: &WelcomeLayoutInput<'_>) -> u16 {
     let column = StackedColumn::new(input, PROMPT_HEIGHT);
     // +1 info-slot gap, +1 min flex gap above the tip
     let budget = content_area.height.saturating_sub(
-        column.fixed_above(LogoTier::Hidden) + input.menu_height + 1 + column.fixed_below + 1,
+        column.fixed_above() + input.menu_height + 1 + column.fixed_below + 1,
     );
     hero_box::announcement_desired_rows(ann, width, input.expanded, input.has_upgrade_cta)
         .min(budget)
 }
 
-/// The stacked column's rows around the logo, for one prompt height.
+/// The stacked column's fixed rows around the menu, for one prompt height.
 struct StackedColumn {
-    content_height: u16,
     gap_after_logo: u16,
     error_height: u16,
-    menu_height: u16,
     fixed_below: u16,
 }
 
 impl StackedColumn {
     fn new(input: &WelcomeLayoutInput<'_>, prompt_height: u16) -> Self {
         Self {
-            content_height: input.content_area.height,
             gap_after_logo: if input.error_height > 0 { 1 } else { 0 },
             error_height: input.error_height,
-            menu_height: input.menu_height,
             fixed_below: WelcomeLayout::fixed_below(input.tip_height, prompt_height),
         }
     }
 
-    /// Logo rows, the gap after them, and the error block.
-    fn fixed_above(&self, tier: LogoTier) -> u16 {
-        tier.rows() + 1 + self.gap_after_logo + self.error_height
-    }
-
-    /// Whether the column fits with this tier beside `reserved` info rows (slot + gap) and a one-row flex gap.
-    fn fits(&self, tier: LogoTier, reserved: u16) -> bool {
-        self.fixed_above(tier) + self.menu_height + reserved + 1 + self.fixed_below
-            <= self.content_height
-    }
-
-    /// The tier the terminal height allows, stepped down only while the column would overflow beside the draft and the reserved rows.
-    fn logo_tier(&self, reserved: u16) -> LogoTier {
-        let mut tier = LogoTier::for_height(self.content_height);
-        while !self.fits(tier, reserved) {
-            match tier.step_down() {
-                Some(smaller) => tier = smaller,
-                None => break,
-            }
-        }
-        tier
+    /// The fixed rows above the menu: the logo gap, error block, and its gap.
+    /// The central logo itself is removed from Astra's layout, but the historical
+    /// one-row separator remains part of the column budget for compatibility.
+    fn fixed_above(&self) -> u16 {
+        1 + self.gap_after_logo + self.error_height
     }
 }
 /// Gap between prompt and version line.
@@ -406,25 +381,17 @@ impl WelcomeLayout {
         let column = StackedColumn::new(&input, prompt_height);
 
         // Stacked info slot: the announcement at its draft-independent rows, else the changelog
-        // The announcement outranks the logo, so the tier steps down to keep it on screen; the changelog yields to the logo as before
+        // The announcement occupies the single stacked info slot below the menu.
         let announcement_rows = stacked_announcement_rows(&input);
         let info_height = if announcement.is_some() {
             announcement_rows
         } else {
             changelog_height
         };
-        let reserved = if announcement_rows > 0 {
-            announcement_rows + 1
-        } else {
-            0
-        };
-        // Stacked layout: skip the logo in compact mode (the session picker needs the space); otherwise the height picks the tier and only an overflowing column steps it down
-        let logo_tier = if compact {
-            LogoTier::Hidden
-        } else {
-            column.logo_tier(reserved)
-        };
-        let fixed_above = column.fixed_above(logo_tier);
+        // The central Braille logo was removed from Astra's design. Keep the
+        // tier field for the consent/layout API, but never reserve or paint it.
+        let logo_tier = LogoTier::Hidden;
+        let fixed_above = column.fixed_above();
 
         // The stacked info slot below the menu holds whichever block is shown (announcement or changelog), matching the hero box's single-slot rule
         let (eff_changelog_height, _) = if !compact {
@@ -439,7 +406,7 @@ impl WelcomeLayout {
             (0, 0)
         };
         let eff_changelog_gap = if eff_changelog_height > 0 { 1u16 } else { 0 };
-        let logo_gap = 1u16;
+        let logo_gap = 0u16;
         let flex_gap = 1u16;
         // Compute top_pad using the default menu height and one-line prompt so the menu position stays constant regardless of picker/focus state or draft length.
         let top_pad = if compact {
@@ -2127,7 +2094,7 @@ fn render_welcome_done(
     } else {
         // Narrow layout: stacked logo above, menu below
         // Inset the menu the same as the input bar (`prompt_inset`) so it keeps side spacing instead of touching the window edge on narrow terminals
-        render_logo_tier(layout.logo, buf, theme, layout.logo_tier);
+        render_logo(layout.logo, buf, theme, content_area.height);
         let menu_area = inset_horizontal(layout.menu, prompt::prompt_inset(p.compact));
         #[cfg(feature = "local-workspace")]
         let menu_area = if show_workspace_picker {
@@ -3782,14 +3749,15 @@ mod tests {
         assert_eq!(max, 13);
         let tall = WelcomeLayout::compute(input(Some(max)));
         assert!(!tall.has_hero_box());
-        // Compact logo 5 + gap 1 + menu 4 + flex 1 + prompt 13 + version 2 = 26 fits exactly
-        assert_eq!(tall.logo_tier, LogoTier::Compact);
+        // Astra has no central logo slot; the stacked layout keeps the menu rows available.
+        assert_eq!(tall.logo_tier, LogoTier::Hidden);
+        assert_eq!(tall.logo.height, 0);
         assert_places_every_row(&tall, &input(Some(max)));
     }
 
-    /// iTerm2's default 80x25 (content 22): the compact logo stays while the column fits and steps down only when it does not.
+    /// The stacked layout never reserves the removed central Braille logo.
     #[test]
-    fn stacked_logo_keeps_its_tier_until_the_column_overflows() {
+    fn stacked_layout_omits_the_removed_logo_for_every_draft_height() {
         let area = Rect::new(0, 0, 80, 22);
         let input = |prompt_height| WelcomeLayoutInput {
             content_area: area,
@@ -3798,28 +3766,12 @@ mod tests {
             ..Default::default()
         };
         let one_line = WelcomeLayout::compute(input(None));
-        assert_eq!(one_line.logo_tier, LogoTier::Compact);
-        // Compact logo 5 + gap 1 + menu 4 + flex 1 + prompt + version 2 = 13 + prompt: fits up to a 9-row draft
-        // The one-line layout has a 5-row flex gap, so the first 4 extra rows move nothing; the next two shift the column up
+        assert_eq!(one_line.logo_tier, LogoTier::Hidden);
+        assert_eq!(one_line.logo.height, 0);
         for extra in 1..=6u16 {
             let layout = WelcomeLayout::compute(input(Some(PROMPT_HEIGHT + extra)));
-            assert_eq!(layout.logo_tier, LogoTier::Compact, "{extra} extra rows");
-            if extra <= 4 {
-                assert_eq!(
-                    layout.logo, one_line.logo,
-                    "{extra} extra rows: the logo holds still"
-                );
-                assert_eq!(
-                    layout.menu.y, one_line.menu.y,
-                    "{extra} extra rows: the menu holds still"
-                );
-            } else {
-                assert_eq!(
-                    layout.logo.y,
-                    one_line.logo.y - (extra - 4),
-                    "{extra} extra rows"
-                );
-            }
+            assert_eq!(layout.logo_tier, LogoTier::Hidden, "{extra} extra rows");
+            assert_eq!(layout.logo.height, 0, "{extra} extra rows");
             assert_places_every_row(&layout, &input(Some(PROMPT_HEIGHT + extra)));
         }
         let max = prompt_max_height(&input(None));
@@ -3829,9 +3781,9 @@ mod tests {
         assert_places_every_row(&tall, &input(Some(max)));
     }
 
-    /// 80x33: the full logo fits beside every draft up to the cap, so it never steps down.
+    /// 80x33: the removed central logo stays absent beside every draft up to the cap.
     #[test]
-    fn stacked_full_logo_survives_the_whole_draft_range_when_it_fits() {
+    fn stacked_layout_keeps_the_removed_logo_hidden_for_the_whole_draft_range() {
         let area = Rect::new(0, 0, 80, 33);
         let input = |prompt_height| WelcomeLayoutInput {
             content_area: area,
@@ -3842,7 +3794,8 @@ mod tests {
         let max = prompt_max_height(&input(PROMPT_HEIGHT));
         for prompt_height in PROMPT_HEIGHT..=max {
             let layout = WelcomeLayout::compute(input(prompt_height));
-            assert_eq!(layout.logo_tier, LogoTier::Full, "prompt {prompt_height}");
+            assert_eq!(layout.logo_tier, LogoTier::Hidden, "prompt {prompt_height}");
+            assert_eq!(layout.logo.height, 0, "prompt {prompt_height}");
             assert_places_every_row(&layout, &input(prompt_height));
         }
     }
@@ -3886,10 +3839,9 @@ mod tests {
         }
     }
 
-    /// A draft that no longer fits beside the full logo steps the reserved rows AND the painted art down together.
+    /// The stacked layout reserves and paints no central logo at any draft height.
     #[test]
-    fn stacked_logo_art_matches_the_rows_reserved_for_a_tall_draft() {
-        // Full logo 7 + gap 1 + menu 4 + flex 1 + prompt + version 2 = 15 + prompt: 26 rows fit an 11-row draft under the full logo; 13 rows need the compact one
+    fn stacked_logo_art_is_removed_from_the_layout() {
         let area = Rect::new(0, 0, 60, 26);
         let input = |prompt_height| WelcomeLayoutInput {
             content_area: area,
@@ -3898,13 +3850,12 @@ mod tests {
             ..Default::default()
         };
         let one_line = WelcomeLayout::compute(input(None));
-        assert_eq!(one_line.logo_tier, LogoTier::Full);
-        assert_eq!(one_line.logo.height, logo::full_logo_line_count());
+        assert_eq!(one_line.logo_tier, LogoTier::Hidden);
+        assert_eq!(one_line.logo.height, 0);
 
         let tall = WelcomeLayout::compute(input(Some(13)));
-        assert_eq!(tall.logo_tier, LogoTier::Compact);
-        assert_eq!(tall.logo.height, logo::compact_logo_line_count());
-        assert_eq!(tall.logo.height, tall.logo_tier.rows());
+        assert_eq!(tall.logo_tier, LogoTier::Hidden);
+        assert_eq!(tall.logo.height, 0);
         assert_places_every_row(&tall, &input(Some(13)));
     }
 
@@ -3928,8 +3879,7 @@ mod tests {
     /// The consent screen passes 0 prompt rows and must sit exactly where it did before the composer could grow.
     #[test]
     fn zero_row_prompt_is_not_charged_for_a_one_line_box_when_centering() {
-        // 80x28, a 9-row body, a 2-row menu: full logo 7 + gap 1 + gap 1 + body 9 leaves 10 rows
-        // (10 - 4 - 2) / 3 = 1 with the zero-row box; a phantom 3-row box would give (10 - 4 - 5) / 3 = 0
+        // The removed central logo must not consume any rows when the consent screen passes a zero-row prompt.
         let area = Rect::new(0, 0, 80, 28);
         let layout = WelcomeLayout::compute_stacked(WelcomeLayoutInput {
             content_area: area,
@@ -3938,8 +3888,8 @@ mod tests {
             prompt_height: Some(0),
             ..Default::default()
         });
-        assert_eq!(layout.logo_tier, LogoTier::Full);
-        assert_eq!(layout.logo.y, 1);
+        assert_eq!(layout.logo_tier, LogoTier::Hidden);
+        assert_eq!(layout.logo.height, 0);
         assert_eq!(layout.prompt.height, 0);
     }
 
@@ -4004,27 +3954,26 @@ mod tests {
             .count() as u16
     }
 
-    /// End to end: a draft that steps the logo tier down paints the compact art, not the full art clipped into fewer rows.
+    /// End to end: the normal welcome screen keeps the removed central logo absent.
     #[test]
     fn render_welcome_paints_the_logo_tier_the_draft_leaves_room_for() {
         let auth = AuthState::Done;
         let trust = TrustState::Done;
         let params = render_params(&auth, &trust, None);
-        // 60 cols keeps the stacked layout; the top bar and margins take 3 rows, so 29 rows give the 26-row content area
-        // whose full logo fits beside an 11-row draft but not the 13-row cap
+        // 60 cols keeps the stacked layout; the top bar and margins leave a compact content area.
         let area = Rect::new(0, 0, 60, 29);
         let mut picker = PickerState::default();
         let mut prompt = PromptWidget::new();
 
         let mut buf = Buffer::empty(area);
         let _ = render_welcome(area, &mut buf, &params, &mut prompt, &mut picker);
-        assert_eq!(painted_logo_rows(&buf), logo::full_logo_line_count());
+        assert_eq!(painted_logo_rows(&buf), 0);
 
         prompt.set_text(&["line"; 30].join("\n"));
         let mut buf = Buffer::empty(area);
         let tall = render_welcome(area, &mut buf, &params, &mut prompt, &mut picker);
         assert_eq!(tall.prompt_rect.map(|r| r.height), Some(13));
-        assert_eq!(painted_logo_rows(&buf), logo::compact_logo_line_count());
+        assert_eq!(painted_logo_rows(&buf), 0);
     }
 
     #[test]
@@ -4658,7 +4607,7 @@ the usual channels. "
         assert!(saw_stacked, "the cap must push the box out at 100x32");
     }
 
-    /// The stacked announcement outranks the logo and the draft: the cap reserves its rows, and the logo steps down before it would yield.
+    /// The stacked announcement keeps its rows while the removed central logo stays absent.
     #[test]
     fn stacked_announcement_stays_visible_for_every_draft_height() {
         let area = Rect::new(0, 0, 70, 30);
@@ -4674,22 +4623,18 @@ the usual channels. "
         assert!(!one_line.has_hero_box());
         let slot = one_line.changelog.height;
         assert!(slot > 0);
-        assert_eq!(one_line.logo_tier, LogoTier::Full);
+        assert_eq!(one_line.logo_tier, LogoTier::Hidden);
         let max = prompt_max_height(&input(None));
-        let mut saw_logo_yield = false;
         for prompt_height in PROMPT_HEIGHT..=max {
             let layout = WelcomeLayout::compute(input(Some(prompt_height)));
             assert_eq!(
                 layout.changelog.height, slot,
                 "prompt {prompt_height}: the announcement must keep its rows"
             );
-            saw_logo_yield |= layout.logo_tier != LogoTier::Full;
+            assert_eq!(layout.logo_tier, LogoTier::Hidden);
+            assert_eq!(layout.logo.height, 0);
             assert_places_every_row(&layout, &input(Some(prompt_height)));
         }
-        assert!(
-            saw_logo_yield,
-            "the cap must be high enough to push the logo out at 70x30"
-        );
     }
 
     /// Production hides the logo on a short terminal and keeps the announcement; a one-line draft must still do that.

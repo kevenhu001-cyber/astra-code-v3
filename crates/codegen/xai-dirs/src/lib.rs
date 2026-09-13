@@ -1,5 +1,6 @@
-//! Single source of truth for the Astra home directory: `$ASTRA_HOME` or
-//! `<home>/.astra`. Shared by `xai-grok-config` and `xai-fast-worktree`.
+//! Single source of truth for the Astra home directory: `$ASTRA_HOME`, the
+//! legacy `$GROK_HOME`, or `<home>/.astra`. Shared by `xai-grok-config` and
+//! `xai-fast-worktree`.
 //!
 //! Which function to call:
 //! - [`astra_home`]: the usual choice, a cached, created path to build on.
@@ -29,10 +30,10 @@ fn astra_home_in(home: &Path) -> PathBuf {
         .join(".astra")
 }
 
-/// `$ASTRA_HOME` verbatim when non-empty, else `<home>/.astra`. The env value is
-/// used as-is (not canonicalized) so it stays stable and comparable: callers do
-/// literal prefix checks against it, and downstream symlink guards must still see
-/// its original components.
+/// The selected home environment value verbatim when non-empty, else
+/// `<home>/.astra`. The env value is used as-is (not canonicalized) so it stays
+/// stable and comparable: callers do literal prefix checks against it, and
+/// downstream symlink guards must still see its original components.
 fn resolve_astra_home_from(
     astra_home_env: Option<&OsStr>,
     os_home: Option<&Path>,
@@ -44,9 +45,16 @@ fn resolve_astra_home_from(
 }
 
 /// Resolve the Astra home from the environment (fresh, no cache); `None` if neither resolves.
+/// `$GROK_HOME` remains a legacy fallback for existing installations.
 pub fn resolve_astra_home() -> Option<PathBuf> {
+    let astra_home = std::env::var_os("ASTRA_HOME");
+    let legacy_grok_home = std::env::var_os("GROK_HOME");
+    let selected_env = astra_home
+        .as_deref()
+        .filter(|env| !env.is_empty())
+        .or_else(|| legacy_grok_home.as_deref().filter(|env| !env.is_empty()));
     resolve_astra_home_from(
-        std::env::var_os("ASTRA_HOME").as_deref(),
+        selected_env,
         home_dir().as_deref(),
     )
 }
@@ -146,6 +154,15 @@ mod tests {
         assert_eq!(
             resolved,
             Some(dunce::canonicalize(tmp.path()).unwrap().join(".astra"))
+        );
+    }
+
+    #[test]
+    fn legacy_grok_home_can_supply_the_selected_env_path() {
+        let legacy = OsStr::new("/legacy/grok-home");
+        assert_eq!(
+            resolve_astra_home_from(Some(legacy), None),
+            Some(PathBuf::from("/legacy/grok-home"))
         );
     }
 
