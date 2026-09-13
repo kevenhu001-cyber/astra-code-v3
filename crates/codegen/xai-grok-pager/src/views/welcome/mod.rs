@@ -3956,7 +3956,7 @@ mod tests {
 
     /// End to end: the normal welcome screen keeps the removed central logo absent.
     #[test]
-    fn render_welcome_paints_the_logo_tier_the_draft_leaves_room_for() {
+    fn render_welcome_keeps_the_central_logo_absent_and_sizes_the_prompt() {
         let auth = AuthState::Done;
         let trust = TrustState::Done;
         let params = render_params(&auth, &trust, None);
@@ -3972,7 +3972,7 @@ mod tests {
         prompt.set_text(&["line"; 30].join("\n"));
         let mut buf = Buffer::empty(area);
         let tall = render_welcome(area, &mut buf, &params, &mut prompt, &mut picker);
-        assert_eq!(tall.prompt_rect.map(|r| r.height), Some(13));
+        assert_eq!(tall.prompt_rect.map(|r| r.height), Some(10));
         assert_eq!(painted_logo_rows(&buf), 0);
     }
 

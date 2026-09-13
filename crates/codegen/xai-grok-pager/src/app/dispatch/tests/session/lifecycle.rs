@@ -1345,7 +1345,7 @@ fn finish_trust_resolves_and_replays_startup() {
 fn trust_folder_grants_and_resolves() {
     use xai_grok_workspace::trust::{TrustStore, workspace_key};
     let home = tempfile::tempdir().expect("home tempdir");
-    unsafe { std::env::set_var("ASTRA_HOME", home.path()) };
+    let _astra_home = crate::test_util::EnvVarGuard::set("ASTRA_HOME", home.path());
     simulate_release_build();
     let repo = tempfile::tempdir().expect("repo tempdir");
     let workspace = workspace_key(repo.path());
@@ -1360,12 +1360,13 @@ fn trust_folder_grants_and_resolves() {
         "accepting must persist the trust grant for the workspace",
     );
 }
-#[serial_test::serial(GROK_HOME)]
+#[serial_test::serial(ASTRA_HOME)]
 #[test]
 fn trust_folder_quits_when_store_unreadable() {
     use xai_grok_workspace::trust::workspace_key;
     let home = tempfile::tempdir().expect("home tempdir");
-    unsafe { std::env::set_var("GROK_HOME", home.path()) };
+    let _astra_home = crate::test_util::EnvVarGuard::set("ASTRA_HOME", "");
+    let _grok_home = crate::test_util::EnvVarGuard::set("GROK_HOME", home.path());
     simulate_release_build();
     let store_path = home.path().join("trusted_folders.toml");
     let before = b"[[[not-toml";
@@ -1400,14 +1401,15 @@ fn trust_folder_quits_when_store_unreadable() {
         "unread store must name the next step: {msg}"
     );
 }
-#[serial_test::serial(GROK_HOME)]
+#[serial_test::serial(ASTRA_HOME)]
 #[test]
 fn trust_folder_quits_when_persist_denied() {
     use xai_grok_workspace::trust::workspace_key;
     let home = tempfile::tempdir().expect("home tempdir");
     let blocker = home.path().join("not-a-dir");
     std::fs::write(&blocker, b"x").unwrap();
-    unsafe { std::env::set_var("GROK_HOME", &blocker) };
+    let _astra_home = crate::test_util::EnvVarGuard::set("ASTRA_HOME", "");
+    let _grok_home = crate::test_util::EnvVarGuard::set("GROK_HOME", &blocker);
     simulate_release_build();
     let repo = tempfile::tempdir().expect("repo tempdir");
     let workspace = workspace_key(repo.path());

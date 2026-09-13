@@ -1026,7 +1026,7 @@ mod tests {
             McpServerTransportConfig::StreamableHttp { .. }
         ));
         assert_eq!(resolved.warnings.len(), 1);
-        assert!(resolved.warnings[0].contains("--transport http"));
+        assert!(resolved.warnings[0].contains("No --transport given"));
 
         // Scheme-less commands get http:// prepended so the suggested
         // command passes URL validation verbatim.
