@@ -213,6 +213,7 @@ pub fn stream_responses<'a>(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn stream_responses_tracked<'a>(
     raw_stream: BoxStream<'a, Result<rs::ResponseStreamEvent, SamplingError>>,
     model_metadata: Option<ResponseModelMetadata>,
@@ -2038,7 +2039,7 @@ mod tests {
         ))
         .await;
 
-        let deltas: Vec<(u32, Option<String>, Option<String>, Option<String>)> = events
+        let deltas: Vec<_> = events
             .iter()
             .filter_map(|e| match e {
                 SamplingEvent::ToolCallDelta {
