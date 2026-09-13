@@ -329,6 +329,10 @@ fn baseline_env_from_parent(
     for (key, value) in [
         ("ASTRA_TELEMETRY_ENABLED", "false"),
         ("GROK_TELEMETRY_TRACE_UPLOAD", "false"),
+        ("GROK_TELEMETRY_MIXPANEL_ENABLED", "false"),
+        ("GROK_TELEMETRY_MIXPANEL_TOKEN", ""),
+        ("GROK_TELEMETRY_EVENTS_URL", ""),
+        ("GROK_TELEMETRY_EVENTS_API_KEY", ""),
         ("GROK_FEEDBACK_ENABLED", "false"),
         ("GROK_TRACE_UPLOAD", "false"),
         ("GROK_INSTRUMENTATION", "disabled"),
