@@ -137,6 +137,31 @@ pub fn is_topodrive_api_bearer_url(url: &str) -> bool {
     }
     false
 }
+/// True only for ASCII first-party `topodrive.top` hosts. Rejects Unicode
+/// homographs (`х.topodrive.top`) and punycode IDN labels (`xn--*`), which
+/// would otherwise pass a naive `ends_with(".topodrive.top")` check.
+fn is_first_party_topodrive_host(host: &str) -> bool {
+    if !host.is_ascii() {
+        return false;
+    }
+    let lower = host.to_ascii_lowercase();
+    if lower != "topodrive.top" && !lower.ends_with(".topodrive.top") {
+        return false;
+    }
+    // Any punycode label means an IDN homograph attempt; first-party hosts
+    // are plain ASCII and never use `xn--` labels.
+    if lower.split('.').any(|label| label.starts_with("xn--")) {
+        return false;
+    }
+    // Restrict to DNS-safe chars so `evil_topodrive.top`-style bypasses stay out.
+    if !lower
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+    {
+        return false;
+    }
+    true
+}
 /// True for trusted first-party topodrive HTTPS routes, excluding arbitrary loopback URLs.
 pub fn is_trusted_topodrive_https_url(url: &str) -> bool {
     let Ok(parsed) = reqwest::Url::parse(url) else {
@@ -151,9 +176,7 @@ pub fn is_trusted_topodrive_https_url(url: &str) -> bool {
     if is_trusted_cli_chat_proxy_url(url) {
         return true;
     }
-    parsed
-        .host_str()
-        .is_some_and(|host| host == "topodrive.top" || host.ends_with(".topodrive.top"))
+    parsed.host_str().is_some_and(is_first_party_topodrive_host)
 }
 fn is_topodrive_api_url_impl(url: &str, require_https: bool) -> bool {
     if require_https {
@@ -165,7 +188,7 @@ fn is_topodrive_api_url_impl(url: &str, require_https: bool) -> bool {
     reqwest::Url::parse(url)
         .ok()
         .and_then(|url| url.host_str().map(str::to_owned))
-        .is_some_and(|host| host == "topodrive.top" || host.ends_with(".topodrive.top"))
+        .is_some_and(|host| is_first_party_topodrive_host(&host))
 }
 fn is_loopback_host(parsed: &reqwest::Url) -> bool {
     match parsed.host() {
@@ -388,6 +411,10 @@ mod tests {
     #[test]
     fn test_is_cli_chat_proxy_url_accepts_proxy_subpath() {
         assert!(is_cli_chat_proxy_url(
+            "https://cli-chat-proxy.astracode.topodrive.top/v1/chat/completions"
+        ));
+        // Legacy grok.com origin is no longer trusted after the topodrive rebrand.
+        assert!(!is_cli_chat_proxy_url(
             "https://cli-chat-proxy.grok.com/v1/chat/completions"
         ));
     }
@@ -398,13 +425,13 @@ mod tests {
     #[test]
     fn test_is_cli_chat_proxy_url_rejects_spoofed_hostname() {
         assert!(!is_cli_chat_proxy_url(
-            "https://cli-chat-proxy.grok.com.evil.example/v1"
+            "https://cli-chat-proxy.astracode.topodrive.top.evil.example/v1"
         ));
     }
     #[test]
     fn test_is_cli_chat_proxy_url_rejects_v11_prefix_confusion() {
         assert!(!is_cli_chat_proxy_url(
-            "https://cli-chat-proxy.grok.com/v11/chat/completions"
+            "https://cli-chat-proxy.astracode.topodrive.top/v11/chat/completions"
         ));
     }
     #[test]
@@ -415,6 +442,10 @@ mod tests {
         ));
         assert!(is_topodrive_api_url("https://topodrive.top"));
         assert!(is_topodrive_api_url(
+            "https://cli-chat-proxy.astracode.topodrive.top/v1/chat/completions"
+        ));
+        // Legacy grok.com origin is not a topodrive endpoint.
+        assert!(!is_topodrive_api_url(
             "https://cli-chat-proxy.grok.com/v1/chat/completions"
         ));
         assert!(!is_topodrive_api_url("https://api.openai.com/v1"));
@@ -431,12 +462,17 @@ mod tests {
         assert!(!is_topodrive_api_url("https://prefixtopodrive.top/v1"));
         assert!(!is_topodrive_api_url("not-a-url"));
         assert!(!is_topodrive_api_url(""));
+        assert!(!is_topodrive_api_url("https://х.topodrive.top/v1"));
+        assert!(!is_topodrive_api_url("https://xn--n1ag.topodrive.top/v1"));
         assert!(is_topodrive_api_url("http://api.topodrive.top/v1"));
         assert!(is_topodrive_api_url("http://localhost:11434/v1"));
     }
     #[test]
     fn test_is_topodrive_api_bearer_url() {
         assert!(is_topodrive_api_bearer_url("https://api.topodrive.top/v1"));
+        assert!(is_topodrive_api_bearer_url(
+            "https://cli-chat-proxy.astracode.topodrive.top/v1/chat/completions"
+        ));
         assert!(!is_topodrive_api_bearer_url("http://api.topodrive.top/v1"));
         assert!(!is_topodrive_api_bearer_url("http://localhost:11434/v1"));
         {
@@ -449,6 +485,14 @@ mod tests {
             "https://api.topodrive.top@attacker.example/v1"
         ));
         assert!(!is_topodrive_api_bearer_url("https://х.topodrive.top/v1"));
+        // Punycode-encoded homograph of the above must also be rejected.
+        assert!(!is_topodrive_api_bearer_url(
+            "https://xn--n1ag.topodrive.top/v1"
+        ));
+        // Legacy grok.com origin is not a topodrive bearer endpoint.
+        assert!(!is_topodrive_api_bearer_url(
+            "https://cli-chat-proxy.grok.com/v1/chat/completions"
+        ));
     }
     #[test]
     fn test_truncate() {
