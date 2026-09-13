@@ -9,7 +9,7 @@ fn temp_workspace(tag: &str, toml_body: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     let ws = std::env::temp_dir().join(format!("grok-rdv-{tag}-{}-{nanos}", std::process::id()));
-    let grok = ws.join(".grok");
+    let grok = ws.join(".astra");
     std::fs::create_dir_all(&grok).unwrap();
     std::fs::write(
         grok.join(xai_grok_config::SANDBOX_CONFIG_FILENAME),

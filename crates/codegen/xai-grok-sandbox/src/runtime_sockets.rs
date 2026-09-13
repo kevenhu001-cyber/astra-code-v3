@@ -81,7 +81,10 @@ fn runtime_socket_deny_paths_for_context_with_policy(
     }
 }
 
-/// Missing candidates are skipped; every other resolution failure is returned.
+/// Missing or inaccessible candidates are skipped; every other resolution
+/// failure is returned. Inaccessible parents (e.g. root-only `/run/podman`
+/// on CI runners) cannot host a socket the child could reach either, so
+/// skipping keeps profile resolution hermetic across hosts.
 fn materialize_runtime_socket_deny_paths_from(
     candidates: impl IntoIterator<Item = PathBuf>,
 ) -> io::Result<Vec<PathBuf>> {
@@ -110,9 +113,19 @@ fn materialize_runtime_socket_deny_paths_from(
         })?;
         let canonical_parent = match dunce::canonicalize(parent) {
             Ok(parent) => parent,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
+                ) =>
+            {
                 match std::fs::symlink_metadata(&candidate) {
-                    Err(metadata_error) if metadata_error.kind() == io::ErrorKind::NotFound => {
+                    Err(metadata_error)
+                        if matches!(
+                            metadata_error.kind(),
+                            io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
+                        ) =>
+                    {
                         continue;
                     }
                     Ok(_) => return Err(with_context(error)),
@@ -124,7 +137,14 @@ fn materialize_runtime_socket_deny_paths_from(
         let path = canonical_parent.join(file_name);
         let metadata = match std::fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                continue
+            }
             Err(error) => return Err(with_context(error)),
         };
         if metadata.file_type().is_symlink() {
@@ -198,6 +218,9 @@ fn runtime_socket_policy_contains(policy: &[PathBuf], handed: &Path) -> io::Resu
 }
 
 /// Normalize parent aliases without inspecting or following endpoint objects.
+/// Inaccessible parents are returned as-is: the caller only uses the result
+/// for prefix comparisons, and an unresolvable parent cannot alias a handed
+/// path the child could reach.
 fn normalize_existing_parent_alias(parent: &Path) -> io::Result<PathBuf> {
     let mut missing_suffix = Vec::new();
     let mut existing = parent;
@@ -205,6 +228,9 @@ fn normalize_existing_parent_alias(parent: &Path) -> io::Result<PathBuf> {
         match std::fs::symlink_metadata(existing) {
             Ok(_) => break,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+                return Ok(parent.to_path_buf())
+            }
             Err(error) => return Err(error),
         }
         let Some(file_name) = existing.file_name() else {
