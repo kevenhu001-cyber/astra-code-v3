@@ -670,6 +670,18 @@ impl ImageStripRewriteBarrier {
             _gate_guard: gate_guard,
         }
     }
+    /// Non-blocking strip acquisition for the terminal-event fast path.
+    /// Returns `None` when another strip or a rewind holds the gate so the
+    /// caller can defer to a background waiter instead of deadlocking a
+    /// `current_thread` test that holds the guard across the event call.
+    pub(crate) fn try_lock_strip(&self) -> Option<ImageStripWriteGuard> {
+        let strip_guard = std::sync::Arc::clone(&self.strips).try_lock_owned().ok()?;
+        let gate_guard = std::sync::Arc::clone(&self.gate).try_read_owned().ok()?;
+        Some(ImageStripWriteGuard {
+            _strip_guard: strip_guard,
+            _gate_guard: gate_guard,
+        })
+    }
     pub(crate) async fn lock_rewind(&self) -> tokio::sync::OwnedRwLockWriteGuard<()> {
         std::sync::Arc::clone(&self.gate).write_owned().await
     }

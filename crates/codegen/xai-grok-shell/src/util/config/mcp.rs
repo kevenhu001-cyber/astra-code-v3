@@ -1908,7 +1908,7 @@ mod tests {
         )
         .unwrap();
 
-        let grok = repo.path().join(".grok");
+        let grok = repo.path().join(".astra");
         std::fs::create_dir_all(&grok).unwrap();
         std::fs::write(
             grok.join("config.toml"),

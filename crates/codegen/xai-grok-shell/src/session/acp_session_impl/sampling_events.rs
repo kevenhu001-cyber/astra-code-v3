@@ -312,11 +312,14 @@ impl SessionActor {
             } => {
                 let request_updates_turn = request_owned;
 
-                // Detached persistence so a test-held rewrite gate does not
-                // deadlock the event drainer; rewind coordinates via the gate.
-                // (Direct await here self-deadlocks when the caller holds
-                // lock_strip on the same current_thread LocalSet.)
-                if self.pending_image_strip.lock().contains_key(&request_id) {
+                // Persist before the drain waiter is released so the next prompt cannot
+                // reread the rejected image, and LocalSet shutdown cannot abort the write.
+                // When the rewrite gate is contended (a test-held guard or rewind on the
+                // same current_thread LocalSet), defer to a background waiter instead of
+                // deadlocking the drainer; the waiter applies once the holder drops.
+                if self.image_strip_rewrite_barrier.try_lock_strip().is_some() {
+                    self.apply_pending_image_strip(&request_id).await;
+                } else if self.pending_image_strip.lock().contains_key(&request_id) {
                     let session = Arc::clone(self);
                     let rid = request_id.clone();
                     tokio::task::spawn_local(async move {

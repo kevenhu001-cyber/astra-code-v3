@@ -983,9 +983,9 @@ args = ["ok"]
         };
 
         let cwd = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(cwd.path().join(".grok")).unwrap();
+        std::fs::create_dir_all(cwd.path().join(".astra")).unwrap();
         std::fs::write(
-            cwd.path().join(".grok").join("config.toml"),
+            cwd.path().join(".astra").join("config.toml"),
             r#"
 disabled_mcp_servers = ["corp"]
 
@@ -1090,9 +1090,9 @@ url = "https://denied.corp.com/mcp"
         }
         let cwd = tempfile::tempdir().unwrap();
         git2::Repository::init(cwd.path()).unwrap();
-        std::fs::create_dir_all(cwd.path().join(".grok")).unwrap();
+        std::fs::create_dir_all(cwd.path().join(".astra")).unwrap();
         std::fs::write(
-            cwd.path().join(".grok").join("config.toml"),
+            cwd.path().join(".astra").join("config.toml"),
             r#"
 [mcp_servers.projsrv]
 command = "echo"
@@ -1256,9 +1256,9 @@ command = "echo"
     fn toml_loaders_agree_on_env_and_header_bearing_definitions() {
         let tmp = tempfile::tempdir().unwrap();
         git2::Repository::init(tmp.path()).unwrap();
-        std::fs::create_dir_all(tmp.path().join(".grok")).unwrap();
+        std::fs::create_dir_all(tmp.path().join(".astra")).unwrap();
         std::fs::write(
-            tmp.path().join(".grok").join("config.toml"),
+            tmp.path().join(".astra").join("config.toml"),
             r#"
 [mcp_servers.parity_stdio]
 command = "echo"
@@ -2044,9 +2044,9 @@ enabled = false
     /// This mirrors a real setup: one ClickHouse endpoint, two orgs.
     fn same_url_project_repo() -> tempfile::TempDir {
         let cwd = empty_cwd();
-        std::fs::create_dir_all(cwd.path().join(".grok")).unwrap();
+        std::fs::create_dir_all(cwd.path().join(".astra")).unwrap();
         std::fs::write(
-            cwd.path().join(".grok").join("config.toml"),
+            cwd.path().join(".astra").join("config.toml"),
             r#"
 [mcp_servers.gb5207-org1]
 url = "https://dup-url.example.test/mcp"
@@ -2249,9 +2249,9 @@ Authorization = "Bearer org2-token"
         );
 
         git2::Repository::init(cwd.path()).unwrap();
-        std::fs::create_dir_all(cwd.path().join(".grok")).unwrap();
+        std::fs::create_dir_all(cwd.path().join(".astra")).unwrap();
         std::fs::write(
-            cwd.path().join(".grok").join("config.toml"),
+            cwd.path().join(".astra").join("config.toml"),
             "[mcp_servers.plugsrv]\nurl = \"https://plug.example.test/mcp\"\nenabled = false\n",
         )
         .unwrap();
