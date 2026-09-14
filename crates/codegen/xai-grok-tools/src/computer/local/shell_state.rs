@@ -100,26 +100,37 @@ dump_bash_state() {
 
   _emit "$PWD"
 
+  # Capture the user's environment first: under `set -a` (allexport) every
+  # subsequent local assignment is exported, so a scratch local created before
+  # this capture would leak into the replayed state.
   local env_vars
   env_vars=$(builtin export -p 2>/dev/null | command grep -viE '_proxy=|ASTRA_SANDBOX|GROK_AGENT=|SUDO_ASKPASS|GROK_ASKPASS|ELECTRON_RUN_AS_NODE|SSH_AUTH_SOCK|DBUS_SESSION_BUS_ADDRESS|XDG_RUNTIME_DIR|WAYLAND_DISPLAY|GPG_TTY' || true)
-  _emit_encoded "$env_vars" "ENV_VARS_B64"
 
+  # Capture the option state (including `set -a` itself) before turning
+  # allexport off for our own encoding helpers. Under allexport the locals
+  # assigned below are exported, and a large `declare -f` blob in the
+  # environment trips E2BIG (MAX_ARG_STRLEN) when `base64`/`tr` are exec'd —
+  # the dump then aborts under its own `set -e` and corrupts the command's
+  # exit code. `POSIX_OPTS_B64` already carries `set -a` for replay.
   # errexit/pipefail here are this function's own `set -euo pipefail` (set is
   # shell-global in bash); replaying them would abort later user commands.
   local posix_opts
   posix_opts=$(builtin shopt -po 2>/dev/null | command grep -vE '^set [-+]o (nounset|errexit|pipefail)$' || true)
-  _emit_encoded "$posix_opts" "POSIX_OPTS_B64"
+  builtin set +a
 
   local bash_opts
   bash_opts=$(builtin shopt -p 2>/dev/null || true)
-  _emit_encoded "$bash_opts" "BASH_OPTS_B64"
 
   local all_functions
   all_functions=$(builtin declare -f 2>/dev/null || true)
-  _emit_encoded "$all_functions" "FUNCTIONS_B64"
 
   local aliases
   aliases=$(builtin alias -p 2>/dev/null || true)
+
+  _emit_encoded "$env_vars" "ENV_VARS_B64"
+  _emit_encoded "$posix_opts" "POSIX_OPTS_B64"
+  _emit_encoded "$bash_opts" "BASH_OPTS_B64"
+  _emit_encoded "$all_functions" "FUNCTIONS_B64"
   _emit_encoded "$aliases" "ALIASES_B64"
 
   _emit "# end of bash state dump"
@@ -402,7 +413,8 @@ impl ShellState {
                  builtin printf '%s' \"${{2:-}}\"; \
                  __grok_user_cmd=\"$1\"; builtin declare +x __grok_user_cmd 2>/dev/null; builtin set --; \
                  builtin eval \"$__grok_user_cmd\" 2>&1; }}; \
-                 COMMAND_EXIT_CODE=$?; builtin unset __grok_user_cmd 2>/dev/null; {dump_fn} >&4; builtin exit $COMMAND_EXIT_CODE"
+                 COMMAND_EXIT_CODE=$?; builtin unset __grok_user_cmd 2>/dev/null; \
+                 {dump_fn} >&4 || true; builtin exit $COMMAND_EXIT_CODE"
             ),
             // After snapshot restore: force nonomatch so login dumps cannot re-arm NOMATCH for
             // model globs. See the bash wrapper comment for why positional parameters are cleared
@@ -421,7 +433,8 @@ impl ShellState {
                  builtin printf '%s' \"${{2:-}}\"; \
                  __grok_user_cmd=\"$1\"; builtin typeset +x __grok_user_cmd 2>/dev/null; builtin set --; \
                  builtin eval \"$__grok_user_cmd\" 2>&1; }}; \
-                 COMMAND_EXIT_CODE=$?; builtin unset __grok_user_cmd 2>/dev/null; {dump_fn} >&4; builtin exit $COMMAND_EXIT_CODE"
+                 COMMAND_EXIT_CODE=$?; builtin unset __grok_user_cmd 2>/dev/null; \
+                 {dump_fn} >&4 || true; builtin exit $COMMAND_EXIT_CODE"
             ),
         };
 
@@ -740,6 +753,39 @@ mod tests {
     /// fail) on systems without zsh installed.
     fn zsh_available() -> bool {
         std::path::Path::new(ShellKind::Zsh.binary_path()).exists()
+    }
+
+    /// `set -a` (allexport) used to export the dump's own scratch locals to its
+    /// `base64`/`tr` helpers. With a function table larger than
+    /// `MAX_ARG_STRLEN` (128 KiB) that exec fails with E2BIG, the dump aborts
+    /// under its own `set -e`, and the command's exit code is corrupted (126).
+    /// Reproduces the oversized-function-table shape hermetically.
+    #[test]
+    fn bash_dump_survives_allexport_with_a_large_function_table() {
+        if !bash_available() {
+            return;
+        }
+        // A function body comfortably past the per-string kernel limit once the
+        // dump exports it as part of the environment.
+        let filler = "a".repeat(140 * 1024);
+        let script = format!(
+            "{DUMP_BASH_STATE_SCRIPT}\nf() {{ local pad='{filler}'; }}\nset -a\ndump_bash_state\n"
+        );
+        let output = std::process::Command::new(ShellKind::Bash.binary_path())
+            .args(["-c", &script])
+            .output()
+            .expect("spawn bash");
+        assert!(
+            output.status.success(),
+            "dump must survive allexport with a large function table; stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains(BASH_STATE_END_MARKER),
+            "dump must reach its end marker; stdout: {}",
+            &stdout[..stdout.len().min(500)]
+        );
     }
 
     #[test]
