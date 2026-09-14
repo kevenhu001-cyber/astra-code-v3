@@ -407,7 +407,7 @@ mod tests {
         let empty_peer = empty_seed_peer(&result);
         let prompt = ToolOutput::EnterPlanMode(result).to_prompt_format();
         assert!(
-            prompt.contains(".grok/plan.md"),
+            prompt.contains(".astra/plan.md"),
             "expected plan path: {prompt}"
         );
         assert!(prompt.contains("exit_plan_mode"), "{prompt}");

@@ -648,6 +648,7 @@ impl SessionActor {
                 reasoning_effort: None,
                 stream_tool_calls: None,
                 injects_think_tags_in_content: false,
+                messages_thinking_budget: None,
             });
         let creds = self.chat_state_handle.get_credentials().await;
         let model_facts = self.model_auth_facts(cfg.model.as_str());
@@ -735,6 +736,7 @@ impl SessionActor {
             rate_limit_retry_threshold: cfg.rate_limit_retry_threshold,
             stream_tool_calls: cfg.stream_tool_calls.unwrap_or(false),
             injects_think_tags_in_content: cfg.injects_think_tags_in_content,
+            messages_thinking_budget: cfg.messages_thinking_budget,
             idle_timeout_secs: None,
             client_identifier: self.client_identifier.clone(),
             deployment_id: crate::managed_config::resolve_deployment_id(

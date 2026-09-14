@@ -1089,6 +1089,7 @@ fn test_model_entry(
             laziness_detector: LazinessDetectorPerModelConfig::default(),
             variants: Vec::new(),
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
         },
         mtls_cert_dir: None,
         api_key: api_key.map(|s| s.to_string()),
@@ -2183,6 +2184,7 @@ fn model_info_from_config_propagates_use_concise() {
         laziness_detector: LazinessDetectorPerModelConfig::default(),
         variants: Vec::new(),
         injects_think_tags_in_content: false,
+        messages_thinking_budget: None,
     };
     let info = ModelInfo::from_config(&entry);
     assert!(info.use_concise);
@@ -2347,6 +2349,7 @@ fn model_info_from_config_propagates_agent_type() {
         laziness_detector: LazinessDetectorPerModelConfig::default(),
         variants: Vec::new(),
         injects_think_tags_in_content: false,
+        messages_thinking_budget: None,
     };
     let info = ModelInfo::from_config(&entry);
     assert_eq!(info.agent_type, "codex");
@@ -2803,6 +2806,7 @@ fn inference_idle_timeout_propagates_to_model_info() {
         laziness_detector: LazinessDetectorPerModelConfig::default(),
         variants: Vec::new(),
         injects_think_tags_in_content: false,
+        messages_thinking_budget: None,
     };
     let info = ModelInfo::from_config(&entry);
     assert_eq!(info.inference_idle_timeout_secs, Some(120));
@@ -7466,6 +7470,7 @@ fn prefetch_model_entry(slug: &str, context_window: u64, api_backend: ApiBackend
             stream_tool_calls: None,
             laziness_detector: LazinessDetectorPerModelConfig::default(),
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
             auto_compact_threshold_percent: None,
             system_prompt_label: None,
             variants: Vec::new(),

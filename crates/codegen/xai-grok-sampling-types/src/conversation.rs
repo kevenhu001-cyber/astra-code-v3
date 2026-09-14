@@ -792,10 +792,10 @@ pub struct ConversationResponse {
     /// See [`crate::doom_loop`].
     pub doom_loop_signals: Vec<crate::doom_loop::DoomLoopSignal>,
     /// Provider-supplied human-readable stop detail, when reported (e.g. a content-filter refusal explanation).
-    /// Backend-neutral: normalized from the wire (Messages `message_delta.stop_details.explanation`).
+    /// Backend-neutral: normalized from the Messages `message_delta.stop_details.explanation` and the Responses refusal content part.
     /// `None` otherwise and on backends that don't report one.
     pub stop_message: Option<String>,
-    /// Provider message id (Messages `message.id`); `None` on backends that do not carry one (OAI Chat Completions / Responses).
+    /// Provider message id (Messages `message.id`, Responses `response.id`); `None` on backends that do not carry one (OAI Chat Completions).
     pub message_id: Option<String>,
     /// Wire stop reason before it collapses into [`StopReason`]: verbatim on the Messages backend.
     /// On the Responses backend only length cuts on tool-less turns are carried.
@@ -1354,6 +1354,12 @@ impl xai_grok_compaction::CompactionItemFactory for ConversationItem {
         Self::system_reminder(text)
     }
 }
+
+/// Sentinel `id` marking an `rs::ReasoningItem` that wraps an Anthropic
+/// `redacted_thinking` block. The opaque blob rides `encrypted_content`; the
+/// Messages conversion turns it back into a `redacted_thinking` block, and
+/// backends without that concept skip it.
+pub const REDACTED_THINKING_ITEM_ID: &str = "anthropic_redacted_thinking";
 
 /// Extract human-readable text from a Responses-API reasoning item by joining its `summary` parts (in order) followed by its `content` blocks.
 /// Encrypted-only reasoning items return an empty string since their text is not user-visible.
@@ -2229,7 +2235,7 @@ mod tests {
                         .is_some()
                 }
                 crate::ApiBackend::Messages => {
-                    let mapped = super::messages::build_messages_request(&request());
+                    let mapped = super::messages::build_messages_request(&request(), None);
                     serde_json::to_value(&mapped)
                         .expect("messages request serializes")
                         .get("prompt_cache_key")
@@ -2449,7 +2455,7 @@ mod tests {
         assert_eq!(f.schema, Some(schema.clone()));
 
         // Messages API: json_schema becomes output_config.format
-        let msgs_req = build_messages_request(&req);
+        let msgs_req = build_messages_request(&req, None);
         let output_config = msgs_req.output_config.expect("output_config should be set");
         let fmt = output_config.format.expect("format should be set");
         let crate::messages::OutputFormat::JsonSchema { schema: s } = fmt;

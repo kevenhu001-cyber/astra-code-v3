@@ -76,8 +76,10 @@ fn assert_messages_rides_parent_prefix(
         reasoning_effort: Some(xai_grok_sampling_types::ReasoningEffort::High),
         ..Default::default()
     };
-    let expected = serde_json::to_value(xai_grok_sampling_types::build_messages_request(&request))
-        .expect("main Messages request serializes");
+    let expected = serde_json::to_value(xai_grok_sampling_types::build_messages_request(
+        &request, None,
+    ))
+    .expect("main Messages request serializes");
     let expected_messages = without_cache_control(expected["messages"].clone());
     let actual_messages = without_cache_control(body["messages"].clone());
     let expected = expected_messages
@@ -832,7 +834,7 @@ fn over_budget_recap_serializes_to_well_formed_messages_request() {
     // The grok backend sets `strip_reasoning` to false; the over-budget branch strips anyway
     let items = session_recap::budget_recap_items(conv, "system-reminder", false, 8_000);
     let req = ConversationRequest::from_items(items);
-    let msg = xai_grok_sampling_types::build_messages_request(&req);
+    let msg = xai_grok_sampling_types::build_messages_request(&req, None);
 
     assert!(msg.system.is_some(), "system prompt must be preserved");
 

@@ -356,8 +356,8 @@ async fn test_sweep_stale_tmp_links_removes_stale_keeps_fresh_and_active() {
     std::os::unix::fs::symlink(&target, &link).unwrap();
 
     // Old- and new-style leftover temp links.
-    let leftover_old = dir.path().join("grok.tmp-link");
-    let leftover_new = dir.path().join("grok.123-0.tmp-link");
+    let leftover_old = dir.path().join("astra.tmp-link");
+    let leftover_new = dir.path().join("astra.123-0.tmp-link");
     std::os::unix::fs::symlink(&target, &leftover_old).unwrap();
     std::os::unix::fs::symlink(&target, &leftover_new).unwrap();
 
@@ -368,7 +368,7 @@ async fn test_sweep_stale_tmp_links_removes_stale_keeps_fresh_and_active() {
     assert!(link.is_symlink(), "active link must be preserved");
 
     // A fresh leftover under a real max_age is preserved; it could be a concurrent updater's swap still in flight
-    let fresh = dir.path().join("grok.999-9.tmp-link");
+    let fresh = dir.path().join("astra.999-9.tmp-link");
     std::os::unix::fs::symlink(&target, &fresh).unwrap();
     sweep_stale_tmp_links(&link, Duration::from_secs(3600)).await;
     assert!(fresh.exists(), "fresh tmp-link must be preserved");
@@ -1639,8 +1639,8 @@ async fn test_cleanup_old_downloads_tmp_files_deleted_even_when_unparseable() {
     let dir = tempfile::tempdir().unwrap();
     let d = dir.path();
     // Stale tmp files are deleted regardless of version-parseability.
-    std::fs::write(d.join("grok-junk.tmp"), "partial").unwrap();
-    make_stale(&d.join("grok-junk.tmp"));
+    std::fs::write(d.join("astra-junk.tmp"), "partial").unwrap();
+    make_stale(&d.join("astra-junk.tmp"));
     std::fs::write(d.join("astra-0.1.140-macos-aarch64.tmp"), "partial2").unwrap();
     make_stale(&d.join("astra-0.1.140-macos-aarch64.tmp"));
     std::fs::write(d.join("astra-0.1.141-macos-aarch64"), "current").unwrap();
@@ -1649,7 +1649,7 @@ async fn test_cleanup_old_downloads_tmp_files_deleted_even_when_unparseable() {
 
     cleanup_old_downloads(d, "astra", "0.1.141").await;
 
-    assert!(!d.join("grok-junk.tmp").exists(), "junk tmp deleted");
+    assert!(!d.join("astra-junk.tmp").exists(), "junk tmp deleted");
     assert!(
         !d.join("astra-0.1.140-macos-aarch64.tmp").exists(),
         "versioned tmp deleted"

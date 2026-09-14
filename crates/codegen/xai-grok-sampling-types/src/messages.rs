@@ -136,6 +136,11 @@ pub enum ContentBlock {
     RedactedThinking {
         data: String,
     },
+    /// Catch-all for block types this client does not model yet.
+    /// Keeps a future block type from failing the whole event parse.
+    /// Must stay the LAST variant: serde tries the tagged variants above first.
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -292,6 +297,11 @@ pub enum MessageStreamEvent {
     Error {
         error: StreamError,
     },
+    /// Catch-all for event types this client does not model yet.
+    /// Keeps a future stream event from failing the whole event parse.
+    /// Must stay the LAST variant: serde tries the tagged variants above first.
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -335,10 +345,22 @@ pub struct MessageDeltaUsage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum StreamDelta {
-    TextDelta { text: String },
-    InputJsonDelta { partial_json: String },
-    ThinkingDelta { thinking: String },
-    SignatureDelta { signature: String },
+    TextDelta {
+        text: String,
+    },
+    InputJsonDelta {
+        partial_json: String,
+    },
+    ThinkingDelta {
+        thinking: String,
+    },
+    SignatureDelta {
+        signature: String,
+    },
+    /// Catch-all for delta types this client does not model yet.
+    /// Must stay the LAST variant: serde tries the tagged variants above first.
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -510,5 +532,37 @@ mod tests {
         let json = serde_json::to_value(&config).unwrap();
         assert!(json.get("effort").is_none(), "effort omitted when None");
         assert_eq!(json["format"]["type"], "json_schema");
+    }
+
+    /// Unmodelled block/delta/event types must deserialize into the `Unknown`
+    /// catch-alls instead of failing the whole stream event.
+    #[test]
+    fn unknown_block_delta_and_event_types_parse() {
+        let event: MessageStreamEvent = serde_json::from_str(
+            r#"{"type":"content_block_start","index":0,"content_block":{"type":"future_block","payload":1}}"#,
+        )
+        .expect("unknown content_block type must parse");
+        match event {
+            MessageStreamEvent::ContentBlockStart { content_block, .. } => {
+                assert!(matches!(content_block, ContentBlock::Unknown));
+            }
+            other => panic!("expected ContentBlockStart, got {other:?}"),
+        }
+
+        let event: MessageStreamEvent = serde_json::from_str(
+            r#"{"type":"content_block_delta","index":0,"delta":{"type":"future_delta","text":"x"}}"#,
+        )
+        .expect("unknown delta type must parse");
+        match event {
+            MessageStreamEvent::ContentBlockDelta { delta, .. } => {
+                assert!(matches!(delta, StreamDelta::Unknown));
+            }
+            other => panic!("expected ContentBlockDelta, got {other:?}"),
+        }
+
+        let event: MessageStreamEvent =
+            serde_json::from_str(r#"{"type":"message_future_event","payload":1}"#)
+                .expect("unknown event type must parse");
+        assert!(matches!(event, MessageStreamEvent::Unknown));
     }
 }

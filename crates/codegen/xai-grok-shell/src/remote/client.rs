@@ -815,6 +815,11 @@ pub(crate) fn parse_remote_model_value(
             .or_else(|| obj.get("injects_think_tags_in_content"))
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
+        messages_thinking_budget: obj
+            .get("messagesThinkingBudget")
+            .or_else(|| obj.get("messages_thinking_budget"))
+            .and_then(|v| v.as_u64())
+            .and_then(|v| u32::try_from(v).ok()),
     })
 }
 fn get_string(obj: &serde_json::Map<String, serde_json::Value>, key: &str) -> Option<String> {

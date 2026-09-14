@@ -588,6 +588,7 @@ async fn run_one_attempt(
                 doom_loop,
                 Arc::clone(&output_observed),
                 failed_response.clone(),
+                client.injects_think_tags_in_content(),
             );
             drive_l2(
                 l2,
@@ -608,7 +609,13 @@ async fn run_one_attempt(
                 Err(e) => return AttemptOutcome::InitFailed { error: e },
             };
             let (teed, captured) = tee_errors(raw);
-            let l2 = stream_messages(teed, metadata, request_id.clone(), idle_timeout);
+            let l2 = stream_messages(
+                teed,
+                metadata,
+                request_id.clone(),
+                idle_timeout,
+                client.injects_think_tags_in_content(),
+            );
             drive_l2(
                 l2,
                 request_id,

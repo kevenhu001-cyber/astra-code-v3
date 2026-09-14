@@ -796,6 +796,7 @@ async fn read_parent_sampling_config(
                 rate_limit_retry_threshold: cfg.rate_limit_retry_threshold,
                 stream_tool_calls: cfg.stream_tool_calls.unwrap_or(false),
                 injects_think_tags_in_content: cfg.injects_think_tags_in_content,
+                messages_thinking_budget: cfg.messages_thinking_budget,
                 idle_timeout_secs: None,
                 client_identifier: ctx.sampling_config.client_identifier.clone(),
                 deployment_id: ctx.sampling_config.deployment_id.clone(),
