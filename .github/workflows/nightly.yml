@@ -62,7 +62,7 @@ jobs:
       - name: cargo test (workspace, all-targets, all features)
         run: |
           set -euo pipefail
-          cargo test --workspace --all-targets --locked -- --include-ignored
+          cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
 
   scripted-scenarios-full:
     name: scripted_scenarios (full sweep, ignored)
