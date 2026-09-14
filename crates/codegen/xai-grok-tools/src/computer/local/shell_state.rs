@@ -759,17 +759,21 @@ mod tests {
     /// `base64`/`tr` helpers. With a function table larger than
     /// `MAX_ARG_STRLEN` (128 KiB) that exec fails with E2BIG, the dump aborts
     /// under its own `set -e`, and the command's exit code is corrupted (126).
-    /// Reproduces the oversized-function-table shape hermetically.
+    /// Reproduces the oversized-function-table shape hermetically: the body is
+    /// generated inside the shell so the spawn arguments stay small.
     #[test]
     fn bash_dump_survives_allexport_with_a_large_function_table() {
         if !bash_available() {
             return;
         }
-        // A function body comfortably past the per-string kernel limit once the
-        // dump exports it as part of the environment.
-        let filler = "a".repeat(140 * 1024);
         let script = format!(
-            "{DUMP_BASH_STATE_SCRIPT}\nf() {{ local pad='{filler}'; }}\nset -a\ndump_bash_state\n"
+            "{DUMP_BASH_STATE_SCRIPT}\n\
+             __big=$(command head -c {bytes} /dev/zero | command tr '\\0' a)\n\
+             builtin eval \"f() {{ local pad='$__big'; }}\"\n\
+             builtin unset __big\n\
+             set -a\n\
+             dump_bash_state\n",
+            bytes = 140 * 1024
         );
         let output = std::process::Command::new(ShellKind::Bash.binary_path())
             .args(["-c", &script])
