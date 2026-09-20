@@ -47,7 +47,13 @@ const DEFAULT_CLIENT_IDENTIFIER: &str = "grok-shell";
 
 /// Product identifier baked into User-Agent strings.
 const AGENT_PRODUCT: &str = "grok-shell";
-const ANTHROPIC_DEFAULT_MAX_TOKENS: u32 = 128_000;
+/// Fallback `max_tokens` for the Anthropic Messages backend when neither the
+/// model catalog nor the request sets one. 64k is accepted by the Claude 4.5+
+/// family; Claude 5 models allow 128k and should set `max_completion_tokens`
+/// in their catalog entry.
+const ANTHROPIC_DEFAULT_MAX_TOKENS: u32 = 64_000;
+/// Anthropic requires `budget_tokens >= 1024` and `< max_tokens`.
+const MIN_THINKING_BUDGET_TOKENS: u32 = 1024;
 
 /// Per-request `x-grok-*` headers. Optional fields are skipped when empty/`None`.
 struct GrokRequestHeaders<'a> {
@@ -92,7 +98,7 @@ pub(crate) fn deserialize_response_event(data: &str) -> Result<rs::ResponseStrea
     let mut event = match serde_json::from_str::<rs::ResponseStreamEvent>(data) {
         Ok(event) => event,
         Err(first_err) => {
-            // Try sanitizing: parse as Value, strip unknown tools, retry.
+            // Try sanitizing: parse as Value, strip unknown tools/items, retry.
             if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(data) {
                 // Strip tools that async_openai's rs::Tool can't deserialize (e.g., xAI-specific "x_search")
                 // Instead of maintaining a hardcoded allowlist, try deserializing each tool entry; if it fails, drop it
@@ -101,6 +107,16 @@ pub(crate) fn deserialize_response_event(data: &str) -> Result<rs::ResponseStrea
                     .and_then(|v| v.as_array_mut())
                 {
                     tools.retain(|t| serde_json::from_value::<rs::Tool>(t.clone()).is_ok());
+                }
+                // A future output-item type inside a terminal payload would
+                // otherwise kill the whole response; drop the item instead.
+                if let Some(output) = value
+                    .pointer_mut("/response/output")
+                    .and_then(|v| v.as_array_mut())
+                {
+                    output.retain(|item| {
+                        serde_json::from_value::<rs::OutputItem>(item.clone()).is_ok()
+                    });
                 }
                 if let Ok(mut event) = serde_json::from_value::<rs::ResponseStreamEvent>(value) {
                     apply_terminal_event_overrides(&mut event, data);
@@ -117,6 +133,34 @@ pub(crate) fn deserialize_response_event(data: &str) -> Result<rs::ResponseStrea
     };
     apply_terminal_event_overrides(&mut event, data);
     Ok(event)
+}
+
+/// Like [`deserialize_response_event`], but an unmodelled top-level event type
+/// yields `Ok(None)` instead of failing the stream, so a newer server cannot
+/// tear down a healthy response.
+fn deserialize_response_event_or_skip(data: &str) -> Result<Option<rs::ResponseStreamEvent>> {
+    match deserialize_response_event(data) {
+        Ok(event) => Ok(Some(event)),
+        Err(SamplingError::Serialization(err)) => {
+            let raw_type = serde_json::from_str::<serde_json::Value>(data)
+                .ok()
+                .and_then(|v| v.get("type").and_then(|t| t.as_str()).map(str::to_owned));
+            let is_unknown_type = err.to_string().contains("unknown variant")
+                && raw_type
+                    .as_deref()
+                    .is_some_and(|t| t.starts_with("response."));
+            if is_unknown_type {
+                tracing::warn!(
+                    event_type = %raw_type.unwrap_or_default(),
+                    "skipping unmodelled Responses event type"
+                );
+                Ok(None)
+            } else {
+                Err(SamplingError::Serialization(err))
+            }
+        }
+        Err(other) => Err(other),
+    }
 }
 
 /// On `response.completed` / `response.incomplete`, rewrite `usage.total_tokens` to the live context length from `context_details`.
@@ -349,6 +393,9 @@ struct ClientDefaults {
     /// `false` so the splitter is a no-op passthrough on providers
     /// that already expose a native `reasoning_content` delta.
     injects_think_tags_in_content: bool,
+    /// Explicit thinking budget for the Messages backend; `Some` selects
+    /// extended thinking on models that predate adaptive thinking.
+    messages_thinking_budget: Option<u32>,
     extra_response_includes: Vec<String>,
     doom_loop_recovery: Option<xai_grok_sampling_types::DoomLoopRecoveryPolicy>,
 }
@@ -654,6 +701,7 @@ impl SamplingClient {
             auth_scheme: config.auth_scheme,
             stream_tool_calls: config.stream_tool_calls,
             injects_think_tags_in_content: config.injects_think_tags_in_content,
+            messages_thinking_budget: config.messages_thinking_budget,
             extra_response_includes: config.extra_response_includes,
             doom_loop_recovery: config.doom_loop_recovery,
         };
@@ -1211,10 +1259,14 @@ impl SamplingClient {
             request.inner.store = Some(false);
         }
 
-        // Include encrypted reasoning content if not specified
-        let includes = request.inner.include.get_or_insert_with(Vec::new);
-        if !includes.contains(&rs::IncludeEnum::ReasoningEncryptedContent) {
-            includes.push(rs::IncludeEnum::ReasoningEncryptedContent);
+        // Include encrypted reasoning content only when this request actually
+        // asks for reasoning. An unconditional include risks a 400 on
+        // third-party Responses-compatible endpoints and on non-reasoning models.
+        if request.inner.reasoning.is_some() {
+            let includes = request.inner.include.get_or_insert_with(Vec::new);
+            if !includes.contains(&rs::IncludeEnum::ReasoningEncryptedContent) {
+                includes.push(rs::IncludeEnum::ReasoningEncryptedContent);
+            }
         }
 
         Ok(())
@@ -1545,7 +1597,13 @@ impl SamplingClient {
                         } else if let Some(stream_error) = try_parse_stream_error(data) {
                             Some(Some(Err(stream_error)))
                         } else {
-                            Some(Some(deserialize_response_event(data)))
+                            // `Ok(None)` skips an unmodelled event type without
+                            // ending the stream.
+                            Some(match deserialize_response_event_or_skip(data) {
+                                Ok(Some(event)) => Some(Ok(event)),
+                                Ok(None) => None,
+                                Err(err) => Some(Err(err)),
+                            })
                         }
                     }
                     Err(e) => {
@@ -1579,6 +1637,33 @@ impl SamplingClient {
                 .defaults
                 .max_completion_tokens
                 .unwrap_or(ANTHROPIC_DEFAULT_MAX_TOKENS);
+        }
+
+        // Extended-thinking models carry an explicit `budget_tokens`, which the
+        // API requires to be >= 1024 and strictly below `max_tokens`.
+        if let Some(messages::ThinkingConfig::Enabled { budget_tokens }) =
+            request.inner.thinking.as_mut()
+        {
+            let clamp_min = MIN_THINKING_BUDGET_TOKENS;
+            let clamp_max = request.inner.max_tokens.saturating_sub(1);
+            if clamp_max < clamp_min {
+                tracing::warn!(
+                    max_tokens = request.inner.max_tokens,
+                    "max_tokens too small for extended thinking; raising budget to the API minimum"
+                );
+                *budget_tokens = clamp_min;
+            } else {
+                let clamped = (*budget_tokens).clamp(clamp_min, clamp_max);
+                if clamped != *budget_tokens {
+                    tracing::warn!(
+                        requested = *budget_tokens,
+                        clamped,
+                        max_tokens = request.inner.max_tokens,
+                        "clamping thinking budget_tokens to the API-valid range"
+                    );
+                }
+                *budget_tokens = clamped;
+            }
         }
 
         if request.inner.temperature.is_none() {
@@ -2050,7 +2135,8 @@ impl SamplingClient {
         let x_grok_transient_retry = request.x_grok_transient_retry.clone();
         let x_grok_agent_id = request.x_grok_agent_id.clone();
 
-        let messages_request = build_messages_request(&request);
+        let messages_request =
+            build_messages_request(&request, self.defaults.messages_thinking_budget);
 
         let mut wrapper = MessagesRequestWrapper::new(messages_request);
         wrapper.x_grok_conv_id = x_grok_conv_id;
@@ -2082,7 +2168,8 @@ impl SamplingClient {
         let x_grok_transient_retry = request.x_grok_transient_retry.clone();
         let x_grok_agent_id = request.x_grok_agent_id.clone();
 
-        let messages_request = build_messages_request(&request);
+        let messages_request =
+            build_messages_request(&request, self.defaults.messages_thinking_budget);
 
         let mut wrapper = MessagesRequestWrapper::new(messages_request);
         wrapper.x_grok_conv_id = x_grok_conv_id;
@@ -2132,13 +2219,25 @@ impl SamplingClient {
             }
             ApiBackend::Responses => {
                 let (raw, meta, doom_loop) = self.conversation_stream_responses(request).await?;
-                let events =
-                    crate::stream::stream_responses(raw, meta, request_id, idle_timeout, doom_loop);
+                let events = crate::stream::stream_responses(
+                    raw,
+                    meta,
+                    request_id,
+                    idle_timeout,
+                    doom_loop,
+                    self.injects_think_tags_in_content(),
+                );
                 crate::stream::collect_response(events).await
             }
             ApiBackend::Messages => {
                 let (raw, meta) = self.conversation_stream_messages(request).await?;
-                let events = crate::stream::stream_messages(raw, meta, request_id, idle_timeout);
+                let events = crate::stream::stream_messages(
+                    raw,
+                    meta,
+                    request_id,
+                    idle_timeout,
+                    self.injects_think_tags_in_content(),
+                );
                 crate::stream::collect_response(events).await
             }
         };
@@ -2315,6 +2414,7 @@ mod tests {
             doom_loop_recovery: None,
             header_injector: None,
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
         }
     }
 
@@ -2468,6 +2568,77 @@ mod tests {
                 .iter()
                 .any(|tool| tool["type"] == "x_search")
         );
+    }
+
+    /// `reasoning.encrypted_content` is only auto-included when the request
+    /// actually asks for reasoning; otherwise third-party endpoints may 400.
+    #[test]
+    fn response_defaults_include_encrypted_reasoning_only_with_reasoning() {
+        let client = SamplingClient::new(SamplerConfig {
+            api_backend: ApiBackend::Responses,
+            ..minimal_config()
+        })
+        .unwrap();
+
+        let mut without = CreateResponseWrapper::new(rs::CreateResponse::default());
+        client.apply_response_defaults(&mut without).unwrap();
+        assert!(
+            without.inner.include.is_none(),
+            "no reasoning requested -> no encrypted-content include"
+        );
+
+        let mut with = CreateResponseWrapper::new(rs::CreateResponse {
+            reasoning: Some(rs::Reasoning {
+                effort: Some(rs::ReasoningEffort::High),
+                summary: None,
+            }),
+            ..Default::default()
+        });
+        client.apply_response_defaults(&mut with).unwrap();
+        assert_eq!(
+            with.inner.include,
+            Some(vec![rs::IncludeEnum::ReasoningEncryptedContent]),
+        );
+    }
+
+    /// The Messages backend fills a missing `max_tokens` with the 64k fallback
+    /// and clamps an explicit thinking budget into the API-valid range.
+    #[test]
+    fn message_defaults_fill_max_tokens_and_clamp_thinking_budget() {
+        let client = SamplingClient::new(SamplerConfig {
+            api_backend: ApiBackend::Messages,
+            ..minimal_config()
+        })
+        .unwrap();
+
+        let mut too_small = MessagesRequestWrapper::new(messages::MessagesRequest {
+            model: "claude-sonnet-4-5".into(),
+            thinking: Some(messages::ThinkingConfig::Enabled { budget_tokens: 10 }),
+            ..Default::default()
+        });
+        client.apply_message_defaults(&mut too_small).unwrap();
+        assert_eq!(too_small.inner.max_tokens, ANTHROPIC_DEFAULT_MAX_TOKENS);
+        match too_small.inner.thinking {
+            Some(messages::ThinkingConfig::Enabled { budget_tokens }) => {
+                assert_eq!(budget_tokens, MIN_THINKING_BUDGET_TOKENS);
+            }
+            other => panic!("expected enabled thinking, got {other:?}"),
+        }
+
+        let mut too_large = MessagesRequestWrapper::new(messages::MessagesRequest {
+            model: "claude-sonnet-4-5".into(),
+            thinking: Some(messages::ThinkingConfig::Enabled {
+                budget_tokens: 999_999,
+            }),
+            ..Default::default()
+        });
+        client.apply_message_defaults(&mut too_large).unwrap();
+        match too_large.inner.thinking {
+            Some(messages::ThinkingConfig::Enabled { budget_tokens }) => {
+                assert_eq!(budget_tokens, ANTHROPIC_DEFAULT_MAX_TOKENS - 1);
+            }
+            other => panic!("expected enabled thinking, got {other:?}"),
+        }
     }
 
     #[test]
@@ -3062,6 +3233,51 @@ mod tests {
         assert_eq!(usage.output_tokens_details.reasoning_tokens, 388);
         // total_tokens is rewritten to ctx.input + ctx.output (5022 + 571), not the wire's cumulative total (6714)
         assert_eq!(usage.total_tokens, 5_593);
+    }
+
+    /// An unmodelled top-level event type is skipped, not fatal.
+    #[test]
+    fn unknown_response_event_type_is_skipped() {
+        let parsed = deserialize_response_event_or_skip(
+            r#"{"type":"response.future_thing","sequence_number":1,"payload":{}}"#,
+        )
+        .expect("unknown event type must not error");
+        assert!(parsed.is_none(), "unknown event must be skipped");
+    }
+
+    /// A malformed payload for a *known* event type still fails; only unknown
+    /// types are skipped.
+    #[test]
+    fn malformed_known_response_event_still_errors() {
+        let err = deserialize_response_event_or_skip(
+            r#"{"type":"response.output_text.delta","sequence_number":1,"delta":12345}"#,
+        )
+        .expect_err("malformed known event must error");
+        assert!(matches!(err, SamplingError::Serialization(_)));
+    }
+
+    /// A future output-item type inside a terminal payload is dropped item-wise
+    /// so the response itself still parses.
+    #[test]
+    fn unknown_output_item_in_completed_is_dropped() {
+        let sse = r#"{
+            "type": "response.completed",
+            "sequence_number": 0,
+            "response": {
+                "id": "resp_1", "object": "response", "created_at": 0,
+                "model": "grok-build", "status": "completed",
+                "output": [
+                    {"type": "message", "id": "msg-1", "role": "assistant", "status": "completed",
+                     "content": [{"type": "output_text", "text": "hi", "annotations": []}]},
+                    {"type": "future_item", "id": "x", "payload": 1}
+                ]
+            }
+        }"#;
+        let event = deserialize_response_event(sse).expect("completed must parse");
+        let rs::ResponseStreamEvent::ResponseCompleted(e) = event else {
+            panic!("expected ResponseCompleted");
+        };
+        assert_eq!(e.response.output.len(), 1);
     }
 
     #[test]

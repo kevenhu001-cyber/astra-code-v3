@@ -52,13 +52,17 @@ jobs:
           cargo install dotslash --locked
           dotslash --help
 
+      # The search-tool suites spawn `rg` from PATH; debug builds don't bundle it.
+      - name: Install ripgrep (search-tool tests)
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       # `--all-targets` includes every test target (including ignored ones),
       # which compiles-but-doesn't-run them; the per-target jobs below run
       # the ignored cases.
       - name: cargo test (workspace, all-targets, all features)
         run: |
           set -euo pipefail
-          cargo test --workspace --all-targets --locked -- --include-ignored
+          cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
 
   scripted-scenarios-full:
     name: scripted_scenarios (full sweep, ignored)

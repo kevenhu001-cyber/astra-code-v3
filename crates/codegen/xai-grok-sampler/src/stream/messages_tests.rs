@@ -102,7 +102,14 @@ async fn collect(s: impl Stream<Item = SamplingEvent>) -> Vec<SamplingEvent> {
 #[tokio::test]
 async fn empty_stream_yields_started_then_completed() {
     let raw = stream::iter(Vec::<Result<MessageStreamEvent, SamplingError>>::new()).boxed();
-    let events = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let events = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
     assert_eq!(events.len(), 2);
     assert!(matches!(events[0], SamplingEvent::StreamStarted { .. }));
     assert!(matches!(events[1], SamplingEvent::Completed { .. }));
@@ -120,7 +127,14 @@ async fn text_block_assembles_into_completed_response() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     let text_tokens: Vec<&str> = evs
         .iter()
@@ -182,7 +196,14 @@ async fn thinking_block_emits_reasoning_channel_and_preserved_in_response() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     let reasoning_tokens: Vec<&str> = evs
         .iter()
@@ -248,7 +269,14 @@ async fn multiple_thinking_blocks_emit_per_block_signatures_in_order() {
     events.push(Ok(MessageStreamEvent::MessageStop));
 
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     let sigs: Vec<&str> = evs
         .iter()
@@ -298,7 +326,14 @@ async fn tool_use_block_assembles_into_tool_call() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     let deltas: Vec<_> = evs
         .iter()
@@ -352,7 +387,14 @@ async fn refusal_stop_reason_completes_stream() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     assert!(
         !evs.iter()
@@ -380,7 +422,14 @@ async fn refusal_stop_message_flows_to_response() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Completed { response, .. } => {
@@ -411,7 +460,14 @@ async fn pause_turn_and_unknown_stop_reasons_complete_as_stop() {
             Ok(MessageStreamEvent::MessageStop),
         ];
         let raw = stream::iter(events).boxed();
-        let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+        let evs = collect(stream_messages(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            false,
+        ))
+        .await;
         match evs.last().unwrap() {
             SamplingEvent::Completed { response, .. } => {
                 assert_eq!(
@@ -437,7 +493,14 @@ async fn max_tokens_text_only_completes_with_length_stop() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Completed { response, .. } => {
@@ -476,7 +539,14 @@ async fn max_tokens_with_tool_use_keeps_length_stop() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Completed { response, .. } => {
@@ -508,7 +578,14 @@ async fn max_tokens_tool_use_without_arg_deltas_collects_empty_arguments() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Completed { response, .. } => {
@@ -535,7 +612,14 @@ async fn model_context_window_exceeded_completes_with_length_stop() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Completed { response, .. } => {
@@ -577,7 +661,14 @@ async fn refusal_after_tool_use_blocks_keeps_tool_calls_stop_reason() {
         Ok(MessageStreamEvent::MessageStop),
     ];
     let raw = stream::iter(events).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Completed { response, .. } => {
@@ -601,7 +692,14 @@ async fn server_error_event_yields_failed_500() {
         },
     };
     let raw = stream::iter(vec![Ok(message_start()), Ok(err_event)]).boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
 
     match evs.last().unwrap() {
         SamplingEvent::Failed { error, .. } => {
@@ -622,7 +720,14 @@ async fn mid_stream_transport_error_yields_failed() {
         Err(SamplingError::EventStreamError("conn reset".into())),
     ])
     .boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
     assert!(
         evs.iter()
             .any(|e| matches!(e, SamplingEvent::Failed { .. }))
@@ -643,6 +748,7 @@ async fn idle_timeout_when_stream_stalls() {
         None,
         rid(),
         Duration::from_millis(100),
+        false,
     ))
     .await;
 
@@ -666,6 +772,7 @@ async fn model_metadata_yielded_after_stream_started() {
         Some(metadata),
         rid(),
         Duration::from_secs(60),
+        false,
     ))
     .await;
 
@@ -738,7 +845,14 @@ async fn usage_from_stream(events: Vec<MessageStreamEvent>) -> TokenUsage {
             .collect::<Vec<_>>(),
     )
     .boxed();
-    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
     match evs.last().expect("at least one event") {
         SamplingEvent::Completed { response, .. } => response
             .usage
@@ -798,4 +912,300 @@ async fn pure_cache_hit_with_zero_uncached_still_emits_usage() {
     assert_eq!(usage.prompt_tokens, 2500);
     assert_eq!(usage.cached_prompt_tokens, 2500);
     assert_eq!(usage.total_tokens, 2501);
+}
+
+#[tokio::test]
+async fn inline_thinking_tags_in_text_delta_route_to_reasoning() {
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(text_block_start(0)),
+        Ok(text_delta(0, "<thinking>reason</thinking>answer")),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::EndTurn)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        true,
+    ))
+    .await;
+
+    let mut reasoning = String::new();
+    let mut text = String::new();
+    for e in &evs {
+        if let SamplingEvent::ChannelToken {
+            channel, text: t, ..
+        } = e
+        {
+            match channel {
+                SamplingChannel::Reasoning => reasoning.push_str(t),
+                SamplingChannel::Text => text.push_str(t),
+            }
+        }
+    }
+    assert_eq!(reasoning, "reason");
+    assert_eq!(text, "answer");
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.assistant_text(), "answer");
+            let r = response
+                .reasoning_items()
+                .next()
+                .expect("reasoning sibling preserved");
+            let rs::SummaryPart::SummaryText(t) = &r.summary[0];
+            assert_eq!(t.text, "reason");
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn inline_thinking_tag_straddles_text_deltas() {
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(text_block_start(0)),
+        Ok(text_delta(0, "pre <thi")),
+        Ok(text_delta(0, "nk>x</think>post")),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::EndTurn)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        true,
+    ))
+    .await;
+
+    let mut reasoning = String::new();
+    let mut text = String::new();
+    for e in &evs {
+        if let SamplingEvent::ChannelToken {
+            channel, text: t, ..
+        } = e
+        {
+            match channel {
+                SamplingChannel::Reasoning => reasoning.push_str(t),
+                SamplingChannel::Text => text.push_str(t),
+            }
+        }
+    }
+    assert_eq!(reasoning, "x");
+    assert_eq!(text, "pre post");
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.assistant_text(), "pre post");
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+/// A partial tag left at end-of-stream is flushed into the final text instead
+/// of being dropped.
+#[tokio::test]
+async fn inline_thinking_partial_tag_at_eof_is_preserved() {
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(text_block_start(0)),
+        Ok(text_delta(0, "tail <thi")),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::EndTurn)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        true,
+    ))
+    .await;
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.assistant_text(), "tail <thi");
+            assert!(response.reasoning_items().next().is_none());
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+/// With the flag off, text passes through untouched.
+#[tokio::test]
+async fn inline_thinking_tags_disabled_passthrough() {
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(text_block_start(0)),
+        Ok(text_delta(0, "<think>nope</think>text")),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::EndTurn)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.assistant_text(), "<think>nope</think>text");
+            assert!(response.reasoning_items().next().is_none());
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+/// A `redacted_thinking` block carries an opaque blob that must survive onto
+/// the response (sentinel id + encrypted_content) so the next turn can replay
+/// it verbatim.
+#[tokio::test]
+async fn redacted_thinking_block_is_preserved_in_response() {
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(MessageStreamEvent::ContentBlockStart {
+            index: 0,
+            content_block: ContentBlock::RedactedThinking {
+                data: "opaque-blob".into(),
+            },
+        }),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::EndTurn)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            let r = response
+                .reasoning_items()
+                .next()
+                .expect("redacted reasoning sibling preserved");
+            assert_eq!(r.id, xai_grok_sampling_types::REDACTED_THINKING_ITEM_ID);
+            assert_eq!(r.encrypted_content.as_deref(), Some("opaque-blob"));
+            assert!(r.summary.is_empty());
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+/// Multiple thinking blocks must all survive on the final response, in order;
+/// a single `Option` slot used to keep only the last one.
+#[tokio::test]
+async fn multiple_thinking_blocks_are_all_preserved() {
+    let thinking_block = |index: u32, text: &str, sig: &str| {
+        vec![
+            Ok(MessageStreamEvent::ContentBlockStart {
+                index,
+                content_block: ContentBlock::Thinking {
+                    thinking: String::new(),
+                    signature: String::new(),
+                },
+            }),
+            Ok(MessageStreamEvent::ContentBlockDelta {
+                index,
+                delta: StreamDelta::ThinkingDelta {
+                    thinking: text.into(),
+                },
+            }),
+            Ok(MessageStreamEvent::ContentBlockDelta {
+                index,
+                delta: StreamDelta::SignatureDelta {
+                    signature: sig.into(),
+                },
+            }),
+            Ok(block_stop(index)),
+        ]
+    };
+    let mut events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![Ok(message_start())];
+    events.extend(thinking_block(0, "first", "sig-1"));
+    events.extend(thinking_block(1, "second", "sig-2"));
+    events.push(Ok(message_delta_with_stop(messages::StopReason::EndTurn)));
+    events.push(Ok(MessageStreamEvent::MessageStop));
+
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            let items: Vec<(String, Option<String>)> = response
+                .reasoning_items()
+                .map(|r| {
+                    let text = match &r.summary[0] {
+                        rs::SummaryPart::SummaryText(t) => t.text.clone(),
+                    };
+                    (text, r.encrypted_content.clone())
+                })
+                .collect();
+            assert_eq!(
+                items,
+                vec![
+                    ("first".to_string(), Some("sig-1".to_string())),
+                    ("second".to_string(), Some("sig-2".to_string())),
+                ]
+            );
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+/// An unknown event type must not fail an otherwise healthy stream.
+#[tokio::test]
+async fn unknown_stream_event_is_ignored() {
+    let event: MessageStreamEvent =
+        serde_json::from_str(r#"{"type":"message_future_event","payload":1}"#).unwrap();
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(event),
+        Ok(text_block_start(0)),
+        Ok(text_delta(0, "hello")),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::EndTurn)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(
+        raw,
+        None,
+        rid(),
+        Duration::from_secs(60),
+        false,
+    ))
+    .await;
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.assistant_text(), "hello");
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
 }

@@ -2246,6 +2246,7 @@ fn make_entry_config_with_id(
         show_model_fingerprint: false,
         stream_tool_calls: None,
         injects_think_tags_in_content: false,
+        messages_thinking_budget: None,
         laziness_detector: config::LazinessDetectorPerModelConfig::default(),
         variants: Vec::new(),
     }

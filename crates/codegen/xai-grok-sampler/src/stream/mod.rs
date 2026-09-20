@@ -8,6 +8,7 @@ pub mod chat_completions;
 pub mod collect;
 pub mod messages;
 pub mod responses;
+pub(crate) mod think_tags;
 
 pub use chat_completions::stream_chat_completions;
 pub use collect::collect_response;

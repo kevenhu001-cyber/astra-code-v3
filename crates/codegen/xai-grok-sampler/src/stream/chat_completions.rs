@@ -18,6 +18,8 @@ use crate::events::{SamplingChannel, SamplingErrorInfo, SamplingEvent};
 use crate::metrics::InferenceLatencyStats;
 use crate::types::RequestId;
 
+use super::think_tags::{ThinkRun, ThinkTagSplitter};
+
 /// The output stream emits exactly one terminal event per request.
 /// Callers must not consume past the terminal event (the implementation `return`s after yielding it).
 pub fn stream_chat_completions<'a>(
@@ -79,13 +81,11 @@ pub fn stream_chat_completions<'a>(
         // Mirrored onto ConversationResponse.message_chunks_emitted so downstream can detect lost streaming events
         let mut message_chunk_count: u64 = 0;
 
-        // Stateful `<think>` splitter: tracks whether we're currently inside a
-        // thinking block. Content deltas are incrementally parsed so a tag can
-        // straddle two chunks.
-        let mut in_think = false;
-        // Pending buffer holding a partial (not-yet-closed) `<think>`/`<\/think>`
-        // tag opener across chunk boundaries.
-        let mut tag_buf = String::new();
+        // Stateful inline-thinking splitter for providers that embed reasoning
+        // as literal tags in `delta.content`. Tags may straddle chunk
+        // boundaries; any partial tag left at end-of-stream is flushed below so
+        // no trailing literal text is dropped.
+        let mut think_splitter = ThinkTagSplitter::default();
 
         // Content-aware idle timer: the outer
         // `tokio::time::timeout(idle_timeout, stream.next())` already
@@ -160,9 +160,10 @@ pub fn stream_chat_completions<'a>(
                     && !text.is_empty()
                 {
                     if injects_think_tags_in_content {
-                        // Split content into reasoning (inside `<think>…</think>`)
-                        // vs regular text, emitting a channel token for each run.
-                        for run in split_think_runs(&text, &mut in_think, &mut tag_buf) {
+                        // Split content into reasoning (inside a recognised
+                        // thinking tag) vs regular text, emitting a channel
+                        // token for each run.
+                        for run in think_splitter.split(&text) {
                             let (channel, payload) = match &run {
                                 ThinkRun::Reasoning(t) => (SamplingChannel::Reasoning, t),
                                 ThinkRun::Text(t) => (SamplingChannel::Text, t),
@@ -176,10 +177,16 @@ pub fn stream_chat_completions<'a>(
                             chunk_has_content = true;
                             chunk_timestamps.push(Instant::now());
                             chunk_index += 1;
-                            message_chunk_count += 1;
                             match &run {
                                 ThinkRun::Reasoning(t) => reasoning_acc.push_str(t),
-                                ThinkRun::Text(t) => content_acc.push_str(t),
+                                ThinkRun::Text(t) => {
+                                    // `message_chunks_emitted` is the
+                                    // text-only tally; reasoning chunks must
+                                    // not inflate it or `fallback_text` would
+                                    // suppress the end-of-turn fallback.
+                                    message_chunk_count += 1;
+                                    content_acc.push_str(t);
+                                }
                             }
                             yield SamplingEvent::ChannelToken {
                                 request_id: request_id.clone(),
@@ -285,6 +292,38 @@ pub fn stream_chat_completions<'a>(
             }
         }
 
+        // Flush any partial tag buffered at end-of-stream so trailing literal
+        // text survives in both the streamed events and the final response.
+        if injects_think_tags_in_content {
+            for run in think_splitter.finish() {
+                let (channel, payload) = match &run {
+                    ThinkRun::Reasoning(t) => (SamplingChannel::Reasoning, t),
+                    ThinkRun::Text(t) => (SamplingChannel::Text, t),
+                };
+                if !first_token_emitted {
+                    first_token_emitted = true;
+                    yield SamplingEvent::FirstToken {
+                        request_id: request_id.clone(),
+                    };
+                }
+                chunk_timestamps.push(Instant::now());
+                chunk_index += 1;
+                match &run {
+                    ThinkRun::Reasoning(t) => reasoning_acc.push_str(t),
+                    ThinkRun::Text(t) => {
+                        message_chunk_count += 1;
+                        content_acc.push_str(t);
+                    }
+                }
+                yield SamplingEvent::ChannelToken {
+                    request_id: request_id.clone(),
+                    channel,
+                    text: payload.clone(),
+                    chunk_index,
+                };
+            }
+        }
+
         // ── Build the final response ─────────────────────────────────
         let tool_calls: Vec<ToolCall> = tool_call_acc
             .into_values()
@@ -367,109 +406,6 @@ pub fn stream_chat_completions<'a>(
             metrics,
         };
     }
-}
-
-/// A contiguous run of content that belongs to either the reasoning or the
-/// regular text channel, after `<think>…</think>` tag extraction.
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum ThinkRun {
-    Reasoning(String),
-    Text(String),
-}
-
-const OPEN_TAG: &str = "<think>";
-const CLOSE_TAG: &str = "</think>";
-
-/// Parse a chunk of `delta.content` into reasoning/text runs, honoring tags
-/// that may straddle chunk boundaries. `in_think` and `tag_buf` carry the
-/// splitter state across successive calls.
-///
-/// The model emits the literal tags `<think>` and `</think>`. A partial opener
-/// (e.g. `<thi` at a chunk edge) is buffered in `tag_buf` and only flushed
-/// once it is proven not to be a tag.
-fn split_think_runs(chunk: &str, in_think: &mut bool, tag_buf: &mut String) -> Vec<ThinkRun> {
-    let mut runs: Vec<ThinkRun> = Vec::new();
-    let mut cur = String::new();
-
-    fn flush(cur: &mut String, in_think: bool, runs: &mut Vec<ThinkRun>) {
-        if !cur.is_empty() {
-            runs.push(if in_think {
-                ThinkRun::Reasoning(std::mem::take(cur))
-            } else {
-                ThinkRun::Text(std::mem::take(cur))
-            });
-        }
-    }
-
-    // Try to complete any partial tag buffered from a previous chunk against
-    // the start of this chunk before scanning fresh content. `tag_buf` holds
-    // whole chars, so the candidate stays a valid UTF-8 prefix.
-    let mut chars = chunk.char_indices().peekable();
-    if !tag_buf.is_empty() {
-        while let Some((_, c)) = chars.peek() {
-            let candidate = format!("{tag_buf}{c}");
-            if OPEN_TAG.starts_with(candidate.as_str()) || CLOSE_TAG.starts_with(candidate.as_str())
-            {
-                tag_buf.push(*c);
-                chars.next();
-                if *tag_buf == OPEN_TAG {
-                    flush(&mut cur, *in_think, &mut runs);
-                    *in_think = true;
-                    tag_buf.clear();
-                    break;
-                }
-                if *tag_buf == CLOSE_TAG {
-                    flush(&mut cur, *in_think, &mut runs);
-                    *in_think = false;
-                    tag_buf.clear();
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-        // Buffered chars that can no longer form a tag become plain content.
-        if !tag_buf.is_empty()
-            && !OPEN_TAG.starts_with(tag_buf.as_str())
-            && !CLOSE_TAG.starts_with(tag_buf.as_str())
-        {
-            cur.push_str(tag_buf);
-            flush(&mut cur, *in_think, &mut runs);
-            tag_buf.clear();
-        }
-    }
-
-    // Main scan over the remaining chars, honouring char (not byte) boundaries
-    // so multi-byte UTF-8 content is preserved verbatim.
-    for (_, c) in chars {
-        // Extend a pending partial tag (or start one on '<').
-        if !tag_buf.is_empty() || c == '<' {
-            let candidate = format!("{tag_buf}{c}");
-            if OPEN_TAG.starts_with(candidate.as_str()) || CLOSE_TAG.starts_with(candidate.as_str())
-            {
-                tag_buf.push(c);
-                if *tag_buf == OPEN_TAG {
-                    flush(&mut cur, *in_think, &mut runs);
-                    *in_think = true;
-                    tag_buf.clear();
-                } else if *tag_buf == CLOSE_TAG {
-                    flush(&mut cur, *in_think, &mut runs);
-                    *in_think = false;
-                    tag_buf.clear();
-                }
-                continue;
-            }
-            // Not a tag: emit the buffered partial chars as content first.
-            cur.push_str(tag_buf);
-            flush(&mut cur, *in_think, &mut runs);
-            tag_buf.clear();
-        }
-        cur.push(c);
-    }
-
-    // Any trailing partial tag stays buffered for the next chunk.
-    flush(&mut cur, *in_think, &mut runs);
-    runs
 }
 
 #[cfg(test)]
@@ -1092,83 +1028,108 @@ mod tests {
         }
     }
 
-    #[test]
-    fn split_think_runs_unit_basic() {
-        let mut in_think = false;
-        let mut tag_buf = String::new();
-        let runs = split_think_runs("a<think>b</think>c", &mut in_think, &mut tag_buf);
-        assert_eq!(
-            runs,
-            vec![
-                ThinkRun::Text("a".into()),
-                ThinkRun::Reasoning("b".into()),
-                ThinkRun::Text("c".into()),
-            ]
-        );
-        assert!(!in_think);
-        assert!(tag_buf.is_empty());
+    /// The MiniMax preset comment promises `<thinking>` support; pin it.
+    #[tokio::test]
+    async fn thinking_tags_route_to_reasoning_channel() {
+        let chunks: Vec<Result<ChatCompletionChunk, SamplingError>> = vec![
+            Ok(text_chunk(
+                "<thinking>Let me reason about this.</thinking>Final answer.",
+            )),
+            Ok(final_chunk(FinishReason::Stop)),
+        ];
+        let raw = stream::iter(chunks).boxed();
+        let events = collect(stream_chat_completions(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            true,
+        ))
+        .await;
+
+        let mut reasoning = String::new();
+        let mut text = String::new();
+        for e in &events {
+            if let SamplingEvent::ChannelToken {
+                channel, text: t, ..
+            } = e
+            {
+                match channel {
+                    SamplingChannel::Reasoning => reasoning.push_str(t),
+                    SamplingChannel::Text => text.push_str(t),
+                }
+            }
+        }
+        assert_eq!(reasoning, "Let me reason about this.");
+        assert_eq!(text, "Final answer.");
     }
 
-    #[test]
-    fn split_think_runs_unit_unclosed_left_open() {
-        // Unclosed think tag at EOF leaves trailing reasoning run + in_think.
-        let mut in_think = false;
-        let mut tag_buf = String::new();
-        let runs = split_think_runs("x<think>still thinking", &mut in_think, &mut tag_buf);
-        assert_eq!(
-            runs,
-            vec![
-                ThinkRun::Text("x".into()),
-                ThinkRun::Reasoning("still thinking".into())
-            ]
-        );
-        assert!(in_think);
+    /// A partial tag at end-of-stream must be flushed, not dropped: it reaches
+    /// both the streamed token channel and the final assembled content.
+    #[tokio::test]
+    async fn think_tag_partial_at_eof_is_preserved() {
+        let chunks: Vec<Result<ChatCompletionChunk, SamplingError>> = vec![
+            Ok(text_chunk("answer <thi")),
+            Ok(final_chunk(FinishReason::Stop)),
+        ];
+        let raw = stream::iter(chunks).boxed();
+        let events = collect(stream_chat_completions(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            true,
+        ))
+        .await;
+
+        let streamed: String = events
+            .iter()
+            .filter_map(|e| match e {
+                SamplingEvent::ChannelToken {
+                    channel: SamplingChannel::Text,
+                    text,
+                    ..
+                } => Some(text.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(streamed, "answer <thi");
+
+        match events.last().unwrap() {
+            SamplingEvent::Completed { response, .. } => {
+                assert_eq!(response.assistant_text(), "answer <thi");
+                assert!(response.reasoning_items().next().is_none());
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
     }
 
-    #[test]
-    fn split_think_runs_preserves_multibyte_utf8() {
-        // Regression: the byte-wise scanner mangled multi-byte UTF-8. Whole
-        // chars must survive inside both reasoning and text runs.
-        let mut in_think = false;
-        let mut tag_buf = String::new();
-        let runs = split_think_runs(
-            "思考一下：<think>中文推理过程</think>好的，回答你。",
-            &mut in_think,
-            &mut tag_buf,
-        );
-        assert_eq!(
-            runs,
-            vec![
-                ThinkRun::Text("思考一下：".into()),
-                ThinkRun::Reasoning("中文推理过程".into()),
-                ThinkRun::Text("好的，回答你。".into()),
-            ]
-        );
-        assert!(!in_think);
-        assert!(tag_buf.is_empty());
-    }
+    /// `message_chunks_emitted` is the text-only tally: reasoning runs inside a
+    /// thinking tag must not inflate it.
+    #[tokio::test]
+    async fn thinking_tag_runs_do_not_inflate_message_chunk_count() {
+        let chunks: Vec<Result<ChatCompletionChunk, SamplingError>> = vec![
+            Ok(text_chunk("<think>a</think>")),
+            Ok(text_chunk("visible")),
+            Ok(final_chunk(FinishReason::Stop)),
+        ];
+        let raw = stream::iter(chunks).boxed();
+        let events = collect(stream_chat_completions(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+            true,
+        ))
+        .await;
 
-    #[test]
-    fn split_think_runs_multibyte_across_chunk_boundary() {
-        // A multi-byte char may straddle two chunks; the buffered partial tag
-        // path must not corrupt surrounding UTF-8 content.
-        let mut in_think = false;
-        let mut tag_buf = String::new();
-        // First chunk ends mid-way through 思考 and with a partial opener.
-        let first = split_think_runs("前段<thi", &mut in_think, &mut tag_buf);
-        assert_eq!(first, vec![ThinkRun::Text("前段".into())]);
-        assert!(tag_buf == "<thi");
-        // Second chunk completes the tag, carries 思考+reasoning+closer+text.
-        let second = split_think_runs("nk>思考过程</think>后段", &mut in_think, &mut tag_buf);
-        assert_eq!(
-            second,
-            vec![
-                ThinkRun::Reasoning("思考过程".into()),
-                ThinkRun::Text("后段".into())
-            ]
-        );
-        assert!(!in_think);
-        assert!(tag_buf.is_empty());
+        match events.last().unwrap() {
+            SamplingEvent::Completed { response, .. } => {
+                assert_eq!(response.message_chunks_emitted, 1);
+                assert_eq!(response.assistant_text(), "visible");
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
     }
 
     #[tokio::test]

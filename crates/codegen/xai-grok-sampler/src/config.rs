@@ -68,6 +68,12 @@ pub struct SamplerConfig {
     /// providers that already expose a native `reasoning_content` delta.
     #[serde(default)]
     pub injects_think_tags_in_content: bool,
+    /// Explicit thinking budget for the Anthropic Messages backend, in tokens.
+    /// `Some` selects extended thinking (`thinking.type = "enabled"`) for models
+    /// that predate adaptive thinking; `None` keeps adaptive thinking driven by
+    /// `reasoning_effort`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub messages_thinking_budget: Option<u32>,
     pub idle_timeout_secs: Option<u64>,
 
     // Reasoning effort
@@ -137,6 +143,7 @@ impl Default for SamplerConfig {
             rate_limit_retry_threshold: None,
             stream_tool_calls: false,
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
             idle_timeout_secs: None,
             reasoning_effort: None,
             origin_client: None,

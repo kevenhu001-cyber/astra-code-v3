@@ -19,6 +19,8 @@ use crate::events::{SamplingChannel, SamplingErrorInfo, SamplingEvent};
 use crate::metrics::InferenceLatencyStats;
 use crate::types::RequestId;
 
+use super::think_tags::{ThinkRun, ThinkTagSplitter};
+
 /// Returns whether a Messages API event reflects real model progress rather than a liveness-only heartbeat (Ping).
 pub(crate) fn messages_event_has_meaningful_content(event: &MessageStreamEvent) -> bool {
     match event {
@@ -30,6 +32,8 @@ pub(crate) fn messages_event_has_meaningful_content(event: &MessageStreamEvent) 
         | MessageStreamEvent::ContentBlockDelta { .. }
         | MessageStreamEvent::ContentBlockStop { .. }
         | MessageStreamEvent::Error { .. } => true,
+        // Forward-compat: an unmodelled event type is progress-neutral.
+        MessageStreamEvent::Unknown => false,
     }
 }
 
@@ -43,6 +47,8 @@ struct BlockState {
     args_acc: String,
     thinking_acc: String,
     signature: String,
+    /// Opaque payload of a `redacted_thinking` block, replayed verbatim.
+    redacted_data: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,16 +56,20 @@ enum BlockType {
     Text,
     ToolUse,
     Thinking,
+    RedactedThinking,
 }
 
 /// Transform a raw Anthropic Messages API stream into a stream of [`SamplingEvent`]s.
 /// Yields exactly one terminal event ([`SamplingEvent::Completed`] or [`SamplingEvent::Failed`]) per request.
 /// The actor's retry loop treats them as retryable transport-level errors.
+/// `injects_think_tags_in_content` routes inline thinking tags found in text
+/// blocks to the reasoning channel (see [`super::think_tags`]).
 pub fn stream_messages<'a>(
     raw_stream: BoxStream<'a, Result<MessageStreamEvent, SamplingError>>,
     model_metadata: Option<ResponseModelMetadata>,
     request_id: RequestId,
     idle_timeout: Duration,
+    injects_think_tags_in_content: bool,
 ) -> impl Stream<Item = SamplingEvent> + Send + 'a {
     async_stream::stream! {
         use messages::{ContentBlock, StreamDelta};
@@ -110,13 +120,18 @@ pub fn stream_messages<'a>(
         // It is emitted as a sibling `ConversationItem::Reasoning` before the trailing Assistant
         let mut assistant_text = String::new();
         let mut assistant_tool_calls: Vec<ToolCall> = Vec::new();
-        let mut assistant_reasoning: Option<rs::ReasoningItem> = None;
+        let mut assistant_reasoning: Vec<rs::ReasoningItem> = Vec::new();
 
         // Index counters
         let mut chunk_index: u64 = 0;
         let mut message_chunk_count: u64 = 0;
         let mut first_token_emitted = false;
         let mut last_content_chunk_at = Instant::now();
+
+        // Inline-thinking splitter for Messages-compatible providers that embed
+        // reasoning tags in text blocks.
+        let mut think_splitter = ThinkTagSplitter::default();
+        let mut tag_reasoning_acc = String::new();
 
         // Tool-call index counter for per-tool deltas (separate from the block index, which can be interleaved with text/thinking blocks)
         let mut next_tool_index: u32 = 0;
@@ -193,6 +208,7 @@ pub fn stream_messages<'a>(
                                 args_acc: String::new(),
                                 thinking_acc: thinking.clone(),
                                 signature: signature.clone(),
+                                redacted_data: String::new(),
                             },
                         );
                         if !first_token_emitted {
@@ -213,6 +229,7 @@ pub fn stream_messages<'a>(
                                 args_acc: String::new(),
                                 thinking_acc: String::new(),
                                 signature: String::new(),
+                                redacted_data: String::new(),
                             },
                         );
                         if !first_token_emitted {
@@ -239,6 +256,7 @@ pub fn stream_messages<'a>(
                                 args_acc: String::new(),
                                 thinking_acc: String::new(),
                                 signature: String::new(),
+                                redacted_data: String::new(),
                             },
                         );
 
@@ -251,10 +269,27 @@ pub fn stream_messages<'a>(
                             arguments_delta: None,
                         };
                     }
-                    // Encrypted reasoning the model chose to redact
-                    // The `RedactedThinking` wire variant exists so a stream containing one deserializes instead of failing the whole event parse
-                    // Its opaque `data` blob is not forwarded as a `SamplingEvent`; no consumer claims redacted_thinking support
-                    ContentBlock::RedactedThinking { .. } => {}
+                    // Encrypted reasoning the model chose to redact. The opaque
+                    // `data` blob is never streamed, but it is preserved on the
+                    // response so the next turn can replay it verbatim.
+                    ContentBlock::RedactedThinking { data } => {
+                        blocks.insert(
+                            index,
+                            BlockState {
+                                block_type: BlockType::RedactedThinking,
+                                text_acc: String::new(),
+                                tool_name: String::new(),
+                                tool_id: String::new(),
+                                args_acc: String::new(),
+                                thinking_acc: String::new(),
+                                signature: String::new(),
+                                redacted_data: data,
+                            },
+                        );
+                    }
+                    // Unmodelled block types are ignored; `Unknown` keeps the
+                    // event parse forward-compatible.
+                    ContentBlock::Unknown => {}
                     // Image / ToolResult are not expected in assistant streams.
                     _ => {}
                 },
@@ -285,22 +320,43 @@ pub fn stream_messages<'a>(
                             }
                             StreamDelta::TextDelta { text } => {
                                 if !text.is_empty() {
-                                    state.text_acc.push_str(&text);
-                                    if !first_token_emitted {
-                                        first_token_emitted = true;
-                                        yield SamplingEvent::FirstToken {
+                                    let runs: Vec<ThinkRun> = if injects_think_tags_in_content {
+                                        think_splitter.split(&text)
+                                    } else {
+                                        vec![ThinkRun::Text(text)]
+                                    };
+                                    for run in runs {
+                                        let (channel, payload) = match run {
+                                            ThinkRun::Text(t) => (SamplingChannel::Text, t),
+                                            ThinkRun::Reasoning(t) => {
+                                                (SamplingChannel::Reasoning, t)
+                                            }
+                                        };
+                                        if channel == SamplingChannel::Text {
+                                            state.text_acc.push_str(&payload);
+                                        } else {
+                                            tag_reasoning_acc.push_str(&payload);
+                                        }
+                                        if !first_token_emitted {
+                                            first_token_emitted = true;
+                                            yield SamplingEvent::FirstToken {
+                                                request_id: request_id.clone(),
+                                            };
+                                        }
+                                        chunk_index += 1;
+                                        if channel == SamplingChannel::Text {
+                                            // Text-only tally; reasoning runs
+                                            // must not inflate it.
+                                            chunk_timestamps.push(Instant::now());
+                                            message_chunk_count += 1;
+                                        }
+                                        yield SamplingEvent::ChannelToken {
                                             request_id: request_id.clone(),
+                                            channel,
+                                            text: payload,
+                                            chunk_index,
                                         };
                                     }
-                                    chunk_timestamps.push(Instant::now());
-                                    chunk_index += 1;
-                                    message_chunk_count += 1;
-                                    yield SamplingEvent::ChannelToken {
-                                        request_id: request_id.clone(),
-                                        channel: SamplingChannel::Text,
-                                        text,
-                                        chunk_index,
-                                    };
                                 }
                             }
                             StreamDelta::InputJsonDelta { partial_json } => {
@@ -315,6 +371,8 @@ pub fn stream_messages<'a>(
                                     };
                                 }
                             }
+                            // Unmodelled delta types carry no state we track.
+                            StreamDelta::Unknown => {}
                         }
                     }
                 }
@@ -357,11 +415,25 @@ pub fn stream_messages<'a>(
                                     } else {
                                         Some(state.signature)
                                     };
-                                    assistant_reasoning = Some(rs::ReasoningItem {
+                                    assistant_reasoning.push(rs::ReasoningItem {
                                         id: String::new(),
                                         summary,
                                         content: None,
                                         encrypted_content,
+                                        status: None,
+                                    });
+                                }
+                            }
+                            // Redacted reasoning carries an opaque blob, not
+                            // streamable text; preserve it for verbatim replay.
+                            BlockType::RedactedThinking => {
+                                if !state.redacted_data.is_empty() {
+                                    assistant_reasoning.push(rs::ReasoningItem {
+                                        id: xai_grok_sampling_types::REDACTED_THINKING_ITEM_ID
+                                            .to_string(),
+                                        summary: vec![],
+                                        content: None,
+                                        encrypted_content: Some(state.redacted_data),
                                         status: None,
                                     });
                                 }
@@ -444,6 +516,10 @@ pub fn stream_messages<'a>(
                     // Liveness only, no action; the inner timeout was already reset above by the successful `next()`
                 }
 
+                // Unmodelled event types are ignored so a newer server cannot
+                // fail an otherwise healthy stream.
+                MessageStreamEvent::Unknown => {}
+
                 MessageStreamEvent::Error { error } => {
                     let error_message = format!("{}: {}", error.r#type, error.message);
                     let err = SamplingError::Api {
@@ -479,6 +555,37 @@ pub fn stream_messages<'a>(
 
         // A `Length` stop is NOT failed here
         // The transform completes with `stop_reason=Length` and `drive_l2` decides fail-vs-salvage per the request's `LengthPolicy`
+
+        // Flush any partial tag buffered at end-of-stream so trailing literal
+        // text survives in both the streamed events and the final response.
+        if injects_think_tags_in_content {
+            for run in think_splitter.finish() {
+                let (channel, text) = match run {
+                    ThinkRun::Text(t) => (SamplingChannel::Text, t),
+                    ThinkRun::Reasoning(t) => (SamplingChannel::Reasoning, t),
+                };
+                if !first_token_emitted {
+                    first_token_emitted = true;
+                    yield SamplingEvent::FirstToken {
+                        request_id: request_id.clone(),
+                    };
+                }
+                chunk_index += 1;
+                if channel == SamplingChannel::Text {
+                    chunk_timestamps.push(Instant::now());
+                    message_chunk_count += 1;
+                    assistant_text.push_str(&text);
+                } else {
+                    tag_reasoning_acc.push_str(&text);
+                }
+                yield SamplingEvent::ChannelToken {
+                    request_id: request_id.clone(),
+                    channel,
+                    text,
+                    chunk_index,
+                };
+            }
+        }
 
         // ── Build the final response ─────────────────────────────────
         let model_id = final_model.unwrap_or_default();
@@ -521,8 +628,11 @@ pub fn stream_messages<'a>(
         });
 
         let mut items: Vec<ConversationItem> = Vec::new();
-        if let Some(r) = assistant_reasoning {
-            items.push(ConversationItem::Reasoning(r));
+        items.extend(assistant_reasoning.into_iter().map(ConversationItem::Reasoning));
+        if !tag_reasoning_acc.is_empty() {
+            items.push(ConversationItem::Reasoning(
+                xai_grok_sampling_types::synthesized_reasoning_item(tag_reasoning_acc),
+            ));
         }
         items.push(assistant_item);
 

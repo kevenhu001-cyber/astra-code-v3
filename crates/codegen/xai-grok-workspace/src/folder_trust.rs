@@ -589,7 +589,7 @@ fn collect_repo_config_kinds(cwd: &Path, first_only: bool) -> Vec<&'static str> 
     // gate" check.
     let hook_root = chain.git_root.as_deref().unwrap_or(cwd);
     if path_present_or_uncertain(&hook_root.join(".astra").join("hooks"))
-        || hook_root.join(".cursor").join("hooks.json").is_file()
+        || path_present_or_uncertain(&hook_root.join(".cursor").join("hooks.json"))
     {
         hit!("hooks");
     }
@@ -824,7 +824,7 @@ mod tests {
     #[test]
     fn repo_configs_present_detects_project_rules_from_subdir() {
         let tmp = repo_tmp();
-        let rules = tmp.path().join(".grok").join("rules");
+        let rules = tmp.path().join(".astra").join("rules");
         std::fs::create_dir_all(&rules).unwrap();
         std::fs::write(rules.join("style.md"), "# style\n").unwrap();
         let subdir = tmp.path().join("crates").join("inner");
@@ -834,7 +834,7 @@ mod tests {
 
     #[test]
     fn repo_configs_present_detects_empty_skill_roots_only_in_project_chain() {
-        for config in [".grok", ".agents", ".claude", ".cursor"] {
+        for config in [".astra", ".agents", ".claude", ".cursor"] {
             for leaf in ["skills", "commands"] {
                 let tmp = repo_tmp();
                 let repo = tmp.path().join("repo");

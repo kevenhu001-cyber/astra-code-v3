@@ -56,6 +56,11 @@ const INPUT_CHANNEL_CAPACITY: usize = 256;
 const EXIT_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(10);
 /// This wait collects a killed shell rather than waiting on a live one.
 const REAP_GRACE: std::time::Duration = std::time::Duration::from_millis(100);
+/// Extra room for a loaded shell to run its SIGHUP handler after a re-sent
+/// hangup. Job-control children (own process groups) only die if the shell
+/// forwards the hangup before the fallback SIGKILL lands, so a starved shell
+/// must not be killed before it has had a real chance to do so.
+const HANGUP_RETRY_GRACE: std::time::Duration = std::time::Duration::from_secs(2);
 
 pub struct PtySession {
     master: Option<Box<dyn MasterPty + Send>>,
@@ -653,6 +658,16 @@ fn reap(entry: &Arc<Mutex<PtySession>>) {
     };
     if hung_up && wait_for_exit(entry, xai_tty_utils::HANGUP_GRACE) {
         return;
+    }
+    if hung_up {
+        // Re-send the hangup before the fallback kill: on a loaded machine the
+        // shell may not have run its SIGHUP handler inside the first grace
+        // window, and a SIGKILL here would orphan its job-control children
+        // (each in its own group, unreachable by any killpg).
+        entry.blocking_lock().shell.hangup();
+        if wait_for_exit(entry, HANGUP_RETRY_GRACE) {
+            return;
+        }
     }
     entry.blocking_lock().shell.kill();
     wait_for_exit(entry, REAP_GRACE);

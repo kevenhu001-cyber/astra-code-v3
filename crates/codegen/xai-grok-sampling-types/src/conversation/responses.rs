@@ -94,16 +94,22 @@ impl From<&ConversationRequest> for rs::CreateResponse {
         let input = build_responses_input(req);
         let tools = build_responses_tools(req);
 
-        let tool_choice =
-            req.tool_choice.as_ref().map(
-                |tc| match crate::tool_normalize::normalize_tool_choice_for(
+        // Only send `tool_choice` when there are tools to choose from: some
+        // providers reject `required`/named choices against an empty `tools`
+        // array. Mirrors the Chat Completions conversion.
+        let tool_choice = req
+            .tool_choice
+            .clone()
+            .filter(|_| !tools.is_empty())
+            .map(|tc| {
+                match crate::tool_normalize::normalize_tool_choice_for(
                     crate::ApiBackend::Responses,
-                    tc.clone(),
+                    tc,
                 ) {
                     crate::tool_normalize::BackendToolChoice::Responses(c) => c,
                     _ => unreachable!("backend must match"),
-                },
-            );
+                }
+            });
 
         let text = req
             .json_schema
@@ -138,8 +144,11 @@ impl From<&ConversationRequest> for rs::CreateResponse {
                 .clone()
                 .or_else(|| req.x_grok_conv_id.clone()),
             prompt_cache_retention: None,
-            reasoning: Some(rs::Reasoning {
-                effort: req.reasoning_effort.map(|e| e.to_responses_api()),
+            // `reasoning` is only valid on reasoning-capable models; sending it
+            // (even summary-only) to a non-reasoning model or a third-party
+            // Responses-compatible endpoint can be rejected outright.
+            reasoning: req.reasoning_effort.map(|e| rs::Reasoning {
+                effort: Some(e.to_responses_api()),
                 summary: Some(rs::ReasoningSummary::Concise),
             }),
             safety_identifier: None,
@@ -209,6 +218,11 @@ fn conversation_item_to_input_items(item: &ConversationItem) -> Vec<rs::InputIte
             })]
         }
         ConversationItem::Reasoning(r) => {
+            // Anthropic-only opaque blob; the Responses API has no equivalent
+            // and would reject the sentinel id.
+            if r.id == REDACTED_THINKING_ITEM_ID {
+                return Vec::new();
+            }
             // `status` is output-only and rejected on input.
             let mut r = r.clone();
             r.status = None;

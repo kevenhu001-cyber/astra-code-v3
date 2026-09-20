@@ -2348,6 +2348,7 @@ async fn retry_after_lost_ack_converges_memory_and_disk_to_authoritative_item() 
             reasoning_effort: None,
             stream_tool_calls: None,
             injects_think_tags_in_content: false,
+            messages_thinking_budget: None,
         },
         Box::new(persistence),
         event_tx,

@@ -19,9 +19,6 @@ async fn request(
     let input = WorkflowToolInput {
         source,
         agent_budget: None,
-        name: None,
-        script: None,
-        script_path: None,
         args: None,
         validate_only: false,
     };

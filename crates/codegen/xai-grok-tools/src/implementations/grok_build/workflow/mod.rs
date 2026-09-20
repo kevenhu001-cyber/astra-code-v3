@@ -83,22 +83,6 @@ pub struct WorkflowToolInput {
 
     #[serde(default)]
     #[schemars(
-        description = "Name of a registered workflow (built-in, or discovered from the project `.astra/workflows/` or user `~/.astra/workflows/`). Exactly one of `name`, `script`, or `script_path` must be set."
-    )]
-    pub name: Option<String>,
-
-    #[serde(default)]
-    #[schemars(
-        description = "Inline Rhai workflow script. It must start with a pure-literal `let meta = #{ name: ..., description: ... };` map. Before authoring, read the `create-workflow` skill's SKILL.md. Run the path-specific `validate_only` smoke check with representative args."
-    )]
-    pub script: Option<String>,
-
-    #[serde(default)]
-    #[schemars(description = "Path to a .rhai workflow script on disk.")]
-    pub script_path: Option<String>,
-
-    #[serde(default)]
-    #[schemars(
         description = "JSON value bound to the script's `args` global. Use an object for named arguments."
     )]
     pub args: Option<serde_json::Value>,
@@ -181,9 +165,6 @@ impl<'de> serde::Deserialize<'de> for WorkflowToolInput {
         Ok(Self {
             source,
             agent_budget: wire.agent_budget,
-            name: None,
-            script: None,
-            script_path: None,
             args: wire.args,
             validate_only: wire.validate_only,
         })
@@ -718,9 +699,6 @@ mod tests {
             let input = WorkflowToolInput {
                 source,
                 agent_budget: None,
-                name: None,
-                script: None,
-                script_path: None,
                 args: None,
                 validate_only: false,
             };
@@ -733,9 +711,6 @@ mod tests {
                     name: "deep-research".into(),
                 },
                 agent_budget: Some(agent_budget),
-                name: None,
-                script: None,
-                script_path: None,
                 args: None,
                 validate_only: false,
             };

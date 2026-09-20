@@ -12,7 +12,9 @@ fn mark_message_cache_breakpoint(msg: &mut crate::messages::Message) -> bool {
                     | ContentBlock::ToolResult { cache_control, .. }
                     | ContentBlock::Image { cache_control, .. }
                     | ContentBlock::ToolUse { cache_control, .. } => cache_control,
-                    ContentBlock::Thinking { .. } | ContentBlock::RedactedThinking { .. } => {
+                    ContentBlock::Thinking { .. }
+                    | ContentBlock::RedactedThinking { .. }
+                    | ContentBlock::Unknown => {
                         continue;
                     }
                 };
@@ -66,7 +68,10 @@ fn apply_cache_breakpoints(
     }
 }
 
-pub fn build_messages_request(req: &ConversationRequest) -> crate::messages::MessagesRequest {
+pub fn build_messages_request(
+    req: &ConversationRequest,
+    messages_thinking_budget: Option<u32>,
+) -> crate::messages::MessagesRequest {
     use crate::messages::{
         ContentBlock, ImageSource, Message, MessageContent, MessageRole, MessagesRequest,
         OutputConfig, SystemParam, TextBlock, ToolChoiceParam, ToolParam, ToolResultContent,
@@ -251,17 +256,31 @@ pub fn build_messages_request(req: &ConversationRequest) -> crate::messages::Mes
             // `tco_*` blobs carry only `signature`; real reasoning sets `thinking`
             ConversationItem::Reasoning(r) => {
                 flush_tool_results(&mut pending_tool_results, &mut messages);
-                let thinking = reasoning_item_text(r);
-                let signature = r
-                    .encrypted_content
-                    .as_deref()
-                    .map(str::to_owned)
-                    .unwrap_or_default();
-                if !thinking.is_empty() || !signature.is_empty() {
-                    pending_assistant.push(ContentBlock::Thinking {
-                        thinking,
-                        signature,
-                    });
+
+                if r.id == REDACTED_THINKING_ITEM_ID {
+                    // Anthropic `redacted_thinking` round-trips through the
+                    // sentinel id: the opaque blob is the `data` field,
+                    // replayed verbatim.
+                    if let Some(data) = r.encrypted_content.as_deref()
+                        && !data.is_empty()
+                    {
+                        pending_assistant.push(ContentBlock::RedactedThinking {
+                            data: data.to_owned(),
+                        });
+                    }
+                } else {
+                    let thinking = reasoning_item_text(r);
+                    let signature = r
+                        .encrypted_content
+                        .as_deref()
+                        .map(str::to_owned)
+                        .unwrap_or_default();
+                    if !thinking.is_empty() || !signature.is_empty() {
+                        pending_assistant.push(ContentBlock::Thinking {
+                            thinking,
+                            signature,
+                        });
+                    }
                 }
             }
         }
@@ -318,14 +337,24 @@ pub fn build_messages_request(req: &ConversationRequest) -> crate::messages::Mes
             schema: schema.clone(),
         });
 
-    // thinking is driven by reasoning_effort only, not by json_schema.
-    let thinking = effort
-        .as_ref()
-        .map(|_| crate::messages::ThinkingConfig::Adaptive {
-            display: Some(crate::messages::ThinkingDisplay::Summarized),
-        });
+    // Thinking is driven by `reasoning_effort` (adaptive) or an explicit model
+    // budget (extended thinking on models that predate adaptive thinking).
+    let explicit_budget = messages_thinking_budget.filter(|b| *b > 0);
+    let thinking = if let Some(budget) = explicit_budget {
+        Some(crate::messages::ThinkingConfig::Enabled {
+            budget_tokens: budget,
+        })
+    } else {
+        effort
+            .as_ref()
+            .map(|_| crate::messages::ThinkingConfig::Adaptive {
+                display: Some(crate::messages::ThinkingDisplay::Summarized),
+            })
+    };
 
-    let output_config = if effort.is_some() || format.is_some() {
+    // Extended thinking controls depth via `budget_tokens`; `output_config.effort`
+    // is only sent in adaptive mode (older models reject it).
+    let output_config = if (effort.is_some() && explicit_budget.is_none()) || format.is_some() {
         Some(OutputConfig { effort, format })
     } else {
         None
