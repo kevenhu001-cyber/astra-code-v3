@@ -1,0 +1,2038 @@
+MERGE_EXIT=1
+LOCAL_MAIN=1ea1e6353aa978f372cbfb28961edfd24b02220d
+UPSTREAM_MAIN=75810042ca2762aa0b0fa17864f3f68823ccbea5
+MERGE_BASE=19d42e35c07a9c9244f03f6df0c4c353f970d4f9
+
+=== UNMERGED NAME/STATUS ===
+U	Cargo.lock
+U	crates/codegen/xai-chat-state/src/actor/tests.rs
+U	crates/codegen/xai-chat-state/src/commands.rs
+U	crates/codegen/xai-codebase-graph/src/index_manager.rs
+U	crates/codegen/xai-crash-handler/src/lib.rs
+U	crates/codegen/xai-dirs/src/lib.rs
+U	crates/codegen/xai-fast-worktree/src/api.rs
+U	crates/codegen/xai-fast-worktree/src/api/gc.rs
+U	crates/codegen/xai-fast-worktree/src/btrfs/detect.rs
+U	crates/codegen/xai-fast-worktree/src/btrfs/snapshot.rs
+U	crates/codegen/xai-fast-worktree/src/db/mod.rs
+U	crates/codegen/xai-fast-worktree/src/db/queries.rs
+U	crates/codegen/xai-fast-worktree/src/overlay/snapshot.rs
+U	crates/codegen/xai-file-utils/src/queue.rs
+U	crates/codegen/xai-file-utils/src/storage_client.rs
+U	crates/codegen/xai-file-utils/src/workspace_classifier.rs
+U	crates/codegen/xai-grok-active-sessions/src/lib.rs
+U	crates/codegen/xai-grok-agent/src/builder.rs
+U	crates/codegen/xai-grok-agent/src/config.rs
+U	crates/codegen/xai-grok-agent/src/discovery.rs
+U	crates/codegen/xai-grok-agent/src/plugins/discovery.rs
+U	crates/codegen/xai-grok-agent/src/plugins/git_install.rs
+U	crates/codegen/xai-grok-agent/src/plugins/local_refresh.rs
+U	crates/codegen/xai-grok-agent/src/plugins/manifest.rs
+U	crates/codegen/xai-grok-agent/src/plugins/trust.rs
+U	crates/codegen/xai-grok-agent/src/prompt/agents_md.rs
+U	crates/codegen/xai-grok-agent/src/prompt/context.rs
+U	crates/codegen/xai-grok-agent/src/prompt/prompt_encrypted.rs
+U	crates/codegen/xai-grok-agent/src/prompt/skills.rs
+U	crates/codegen/xai-grok-agent/src/prompt/template.rs
+U	crates/codegen/xai-grok-agent/src/prompt/user_message.rs
+U	crates/codegen/xai-grok-agent/src/repo.rs
+U	crates/codegen/xai-grok-config-types/src/lib.rs
+U	crates/codegen/xai-grok-config-types/src/memory.rs
+U	crates/codegen/xai-grok-config/src/env_overlay.rs
+U	crates/codegen/xai-grok-config/src/global_hook_sources.rs
+U	crates/codegen/xai-grok-config/src/lib.rs
+U	crates/codegen/xai-grok-config/src/loader.rs
+U	crates/codegen/xai-grok-config/src/macos_managed.rs
+U	crates/codegen/xai-grok-config/src/paths.rs
+U	crates/codegen/xai-grok-config/src/validation.rs
+U	crates/codegen/xai-grok-env/Cargo.toml
+U	crates/codegen/xai-grok-env/src/lib.rs
+U	crates/codegen/xai-grok-hooks/src/dispatcher.rs
+U	crates/codegen/xai-grok-hooks/src/event.rs
+U	crates/codegen/xai-grok-hooks/src/lib.rs
+U	crates/codegen/xai-grok-hooks/src/matcher.rs
+U	crates/codegen/xai-grok-hooks/src/runner/command.rs
+U	crates/codegen/xai-grok-hooks/src/runner/http.rs
+U	crates/codegen/xai-grok-hooks/src/trust.rs
+U	crates/codegen/xai-grok-login/src/attribution.rs
+U	crates/codegen/xai-grok-login/src/auth_provider_tests.rs
+U	crates/codegen/xai-grok-login/src/config.rs
+U	crates/codegen/xai-grok-login/src/credential_provider.rs
+U	crates/codegen/xai-grok-login/src/device_code.rs
+U	crates/codegen/xai-grok-login/src/external_auth.rs
+U	crates/codegen/xai-grok-login/src/flow.rs
+U	crates/codegen/xai-grok-login/src/manager_tests.rs
+U	crates/codegen/xai-grok-markdown-core/src/lib.rs
+U	crates/codegen/xai-grok-mcp/src/credentials.rs
+U	crates/codegen/xai-grok-mcp/src/lib.rs
+U	crates/codegen/xai-grok-mcp/src/oauth.rs
+U	crates/codegen/xai-grok-memory/src/lib.rs
+U	crates/codegen/xai-grok-memory/src/storage.rs
+U	crates/codegen/xai-grok-memory/src/watcher.rs
+U	crates/codegen/xai-grok-models/default_models.json
+U	crates/codegen/xai-grok-pager-bin/src/main.rs
+U	crates/codegen/xai-grok-pager-pty-harness/src/flows.rs
+U	crates/codegen/xai-grok-pager-pty-harness/src/leader.rs
+U	crates/codegen/xai-grok-pager-pty-harness/src/pty.rs
+U	crates/codegen/xai-grok-pager-pty-harness/src/scripted.rs
+U	crates/codegen/xai-grok-pager-pty-harness/tests/privacy_banner_e2e.rs
+U	crates/codegen/xai-grok-pager-pty-harness/tests/settings_locked_row_e2e.rs
+U	crates/codegen/xai-grok-pager-render/src/appearance/mod.rs
+U	crates/codegen/xai-grok-pager-render/src/appearance/watcher.rs
+U	crates/codegen/xai-grok-pager-render/src/clipboard/mod.rs
+U	crates/codegen/xai-grok-pager-render/src/clipboard/trust.rs
+U	crates/codegen/xai-grok-pager-render/src/input/scroll_log.rs
+U	crates/codegen/xai-grok-pager-render/src/prompt_images.rs
+U	crates/codegen/xai-grok-pager-render/src/render/osc8.rs
+U	crates/codegen/xai-grok-pager-render/src/syntax.rs
+U	crates/codegen/xai-grok-pager-render/src/terminal/mod.rs
+U	crates/codegen/xai-grok-pager-render/src/theme/cache.rs
+U	crates/codegen/xai-grok-pager-render/src/theme/color_support.rs
+U	crates/codegen/xai-grok-pager-render/src/theme/grokday.rs
+U	crates/codegen/xai-grok-pager-render/src/theme/groknight.rs
+U	crates/codegen/xai-grok-pager-render/src/theme/mod.rs
+U	crates/codegen/xai-grok-pager-render/src/util.rs
+U	crates/codegen/xai-grok-pager/benches/edit_highlight.rs
+U	crates/codegen/xai-grok-pager/docs/custom-hooks.md
+U	crates/codegen/xai-grok-pager/docs/tutorial/09-where-next.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/01-getting-started.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/04-slash-commands.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/05-configuration.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/06-theming.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/08-skills.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/09-plugins.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/12-project-rules.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/13-memory.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/15-agent-mode.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/16-subagents.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/18-sandbox.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/23-dashboard.md
+U	crates/codegen/xai-grok-pager/docs/user-guide/24-monitoring-usage.md
+U	crates/codegen/xai-grok-pager/examples/real_session_benchmark.rs
+U	crates/codegen/xai-grok-pager/npm/astra/bin/astra
+U	crates/codegen/xai-grok-pager/npm/astra/bin/grok-bootstrap.js
+U	crates/codegen/xai-grok-pager/npm/astra/bin/postinstall.js
+U	crates/codegen/xai-grok-pager/npm/astra/scripts/test-postinstall.js
+U	crates/codegen/xai-grok-pager/scripts/install-enterprise.ps1
+U	crates/codegen/xai-grok-pager/scripts/install-enterprise.sh
+U	crates/codegen/xai-grok-pager/scripts/install.ps1
+U	crates/codegen/xai-grok-pager/scripts/install.sh
+U	crates/codegen/xai-grok-pager/src/acp/mod.rs
+U	crates/codegen/xai-grok-pager/src/acp/model_state.rs
+U	crates/codegen/xai-grok-pager/src/actions/defaults.rs
+U	crates/codegen/xai-grok-pager/src/app/acp_handler/permissions.rs
+U	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/announcements.rs
+U	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/mod.rs
+U	crates/codegen/xai-grok-pager/src/app/actions.rs
+U	crates/codegen/xai-grok-pager/src/app/agent_view/notices.rs
+U	crates/codegen/xai-grok-pager/src/app/agent_view/shell_completion.rs
+U	crates/codegen/xai-grok-pager/src/app/app_view.rs
+U	crates/codegen/xai-grok-pager/src/app/app_view_tests.rs
+U	crates/codegen/xai-grok-pager/src/app/cli.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/billing.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/modes.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/notes.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/permissions.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/router.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/session/lifecycle.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/settings/setters.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/status.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/dashboard.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/mod.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/prompt.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/router.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/foreign.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/lifecycle.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/load.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/settings.rs
+U	crates/codegen/xai-grok-pager/src/app/dispatch/tests/status.rs
+U	crates/codegen/xai-grok-pager/src/app/event_loop.rs
+U	crates/codegen/xai-grok-pager/src/app/leader_cluster/mod.rs
+U	crates/codegen/xai-grok-pager/src/app/leader_cluster/scenarios.rs
+U	crates/codegen/xai-grok-pager/src/app/mermaid_worker.rs
+U	crates/codegen/xai-grok-pager/src/app/mod.rs
+U	crates/codegen/xai-grok-pager/src/app/modals.rs
+U	crates/codegen/xai-grok-pager/src/app/session_startup.rs
+U	crates/codegen/xai-grok-pager/src/app/session_title_resolve_tests.rs
+U	crates/codegen/xai-grok-pager/src/app/subagent.rs
+U	crates/codegen/xai-grok-pager/src/client_identity.rs
+U	crates/codegen/xai-grok-pager/src/completions_cmd.rs
+U	crates/codegen/xai-grok-pager/src/config_toml_edit.rs
+U	crates/codegen/xai-grok-pager/src/diagnostics/doctor_format_tests.rs
+U	crates/codegen/xai-grok-pager/src/diagnostics/fix.rs
+U	crates/codegen/xai-grok-pager/src/diagnostics/fix_tests.rs
+U	crates/codegen/xai-grok-pager/src/diagnostics/mod.rs
+U	crates/codegen/xai-grok-pager/src/diagnostics/model.rs
+U	crates/codegen/xai-grok-pager/src/disk_usage_cmd/tests.rs
+U	crates/codegen/xai-grok-pager/src/doctor_cmd/tests.rs
+U	crates/codegen/xai-grok-pager/src/git_info.rs
+U	crates/codegen/xai-grok-pager/src/headless/reducer/messages/tests/mod.rs
+U	crates/codegen/xai-grok-pager/src/headless/reducer/messages/web_search.rs
+U	crates/codegen/xai-grok-pager/src/headless/reducer/messages/wire.rs
+U	crates/codegen/xai-grok-pager/src/headless/reducer/mod.rs
+U	crates/codegen/xai-grok-pager/src/lib.rs
+U	crates/codegen/xai-grok-pager/src/mcp_cmd.rs
+U	crates/codegen/xai-grok-pager/src/memory_trace.rs
+U	crates/codegen/xai-grok-pager/src/notifications/mod.rs
+U	crates/codegen/xai-grok-pager/src/scrollback/render_tests.rs
+U	crates/codegen/xai-grok-pager/src/settings/defs.rs
+U	crates/codegen/xai-grok-pager/src/settings/registry.rs
+U	crates/codegen/xai-grok-pager/src/slash/commands/dashboard.rs
+U	crates/codegen/xai-grok-pager/src/slash/commands/docs.rs
+U	crates/codegen/xai-grok-pager/src/slash/commands/mod.rs
+U	crates/codegen/xai-grok-pager/src/slash/commands/model.rs
+U	crates/codegen/xai-grok-pager/src/slash/commands/tutorial.rs
+U	crates/codegen/xai-grok-pager/src/test_util.rs
+U	crates/codegen/xai-grok-pager/src/views/dashboard/mod.rs
+U	crates/codegen/xai-grok-pager/src/views/dashboard/render.rs
+U	crates/codegen/xai-grok-pager/src/views/dashboard/state.rs
+U	crates/codegen/xai-grok-pager/src/views/dashboard/state_tests.rs
+U	crates/codegen/xai-grok-pager/src/views/extensions_modal.rs
+U	crates/codegen/xai-grok-pager/src/views/import_claude_modal.rs
+U	crates/codegen/xai-grok-pager/src/views/modal.rs
+U	crates/codegen/xai-grok-pager/src/views/permission_view.rs
+U	crates/codegen/xai-grok-pager/src/views/prompt_widget/mod.rs
+U	crates/codegen/xai-grok-pager/src/views/prompt_widget/tests.rs
+U	crates/codegen/xai-grok-pager/src/views/question_view.rs
+U	crates/codegen/xai-grok-pager/src/views/session_picker.rs
+U	crates/codegen/xai-grok-pager/src/views/settings_modal/state.rs
+U	crates/codegen/xai-grok-pager/src/views/settings_modal/tests.rs
+U	crates/codegen/xai-grok-pager/src/views/welcome/hero_box.rs
+U	crates/codegen/xai-grok-pager/src/views/welcome/logo.rs
+U	crates/codegen/xai-grok-pager/src/views/welcome/mod.rs
+U	crates/codegen/xai-grok-pager/src/voice/auth.rs
+U	crates/codegen/xai-grok-pager/tests/doctor_early_dispatch.rs
+U	crates/codegen/xai-grok-pager/tests/fixtures/historic_bash_cmds.txt
+U	crates/codegen/xai-grok-pager/tests/grok_home_paths.rs
+U	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/campaign_leader_mode_remote_dismiss_on_model_pick.rs
+U	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/leader_two_clients_shared_session.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/common.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/feedback_slash_opens_descriptive_pane.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_cwd_is_home_git_repo_no_prompt.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_home_git_repo_subdir_keys_on_subdir.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/forced_wheel_mode_env_scrolls_exact_rows.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/mid_text_skill_token_echo_styled_pty.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_cli_screen_mode_does_not_persist.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_commits_thinking_body_to_scrollback.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_feedback_session_gate_and_pane.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_new_session_keeps_history_and_resets.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_from_fullscreen.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_to_fullscreen.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/permission_prompt_hook_chimes_only_on_real_wait.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/requirements_version_failure_exits_2_with_guidance.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/undo_tip_seen_count_never_persisted.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/welcome_screen_braille_logo_renders_correctly.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/word_select_tip_on_double_click_pty.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e_smoke.rs
+U	crates/codegen/xai-grok-pager/tests/settings_e2e.rs
+U	crates/codegen/xai-grok-plugin-marketplace/src/catalog.rs
+U	crates/codegen/xai-grok-plugin-marketplace/src/config.rs
+U	crates/codegen/xai-grok-plugin-marketplace/src/index.rs
+U	crates/codegen/xai-grok-plugin-marketplace/src/installer.rs
+U	crates/codegen/xai-grok-plugin-marketplace/src/lib.rs
+U	crates/codegen/xai-grok-plugin-marketplace/src/scanner.rs
+U	crates/codegen/xai-grok-sampler/src/client.rs
+U	crates/codegen/xai-grok-sampler/src/stream/chat_completions.rs
+U	crates/codegen/xai-grok-sampling-types/src/conversation.rs
+U	crates/codegen/xai-grok-sampling-types/src/conversation/messages.rs
+U	crates/codegen/xai-grok-sampling-types/src/conversation/responses_tests.rs
+U	crates/codegen/xai-grok-sampling-types/src/error.rs
+U	crates/codegen/xai-grok-sandbox/src/logging.rs
+U	crates/codegen/xai-grok-sandbox/src/paths.rs
+U	crates/codegen/xai-grok-sandbox/src/profiles.rs
+U	crates/codegen/xai-grok-sandbox/tests/deny_paths_e2e.rs
+U	crates/codegen/xai-grok-shared/src/ui_config.rs
+U	crates/codegen/xai-grok-shell-base/src/util/changelog.rs
+U	crates/codegen/xai-grok-shell-base/src/util/mod.rs
+U	crates/codegen/xai-grok-shell-base/src/util/tips.rs
+U	crates/codegen/xai-grok-shell-session-support/src/managed_mcp.rs
+U	crates/codegen/xai-grok-shell-terminal/src/local_terminal.rs
+U	crates/codegen/xai-grok-shell/README.md
+U	crates/codegen/xai-grok-shell/src/agent/auth_method.rs
+U	crates/codegen/xai-grok-shell/src/agent/config.rs
+U	crates/codegen/xai-grok-shell/src/agent/config_tests.rs
+U	crates/codegen/xai-grok-shell/src/agent/folder_trust.rs
+U	crates/codegen/xai-grok-shell/src/agent/models/cache.rs
+U	crates/codegen/xai-grok-shell/src/agent/models/fetch.rs
+U	crates/codegen/xai-grok-shell/src/agent/models/tests.rs
+U	crates/codegen/xai-grok-shell/src/agent/mvp_agent/folder_trust_prompt.rs
+U	crates/codegen/xai-grok-shell/src/agent/mvp_agent/mod.rs
+U	crates/codegen/xai-grok-shell/src/agent/mvp_agent/tests.rs
+U	crates/codegen/xai-grok-shell/src/agent/subscription_check.rs
+U	crates/codegen/xai-grok-shell/src/auth/manager.rs
+U	crates/codegen/xai-grok-shell/src/builtin.rs
+U	crates/codegen/xai-grok-shell/src/claude_import.rs
+U	crates/codegen/xai-grok-shell/src/claude_import_state.rs
+U	crates/codegen/xai-grok-shell/src/cli_models.rs
+U	crates/codegen/xai-grok-shell/src/config/mod.rs
+U	crates/codegen/xai-grok-shell/src/config/reloader.rs
+U	crates/codegen/xai-grok-shell/src/config/tests.rs
+U	crates/codegen/xai-grok-shell/src/config/watcher.rs
+U	crates/codegen/xai-grok-shell/src/extensions/billing.rs
+U	crates/codegen/xai-grok-shell/src/extensions/marketplace.rs
+U	crates/codegen/xai-grok-shell/src/extensions/session_admin.rs
+U	crates/codegen/xai-grok-shell/src/extensions/share.rs
+U	crates/codegen/xai-grok-shell/src/inspect/mod.rs
+U	crates/codegen/xai-grok-shell/src/leader/lock.rs
+U	crates/codegen/xai-grok-shell/src/leader/mod.rs
+U	crates/codegen/xai-grok-shell/src/managed_config.rs
+U	crates/codegen/xai-grok-shell/src/plugin/mod.rs
+U	crates/codegen/xai-grok-shell/src/remote/client_tests.rs
+U	crates/codegen/xai-grok-shell/src/remote/skills_client.rs
+U	crates/codegen/xai-grok-shell/src/sampling/error.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_conversion.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/laziness.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/mcp.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/memory_dream.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/recap.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/run_loop.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_impl/tool_calls.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_tests/auth_error_no_retry_tests.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_tests/inline_auto_compact_flow_tests.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_tests/prompt_queue_actor_tests.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_tests/support.rs
+U	crates/codegen/xai-grok-shell/src/session/acp_session_tests/turn/auth_retry_budget_tests.rs
+U	crates/codegen/xai-grok-shell/src/session/agent_rebuild.rs
+U	crates/codegen/xai-grok-shell/src/session/commands.rs
+U	crates/codegen/xai-grok-shell/src/session/feedback.rs
+U	crates/codegen/xai-grok-shell/src/session/feedback_manager.rs
+U	crates/codegen/xai-grok-shell/src/session/image_describe.rs
+U	crates/codegen/xai-grok-shell/src/session/persistence.rs
+U	crates/codegen/xai-grok-shell/src/session/prompt_parser.rs
+U	crates/codegen/xai-grok-shell/src/session/slash_commands.rs
+U	crates/codegen/xai-grok-shell/src/session/storage/relocation/mod.rs
+U	crates/codegen/xai-grok-shell/src/session/worktree_pool.rs
+U	crates/codegen/xai-grok-shell/src/tools/config.rs
+U	crates/codegen/xai-grok-shell/src/tools/notification_bridge.rs
+U	crates/codegen/xai-grok-shell/src/util/config/campaigns.rs
+U	crates/codegen/xai-grok-shell/src/util/config/mcp.rs
+U	crates/codegen/xai-grok-shell/src/util/config/persist.rs
+U	crates/codegen/xai-grok-shell/src/util/config/resolve/mcp.rs
+U	crates/codegen/xai-grok-shell/src/util/config/resolve/system_prompt.rs
+U	crates/codegen/xai-grok-shell/src/util/config/resolve/toolset.rs
+U	crates/codegen/xai-grok-shell/src/util/config/resolve/version.rs
+U	crates/codegen/xai-grok-shell/src/util/hooks.rs
+U	crates/codegen/xai-grok-shell/tests/external_auth_expired_credential.rs
+U	crates/codegen/xai-grok-shell/tests/git_contention_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/session_load_perf.rs
+U	crates/codegen/xai-grok-shell/tests/test_agent_type_invariant.rs
+U	crates/codegen/xai-grok-shell/tests/test_auth_provider_command_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/test_built_binary_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/test_config_update_isolation.rs
+U	crates/codegen/xai-grok-shell/tests/test_debug_logging.rs
+U	crates/codegen/xai-grok-shell/tests/test_global_extra_headers_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/test_leader_soak.rs
+U	crates/codegen/xai-grok-shell/tests/test_leader_stdio_integration.rs
+U	crates/codegen/xai-grok-shell/tests/test_leader_version_skew.rs
+U	crates/codegen/xai-grok-shell/tests/test_mcp_permission_persistence.rs
+U	crates/codegen/xai-grok-shell/tests/test_session_load_memory.rs
+U	crates/codegen/xai-grok-shell/tests/test_summary_reasoning_effort.rs
+U	crates/codegen/xai-grok-shell/tests/test_tool_dispatch_duration_smoke.rs
+U	crates/codegen/xai-grok-shell/tests/test_trusted_local_plugin_refresh_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/test_vendor_compat.rs
+U	crates/codegen/xai-grok-telemetry/src/config.rs
+U	crates/codegen/xai-grok-telemetry/src/debug_log.rs
+U	crates/codegen/xai-grok-telemetry/src/events/mod.rs
+U	crates/codegen/xai-grok-telemetry/src/external/config.rs
+U	crates/codegen/xai-grok-telemetry/src/external/mod.rs
+U	crates/codegen/xai-grok-telemetry/src/hooks_log.rs
+U	crates/codegen/xai-grok-telemetry/src/id.rs
+U	crates/codegen/xai-grok-telemetry/src/lib.rs
+U	crates/codegen/xai-grok-telemetry/src/memory_log.rs
+U	crates/codegen/xai-grok-telemetry/src/unified_log.rs
+U	crates/codegen/xai-grok-test-support/README.md
+U	crates/codegen/xai-grok-test-support/src/lib.rs
+U	crates/codegen/xai-grok-test-support/src/sandbox.rs
+U	crates/codegen/xai-grok-tools/build.rs
+U	crates/codegen/xai-grok-tools/src/computer/local/embedded_search_tools.rs
+U	crates/codegen/xai-grok-tools/src/computer/local/terminal.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/exit_plan_mode/mod.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/grep/ripgrep.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/image_gen/mod.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/read_file/mod.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/video_gen/mod.rs
+U	crates/codegen/xai-grok-tools/src/implementations/grok_build/workflow/mod.rs
+U	crates/codegen/xai-grok-tools/src/implementations/skills/discovery.rs
+U	crates/codegen/xai-grok-tools/src/implementations/skills/skill.rs
+U	crates/codegen/xai-grok-tools/src/implementations/web_search/types.rs
+U	crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs
+U	crates/codegen/xai-grok-tools/src/types/compat.rs
+U	crates/codegen/xai-grok-tools/src/types/resources.rs
+U	crates/codegen/xai-grok-tools/src/types/tool_metadata.rs
+U	crates/codegen/xai-grok-tools/src/util/mcp_truncate.rs
+U	crates/codegen/xai-grok-update/src/auto_update.rs
+U	crates/codegen/xai-grok-update/src/auto_update_tests.rs
+U	crates/codegen/xai-grok-update/src/version.rs
+U	crates/codegen/xai-grok-update/tests/common/mod.rs
+U	crates/codegen/xai-grok-update/tests/test_blitz_cancel.rs
+U	crates/codegen/xai-grok-update/tests/test_check_status_regression.rs
+U	crates/codegen/xai-grok-update/tests/test_concurrent_convergence.rs
+U	crates/codegen/xai-grok-update/tests/test_downgrade_matrix.rs
+U	crates/codegen/xai-grok-update/tests/test_install_internal.rs
+U	crates/codegen/xai-grok-update/tests/test_install_sh.rs
+U	crates/codegen/xai-grok-update/tests/test_io.rs
+U	crates/codegen/xai-grok-update/tests/test_network.rs
+U	crates/codegen/xai-grok-voice/src/bin/voice_probe.rs
+U	crates/codegen/xai-grok-voice/src/config.rs
+U	crates/codegen/xai-grok-voice/src/language.rs
+U	crates/codegen/xai-grok-voice/src/lib.rs
+U	crates/codegen/xai-grok-voice/src/stt/streaming.rs
+U	crates/codegen/xai-grok-workspace-client/src/lib.rs
+U	crates/codegen/xai-grok-workspace-types/src/binding.rs
+U	crates/codegen/xai-grok-workspace-types/src/rpc/repos.rs
+U	crates/codegen/xai-grok-workspace/src/bin/workspace_server.rs
+U	crates/codegen/xai-grok-workspace/src/bin/workspace_server_probe.rs
+U	crates/codegen/xai-grok-workspace/src/config.rs
+U	crates/codegen/xai-grok-workspace/src/discovery.rs
+U	crates/codegen/xai-grok-workspace/src/file_system/acp_fs.rs
+U	crates/codegen/xai-grok-workspace/src/file_system/attach_file.rs
+U	crates/codegen/xai-grok-workspace/src/file_system/codebase_index.rs
+U	crates/codegen/xai-grok-workspace/src/folder_trust.rs
+U	crates/codegen/xai-grok-workspace/src/fs_notify.rs
+U	crates/codegen/xai-grok-workspace/src/handle.rs
+U	crates/codegen/xai-grok-workspace/src/hub_auth.rs
+U	crates/codegen/xai-grok-workspace/src/lib.rs
+U	crates/codegen/xai-grok-workspace/src/permission/auto_mode/mod.rs
+U	crates/codegen/xai-grok-workspace/src/permission/prompter.rs
+U	crates/codegen/xai-grok-workspace/src/permission/resolution.rs
+U	crates/codegen/xai-grok-workspace/src/permission/resolution_tests.rs
+U	crates/codegen/xai-grok-workspace/src/permission/rules.rs
+U	crates/codegen/xai-grok-workspace/src/permission/shell_access.rs
+U	crates/codegen/xai-grok-workspace/src/permission/state.rs
+U	crates/codegen/xai-grok-workspace/src/permission/types.rs
+U	crates/codegen/xai-grok-workspace/src/project_config.rs
+U	crates/codegen/xai-grok-workspace/src/session/git.rs
+U	crates/codegen/xai-grok-workspace/src/session/git_tests.rs
+U	crates/codegen/xai-grok-workspace/src/session/mod.rs
+U	crates/codegen/xai-grok-workspace/src/trust.rs
+U	crates/codegen/xai-grok-workspace/src/workspace_ops.rs
+U	crates/codegen/xai-grok-workspace/src/worktree/mod.rs
+U	crates/codegen/xai-hooks-plugins-types/src/lib.rs
+U	crates/codegen/xai-tty-utils/src/lib.rs
+
+=== UNMERGED INDEX STAGES ===
+100644 8a467ba2716d5068bbea8175f448cecd6bfda7f2 1	Cargo.lock
+100644 4a7d7d0b9a325d0d29cb97b1b3ccedcdf5df7056 2	Cargo.lock
+100644 4808fd92a9a0f1fdf3a2f91534c1cfb2101368fa 3	Cargo.lock
+100644 07d581d48e78a7c69e78a7f0d8d2ce1844a3190b 1	crates/codegen/xai-chat-state/src/actor/tests.rs
+100644 3f2f75c963fed4ff6f9015a54f9635b98ab4c0ae 2	crates/codegen/xai-chat-state/src/actor/tests.rs
+100644 5c04529fa076ff08cbf415466dce0c072bed795c 3	crates/codegen/xai-chat-state/src/actor/tests.rs
+100644 953991adf3f0c8e0687591f12f50c061e6fa6efc 1	crates/codegen/xai-chat-state/src/commands.rs
+100644 12a0be5e8308e25b1e00612df8bd362b0ec93794 2	crates/codegen/xai-chat-state/src/commands.rs
+100644 7ba71983fad81f2dcf69c47c5ba2bc6ac078db32 3	crates/codegen/xai-chat-state/src/commands.rs
+100644 21adc3c0c0e099f4ce675268a9cfc2e1fa6011c1 1	crates/codegen/xai-codebase-graph/src/index_manager.rs
+100644 dff644fc45c7f490fb2673d44c4a7a08ef390f3b 2	crates/codegen/xai-codebase-graph/src/index_manager.rs
+100644 cc1ce11778acce1af62f7c836f861955a141b6cb 3	crates/codegen/xai-codebase-graph/src/index_manager.rs
+100644 ab77181fe14321f9506bf1e4c055bb1d0ab3bba9 1	crates/codegen/xai-crash-handler/src/lib.rs
+100644 1516f5e7c8ec0ddfe436a51f7263665057ffb35d 2	crates/codegen/xai-crash-handler/src/lib.rs
+100644 573f47055300c6cdb66ddc6d12f5812102e6e526 3	crates/codegen/xai-crash-handler/src/lib.rs
+100644 5d158366f4744952156a69029cdf689829b4d37b 1	crates/codegen/xai-dirs/src/lib.rs
+100644 cc70df9874cbf3c95d9e56807fc685186c648363 2	crates/codegen/xai-dirs/src/lib.rs
+100644 679c6517fac21f4ae133241bed9ce54b4aa07511 3	crates/codegen/xai-dirs/src/lib.rs
+100644 15d0e33a4aea9e2734d57fe1b9c41b148a974824 1	crates/codegen/xai-fast-worktree/src/api.rs
+100644 479b937f1cc982d94f9e539fd01c35306c56375a 2	crates/codegen/xai-fast-worktree/src/api.rs
+100644 034b8370928429d86aaac1aa1ba374a133829278 3	crates/codegen/xai-fast-worktree/src/api.rs
+100644 d5b7afb8d618e29c5eb73dd57f9c7e51ef583919 1	crates/codegen/xai-fast-worktree/src/api/gc.rs
+100644 d5f9e4aeb2c668aef0b49921aa3b70c33c8cace4 2	crates/codegen/xai-fast-worktree/src/api/gc.rs
+100644 bf4fadf55d83682a9c140f736b30fde167746d06 3	crates/codegen/xai-fast-worktree/src/api/gc.rs
+100644 7e45c932de222b16cc05286e9ef618abf510b5f6 1	crates/codegen/xai-fast-worktree/src/btrfs/detect.rs
+100644 abf3a907f02ed371fc88c7ecf4426ffed4ded937 2	crates/codegen/xai-fast-worktree/src/btrfs/detect.rs
+100644 e8a7f9a03b80d89eecb3c4654d3cf35e6bf1d481 3	crates/codegen/xai-fast-worktree/src/btrfs/detect.rs
+100644 7cf3c269a461136d3bcea582db2c48c1c5975d0f 1	crates/codegen/xai-fast-worktree/src/btrfs/snapshot.rs
+100644 986d8e0f7bae54a91eeefda7e6b95cb92da222d9 2	crates/codegen/xai-fast-worktree/src/btrfs/snapshot.rs
+100644 fd06743d91370943a0b168680c5222bc2cd1bb2e 3	crates/codegen/xai-fast-worktree/src/btrfs/snapshot.rs
+100644 a40e1d856cc1a63da974504c3a02ca7ba5007b87 1	crates/codegen/xai-fast-worktree/src/db/mod.rs
+100644 6ccdfb8e43040f2e537cc2c504a6afe0d506ef2e 2	crates/codegen/xai-fast-worktree/src/db/mod.rs
+100644 714e6b168c4cc8718f5aac73cd0488303dd98b3d 3	crates/codegen/xai-fast-worktree/src/db/mod.rs
+100644 5f8259818f96cd010e6f3731d726418792aa02d6 1	crates/codegen/xai-fast-worktree/src/db/queries.rs
+100644 17faa748a629b48b97c813b392dbe363fcd68d1c 2	crates/codegen/xai-fast-worktree/src/db/queries.rs
+100644 27018c848b8a803b74b6ec24bd675f7b7cccbb65 3	crates/codegen/xai-fast-worktree/src/db/queries.rs
+100644 938d7553a38f76a755d3c60027f26a4e5883ee11 1	crates/codegen/xai-fast-worktree/src/overlay/snapshot.rs
+100644 5d6c3845d2d58adccfdeff64df4935eb5193f3a7 2	crates/codegen/xai-fast-worktree/src/overlay/snapshot.rs
+100644 e75feb4c00b200d1659b00851e1b9466a387ddc3 3	crates/codegen/xai-fast-worktree/src/overlay/snapshot.rs
+100644 fb7835dd9fcd3ced904bbdd213a37cdc6c4b1287 1	crates/codegen/xai-file-utils/src/queue.rs
+100644 762aaea960a93c899692decfc89e54ee3693710c 2	crates/codegen/xai-file-utils/src/queue.rs
+100644 83e067872acf9d65e8ca7fe4f96079e3cc65fffa 3	crates/codegen/xai-file-utils/src/queue.rs
+100644 def47129a7290ac6a3444a7c2d91511fa3e194e6 1	crates/codegen/xai-file-utils/src/storage_client.rs
+100644 b369beab7621077321c20e31aa9c567c38ceff98 2	crates/codegen/xai-file-utils/src/storage_client.rs
+100644 56cadd35d1203b9a46d4c248d8e1b611475fe8b1 3	crates/codegen/xai-file-utils/src/storage_client.rs
+100644 8fba91018a3415a7c9acf7b33d9765ae3d44bb29 1	crates/codegen/xai-file-utils/src/workspace_classifier.rs
+100644 4120278617a511145096d4d1e9d3d775934386ee 2	crates/codegen/xai-file-utils/src/workspace_classifier.rs
+100644 9409ae9269a0ad4760bdf69d04452fbb55f84626 3	crates/codegen/xai-file-utils/src/workspace_classifier.rs
+100644 e71cd7d6f572732e975112126cdefab92b2465e3 1	crates/codegen/xai-grok-active-sessions/src/lib.rs
+100644 11c2b031951dc4f6688bf8997771334066ad9c74 2	crates/codegen/xai-grok-active-sessions/src/lib.rs
+100644 f9d05b6afee3801884586b9124d60820e069129c 3	crates/codegen/xai-grok-active-sessions/src/lib.rs
+100644 d4cc52f8110b90340614cc060fc125914694cef9 1	crates/codegen/xai-grok-agent/src/builder.rs
+100644 6632630d951e674bd7b06cad321e9d975fb79c82 2	crates/codegen/xai-grok-agent/src/builder.rs
+100644 c6c051949ba7be2d74a2a46d0d156a2a78e6d5f3 3	crates/codegen/xai-grok-agent/src/builder.rs
+100644 0deca08fddd81088da239ebdf5018430cd0f69c1 1	crates/codegen/xai-grok-agent/src/config.rs
+100644 d2df7139c29a2a6d1f5f785d3c705eb2b084376e 2	crates/codegen/xai-grok-agent/src/config.rs
+100644 17f9074abd420a412a7b97e8c4418d2de8037d5a 3	crates/codegen/xai-grok-agent/src/config.rs
+100644 4f66263fc657e4691fc3fcc57e790d2529ba88ed 1	crates/codegen/xai-grok-agent/src/discovery.rs
+100644 03e9435e5e0910899db080e19a9a2745a3d0da40 2	crates/codegen/xai-grok-agent/src/discovery.rs
+100644 9b6b89c5ac3269d650db5625ace692f58028a12d 3	crates/codegen/xai-grok-agent/src/discovery.rs
+100644 5ce92b6c0914a652017f04a4e15b0854b4513085 1	crates/codegen/xai-grok-agent/src/plugins/discovery.rs
+100644 83c27fa092d34e1e6157c004f27ae81dbca3ec22 2	crates/codegen/xai-grok-agent/src/plugins/discovery.rs
+100644 81d5b9d3df712da8ebd47335c5a86dab9ee9f5ad 3	crates/codegen/xai-grok-agent/src/plugins/discovery.rs
+100644 047f4af03e548955e801a8dfb82b76baa32671e1 1	crates/codegen/xai-grok-agent/src/plugins/git_install.rs
+100644 0a8f50d83fce5b0310d5f284ad93c80700f0c860 2	crates/codegen/xai-grok-agent/src/plugins/git_install.rs
+100644 161d659e14290f890ae5d8ce0a74283ea5df19b9 3	crates/codegen/xai-grok-agent/src/plugins/git_install.rs
+100644 586c379a2179bf0ea14e52a366e562a429ace507 1	crates/codegen/xai-grok-agent/src/plugins/local_refresh.rs
+100644 cd1099b41399add5ef74e10339d9cbda8c97b31d 2	crates/codegen/xai-grok-agent/src/plugins/local_refresh.rs
+100644 324db55157f4cd854c4dd77561a86628e5f3ee19 3	crates/codegen/xai-grok-agent/src/plugins/local_refresh.rs
+100644 b19f2c219ced22f661b0d4d8ac3dcb73cedc4abf 1	crates/codegen/xai-grok-agent/src/plugins/manifest.rs
+100644 1472266b8deed1082db5722c8e83464613b6eecb 2	crates/codegen/xai-grok-agent/src/plugins/manifest.rs
+100644 8e98586cce01b37a4e4cbd4b8d923cc466f7522e 3	crates/codegen/xai-grok-agent/src/plugins/manifest.rs
+100644 732ac7d744673576d37831177234c72981bc1985 1	crates/codegen/xai-grok-agent/src/plugins/trust.rs
+100644 ecf73bfe534e0590a9a6205d8deb82d3b32ce234 2	crates/codegen/xai-grok-agent/src/plugins/trust.rs
+100644 64fbd84a199a785eab3d540387d676febf39864d 3	crates/codegen/xai-grok-agent/src/plugins/trust.rs
+100644 8e7705d00fa7680d49195e45d2771f0225196707 1	crates/codegen/xai-grok-agent/src/prompt/agents_md.rs
+100644 f205634fd5304338c47a827c102153097c89cec6 2	crates/codegen/xai-grok-agent/src/prompt/agents_md.rs
+100644 7b66e697c9f988eaaab3ed160abd8816d936e3c5 3	crates/codegen/xai-grok-agent/src/prompt/agents_md.rs
+100644 3fe050eb1139010e7e290bc9b17eda06f87af8db 1	crates/codegen/xai-grok-agent/src/prompt/context.rs
+100644 33a140d7e8f7bcb818dfced8b8f00eef4c50933d 2	crates/codegen/xai-grok-agent/src/prompt/context.rs
+100644 4c1b5864a8c5b0082414b8de33034c1a40cdb522 3	crates/codegen/xai-grok-agent/src/prompt/context.rs
+100644 9fba048f5e0015bf8b81d3884f0798035cc0248a 1	crates/codegen/xai-grok-agent/src/prompt/prompt_encrypted.rs
+100644 5e530da554d69f8a8a691fe65c2bccb2ce7ed6a8 2	crates/codegen/xai-grok-agent/src/prompt/prompt_encrypted.rs
+100644 c9a7c4bfbc4e1d6ff7364db980844c4e674206f7 3	crates/codegen/xai-grok-agent/src/prompt/prompt_encrypted.rs
+100644 14424c14753c33bb1d44634bb1fb0b8545397ff7 1	crates/codegen/xai-grok-agent/src/prompt/skills.rs
+100644 9471db565d941a7f6fb668834c4d519be6377caf 2	crates/codegen/xai-grok-agent/src/prompt/skills.rs
+100644 313622530581a2c524f8a68c383cd322f31270f8 3	crates/codegen/xai-grok-agent/src/prompt/skills.rs
+100644 7af28fe94d4082de8907bf8a0cb4d2e99ce4c868 1	crates/codegen/xai-grok-agent/src/prompt/template.rs
+100644 5e982f1bba020c35aea8833ad81c16ab654d0009 2	crates/codegen/xai-grok-agent/src/prompt/template.rs
+100644 9a0a77b30795a06e0eebd6cdbb6947f2a13de7b1 3	crates/codegen/xai-grok-agent/src/prompt/template.rs
+100644 fdece12f6d4a0f9efd8e6511d8e7bbe3889e95ff 1	crates/codegen/xai-grok-agent/src/prompt/user_message.rs
+100644 aa6cf152f2c916aa54f0c5fcc9ca1b12534a04ff 2	crates/codegen/xai-grok-agent/src/prompt/user_message.rs
+100644 0e079f0629906d745e06eb958e19dc5f1934982e 3	crates/codegen/xai-grok-agent/src/prompt/user_message.rs
+100644 518b0fdeaf575b4e9c29b927d6951f6c40109b79 1	crates/codegen/xai-grok-agent/src/repo.rs
+100644 b57e887d024385aefa0ebc821b7ce458bcd65886 2	crates/codegen/xai-grok-agent/src/repo.rs
+100644 3cd3235b309c4eaf6decca581b5562aef306eaa7 3	crates/codegen/xai-grok-agent/src/repo.rs
+100644 7fdc49b1136052672c2d335a172d18ff663d552a 1	crates/codegen/xai-grok-config-types/src/lib.rs
+100644 16e008d7c19c092b03d4b7da27d49258118ec757 2	crates/codegen/xai-grok-config-types/src/lib.rs
+100644 d6047d3151f4d1baf73f78207509a4d7ee399212 3	crates/codegen/xai-grok-config-types/src/lib.rs
+100644 3c63dca61b91c2b5dd3878eb394ad3cedb7c264c 1	crates/codegen/xai-grok-config-types/src/memory.rs
+100644 6baace72472c0916e79bf07a043092f8d1531f74 2	crates/codegen/xai-grok-config-types/src/memory.rs
+100644 0b476a78aecf4d896e34a74e1300f5a560ceea3a 3	crates/codegen/xai-grok-config-types/src/memory.rs
+100644 c6f6a41327f87533d3ca126e71caf69838022b02 1	crates/codegen/xai-grok-config/src/env_overlay.rs
+100644 3ed1c2803ce68c943634a9ae4d96686946087a1b 2	crates/codegen/xai-grok-config/src/env_overlay.rs
+100644 952582b39c51d6c5a8a1d05c32613727fe776308 3	crates/codegen/xai-grok-config/src/env_overlay.rs
+100644 78abacf3d7d906f976a2e50d25dc31cdab600a22 1	crates/codegen/xai-grok-config/src/global_hook_sources.rs
+100644 c6b9aa297456adaf3fd759253818238dd55f075c 2	crates/codegen/xai-grok-config/src/global_hook_sources.rs
+100644 6e2323df44f52f28d9767d9151324b2af24e8096 3	crates/codegen/xai-grok-config/src/global_hook_sources.rs
+100644 943d46f258022bb320c280156ab39b76673f740e 1	crates/codegen/xai-grok-config/src/lib.rs
+100644 35d0934574205d8ca2cf6c9e19430a9479848ab4 2	crates/codegen/xai-grok-config/src/lib.rs
+100644 2d47dfe462ee01572ef3b3d12fd26220dd630d49 3	crates/codegen/xai-grok-config/src/lib.rs
+100644 0251ce9c891ad7878c7b2c2af738e24c858dcfde 1	crates/codegen/xai-grok-config/src/loader.rs
+100644 dae878f4e8f9cd5da197ae463da64396d323ec44 2	crates/codegen/xai-grok-config/src/loader.rs
+100644 280add1d888b2113c73896b13367dd3ae5672ff5 3	crates/codegen/xai-grok-config/src/loader.rs
+100644 2789988e32d237eb44e156cd18b4cd44525eae5c 1	crates/codegen/xai-grok-config/src/macos_managed.rs
+100644 b4171f6db88ad0a883e398afe831a506dce95d44 2	crates/codegen/xai-grok-config/src/macos_managed.rs
+100644 cc8068cd795a4974e474afb48bdeac35ca4dd6b9 3	crates/codegen/xai-grok-config/src/macos_managed.rs
+100644 369739bbb90426eb46461aca6494bc4470c4bfe5 1	crates/codegen/xai-grok-config/src/paths.rs
+100644 654a997e627ba441f107135ad9778b64fc91526a 2	crates/codegen/xai-grok-config/src/paths.rs
+100644 eb6992e85cceb9b9335e8b30bc9eebf174384b16 3	crates/codegen/xai-grok-config/src/paths.rs
+100644 00cb7da0863fe8a548b25e67dc8125f631a20eda 1	crates/codegen/xai-grok-config/src/validation.rs
+100644 8a47f7f7f70954f714d61406064de92ff8ad026d 2	crates/codegen/xai-grok-config/src/validation.rs
+100644 eed66b64bd4bff7fa4ccb0d2335627cce8e18598 3	crates/codegen/xai-grok-config/src/validation.rs
+100644 f38377f8199e111dea020b42718da09bf5e7c18e 1	crates/codegen/xai-grok-env/Cargo.toml
+100644 0ef2fda8a8861b01d3d2f81c5e46a9728e8929cd 2	crates/codegen/xai-grok-env/Cargo.toml
+100644 14107734beb2aa6de6795f320a4b4608e7cd3cf9 3	crates/codegen/xai-grok-env/Cargo.toml
+100644 658fba34a118f8df0675f176468981bcb733af1a 1	crates/codegen/xai-grok-env/src/lib.rs
+100644 83d654fbf3e89b1dcb69ac7b0028b62eceb50574 2	crates/codegen/xai-grok-env/src/lib.rs
+100644 6be30e76f835021c752bcd050a01e6968b8d3cce 3	crates/codegen/xai-grok-env/src/lib.rs
+100644 76710cd2873d0017b36f745f521f874940342f73 1	crates/codegen/xai-grok-hooks/src/dispatcher.rs
+100644 c3e7345fe622e9f7ec3c036a905d38c6e29ef58a 2	crates/codegen/xai-grok-hooks/src/dispatcher.rs
+100644 ba4544a1b2e81598994b8738c4fe12f0514859de 3	crates/codegen/xai-grok-hooks/src/dispatcher.rs
+100644 1f5f0e737e62088af08704b098635900f3997e6c 1	crates/codegen/xai-grok-hooks/src/event.rs
+100644 8df155b4b95a7c3b5bfc76d516819725687bf448 2	crates/codegen/xai-grok-hooks/src/event.rs
+100644 851ad2dcc5dbfd65ecc0c8d7f0811f76bf57815b 3	crates/codegen/xai-grok-hooks/src/event.rs
+100644 b4a89a45bec29f872d1861cf1380a6dd9b6e25ce 1	crates/codegen/xai-grok-hooks/src/lib.rs
+100644 a45714f67d6e7dbae1594730bde0a28ef77a0843 2	crates/codegen/xai-grok-hooks/src/lib.rs
+100644 7538018698ecb76067a46244832ea91aed675951 3	crates/codegen/xai-grok-hooks/src/lib.rs
+100644 57784aed0e7990c836536a7c077b6d41cf91d1ea 1	crates/codegen/xai-grok-hooks/src/matcher.rs
+100644 b397508858d796c3f35de44c86246558d984e7ab 2	crates/codegen/xai-grok-hooks/src/matcher.rs
+100644 0593a3c99fabd0052da49e58c8818b8166951b27 3	crates/codegen/xai-grok-hooks/src/matcher.rs
+100644 5f3f816ebbc611cb75e977a227871d15c2f8309b 1	crates/codegen/xai-grok-hooks/src/runner/command.rs
+100644 712fa30e9276a16d8d668a1a8a26ec5700d0a1a2 2	crates/codegen/xai-grok-hooks/src/runner/command.rs
+100644 b5502573d0bde1123ba4b5a12c5d6a51254e5249 3	crates/codegen/xai-grok-hooks/src/runner/command.rs
+100644 9eba07b4e4cfd9ff8ac63012984c12bda7009dda 1	crates/codegen/xai-grok-hooks/src/runner/http.rs
+100644 c406a36f8cac37d4a087c877e5a8fdd924131887 2	crates/codegen/xai-grok-hooks/src/runner/http.rs
+100644 6971ea1d71bb940d9f87c85d4853c5b7a8ce7a93 3	crates/codegen/xai-grok-hooks/src/runner/http.rs
+100644 5a4e746dfbed90330e941fed565ff24d12672009 1	crates/codegen/xai-grok-hooks/src/trust.rs
+100644 d81b87d7ac13a294bba422a3c13423fe957fa67a 2	crates/codegen/xai-grok-hooks/src/trust.rs
+100644 85ee1c693213c649ccb913e9f8bf1407700191bd 3	crates/codegen/xai-grok-hooks/src/trust.rs
+100644 012b717f8512e97250151d1e06d0fde991372ec8 1	crates/codegen/xai-grok-login/src/attribution.rs
+100644 7a0147223224c5564590dcbc4ff6b25b837543dd 2	crates/codegen/xai-grok-login/src/attribution.rs
+100644 ed6987eed7824be396b8de230762ecb0fe4156f1 3	crates/codegen/xai-grok-login/src/attribution.rs
+100644 d48e46407cb8302bbef11bfc96bb512eaa911399 1	crates/codegen/xai-grok-login/src/auth_provider_tests.rs
+100644 57e8aa364d31eefc394a0e1c05252e783a47284c 2	crates/codegen/xai-grok-login/src/auth_provider_tests.rs
+100644 cff6417417135441b71e1143fc173da3a1ede56c 3	crates/codegen/xai-grok-login/src/auth_provider_tests.rs
+100644 1447d4f48691a1090ef459348b2837d169a30f6c 1	crates/codegen/xai-grok-login/src/config.rs
+100644 dd276640ff693cf84f768ea1f0b293d898dc711e 2	crates/codegen/xai-grok-login/src/config.rs
+100644 adc40cd45045316adf47221b957fb7b269ea599c 3	crates/codegen/xai-grok-login/src/config.rs
+100644 1bbcf48ddfa57b3f9f58b41b6f77d7f2000fe5fe 1	crates/codegen/xai-grok-login/src/credential_provider.rs
+100644 59584a90736bd41930bc9966927b96e2ca9d068b 2	crates/codegen/xai-grok-login/src/credential_provider.rs
+100644 672245676794189bceb7701a14101d814f4fa245 3	crates/codegen/xai-grok-login/src/credential_provider.rs
+100644 b6be0b9f0468ed0008714990287482cd0c8cab36 1	crates/codegen/xai-grok-login/src/device_code.rs
+100644 93df770a8a3f542b68f4e823daa6a8d23e2bd7f1 2	crates/codegen/xai-grok-login/src/device_code.rs
+100644 53d33cbb637cc24e5cd0759e5a6de23c464b4c52 3	crates/codegen/xai-grok-login/src/device_code.rs
+100644 42ea4decc619c8d58fd00dc3dad2c7f454c3dc4f 1	crates/codegen/xai-grok-login/src/external_auth.rs
+100644 bcd10cee94fc5b34601cd560c77189e70eff83de 2	crates/codegen/xai-grok-login/src/external_auth.rs
+100644 f1e1eb35480e7148ec93f2bbce5e8ecfa69296fc 3	crates/codegen/xai-grok-login/src/external_auth.rs
+100644 c5bb85b5a0e805ecf82097128ac8070661041d4a 1	crates/codegen/xai-grok-login/src/flow.rs
+100644 b07ad5873a892c485d803490e07ffc10f393a804 2	crates/codegen/xai-grok-login/src/flow.rs
+100644 4607a00d4cae1fdbe281f4d5d31d267ee5b1e866 3	crates/codegen/xai-grok-login/src/flow.rs
+100644 eeff7ac01826ef8bbd456715fd1f7a088c1125dd 1	crates/codegen/xai-grok-login/src/manager_tests.rs
+100644 7a10713c1a8f4956c9e4ab9911542d0bdc8a3d8e 2	crates/codegen/xai-grok-login/src/manager_tests.rs
+100644 0a230ddff2ad8314c9f36ed28579219f14d71952 3	crates/codegen/xai-grok-login/src/manager_tests.rs
+100644 551b1604d41836652cd15eacf25b8684cc9c9f41 1	crates/codegen/xai-grok-markdown-core/src/lib.rs
+100644 c47c810fce5dd1217def8625a3387f165b9b6f38 2	crates/codegen/xai-grok-markdown-core/src/lib.rs
+100644 71a44c54855b3360291cabff64b67d4c7a015219 3	crates/codegen/xai-grok-markdown-core/src/lib.rs
+100644 82ef731fed1d523941533015e310c6e0488e229a 1	crates/codegen/xai-grok-mcp/src/credentials.rs
+100644 a7bdbcdfc72a9ff44517c0162d2138b92cf2062e 2	crates/codegen/xai-grok-mcp/src/credentials.rs
+100644 758804a0457e18e3cc7d88ff3c4a058327fbb0db 3	crates/codegen/xai-grok-mcp/src/credentials.rs
+100644 5d204747db65c89a95c1dffdecfccbbbaa14f571 1	crates/codegen/xai-grok-mcp/src/lib.rs
+100644 9966b2c3494afc37152f1a578a5e9e748a38087c 2	crates/codegen/xai-grok-mcp/src/lib.rs
+100644 46d2cb35629e561d7b294f4d5cd91d553825776a 3	crates/codegen/xai-grok-mcp/src/lib.rs
+100644 7a2ecfce601aaab6c2645a4c0335b674c51b8c87 1	crates/codegen/xai-grok-mcp/src/oauth.rs
+100644 7f2439aeee01aa175fc8504be5cfd05ff4b19c95 2	crates/codegen/xai-grok-mcp/src/oauth.rs
+100644 28f223fa77945989df5b18c4037bdaaf0404719a 3	crates/codegen/xai-grok-mcp/src/oauth.rs
+100644 435c608fd98b8e6e015048fd2c3df83df410025f 1	crates/codegen/xai-grok-memory/src/lib.rs
+100644 8866d447eb55a594ffcda693cc50dc03eef4ae1e 2	crates/codegen/xai-grok-memory/src/lib.rs
+100644 c5b8672ef56d04d78c06c01f3965cc3a95b3b061 3	crates/codegen/xai-grok-memory/src/lib.rs
+100644 9def01a761e918196c66994364f4921f520f4506 1	crates/codegen/xai-grok-memory/src/storage.rs
+100644 83c5b25272767359e0fda95472ccba401e15006c 2	crates/codegen/xai-grok-memory/src/storage.rs
+100644 4175e7f1d0f44d41823765b9f2cdb4e7471c89bb 3	crates/codegen/xai-grok-memory/src/storage.rs
+100644 10aecfab2cc9cc2c97014a49ca6f82b95f0e0b1f 1	crates/codegen/xai-grok-memory/src/watcher.rs
+100644 e62eafe92a61692c263116d3830d08dc8e97ad8c 2	crates/codegen/xai-grok-memory/src/watcher.rs
+100644 b2f9f6272bf1d972d2f24fafbf8a05db38c47e42 3	crates/codegen/xai-grok-memory/src/watcher.rs
+100644 745580352cf836069da30c440b3fa82b9681ce82 1	crates/codegen/xai-grok-models/default_models.json
+100644 4cdf97faaac9dc07cd310d0a3e0b3ef77032c138 2	crates/codegen/xai-grok-models/default_models.json
+100644 9670602b0a09645ef116e842f10bc9a6b2a236e7 3	crates/codegen/xai-grok-models/default_models.json
+100644 219d04884a3ddd232b42a598de38c2ea50145847 1	crates/codegen/xai-grok-pager-bin/src/main.rs
+100644 80297255841a06401b561070349860357f32efda 2	crates/codegen/xai-grok-pager-bin/src/main.rs
+100644 1eefac33788c3ce8173fe3e91149eb26a8ffc286 3	crates/codegen/xai-grok-pager-bin/src/main.rs
+100644 aef7a00f7fd6bce2ecb4e0f1c3a1d06d0b8c6079 1	crates/codegen/xai-grok-pager-pty-harness/src/flows.rs
+100644 1fcba97e3ba7196105828ee924572954e9717b76 2	crates/codegen/xai-grok-pager-pty-harness/src/flows.rs
+100644 1f09ecd15301674204226a7f7258d120bbc970fe 3	crates/codegen/xai-grok-pager-pty-harness/src/flows.rs
+100644 b2a6d1321bb50c8899402ad39f60450045f936c7 1	crates/codegen/xai-grok-pager-pty-harness/src/leader.rs
+100644 cbd333779afd36c27f32ab4aba7086b7dd708b40 2	crates/codegen/xai-grok-pager-pty-harness/src/leader.rs
+100644 5ad3e9e609a186460720468de13f39140a0d7864 3	crates/codegen/xai-grok-pager-pty-harness/src/leader.rs
+100644 5e7eb6f17bb1f3201dc527a6a92e01bf9bb0187f 1	crates/codegen/xai-grok-pager-pty-harness/src/pty.rs
+100644 1100092df33477a6e312bc665b2a757ccfbb1106 2	crates/codegen/xai-grok-pager-pty-harness/src/pty.rs
+100644 4f32164784037b50f726c5ad086ec1f697532e68 3	crates/codegen/xai-grok-pager-pty-harness/src/pty.rs
+100644 46e9d2d13cf5b77e4bbbbe5cd0c6f9644f837cb2 1	crates/codegen/xai-grok-pager-pty-harness/src/scripted.rs
+100644 cd986d16561fef7bb446a5e1edbab5c612ff75c3 2	crates/codegen/xai-grok-pager-pty-harness/src/scripted.rs
+100644 ac568de688f2c3c412457582c46eb596946f5d7c 3	crates/codegen/xai-grok-pager-pty-harness/src/scripted.rs
+100644 ad34facc3a479d8d09e6203627686ca2c14b98d8 1	crates/codegen/xai-grok-pager-pty-harness/tests/privacy_banner_e2e.rs
+100644 2c3cab1da37881606ff62af9728bb1d459e78506 2	crates/codegen/xai-grok-pager-pty-harness/tests/privacy_banner_e2e.rs
+100644 19be542fd641cecce0e23cdf4dce7c4b2cc7ee73 3	crates/codegen/xai-grok-pager-pty-harness/tests/privacy_banner_e2e.rs
+100644 ea61651425bb6a68d38f0df3d3a07172dc62dbbb 1	crates/codegen/xai-grok-pager-pty-harness/tests/settings_locked_row_e2e.rs
+100644 c1f933fd811823606cb8f23258ed974a9bed4011 2	crates/codegen/xai-grok-pager-pty-harness/tests/settings_locked_row_e2e.rs
+100644 9df552a48552c2e18c02c8893f10ba3da3e22bcc 3	crates/codegen/xai-grok-pager-pty-harness/tests/settings_locked_row_e2e.rs
+100644 a2ef1eea3f8cea6bc08c9a95b054f54f488c4388 1	crates/codegen/xai-grok-pager-render/src/appearance/mod.rs
+100644 34b97c60428f092751948605d77804da99423bf7 2	crates/codegen/xai-grok-pager-render/src/appearance/mod.rs
+100644 a14766c416d05fa3a1f8e28349a73a1c1cc87ff2 3	crates/codegen/xai-grok-pager-render/src/appearance/mod.rs
+100644 91dfafb87d85bc5d65ea91f0740ac0f02e4b110b 1	crates/codegen/xai-grok-pager-render/src/appearance/watcher.rs
+100644 5da3efa590eceee3caf682320e89dac2ea5bd692 2	crates/codegen/xai-grok-pager-render/src/appearance/watcher.rs
+100644 0966fbe304716a479fa4fc54493e042e95ff72b8 3	crates/codegen/xai-grok-pager-render/src/appearance/watcher.rs
+100644 47d90135ea7409c108358de2995b06668aa12a7b 1	crates/codegen/xai-grok-pager-render/src/clipboard/mod.rs
+100644 d0b694ea2eb5a65e7175cb7f67a84e71081a04cf 2	crates/codegen/xai-grok-pager-render/src/clipboard/mod.rs
+100644 d228b5cbce8f2f8b40020468c7b9b5ba2f100237 3	crates/codegen/xai-grok-pager-render/src/clipboard/mod.rs
+100644 1a57520182291f15a53d6369331b2c989445673d 1	crates/codegen/xai-grok-pager-render/src/clipboard/trust.rs
+100644 83296fc76bf9d1e5fd2a7a47cb825aa31c944112 2	crates/codegen/xai-grok-pager-render/src/clipboard/trust.rs
+100644 4cc2ca5318cd778c250770be50a648e9591bcbcd 3	crates/codegen/xai-grok-pager-render/src/clipboard/trust.rs
+100644 45e32eed5efac13dace28c8bf71559c133527432 1	crates/codegen/xai-grok-pager-render/src/input/scroll_log.rs
+100644 f6994ae4288c8b309e0ae300feba467d06f7194f 2	crates/codegen/xai-grok-pager-render/src/input/scroll_log.rs
+100644 90e813eb8576c3cb1c0893573801b0cc40ef0277 3	crates/codegen/xai-grok-pager-render/src/input/scroll_log.rs
+100644 9c40de7a9e4f082114dd8607f3efedd6d000ab28 1	crates/codegen/xai-grok-pager-render/src/prompt_images.rs
+100644 d4e19cbe37b8518eecb377730c2cfafc59448273 2	crates/codegen/xai-grok-pager-render/src/prompt_images.rs
+100644 a37374931422bd9199d872fd95f8ec675ad16f14 3	crates/codegen/xai-grok-pager-render/src/prompt_images.rs
+100644 f28e0f4673936153d6948d068fd535a1aad7a49b 1	crates/codegen/xai-grok-pager-render/src/render/osc8.rs
+100644 86cc726480d7775b57317028d0e50ecdd188bb75 2	crates/codegen/xai-grok-pager-render/src/render/osc8.rs
+100644 4644d79d8d23f7f5a13db66fa92f673a1a23db5c 3	crates/codegen/xai-grok-pager-render/src/render/osc8.rs
+100644 7de80cb2770519f0c426dee2e5b6d76c21b756db 1	crates/codegen/xai-grok-pager-render/src/syntax.rs
+100644 032698cb50b0227877430bd4f2fd49c664c90960 2	crates/codegen/xai-grok-pager-render/src/syntax.rs
+100644 4719b7a6d816ffae324a78b3117af531cc2a8f0e 3	crates/codegen/xai-grok-pager-render/src/syntax.rs
+100644 93452231b2ed7f59223b8228c43e62eee98a2fbb 1	crates/codegen/xai-grok-pager-render/src/terminal/mod.rs
+100644 ca3b8d5e88d2f53abbcafa1a434db94e83d65547 2	crates/codegen/xai-grok-pager-render/src/terminal/mod.rs
+100644 3705711d544172f7590536a015b06c6780695203 3	crates/codegen/xai-grok-pager-render/src/terminal/mod.rs
+100644 3a7b2f9c2b9d8b81bcbfa0ead7d3edb14e8a62cf 1	crates/codegen/xai-grok-pager-render/src/theme/cache.rs
+100644 76cc2f7d19a558300839055f4e451f965f4d3e07 2	crates/codegen/xai-grok-pager-render/src/theme/cache.rs
+100644 16dc68f3f3b21aa6158cca2b22b25a8c86cacb05 3	crates/codegen/xai-grok-pager-render/src/theme/cache.rs
+100644 11b839e4c96913cb2aad86a800d566cc4b16a164 1	crates/codegen/xai-grok-pager-render/src/theme/color_support.rs
+100644 1cdfec0e983ff01623d592be84c466c6d9ba50dc 2	crates/codegen/xai-grok-pager-render/src/theme/color_support.rs
+100644 2193fd2f7af4a2be59617e82fc8b36ce309ed794 3	crates/codegen/xai-grok-pager-render/src/theme/color_support.rs
+100644 8f14e097345dbc02c56f99738236ced36bacc249 1	crates/codegen/xai-grok-pager-render/src/theme/grokday.rs
+100644 fce6258990d34c27548d5fddcc96e42b1801971d 2	crates/codegen/xai-grok-pager-render/src/theme/grokday.rs
+100644 408e513b0d1e647e4d86f25d23df2bd58d158014 3	crates/codegen/xai-grok-pager-render/src/theme/grokday.rs
+100644 35581b55d1e362b544318080a6604304989de1c4 1	crates/codegen/xai-grok-pager-render/src/theme/groknight.rs
+100644 cfc0bcab8958e3b949d6f36a4fa3029e159c2234 2	crates/codegen/xai-grok-pager-render/src/theme/groknight.rs
+100644 db2374cd952d8749ab0fa27b7263781ba70713a2 3	crates/codegen/xai-grok-pager-render/src/theme/groknight.rs
+100644 fff8675b694c6f3407e1414d2ef537cafb70aa0a 1	crates/codegen/xai-grok-pager-render/src/theme/mod.rs
+100644 8577d382be6ab6a1d13cce940760225a1dae2335 2	crates/codegen/xai-grok-pager-render/src/theme/mod.rs
+100644 ce4d583fe2d38c2829e4fe5f93189e8410d9319b 3	crates/codegen/xai-grok-pager-render/src/theme/mod.rs
+100644 d664ff4d67d15a85dabaf3b73ba26eec33dd838c 1	crates/codegen/xai-grok-pager-render/src/util.rs
+100644 fd99844cb15cae57ac3b1215263b0851104622f7 2	crates/codegen/xai-grok-pager-render/src/util.rs
+100644 6a9d1e66f2e4dd9c9405ad14c0bef1a05b10f547 3	crates/codegen/xai-grok-pager-render/src/util.rs
+100644 995a9bab05f9688b15f7c6883cb96834566f8fbf 1	crates/codegen/xai-grok-pager/benches/edit_highlight.rs
+100644 7b3d518b5964f244adff4b080c18fc5699d7e202 2	crates/codegen/xai-grok-pager/benches/edit_highlight.rs
+100644 d1c3983d041693e75ee24cd10928657effeb7cbe 3	crates/codegen/xai-grok-pager/benches/edit_highlight.rs
+100644 aff87c58842d12780fba016a8442d8194c886aab 1	crates/codegen/xai-grok-pager/docs/custom-hooks.md
+100644 0e99671eeb0f98fb93f9a45f1fa8e38eaa6490d2 2	crates/codegen/xai-grok-pager/docs/custom-hooks.md
+100644 bceada0b6b857e687bb7619b1b3838b45eef07da 3	crates/codegen/xai-grok-pager/docs/custom-hooks.md
+100644 5154feb94771d64f9521cd7c56399016ab3d0c87 1	crates/codegen/xai-grok-pager/docs/tutorial/09-where-next.md
+100644 0a0eae7101427fec0d30f620835eea163d3d8e76 2	crates/codegen/xai-grok-pager/docs/tutorial/09-where-next.md
+100644 63aa4cf8f2536136ac78e35f13a9fada8849f8f8 3	crates/codegen/xai-grok-pager/docs/tutorial/09-where-next.md
+100644 a6d3ed28a0ce23e8a0a2449bf94974006cc16dc4 1	crates/codegen/xai-grok-pager/docs/user-guide/01-getting-started.md
+100644 3f8f2b8ccd5bce9c3a51be632b77426f2d51daf1 2	crates/codegen/xai-grok-pager/docs/user-guide/01-getting-started.md
+100644 6c2199b2bec0aa62220a64c78ceae0d1d33f94aa 3	crates/codegen/xai-grok-pager/docs/user-guide/01-getting-started.md
+100644 723efc5b91874535777cca954e62547106b0d11f 1	crates/codegen/xai-grok-pager/docs/user-guide/04-slash-commands.md
+100644 f51bdc7d313d1202bc04bae7d1a4ff5af9561278 2	crates/codegen/xai-grok-pager/docs/user-guide/04-slash-commands.md
+100644 6c928d7fa1a47e12414001e902b71925e1115254 3	crates/codegen/xai-grok-pager/docs/user-guide/04-slash-commands.md
+100644 eab9040e92581505b57afeacb17ed3dbaa2415e3 1	crates/codegen/xai-grok-pager/docs/user-guide/05-configuration.md
+100644 5f40337da0711f6af7f50289b09c69497f149553 2	crates/codegen/xai-grok-pager/docs/user-guide/05-configuration.md
+100644 03a74394276a93cc98194a27a8f5292c2a52eca0 3	crates/codegen/xai-grok-pager/docs/user-guide/05-configuration.md
+100644 79b168add71df9a97d403cccc5ecd95dd1f10969 1	crates/codegen/xai-grok-pager/docs/user-guide/06-theming.md
+100644 c56eb3182a9a603ff976ab13cfd82a78aaea9493 2	crates/codegen/xai-grok-pager/docs/user-guide/06-theming.md
+100644 c90004d12984d8c489b9056c8e0d1e23f67d5467 3	crates/codegen/xai-grok-pager/docs/user-guide/06-theming.md
+100644 61c2cdee05272382baaba1afcffb64c04802c023 1	crates/codegen/xai-grok-pager/docs/user-guide/08-skills.md
+100644 13db696bd36a8ef787a010fe921aa85b14aa7032 2	crates/codegen/xai-grok-pager/docs/user-guide/08-skills.md
+100644 f57abd1c58726119276e162c350e8cf6dd672d3d 3	crates/codegen/xai-grok-pager/docs/user-guide/08-skills.md
+100644 30ab528dd361ea748584fbb449fa40a8bdbfda79 1	crates/codegen/xai-grok-pager/docs/user-guide/09-plugins.md
+100644 de552b40eae36b6a83e028598d9ad119d5fedfe7 2	crates/codegen/xai-grok-pager/docs/user-guide/09-plugins.md
+100644 74d219613ff53ee3ebf1414b96326fbe412dbb63 3	crates/codegen/xai-grok-pager/docs/user-guide/09-plugins.md
+100644 ad468b67485c0e41e57856f373cb6a71a2fb79bb 1	crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md
+100644 2ddb6976db03cd3f66c7182046d7c94d9a58b3ec 2	crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md
+100644 6ee2802a0dec4fcd82b39559a74908993abde133 3	crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md
+100644 7bb1012d92c304507dec0c49c1e0f0f18d2aab9c 1	crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md
+100644 bac8ff4e84ccce36177d175ff7af125263d23628 2	crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md
+100644 9fa00e99c53cd17f60579acbd769fcd641a4c7ff 3	crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md
+100644 44540f239192ed27b25e273a9e585abf043411f0 1	crates/codegen/xai-grok-pager/docs/user-guide/12-project-rules.md
+100644 550189c09c0c5dccd169a5c3e9508244fdf03e20 2	crates/codegen/xai-grok-pager/docs/user-guide/12-project-rules.md
+100644 25c03ebeac316edaa4386752e70bb2a613124850 3	crates/codegen/xai-grok-pager/docs/user-guide/12-project-rules.md
+100644 3cf7fc2988d1979b4e11e14477586f3a2c0520fa 1	crates/codegen/xai-grok-pager/docs/user-guide/13-memory.md
+100644 10a53b724751ec2c3f8f7c895949fcb990fe07dc 2	crates/codegen/xai-grok-pager/docs/user-guide/13-memory.md
+100644 37e8aaf66cad53f4d3a419971a0793a080caa057 3	crates/codegen/xai-grok-pager/docs/user-guide/13-memory.md
+100644 87189f2797225dcd29fa9ad7610c8141020b553b 1	crates/codegen/xai-grok-pager/docs/user-guide/15-agent-mode.md
+100644 1dd7ebc7abf77a1934abc2f870eceed63b69fab7 2	crates/codegen/xai-grok-pager/docs/user-guide/15-agent-mode.md
+100644 c025513e2821768e826ccdaec7eb77bb806a3337 3	crates/codegen/xai-grok-pager/docs/user-guide/15-agent-mode.md
+100644 aba6ef7440017ca71e171dba0c152e458ef89052 1	crates/codegen/xai-grok-pager/docs/user-guide/16-subagents.md
+100644 3baeb1e83dbc8fadd3b824e690199dc3fac776f3 2	crates/codegen/xai-grok-pager/docs/user-guide/16-subagents.md
+100644 a5361b7bf8304db8c850115a97f232bdb5b1d3c5 3	crates/codegen/xai-grok-pager/docs/user-guide/16-subagents.md
+100644 25188d5863b5fee29ebf2c008dc4c42f14643f8a 1	crates/codegen/xai-grok-pager/docs/user-guide/18-sandbox.md
+100644 caeeb60527e16b693045c9061ace96a4d47a6a16 2	crates/codegen/xai-grok-pager/docs/user-guide/18-sandbox.md
+100644 16a1326176efce73e3f177aa1e3bc76b763f858c 3	crates/codegen/xai-grok-pager/docs/user-guide/18-sandbox.md
+100644 8986ec50bd93023d5671b580636c12ab45967f25 1	crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md
+100644 192f0bc2c56c6456a7e1f1905a326c1ef6fb1810 2	crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md
+100644 6bb0848226f3300ab419a8f5c1b205d2316cc1ea 3	crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md
+100644 440395a901c39cfb31feebd1f8fa8b97e5bd405b 1	crates/codegen/xai-grok-pager/docs/user-guide/23-dashboard.md
+100644 349fbb0449ac8f4affbceffd3b72c77ad92707c4 2	crates/codegen/xai-grok-pager/docs/user-guide/23-dashboard.md
+100644 51c3bc7996fdceaf9697d446c1c55afd25623289 3	crates/codegen/xai-grok-pager/docs/user-guide/23-dashboard.md
+100644 0237e81b973fbdc1e0caaba00f7fd75ed65f9ea8 1	crates/codegen/xai-grok-pager/docs/user-guide/24-monitoring-usage.md
+100644 11a103d3106daf909f808e30507c70e10d5be40d 2	crates/codegen/xai-grok-pager/docs/user-guide/24-monitoring-usage.md
+100644 c48ba0ad95a217b0a89de668f63296e835d3b17a 3	crates/codegen/xai-grok-pager/docs/user-guide/24-monitoring-usage.md
+100644 2553bd8a8f6986e1259ee5ff225d3a3f42aa6309 1	crates/codegen/xai-grok-pager/examples/real_session_benchmark.rs
+100644 a1cb67a14f1127341c1e62d3e7ca3b6dccb00306 2	crates/codegen/xai-grok-pager/examples/real_session_benchmark.rs
+100755 22837c4cce4d0bc27d53d34e2a81c3607b4cbc7d 1	crates/codegen/xai-grok-pager/npm/astra/bin/astra
+100755 d6ee30255489ca5faf4546f529c0f3c9bac5c81a 2	crates/codegen/xai-grok-pager/npm/astra/bin/astra
+100755 aedc8c02cfe5df876d7f236b2061cf61367b0db4 3	crates/codegen/xai-grok-pager/npm/astra/bin/astra
+100755 eeeff04e0e3cc6cf92f7dfcd89435a06f68ca87d 3	crates/codegen/xai-grok-pager/npm/astra/bin/grok-bootstrap.js
+100644 469d7c496c265467231315f3a0d83532f3b8a0da 1	crates/codegen/xai-grok-pager/npm/astra/bin/postinstall.js
+100644 de34f2c3acaa32a3658c22408876ddc1078f2274 2	crates/codegen/xai-grok-pager/npm/astra/bin/postinstall.js
+100644 38ec2676ab922563fca5963ad862695718b8a7cb 3	crates/codegen/xai-grok-pager/npm/astra/bin/postinstall.js
+100644 8701314556c44b67bebfac33e0407ffdd1b5bc89 1	crates/codegen/xai-grok-pager/npm/astra/scripts/test-postinstall.js
+100644 3ee7dc6ca5788d911264bd51c23d3b19da42440e 2	crates/codegen/xai-grok-pager/npm/astra/scripts/test-postinstall.js
+100644 c86d63cf5b67ddea23fa9ad67f36e43e92e259c1 3	crates/codegen/xai-grok-pager/npm/astra/scripts/test-postinstall.js
+100644 5a0bcef964bda2aa97e41599e700f18a0a45243d 1	crates/codegen/xai-grok-pager/scripts/install-enterprise.ps1
+100644 dadb0beb5f41971d308ee362e3cf6e3cc6334172 2	crates/codegen/xai-grok-pager/scripts/install-enterprise.ps1
+100644 80b1096f4334fa9e2fad5be96fa0e6a8ea5c008f 3	crates/codegen/xai-grok-pager/scripts/install-enterprise.ps1
+100755 677dea5c15e28d18483e39557eb35bed0eae9957 1	crates/codegen/xai-grok-pager/scripts/install-enterprise.sh
+100755 bf13680c31f4cad170840408de5c9fa2d0552ca6 2	crates/codegen/xai-grok-pager/scripts/install-enterprise.sh
+100755 345f5ca12903df7a4f0086ffabcd5c1206b52635 3	crates/codegen/xai-grok-pager/scripts/install-enterprise.sh
+100644 e4ad340ba1fe36b6ca68eaf1b6787bdc7da82cbd 1	crates/codegen/xai-grok-pager/scripts/install.ps1
+100644 beb130f7c36ab2f3b45d72a074ed00cbeb8a0dbd 2	crates/codegen/xai-grok-pager/scripts/install.ps1
+100644 b64de2200a6d234dedab3f0d5d568a20873c94b7 3	crates/codegen/xai-grok-pager/scripts/install.ps1
+100755 2ce09ccc646b855bc25cf4046c2484dec88bca65 1	crates/codegen/xai-grok-pager/scripts/install.sh
+100755 03614def3dae6523e41c154d08aca7900810a62d 2	crates/codegen/xai-grok-pager/scripts/install.sh
+100755 d75988f2ed031b31ee37750bb700f71b7bb9b911 3	crates/codegen/xai-grok-pager/scripts/install.sh
+100644 41a3a5bde1cbabb2843828d16ae038eacead6bb2 1	crates/codegen/xai-grok-pager/src/acp/mod.rs
+100644 6460d9565408af9887bc468b33e7c8d6c97beb23 2	crates/codegen/xai-grok-pager/src/acp/mod.rs
+100644 572c9b0d939e6a66d46caec014b8c635f79a3506 3	crates/codegen/xai-grok-pager/src/acp/mod.rs
+100644 c82819bfd634cf177f08e6cfd86ad28ba20458b5 1	crates/codegen/xai-grok-pager/src/acp/model_state.rs
+100644 07c310b217c1980e51a41f054e2ef76b244acba7 2	crates/codegen/xai-grok-pager/src/acp/model_state.rs
+100644 f8a02f1414cbe5b9ca67efbe00779058c26d34fb 3	crates/codegen/xai-grok-pager/src/acp/model_state.rs
+100644 59176fcf9f5f15d5c959e7e3a312c69a3845cadb 1	crates/codegen/xai-grok-pager/src/actions/defaults.rs
+100644 8df35b816a0f68396f4ac5b4c35c1ab61e7f0f13 2	crates/codegen/xai-grok-pager/src/actions/defaults.rs
+100644 051c520b72fde8a74e20b7d6cf5b17baea5d4692 3	crates/codegen/xai-grok-pager/src/actions/defaults.rs
+100644 c3c95d9e553aac8550f352f2529a5280a96885c6 1	crates/codegen/xai-grok-pager/src/app/acp_handler/permissions.rs
+100644 cfe4bb16e813cdfbb73fe0d42fdbddaf659995c4 2	crates/codegen/xai-grok-pager/src/app/acp_handler/permissions.rs
+100644 7f8ab93613a5b9d3f965b158ed510f47eb082d6e 3	crates/codegen/xai-grok-pager/src/app/acp_handler/permissions.rs
+100644 da6bbbc5cb9c77a7a7bbf9cc123e12665b0674e1 1	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/announcements.rs
+100644 af83dfa415c48f0492f5349ae8b2dc1dfdd18c82 2	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/announcements.rs
+100644 11706a561b3ee1f54592c838cf30b07c30e1e02f 3	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/announcements.rs
+100644 2711443cfea93814c0ecc97676d722592214d35e 1	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/mod.rs
+100644 3529558497d9db5fc940372345d38f647daa489f 2	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/mod.rs
+100644 92eb124fd963e400a6dc825b586f7497a1fee0bf 3	crates/codegen/xai-grok-pager/src/app/acp_handler/tests/mod.rs
+100644 943d5fd5805d1f0763db1b6c056259a385df3168 1	crates/codegen/xai-grok-pager/src/app/actions.rs
+100644 9f393971d82d4b57df5a4b565218aaec75fc72f2 2	crates/codegen/xai-grok-pager/src/app/actions.rs
+100644 1ea6b7ea46f5ff664e0008677b35224479fc01f8 3	crates/codegen/xai-grok-pager/src/app/actions.rs
+100644 6d4fc1c59254d38537b8d16095b072725d14b037 1	crates/codegen/xai-grok-pager/src/app/agent_view/notices.rs
+100644 5c1c0fb9bebc049b49b892b6afc3aa42f0918790 2	crates/codegen/xai-grok-pager/src/app/agent_view/notices.rs
+100644 3fe89874e7287fc85da1973edf3b358be8139553 3	crates/codegen/xai-grok-pager/src/app/agent_view/notices.rs
+100644 00ad1205f07908d9d4688e042ed4471e56cefe9e 1	crates/codegen/xai-grok-pager/src/app/agent_view/shell_completion.rs
+100644 dbc8b8d016125dabb6cbd5ba28d6e5283d859c1c 2	crates/codegen/xai-grok-pager/src/app/agent_view/shell_completion.rs
+100644 fe62fee893445ad5317134e9f4f63735e3215536 3	crates/codegen/xai-grok-pager/src/app/agent_view/shell_completion.rs
+100644 42c295cdaf2ebba722332c7bd99ad0091fac8397 1	crates/codegen/xai-grok-pager/src/app/app_view.rs
+100644 d18b019636900ec3869ab7abe7e4eecab298ca9b 2	crates/codegen/xai-grok-pager/src/app/app_view.rs
+100644 68941b8117a71e651790f118cd0a66be163bb7bd 3	crates/codegen/xai-grok-pager/src/app/app_view.rs
+100644 f4838e5ddafad343f8e1d4cefeb3a2d767031ad4 1	crates/codegen/xai-grok-pager/src/app/app_view_tests.rs
+100644 56c4b582e675da79e9a4868bec29f05d74685de7 2	crates/codegen/xai-grok-pager/src/app/app_view_tests.rs
+100644 d28549b14fb04285b7567be363c37356f604bf0d 3	crates/codegen/xai-grok-pager/src/app/app_view_tests.rs
+100644 21c215cde9dfe0d55c091d1d52eeb47f79585c1b 1	crates/codegen/xai-grok-pager/src/app/cli.rs
+100644 583008b0609bfe7a92ee8c4f6b82f5f32a0948c3 2	crates/codegen/xai-grok-pager/src/app/cli.rs
+100644 87f63aef9443ec272ef9a37dfd774b6114d08d8f 3	crates/codegen/xai-grok-pager/src/app/cli.rs
+100644 fead44242f7d730f0096d5303bf989f2ab1a9569 1	crates/codegen/xai-grok-pager/src/app/dispatch/billing.rs
+100644 9c62500c1e825766bda3bc15b91dd87b8725eb60 2	crates/codegen/xai-grok-pager/src/app/dispatch/billing.rs
+100644 016e9526dc8631068d15f5f744cbb4faccc1ba9f 3	crates/codegen/xai-grok-pager/src/app/dispatch/billing.rs
+100644 441122889f253c64e50e4c906fe346bcd06e4d04 1	crates/codegen/xai-grok-pager/src/app/dispatch/modes.rs
+100644 2c0d271e20e88d72deaba6f241258ddd68a0dda4 2	crates/codegen/xai-grok-pager/src/app/dispatch/modes.rs
+100644 bdf3d0d70f12b017861eac024b6dfd72d837e97b 3	crates/codegen/xai-grok-pager/src/app/dispatch/modes.rs
+100644 fd04d7de8c21ecc127e01cca511129e6d78400db 1	crates/codegen/xai-grok-pager/src/app/dispatch/notes.rs
+100644 1625390803b3a8ee1fb58a29606aefcbfc396d21 2	crates/codegen/xai-grok-pager/src/app/dispatch/notes.rs
+100644 77c4b54f17fe0224e211eec94780b5d985d9beb8 3	crates/codegen/xai-grok-pager/src/app/dispatch/notes.rs
+100644 305be253a77adff98b5dbb29f38919a0ba383199 1	crates/codegen/xai-grok-pager/src/app/dispatch/permissions.rs
+100644 8a50b6fd493423341065fe75b1aeab52561f6d93 2	crates/codegen/xai-grok-pager/src/app/dispatch/permissions.rs
+100644 da0ee04f9f29dc855dd4264253be3c63f596caa8 3	crates/codegen/xai-grok-pager/src/app/dispatch/permissions.rs
+100644 897952fb7c2d4fa1862639683c895924e00b5d43 1	crates/codegen/xai-grok-pager/src/app/dispatch/router.rs
+100644 06673e5427680fb78ebbe16d5eada769d90c5e38 2	crates/codegen/xai-grok-pager/src/app/dispatch/router.rs
+100644 66bac5a628cf26ec2042a4f08c7b724f9cdb2b09 3	crates/codegen/xai-grok-pager/src/app/dispatch/router.rs
+100644 7d7b8d76f302ed6dc4af8a764b68b89ec6a9b2a7 1	crates/codegen/xai-grok-pager/src/app/dispatch/session/lifecycle.rs
+100644 844181238073caf564dd388417d2aff08e7dd05f 2	crates/codegen/xai-grok-pager/src/app/dispatch/session/lifecycle.rs
+100644 ba8189df9b1b0f14c0c6b2b963d008c32b2e76a2 3	crates/codegen/xai-grok-pager/src/app/dispatch/session/lifecycle.rs
+100644 02a0b9642610d992fc5544a8161712f6a6a67d3a 1	crates/codegen/xai-grok-pager/src/app/dispatch/settings/setters.rs
+100644 5582a221b77fe060d5b8b813dc46270ba1b1d3d9 2	crates/codegen/xai-grok-pager/src/app/dispatch/settings/setters.rs
+100644 7d396d11a2a10adfad4601f9fdd02e5a4697a93a 3	crates/codegen/xai-grok-pager/src/app/dispatch/settings/setters.rs
+100644 f9a88aaa8da4d7a735f39a301e7c8bc5ac8dc77d 1	crates/codegen/xai-grok-pager/src/app/dispatch/status.rs
+100644 a40bd87206f7f16e426f2928def4aec39c53eb17 2	crates/codegen/xai-grok-pager/src/app/dispatch/status.rs
+100644 ab39342e8187e64db007c804a66c5487897959db 3	crates/codegen/xai-grok-pager/src/app/dispatch/status.rs
+100644 cc73702208cead1f7f37f23b431cbf9d0b1947da 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/dashboard.rs
+100644 d353f6c8d27b95dcad2f7352482533fbad52a136 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/dashboard.rs
+100644 7e5c78e457e8e93b12c53c35bfe84743c7d9ed44 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/dashboard.rs
+100644 30e36ebbc2addcec5853d9043d289841a5f33dff 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/mod.rs
+100644 26741a89db5e827ccf1f9112e4ce8e2d7d061896 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/mod.rs
+100644 e091e423432615acd75b703e1169c1141f4a798e 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/mod.rs
+100644 57b5451384ac614ffa8c3e97e7682130c5bb383d 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/prompt.rs
+100644 58b6e4b92584b4b28ca126b08edb43a862b67f94 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/prompt.rs
+100644 8486f585eb34617e82bd9353c4e42b2355477cdc 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/prompt.rs
+100644 356de3e65ec46aa607bfcc8c23f43d3770181758 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/router.rs
+100644 dc5867cce1c223261852661f262e091581d0be5c 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/router.rs
+100644 3087f8ab382e57d206bba643870f218ec31e2227 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/router.rs
+100644 afb691dda057cc48446b7a75bcd742ec64d922b5 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/foreign.rs
+100644 b1d4a238ff4bc62db2a049cbe207fbf7e44905b5 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/foreign.rs
+100644 cefdb5b741f3093e739c2bd1afa965d34428f34a 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/foreign.rs
+100644 bc24a684700f1b38d521d6e7b2e804f07bc9949c 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/lifecycle.rs
+100644 6acbc26fb58ab6e9f9b03c9e2d333faa35eb556b 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/lifecycle.rs
+100644 b29e8402aa96cf3b6c1b4a33ec3629a369aeb30b 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/lifecycle.rs
+100644 93043c53ff7e727b575d7dc5a8f4dcd2bcb8cd2e 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/load.rs
+100644 76b02531d69e57f3cf3d7bfe9463b314738af7ec 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/load.rs
+100644 3c9335e6c8a3402182c3bab835176e1e3ad5d3a3 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/load.rs
+100644 b621614441ca809acb39e9e9392ba5121bfdf921 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/settings.rs
+100644 a3057b9eb549569831ffc5563bddf78a9b951814 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/settings.rs
+100644 f83938138596c59a5adf3d75965669bd9e5ae1b3 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/settings.rs
+100644 0cf73959d491ab5f43c5de41ea8c764d5886b8b7 1	crates/codegen/xai-grok-pager/src/app/dispatch/tests/status.rs
+100644 d3ec012e2d66b8cef694d9f7e1676a7725bf5c45 2	crates/codegen/xai-grok-pager/src/app/dispatch/tests/status.rs
+100644 5bb393ab08528a704aeb7e41682c470d6e935d19 3	crates/codegen/xai-grok-pager/src/app/dispatch/tests/status.rs
+100644 7b0efcb1d1b3a9618e4f47ef76312f2a7589a956 1	crates/codegen/xai-grok-pager/src/app/event_loop.rs
+100644 7c80c0aeeb9f944d6510646d9471944d4f08ba7f 2	crates/codegen/xai-grok-pager/src/app/event_loop.rs
+100644 e5a38875a4fff4770901b88ec4b027273230e9ee 3	crates/codegen/xai-grok-pager/src/app/event_loop.rs
+100644 1080759c3d6f7cb4e933435b87e05b3516c63b98 1	crates/codegen/xai-grok-pager/src/app/leader_cluster/mod.rs
+100644 03cdac6ae447a34d2bbbf872ff367e3d5f077c1f 2	crates/codegen/xai-grok-pager/src/app/leader_cluster/mod.rs
+100644 50c3b262cb7453532e226418346f8bb65a403f8f 3	crates/codegen/xai-grok-pager/src/app/leader_cluster/mod.rs
+100644 8cf8724f894cf4d37eb6c68b535da17b9c62cec6 1	crates/codegen/xai-grok-pager/src/app/leader_cluster/scenarios.rs
+100644 7487a1376484ce473426b56f7d4351885beb388f 2	crates/codegen/xai-grok-pager/src/app/leader_cluster/scenarios.rs
+100644 b3df9ea88dea5456aeb3c2f956f633e60c4a568c 3	crates/codegen/xai-grok-pager/src/app/leader_cluster/scenarios.rs
+100644 4adfeb0d088062e963f0dcfadbea973a8011a651 1	crates/codegen/xai-grok-pager/src/app/mermaid_worker.rs
+100644 9d5e79c41a34cea4d512c9d5ab511e30c14a38b1 2	crates/codegen/xai-grok-pager/src/app/mermaid_worker.rs
+100644 36ffde33c9d4e6b307c7acf564e7b850a6c558d6 3	crates/codegen/xai-grok-pager/src/app/mermaid_worker.rs
+100644 30a5ccebd23d18df4d2efa1d5825fd38340adb0a 1	crates/codegen/xai-grok-pager/src/app/mod.rs
+100644 ae9b1a6055eb349b0b62e3d6572a381d39178a61 2	crates/codegen/xai-grok-pager/src/app/mod.rs
+100644 d53d6d010948ae5ba6f461b98e61faded27daeef 3	crates/codegen/xai-grok-pager/src/app/mod.rs
+100644 b37bfb77d6f480774ae6ebcf5238c1fec0291723 1	crates/codegen/xai-grok-pager/src/app/modals.rs
+100644 b18abe228b69b00c7a84fa8ebaf23f4138dbdc44 2	crates/codegen/xai-grok-pager/src/app/modals.rs
+100644 c706b7264be3749b2fd140903f002db582892be5 3	crates/codegen/xai-grok-pager/src/app/modals.rs
+100644 5975d648254a927622463c50b419abe306710784 1	crates/codegen/xai-grok-pager/src/app/session_startup.rs
+100644 bf61205fc4eaa01614fe74762ea752bcdc558c7c 2	crates/codegen/xai-grok-pager/src/app/session_startup.rs
+100644 cbba696ec86eb00f537ff533875093b702d6a325 3	crates/codegen/xai-grok-pager/src/app/session_startup.rs
+100644 167814e3de70ccc06dc707d0944f6d3dca677960 1	crates/codegen/xai-grok-pager/src/app/session_title_resolve_tests.rs
+100644 51d9d7d339a2f20f1ab578cbf3b8b04885d9217f 2	crates/codegen/xai-grok-pager/src/app/session_title_resolve_tests.rs
+100644 2f8fe792fd1db662e877b576bb7c5fd2ca2149c9 3	crates/codegen/xai-grok-pager/src/app/session_title_resolve_tests.rs
+100644 6d7f885d26aa75eef940c2ac18f501d72e7a949d 1	crates/codegen/xai-grok-pager/src/app/subagent.rs
+100644 689da94397bfa33af46192a8faf08225e08308a0 2	crates/codegen/xai-grok-pager/src/app/subagent.rs
+100644 e94b102afe5ed564fc41fa6c4f79a90fb2279d8b 3	crates/codegen/xai-grok-pager/src/app/subagent.rs
+100644 4b1657c86d43356a882eeab520ef6287dfe40a74 1	crates/codegen/xai-grok-pager/src/client_identity.rs
+100644 6140e705ab25e9693f8af33f0f4c76b22327cb93 2	crates/codegen/xai-grok-pager/src/client_identity.rs
+100644 f8371239e2d5fce431406ada9d93e8206e8458b0 3	crates/codegen/xai-grok-pager/src/client_identity.rs
+100644 176f49dcdd81ea2c20aa599dcbd9cbf2e7362093 1	crates/codegen/xai-grok-pager/src/completions_cmd.rs
+100644 8e11085a8db65c85560ee49f242d2e8cd501327f 2	crates/codegen/xai-grok-pager/src/completions_cmd.rs
+100644 ad15d0fe2ed7bdf904b2f1259829ee13d6f891a8 3	crates/codegen/xai-grok-pager/src/completions_cmd.rs
+100644 e868bafc546ca446fcbde50a74ad06db4b23ccce 1	crates/codegen/xai-grok-pager/src/config_toml_edit.rs
+100644 71e5d32bf3468a3c3a9ac5f2f767f74885ce5770 2	crates/codegen/xai-grok-pager/src/config_toml_edit.rs
+100644 cf8a28790043a14d2ec10f70b86e03face32e512 3	crates/codegen/xai-grok-pager/src/config_toml_edit.rs
+100644 193fbee906379253411f8955863f2f18b1ebce70 1	crates/codegen/xai-grok-pager/src/diagnostics/doctor_format_tests.rs
+100644 19f948cebbc4787b3225ee8fb57d96ee957a8541 2	crates/codegen/xai-grok-pager/src/diagnostics/doctor_format_tests.rs
+100644 02f5defd7d2670089449d78b47096109f6a05653 3	crates/codegen/xai-grok-pager/src/diagnostics/doctor_format_tests.rs
+100644 ecb71cb65061c8ee07f2548d2ed748858002dd97 1	crates/codegen/xai-grok-pager/src/diagnostics/fix.rs
+100644 3c770c2f674bfd06819fa10425811f6ca66d113d 2	crates/codegen/xai-grok-pager/src/diagnostics/fix.rs
+100644 bae81f2b96c2801a9d5c071d51ecdf4e91eac32d 3	crates/codegen/xai-grok-pager/src/diagnostics/fix.rs
+100644 506655573ac1613024186a0693a28b508c87a269 1	crates/codegen/xai-grok-pager/src/diagnostics/fix_tests.rs
+100644 5b9f98c94873147e76812f8679140f90e1b1c482 2	crates/codegen/xai-grok-pager/src/diagnostics/fix_tests.rs
+100644 4c301cb293aa690ee7ade6c8ad46bc2f905238a9 3	crates/codegen/xai-grok-pager/src/diagnostics/fix_tests.rs
+100644 137dca202b088aa3b9a0123d12612357d2fdaea5 1	crates/codegen/xai-grok-pager/src/diagnostics/mod.rs
+100644 804f442a6a3e86b08d87216c9aa6e8d19303fa73 2	crates/codegen/xai-grok-pager/src/diagnostics/mod.rs
+100644 34b75dc13687b979567b5075ff9c6322e4509ebf 3	crates/codegen/xai-grok-pager/src/diagnostics/mod.rs
+100644 394e4fa2dd5dfd0c7623711561065f1b9dce59f7 1	crates/codegen/xai-grok-pager/src/diagnostics/model.rs
+100644 411d8d9cee103a710777709d3cb56f43f1093e3e 2	crates/codegen/xai-grok-pager/src/diagnostics/model.rs
+100644 25294d16f519cb10a351815b99dbf45f80af5133 3	crates/codegen/xai-grok-pager/src/diagnostics/model.rs
+100644 73f50b4fc9360f2fe2f5c7fef675192efa2d7dd0 1	crates/codegen/xai-grok-pager/src/disk_usage_cmd/tests.rs
+100644 83a7ede2f3273ae339b126df755768dad94e1323 2	crates/codegen/xai-grok-pager/src/disk_usage_cmd/tests.rs
+100644 58ccbae7e631f0f028a82750116cd398a411906b 3	crates/codegen/xai-grok-pager/src/disk_usage_cmd/tests.rs
+100644 d589196d57e9a7e197ae87b8aa3c04f2ff9c7b7a 1	crates/codegen/xai-grok-pager/src/doctor_cmd/tests.rs
+100644 e6c7196b4b09ef8d967eb706ad917cf9928194d4 2	crates/codegen/xai-grok-pager/src/doctor_cmd/tests.rs
+100644 a8fa5f2ed98cbf17acb728fc4957254f1ce641df 3	crates/codegen/xai-grok-pager/src/doctor_cmd/tests.rs
+100644 16d145df1f13695a0512fa1dfbe3ba2428a5eefb 1	crates/codegen/xai-grok-pager/src/git_info.rs
+100644 87634cca6dc1f265ccbe8f2bed4f20f750fdc182 2	crates/codegen/xai-grok-pager/src/git_info.rs
+100644 47b2367b3cbb35329d9cfc09bd3254926e6425b7 3	crates/codegen/xai-grok-pager/src/git_info.rs
+100644 4a1e6e19a4f8080b179e9e1a1b1c412cdb4f3d45 1	crates/codegen/xai-grok-pager/src/headless/reducer/messages/tests/mod.rs
+100644 36dfa09afa056baa1bf12e2b4608629bc3918097 2	crates/codegen/xai-grok-pager/src/headless/reducer/messages/tests/mod.rs
+100644 75ea69cb9d2f48f49ab7f5cde0d29fb6fb352e7b 3	crates/codegen/xai-grok-pager/src/headless/reducer/messages/tests/mod.rs
+100644 a4e7b0ff416f1bb1627d3ac5abf01939686975c3 1	crates/codegen/xai-grok-pager/src/headless/reducer/messages/web_search.rs
+100644 6067545674cecd05912df5c30672fbce76b836b4 2	crates/codegen/xai-grok-pager/src/headless/reducer/messages/web_search.rs
+100644 18b8914043484b4cf438a6a77c380790e5086cab 3	crates/codegen/xai-grok-pager/src/headless/reducer/messages/web_search.rs
+100644 33af318f4e9743a1c678d86e9cd1e16f5c6fc60d 1	crates/codegen/xai-grok-pager/src/headless/reducer/messages/wire.rs
+100644 2c15db5bb9a1cde06867ac90e7cf2f86042f20b1 2	crates/codegen/xai-grok-pager/src/headless/reducer/messages/wire.rs
+100644 0980323a17789ce19c6496aa42659b6e784871ca 3	crates/codegen/xai-grok-pager/src/headless/reducer/messages/wire.rs
+100644 e4f86e9ba11539e3ef8748ed4b64583011e1f84c 1	crates/codegen/xai-grok-pager/src/headless/reducer/mod.rs
+100644 883e34241ed9b6fff5324d4af895d788c3b6a678 2	crates/codegen/xai-grok-pager/src/headless/reducer/mod.rs
+100644 92bded6812e8c4e241464c661b05e40dfd091000 3	crates/codegen/xai-grok-pager/src/headless/reducer/mod.rs
+100644 9f121cced828594e9de625f82937273d093ca8e9 1	crates/codegen/xai-grok-pager/src/lib.rs
+100644 23590ca62f574da8c1e12296f2ed7eb5096cb2de 2	crates/codegen/xai-grok-pager/src/lib.rs
+100644 37f5f1d47bc05f3af3252988796616baf60de2de 3	crates/codegen/xai-grok-pager/src/lib.rs
+100644 4b3fde65c0ffea77abbeccb3d462905a94de0fd9 1	crates/codegen/xai-grok-pager/src/mcp_cmd.rs
+100644 a09c36f81661adffcd1d4417c95fb254eb994b08 2	crates/codegen/xai-grok-pager/src/mcp_cmd.rs
+100644 d2b196c6452dc1b27afdf23fa69e6665489d12b1 3	crates/codegen/xai-grok-pager/src/mcp_cmd.rs
+100644 1b6951453d0ad13ed5d69d88f4ea876954920990 1	crates/codegen/xai-grok-pager/src/memory_trace.rs
+100644 51187ff3a1bcc13d2c13d48e257d67ea4e704808 2	crates/codegen/xai-grok-pager/src/memory_trace.rs
+100644 e29eaf4ad0155b4013de6152ed56cbab48cbde53 3	crates/codegen/xai-grok-pager/src/memory_trace.rs
+100644 88b38315f85572977979ede4c8d3b9262495a2fd 1	crates/codegen/xai-grok-pager/src/notifications/mod.rs
+100644 043771fa82f29d03a825b32eb56b723ef4dad2c9 2	crates/codegen/xai-grok-pager/src/notifications/mod.rs
+100644 a429342bf196ab960ae6b29adca17d293f429665 3	crates/codegen/xai-grok-pager/src/notifications/mod.rs
+100644 0b886b3529a8c319f8a28c27317dbb08cc4dd3c9 1	crates/codegen/xai-grok-pager/src/scrollback/render_tests.rs
+100644 4be104f45b71945094add70ec303f266a06cdec4 2	crates/codegen/xai-grok-pager/src/scrollback/render_tests.rs
+100644 ff51a3e1b2afbcf85cff8050309acf006814360e 3	crates/codegen/xai-grok-pager/src/scrollback/render_tests.rs
+100644 ff3c94eb6ef46fcdb1c5587fb6f0382141ec6e18 1	crates/codegen/xai-grok-pager/src/settings/defs.rs
+100644 b4292d0dd0af8a7ca2ae843542d4b7131907f800 2	crates/codegen/xai-grok-pager/src/settings/defs.rs
+100644 1441a3554af330d6ac1f2d5846ac84353915adbd 3	crates/codegen/xai-grok-pager/src/settings/defs.rs
+100644 a21c115e8699daee47386cf072dd3a78e0febc5e 1	crates/codegen/xai-grok-pager/src/settings/registry.rs
+100644 a2df2e4ac48ed713688188dd190309f8c63ce53a 2	crates/codegen/xai-grok-pager/src/settings/registry.rs
+100644 8ca1b9a482e3ac39db159d29384a0fd82fea199b 3	crates/codegen/xai-grok-pager/src/settings/registry.rs
+100644 88b33663e7a7eded0e9959359a51e8c77107ba73 1	crates/codegen/xai-grok-pager/src/slash/commands/dashboard.rs
+100644 1bd797905f0ef1a4196eddcfd470373d08c715a9 2	crates/codegen/xai-grok-pager/src/slash/commands/dashboard.rs
+100644 e73dc4398b8071ab0e6e2caf393b6568c77137df 3	crates/codegen/xai-grok-pager/src/slash/commands/dashboard.rs
+100644 a169cd2577c300f360c498c26bf0770fe4bc1e49 1	crates/codegen/xai-grok-pager/src/slash/commands/docs.rs
+100644 ad27e7ff1a82ddd768bab67847f863b80c1dae6e 2	crates/codegen/xai-grok-pager/src/slash/commands/docs.rs
+100644 aa2351c7d6845c800bf722274ec7e4e2da8c20af 3	crates/codegen/xai-grok-pager/src/slash/commands/docs.rs
+100644 a838cc6d558a032897f0e112c2591dec56b18fec 1	crates/codegen/xai-grok-pager/src/slash/commands/mod.rs
+100644 57e75ea8b12162de0da57b87aece527222c3ced5 2	crates/codegen/xai-grok-pager/src/slash/commands/mod.rs
+100644 b98b974a33286017fcc5d31ca04bb99f38de2710 3	crates/codegen/xai-grok-pager/src/slash/commands/mod.rs
+100644 949df538e02d4ab6772bcb44d10393fc975e09c4 1	crates/codegen/xai-grok-pager/src/slash/commands/model.rs
+100644 f0b1b8fb38736e2c43a9daaf25cfe4646655bbb1 2	crates/codegen/xai-grok-pager/src/slash/commands/model.rs
+100644 4fee836deaa4138ad55e0f31525bbff803bcae91 3	crates/codegen/xai-grok-pager/src/slash/commands/model.rs
+100644 248efe1843a079b58f1cf9dcab01f3a9f27b6c3e 1	crates/codegen/xai-grok-pager/src/slash/commands/tutorial.rs
+100644 566d890bcee02ffc3c2ae36f15eeb72a785ceea2 2	crates/codegen/xai-grok-pager/src/slash/commands/tutorial.rs
+100644 ec8c0820118c20b32035899940b8173cf9c1ff64 3	crates/codegen/xai-grok-pager/src/slash/commands/tutorial.rs
+100644 d06675cad01757b41fc3de470d8d1d23f55f39a0 1	crates/codegen/xai-grok-pager/src/test_util.rs
+100644 a070efe972aad0ddc564197974464009284be086 2	crates/codegen/xai-grok-pager/src/test_util.rs
+100644 d64e8a2a829fe719f012cec452fa4366d45aa1f7 3	crates/codegen/xai-grok-pager/src/test_util.rs
+100644 fade0cf0a798531440839c3537950c71a6753d2a 1	crates/codegen/xai-grok-pager/src/views/dashboard/mod.rs
+100644 10850d89f592ea5dc60982b82a86f5f803de0b18 2	crates/codegen/xai-grok-pager/src/views/dashboard/mod.rs
+100644 4fa76baad7aa918643b0312b951bcc6db65d26b4 3	crates/codegen/xai-grok-pager/src/views/dashboard/mod.rs
+100644 a3026558beab427cd7f63b600f7f06367e96a5d0 1	crates/codegen/xai-grok-pager/src/views/dashboard/render.rs
+100644 8b5ff00fb015a261416a137f8d741ec1e5b7f7ed 2	crates/codegen/xai-grok-pager/src/views/dashboard/render.rs
+100644 eba9fac0034e889d1a0e9d665403ee6bb5e51179 3	crates/codegen/xai-grok-pager/src/views/dashboard/render.rs
+100644 e8c52936a1cb883b0b232b7541204cb6bb8c8b93 1	crates/codegen/xai-grok-pager/src/views/dashboard/state.rs
+100644 356229afb7f57d470e38b58bf6ccdc2592330fd4 2	crates/codegen/xai-grok-pager/src/views/dashboard/state.rs
+100644 198f578183c84ced440c3dba62fe2887cfd9cb94 3	crates/codegen/xai-grok-pager/src/views/dashboard/state.rs
+100644 64b9229cdd91c9edca4f0e7731df3edc59ced215 1	crates/codegen/xai-grok-pager/src/views/dashboard/state_tests.rs
+100644 a5bae2f759a1d16371e3f4f0c8989b15eb49c6fc 2	crates/codegen/xai-grok-pager/src/views/dashboard/state_tests.rs
+100644 761992963a710c604c4bda207128f89dd4c6f76b 3	crates/codegen/xai-grok-pager/src/views/dashboard/state_tests.rs
+100644 554a82f658322238717be617773ccd4d9fe49089 1	crates/codegen/xai-grok-pager/src/views/extensions_modal.rs
+100644 d36c1e0a0598e3105c5665bae98021671639c342 2	crates/codegen/xai-grok-pager/src/views/extensions_modal.rs
+100644 ee3e0848fcd6ae65cfbd769a239edae8113181d9 3	crates/codegen/xai-grok-pager/src/views/extensions_modal.rs
+100644 1bcee69a953c8d579f38ca21a70ff7e2c257b6be 1	crates/codegen/xai-grok-pager/src/views/import_claude_modal.rs
+100644 2ac665bdc10701bddad70027d5e3c1cb45788eca 2	crates/codegen/xai-grok-pager/src/views/import_claude_modal.rs
+100644 bf7e4a294ae41351e750f1a0cf306596ee3522d8 3	crates/codegen/xai-grok-pager/src/views/import_claude_modal.rs
+100644 e828f6e8f04159ea6bd14c4756a51847125424a7 1	crates/codegen/xai-grok-pager/src/views/modal.rs
+100644 39adf572fdd515b4d1f67f8a40ee6c0eef74b50a 2	crates/codegen/xai-grok-pager/src/views/modal.rs
+100644 f3430ccf9adc7b45aec5ef987587a09986bdd6a7 3	crates/codegen/xai-grok-pager/src/views/modal.rs
+100644 38e51520a3a6b53ae4bdfcdbd5c57f60720415c0 1	crates/codegen/xai-grok-pager/src/views/permission_view.rs
+100644 3aa390dec2c01f7e9179e709cbb539ec827dd60d 2	crates/codegen/xai-grok-pager/src/views/permission_view.rs
+100644 33a572d3babf5d683fa08b8d44af18e9bf69fdad 3	crates/codegen/xai-grok-pager/src/views/permission_view.rs
+100644 2f1ca1d372ede7cb79ac73c571b2c7f96546a8fe 1	crates/codegen/xai-grok-pager/src/views/prompt_widget/mod.rs
+100644 77ee7b1e443b22d8f4a800020ca2d16847ff9493 2	crates/codegen/xai-grok-pager/src/views/prompt_widget/mod.rs
+100644 17584ef1c394392e3a7c0d1fe5b16ac9453f0bc3 3	crates/codegen/xai-grok-pager/src/views/prompt_widget/mod.rs
+100644 e1c7244aa1152073abf75c806ff87c53e83953eb 1	crates/codegen/xai-grok-pager/src/views/prompt_widget/tests.rs
+100644 350e70659370c65a6079c5e91d88810c4dbe08c6 2	crates/codegen/xai-grok-pager/src/views/prompt_widget/tests.rs
+100644 86985dfdca5039685656b697844c856cbd85a619 3	crates/codegen/xai-grok-pager/src/views/prompt_widget/tests.rs
+100644 073f81c6a0ea7c9437de497546d1249b4321d953 1	crates/codegen/xai-grok-pager/src/views/question_view.rs
+100644 3d3213e87afb2c262384155e96d6cd5e33eb7cc3 2	crates/codegen/xai-grok-pager/src/views/question_view.rs
+100644 0d207cd1238012efc8588e94b3c614a6af8987b6 3	crates/codegen/xai-grok-pager/src/views/question_view.rs
+100644 a9bb1c1a49450980d32b984957c1e560e4fd88ec 1	crates/codegen/xai-grok-pager/src/views/session_picker.rs
+100644 656ea1f0d6a6e601ce5b08834dc736389318613f 2	crates/codegen/xai-grok-pager/src/views/session_picker.rs
+100644 7fa276e578a478dc4ab4cfd072f01452ae5b006b 3	crates/codegen/xai-grok-pager/src/views/session_picker.rs
+100644 57bfe256cdeef486f16dd0983c1e90bd59ebcc79 1	crates/codegen/xai-grok-pager/src/views/settings_modal/state.rs
+100644 e6a38fff4c93216e5100b541a68bafe1e409e60a 2	crates/codegen/xai-grok-pager/src/views/settings_modal/state.rs
+100644 0a39e425c9f6121be2e4e2873d45bc7bd02dd0e0 3	crates/codegen/xai-grok-pager/src/views/settings_modal/state.rs
+100644 2b64e239d2028a1847584abd312fec2e604fe73c 1	crates/codegen/xai-grok-pager/src/views/settings_modal/tests.rs
+100644 628204dc18445acfc950edc10580bdc66e5610ba 2	crates/codegen/xai-grok-pager/src/views/settings_modal/tests.rs
+100644 5514607ac9e01e50db75448ad3b4b3d74b0148a2 3	crates/codegen/xai-grok-pager/src/views/settings_modal/tests.rs
+100644 31afeaa06f8e4fa0bc432d8713f91e1458355744 1	crates/codegen/xai-grok-pager/src/views/welcome/hero_box.rs
+100644 1a15d1826b56fe929015f7e52e6317b22218acc1 2	crates/codegen/xai-grok-pager/src/views/welcome/hero_box.rs
+100644 aa0b24af63247fa22977e29fda6749c3e6d5f51a 3	crates/codegen/xai-grok-pager/src/views/welcome/hero_box.rs
+100644 da2fc19faa6fdde3bb78dac4b0d148bb76b9c744 1	crates/codegen/xai-grok-pager/src/views/welcome/logo.rs
+100644 5adc5928f63d48a7b1733225d18e0c53f488423d 2	crates/codegen/xai-grok-pager/src/views/welcome/logo.rs
+100644 0ffb88d89f00522347ad1d30308704faece5154d 3	crates/codegen/xai-grok-pager/src/views/welcome/logo.rs
+100644 545afbc1b8833c6c4d2d5bb9871b82f425afc6b7 1	crates/codegen/xai-grok-pager/src/views/welcome/mod.rs
+100644 c9da567d0d69083b05869477856ab8731f73cec9 2	crates/codegen/xai-grok-pager/src/views/welcome/mod.rs
+100644 88cf8337d24d6e31b26c68e7407f848a2275c818 3	crates/codegen/xai-grok-pager/src/views/welcome/mod.rs
+100644 84119a0e5db3a7496144449bd16b2c94b62a3a7c 1	crates/codegen/xai-grok-pager/src/voice/auth.rs
+100644 fc2ecba3fb141b6377c7ba515205d3cf55d61ae7 2	crates/codegen/xai-grok-pager/src/voice/auth.rs
+100644 4ffc070cfeb0a60c6a6433448652ff0a06b44e27 3	crates/codegen/xai-grok-pager/src/voice/auth.rs
+100644 6eb41573601175bfceb820d8fa252bd450b12e73 1	crates/codegen/xai-grok-pager/tests/doctor_early_dispatch.rs
+100644 938dcbb7a755fbf381d7fccd9c45dbd8eb1cfc7d 2	crates/codegen/xai-grok-pager/tests/doctor_early_dispatch.rs
+100644 6c006c1563d0ed771d3a281eeb9619fd5ea38601 3	crates/codegen/xai-grok-pager/tests/doctor_early_dispatch.rs
+100644 42bb30fd4723b69c48af867a1f600ec71ff2c51b 1	crates/codegen/xai-grok-pager/tests/fixtures/historic_bash_cmds.txt
+100644 9eb5402d751eb0682682e19479f73cd6ff878c44 2	crates/codegen/xai-grok-pager/tests/fixtures/historic_bash_cmds.txt
+100644 0b5e6b7988ef93131a3df4b0ce04cfd0f256afba 1	crates/codegen/xai-grok-pager/tests/grok_home_paths.rs
+100644 248d354e0e05f9d57d1fa9a8fc0b2a716f951159 2	crates/codegen/xai-grok-pager/tests/grok_home_paths.rs
+100644 7f75fd5c45fecb579fd3cb07a4021da5f2695de8 3	crates/codegen/xai-grok-pager/tests/grok_home_paths.rs
+100644 3c017ae6d2e8a1ba3fda85b60d623437fb84b49b 1	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/campaign_leader_mode_remote_dismiss_on_model_pick.rs
+100644 311cc8d32e27900d2806063d04034d0055829b4d 2	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/campaign_leader_mode_remote_dismiss_on_model_pick.rs
+100644 107e5f2b4bb74b71879b25146181e1be733b934f 3	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/campaign_leader_mode_remote_dismiss_on_model_pick.rs
+100644 b0b7e795e0bfa334b98739f264a3c68ad67511f1 1	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/leader_two_clients_shared_session.rs
+100644 015c9d92f720a3f1d4bc698bf8be3407b98c4a8e 2	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/leader_two_clients_shared_session.rs
+100644 77b0350706f1bca6f1dfb76232c9bc357420504d 3	crates/codegen/xai-grok-pager/tests/leader_pty_e2e/leader_two_clients_shared_session.rs
+100644 536a4ac9b0617e588be3b89a5fc5f0ea34303436 1	crates/codegen/xai-grok-pager/tests/pty_e2e/common.rs
+100644 94455ecdc54cfe9ff2299f7e1afe8bad98014e51 2	crates/codegen/xai-grok-pager/tests/pty_e2e/common.rs
+100644 a5c945b8f52066ce8e01dd1b304258ae08fa1c48 3	crates/codegen/xai-grok-pager/tests/pty_e2e/common.rs
+100644 588b66feabdf09938897abad7cc5de34e880a572 1	crates/codegen/xai-grok-pager/tests/pty_e2e/feedback_slash_opens_descriptive_pane.rs
+100644 6c7d07434394ce943fabec30e07ca0385ea8a605 2	crates/codegen/xai-grok-pager/tests/pty_e2e/feedback_slash_opens_descriptive_pane.rs
+100644 90bab393f82f5047b4fa0dfadd798c0ca7ff2c80 1	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_cwd_is_home_git_repo_no_prompt.rs
+100644 89a40b0638005d16dbec85e45c128f02876aea8a 2	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_cwd_is_home_git_repo_no_prompt.rs
+100644 77b43656579942ff476012186a9db4ae79555059 3	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_cwd_is_home_git_repo_no_prompt.rs
+100644 f1aa6cbb1eaa921e0891031bf4d66ab26bfc7de3 1	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_home_git_repo_subdir_keys_on_subdir.rs
+100644 dca5993cf6b3659827b560b9be5a8bf18f42fb41 2	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_home_git_repo_subdir_keys_on_subdir.rs
+100644 3e704f8e90504747f27b7551e7a1175681ec0253 3	crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_home_git_repo_subdir_keys_on_subdir.rs
+100644 bd778ad5ea3a3ea8b44f0caade7c979dd14ce8b7 1	crates/codegen/xai-grok-pager/tests/pty_e2e/forced_wheel_mode_env_scrolls_exact_rows.rs
+100644 79f22f7948d6f7ea9318b6a041b75a4d22b71ad9 2	crates/codegen/xai-grok-pager/tests/pty_e2e/forced_wheel_mode_env_scrolls_exact_rows.rs
+100644 7f1856e0bf79a94d27484655f344dfd21458482d 3	crates/codegen/xai-grok-pager/tests/pty_e2e/forced_wheel_mode_env_scrolls_exact_rows.rs
+100644 01572a290dc21e69217dc2a4e022dbe110fcf814 1	crates/codegen/xai-grok-pager/tests/pty_e2e/mid_text_skill_token_echo_styled_pty.rs
+100644 a214b3b86b29397e47cfd96b63590184e821ea83 2	crates/codegen/xai-grok-pager/tests/pty_e2e/mid_text_skill_token_echo_styled_pty.rs
+100644 42cfcc0e548e34772915727e005d4f6676376c0c 3	crates/codegen/xai-grok-pager/tests/pty_e2e/mid_text_skill_token_echo_styled_pty.rs
+100644 8e574778aa0ee803393834fc30793af425b5def9 1	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_cli_screen_mode_does_not_persist.rs
+100644 e2d6ef2c4a72b1dda4dd2e03b9d76722aad27e0b 2	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_cli_screen_mode_does_not_persist.rs
+100644 3b2792ffdf345fa09d443b4ae455d16d3e1fe9d9 3	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_cli_screen_mode_does_not_persist.rs
+100644 7f4f1619bd79f5406951b3e5cc78738a7fd0b55c 1	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_commits_thinking_body_to_scrollback.rs
+100644 ec705516744fa8849f4b350fc30e912d15687d02 2	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_commits_thinking_body_to_scrollback.rs
+100644 1e77bcbb75180066d296e8b6f333c4cbb4ce6610 3	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_commits_thinking_body_to_scrollback.rs
+100644 62ccc33f47cdb577465c017719a4e16723aab5c2 1	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_feedback_session_gate_and_pane.rs
+100644 29f2174933e385ef291704aebd8833a1795c0174 2	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_feedback_session_gate_and_pane.rs
+100644 3be723b44e033da99eda2fa6cbbdf59fcf6f312e 1	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_new_session_keeps_history_and_resets.rs
+100644 f323b14ed4c1424ab5f2f522e595405dfad40fe9 2	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_new_session_keeps_history_and_resets.rs
+100644 2be32f199d96e8624bf602153417b77725fb400a 3	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_new_session_keeps_history_and_resets.rs
+100644 7c3069eb8920a946f706119d1cc0127cbf3b7a8f 1	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_from_fullscreen.rs
+100644 cb91f14604ab14ed1fe741109d9330e100fc3c88 2	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_from_fullscreen.rs
+100644 dff38158ea93c468774fb4fd854c4635720137d0 3	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_from_fullscreen.rs
+100644 c5b6c2fe23a0ae361397bcbcfff05ff3a4ceb0ea 1	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_to_fullscreen.rs
+100644 a07677eafae746bbba413f3cb31ed25e7fecf7fa 2	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_to_fullscreen.rs
+100644 378e0767c816f0f37bdcc8cde5613e499a3968f2 3	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_to_fullscreen.rs
+100644 145b0f9e58919b51ee9cda27dc7f1bccda81d5e5 1	crates/codegen/xai-grok-pager/tests/pty_e2e/permission_prompt_hook_chimes_only_on_real_wait.rs
+100644 ba2212bc0fae8640a455fb5e79fa1dea3819f720 2	crates/codegen/xai-grok-pager/tests/pty_e2e/permission_prompt_hook_chimes_only_on_real_wait.rs
+100644 0ea521378594bfb7cff5a3e676fd84df89162206 3	crates/codegen/xai-grok-pager/tests/pty_e2e/permission_prompt_hook_chimes_only_on_real_wait.rs
+100644 74e437af204027097ad2dabe44538d6975589f03 1	crates/codegen/xai-grok-pager/tests/pty_e2e/requirements_version_failure_exits_2_with_guidance.rs
+100644 4076f95fce41b4a2de577235f2c5ec106ecd160a 2	crates/codegen/xai-grok-pager/tests/pty_e2e/requirements_version_failure_exits_2_with_guidance.rs
+100644 fe5f01d0c6ef56ab54ab867e9b89c7e4b6dc41ba 3	crates/codegen/xai-grok-pager/tests/pty_e2e/requirements_version_failure_exits_2_with_guidance.rs
+100644 d583fbc207aa91ec1b4d4fbd4aad9482af62f23e 1	crates/codegen/xai-grok-pager/tests/pty_e2e/undo_tip_seen_count_never_persisted.rs
+100644 1319ac015e25c0cf05347162b99734ab51111a4b 2	crates/codegen/xai-grok-pager/tests/pty_e2e/undo_tip_seen_count_never_persisted.rs
+100644 eb935898d88c0d0911902cd508d5cfe731ec2ae0 3	crates/codegen/xai-grok-pager/tests/pty_e2e/undo_tip_seen_count_never_persisted.rs
+100644 15a0ddede7884f2f6e3b9f7ea8a7787132b224de 1	crates/codegen/xai-grok-pager/tests/pty_e2e/welcome_screen_braille_logo_renders_correctly.rs
+100644 caa7ccbb723f75a7e95897a71a54c0b57545fa95 3	crates/codegen/xai-grok-pager/tests/pty_e2e/welcome_screen_braille_logo_renders_correctly.rs
+100644 e28fc089e0c8a810f608b71868990ba63e7bd5df 1	crates/codegen/xai-grok-pager/tests/pty_e2e/word_select_tip_on_double_click_pty.rs
+100644 02e433c715cd2858d6feb6f715ae0033f4b5eb3f 2	crates/codegen/xai-grok-pager/tests/pty_e2e/word_select_tip_on_double_click_pty.rs
+100644 c70d48d91ed11e7a5420fb43faf96622d4a20575 3	crates/codegen/xai-grok-pager/tests/pty_e2e/word_select_tip_on_double_click_pty.rs
+100644 35e4aaa9110fb76128ce3ded5bf097a22e1d7a44 1	crates/codegen/xai-grok-pager/tests/pty_e2e_smoke.rs
+100644 702474625e5ec86dfa1b2898c13dcc88e93cdd73 2	crates/codegen/xai-grok-pager/tests/pty_e2e_smoke.rs
+100644 61a3485843fd1e665909ede3fb71a7c85c04402c 3	crates/codegen/xai-grok-pager/tests/pty_e2e_smoke.rs
+100644 726edf49b06d21a2f110d0633ffbfa1e4585561f 1	crates/codegen/xai-grok-pager/tests/settings_e2e.rs
+100644 327d666e96ed4def42094658210ae0412b1be529 2	crates/codegen/xai-grok-pager/tests/settings_e2e.rs
+100644 7ae4e8f5bfbf0b3a72d282aa99a16bdddfcbe7ad 3	crates/codegen/xai-grok-pager/tests/settings_e2e.rs
+100644 0a8509cc40d1052883e3697e9673edbfed2ff40c 1	crates/codegen/xai-grok-plugin-marketplace/src/catalog.rs
+100644 6579497343724d8ad15094c544a44a43d63a9270 2	crates/codegen/xai-grok-plugin-marketplace/src/catalog.rs
+100644 109a9939c4d187a0b1e280df31a68a0230533b5d 3	crates/codegen/xai-grok-plugin-marketplace/src/catalog.rs
+100644 e02f28eda232250cb41857713f7df5fedfdb825f 1	crates/codegen/xai-grok-plugin-marketplace/src/config.rs
+100644 20cd51740bcb9d62649384301deb6106a33f62c0 2	crates/codegen/xai-grok-plugin-marketplace/src/config.rs
+100644 5e1f5004dfe4c5abe006777fc499bba2fc888a5e 3	crates/codegen/xai-grok-plugin-marketplace/src/config.rs
+100644 452134ec36323a466f0e2d4cff6fbc6a2125e27e 1	crates/codegen/xai-grok-plugin-marketplace/src/index.rs
+100644 f9c65f64c6f816a20876572317fb13d874ed6282 2	crates/codegen/xai-grok-plugin-marketplace/src/index.rs
+100644 7d1e9fcc27b0819b4b00178c21d04b82e2393e59 3	crates/codegen/xai-grok-plugin-marketplace/src/index.rs
+100644 ede246ece807bbd0b8388667edbd19fe032296d1 1	crates/codegen/xai-grok-plugin-marketplace/src/installer.rs
+100644 63cc2fedcef650862599c188d899f630ee5a3e4a 2	crates/codegen/xai-grok-plugin-marketplace/src/installer.rs
+100644 eed6d553ed1527bba307235626154cdc254a64ab 3	crates/codegen/xai-grok-plugin-marketplace/src/installer.rs
+100644 bab5be6263eae820310c68ca6cc75af21c975842 1	crates/codegen/xai-grok-plugin-marketplace/src/lib.rs
+100644 57e6470235aab9fe71e2569a8414fc127c688b36 2	crates/codegen/xai-grok-plugin-marketplace/src/lib.rs
+100644 a7f864b51aff309798d1b61c3cf1d0de70aa1893 3	crates/codegen/xai-grok-plugin-marketplace/src/lib.rs
+100644 056cd00f377f29e1ea4a3f5bfbf149a6c1742144 1	crates/codegen/xai-grok-plugin-marketplace/src/scanner.rs
+100644 89776bebc188d1124abc388751675aad23d3883b 2	crates/codegen/xai-grok-plugin-marketplace/src/scanner.rs
+100644 32769f4d001d2b77ef403a29beb545174c795ad8 3	crates/codegen/xai-grok-plugin-marketplace/src/scanner.rs
+100644 3226c2a8faef0c40aed68924073d0ae25c9152e8 1	crates/codegen/xai-grok-sampler/src/client.rs
+100644 8b54571f3f29f2c9a2c478b85dd39f0f9cedf801 2	crates/codegen/xai-grok-sampler/src/client.rs
+100644 977e94d2c584e93ca682e9a674531282278e70cc 3	crates/codegen/xai-grok-sampler/src/client.rs
+100644 7ee1b9bc7f1a91fbfe94548611d9f07213dd80c1 1	crates/codegen/xai-grok-sampler/src/stream/chat_completions.rs
+100644 959636770e64862a1bc0cf1045b04019c4a5bd0d 2	crates/codegen/xai-grok-sampler/src/stream/chat_completions.rs
+100644 13882e0e231330558873d8404f6b2f74578e7558 3	crates/codegen/xai-grok-sampler/src/stream/chat_completions.rs
+100644 7bd0cd870c5400ef4d3fb2ba6ce50cfc53ffd62c 1	crates/codegen/xai-grok-sampling-types/src/conversation.rs
+100644 74e1a3351de1cdcd562fac38c56fc5f508453b76 2	crates/codegen/xai-grok-sampling-types/src/conversation.rs
+100644 67c6c6a1bc047f5c578eadb4c642e6c9302608d2 3	crates/codegen/xai-grok-sampling-types/src/conversation.rs
+100644 26a9964c49cfdf1a41b6f01e5c9817469a6bb2ae 1	crates/codegen/xai-grok-sampling-types/src/conversation/messages.rs
+100644 08080e4eae0499b8199c5451b2cd106764a66ac8 2	crates/codegen/xai-grok-sampling-types/src/conversation/messages.rs
+100644 0fa6107014f2648c053f2054f6db5fc3e03c536c 3	crates/codegen/xai-grok-sampling-types/src/conversation/messages.rs
+100644 da8024b9f4766087fa2053acfbbf2db3f8cd0198 1	crates/codegen/xai-grok-sampling-types/src/conversation/responses_tests.rs
+100644 8d79a69eb96afd825a35f838ddf6d145fcafa11a 2	crates/codegen/xai-grok-sampling-types/src/conversation/responses_tests.rs
+100644 e02469482882f116345000f1015763ab8dce3c1c 3	crates/codegen/xai-grok-sampling-types/src/conversation/responses_tests.rs
+100644 ca2d9fa936e123f06c1b6c44752bd175c91990fb 1	crates/codegen/xai-grok-sampling-types/src/error.rs
+100644 fbb40387d99dae374270203da2ec7a15980b01da 2	crates/codegen/xai-grok-sampling-types/src/error.rs
+100644 b718ae3f57246f0578d3339c3f5e4128426e1774 3	crates/codegen/xai-grok-sampling-types/src/error.rs
+100644 e17eebffbcc2c6ed357c70bc95f3ebf41d9c6740 1	crates/codegen/xai-grok-sandbox/src/logging.rs
+100644 4ed3496dca7b718b4f464b61b253e6c6d55aaf48 2	crates/codegen/xai-grok-sandbox/src/logging.rs
+100644 57ff1775ae55c6665993bbb04b97f972031ed60f 3	crates/codegen/xai-grok-sandbox/src/logging.rs
+100644 bed8c52f0b3f23ed73ebb3441d1203d3acf54b9c 1	crates/codegen/xai-grok-sandbox/src/paths.rs
+100644 c3d5d583981e734242d50fc46085d6faf8988cab 2	crates/codegen/xai-grok-sandbox/src/paths.rs
+100644 51b76631f8ecb3010e6991b2279db6a2b8e5c22f 3	crates/codegen/xai-grok-sandbox/src/paths.rs
+100644 59c661e215079c622a56e6bd48ba66d74c591cef 1	crates/codegen/xai-grok-sandbox/src/profiles.rs
+100644 12f676843492ab066e7de206a4094cd138c1fca2 2	crates/codegen/xai-grok-sandbox/src/profiles.rs
+100644 ad8818702d18b61e2487095319dc9bb2399abe66 3	crates/codegen/xai-grok-sandbox/src/profiles.rs
+100644 3831a0e0aa09ba8facf7e40c5b225d88bf060ce5 1	crates/codegen/xai-grok-sandbox/tests/deny_paths_e2e.rs
+100644 0dad887d40c807e8c163773876f992892d13b3d0 2	crates/codegen/xai-grok-sandbox/tests/deny_paths_e2e.rs
+100644 af667722238876e2e68120a91667e783395cd8c1 3	crates/codegen/xai-grok-sandbox/tests/deny_paths_e2e.rs
+100644 2c9b20430ce0a25b91264da0dd48b7d8a369f4c0 1	crates/codegen/xai-grok-shared/src/ui_config.rs
+100644 f4eb243f330ee8c2f4d9022b97cbe0c875f390a7 2	crates/codegen/xai-grok-shared/src/ui_config.rs
+100644 0e84810d10181504c15543c4300738ce06c8c0f2 3	crates/codegen/xai-grok-shared/src/ui_config.rs
+100644 ba1101f91bf2d26008d67d7fbaea26f52cfe9053 1	crates/codegen/xai-grok-shell-base/src/util/changelog.rs
+100644 05a03a997b7e3fadc6e831b41b09c497cb607d9e 2	crates/codegen/xai-grok-shell-base/src/util/changelog.rs
+100644 6ea4197a05b580df1cb37b493c5e8fd572c1b3a4 3	crates/codegen/xai-grok-shell-base/src/util/changelog.rs
+100644 aa00dc01a2c0fea5fc1683c3eb6e8d577f8d6ecd 1	crates/codegen/xai-grok-shell-base/src/util/mod.rs
+100644 027b09ba6d533e9302e41d5ee89eb91fe0e0be75 2	crates/codegen/xai-grok-shell-base/src/util/mod.rs
+100644 8864db3347d57394a9a7e6254bb63994a3d3abdb 3	crates/codegen/xai-grok-shell-base/src/util/mod.rs
+100644 074354cbd5f84786d5af6b55a7b8efdb4c82a1e4 1	crates/codegen/xai-grok-shell-base/src/util/tips.rs
+100644 9a489dd6bcb4d05831fe7b394f9cdbae3bd1b7b6 2	crates/codegen/xai-grok-shell-base/src/util/tips.rs
+100644 488e4298d40461d1a62ed9766d55a877276dd356 3	crates/codegen/xai-grok-shell-base/src/util/tips.rs
+100644 1810dca38e472434ed5eb7ba09146683cacfbb3f 1	crates/codegen/xai-grok-shell-session-support/src/managed_mcp.rs
+100644 f416b9481626189b539800ee939e99fa05190a0a 2	crates/codegen/xai-grok-shell-session-support/src/managed_mcp.rs
+100644 67fbd972bf2fc64b8bbb27742ddf419ccf7c613f 3	crates/codegen/xai-grok-shell-session-support/src/managed_mcp.rs
+100644 93d0c45501a793334aa603541c6728f13bb349ab 1	crates/codegen/xai-grok-shell-terminal/src/local_terminal.rs
+100644 7764b2359b60c5e39c30c39997b0e8ea19bc94f7 2	crates/codegen/xai-grok-shell-terminal/src/local_terminal.rs
+100644 f23d8d5f82f09e45c7dcc2f8e23d13989bfaff47 3	crates/codegen/xai-grok-shell-terminal/src/local_terminal.rs
+100644 ae8111bd012cb664415e3348bbca62cd731f93c1 1	crates/codegen/xai-grok-shell/README.md
+100644 1a654e242c7a178f3c860e093693072aac2c1201 2	crates/codegen/xai-grok-shell/README.md
+100644 a22de198af4511034a219f7330890856be379b60 3	crates/codegen/xai-grok-shell/README.md
+100644 052503da80415263f22a4cfebd62fd2f45ddc7e1 1	crates/codegen/xai-grok-shell/src/agent/auth_method.rs
+100644 9e9af1d303c76c0b4be06d492a32e14ea6b6f562 2	crates/codegen/xai-grok-shell/src/agent/auth_method.rs
+100644 d53bfe57679a5b9279fa5bcb5853c84c2e790454 3	crates/codegen/xai-grok-shell/src/agent/auth_method.rs
+100644 66ede582ee0e9a16f70cc4f3622dd7711a179ff7 1	crates/codegen/xai-grok-shell/src/agent/config.rs
+100644 1857e59d083502a9e26a7323bffa663d937fca34 2	crates/codegen/xai-grok-shell/src/agent/config.rs
+100644 6dc094cec40fe0146e0756faa293b264f1d73d61 3	crates/codegen/xai-grok-shell/src/agent/config.rs
+100644 5a77c52dafe2d2acd616a3770287e440e30937d7 1	crates/codegen/xai-grok-shell/src/agent/config_tests.rs
+100644 f55739f1cec19ca2a5fd8eb32600ef57cd0a785c 2	crates/codegen/xai-grok-shell/src/agent/config_tests.rs
+100644 0cb2e4bba4c10ebcd9a2ec0203251e42c798456c 3	crates/codegen/xai-grok-shell/src/agent/config_tests.rs
+100644 c7102ed667db4c68f0a876580d84935f02437eda 1	crates/codegen/xai-grok-shell/src/agent/folder_trust.rs
+100644 df67c48f832b0517bf920a27c458c68ef058b444 2	crates/codegen/xai-grok-shell/src/agent/folder_trust.rs
+100644 28acfa24eff76cfcc63d9fdbcd1afd5db36d71a4 3	crates/codegen/xai-grok-shell/src/agent/folder_trust.rs
+100644 829fa2bcf4884701269db9b46dd107aacc052ecc 1	crates/codegen/xai-grok-shell/src/agent/models/cache.rs
+100644 c90e024b8a3a437ceb8035aa01d67b12554189c4 2	crates/codegen/xai-grok-shell/src/agent/models/cache.rs
+100644 e194d721f8f6edf037f1cd7e99c6f391b8648ab5 3	crates/codegen/xai-grok-shell/src/agent/models/cache.rs
+100644 f43323622b6a4bcfa1e9c4bd909f0e336b41eda5 1	crates/codegen/xai-grok-shell/src/agent/models/fetch.rs
+100644 fd00bf3dcb1b86677ca54f93c57e67bf05ab59b6 2	crates/codegen/xai-grok-shell/src/agent/models/fetch.rs
+100644 4e5ed8674882bf5c27bc038b421687060464956a 3	crates/codegen/xai-grok-shell/src/agent/models/fetch.rs
+100644 ee0f119c1e5a818284a8a42ce5179bb29e76d48b 1	crates/codegen/xai-grok-shell/src/agent/models/tests.rs
+100644 5179fee0a37482e56d3c33cce8be95f1080bf2a0 2	crates/codegen/xai-grok-shell/src/agent/models/tests.rs
+100644 725bc808e29de6c198e30d0fb74b5075b9df7025 3	crates/codegen/xai-grok-shell/src/agent/models/tests.rs
+100644 2d47b8ccf083e712086913d87e7913fdd9208bdb 1	crates/codegen/xai-grok-shell/src/agent/mvp_agent/folder_trust_prompt.rs
+100644 55691f73d146961da1d85a67df420539d5fb93cf 2	crates/codegen/xai-grok-shell/src/agent/mvp_agent/folder_trust_prompt.rs
+100644 59815aab575ae2fa5ffec7a8035b860e8087a6a3 3	crates/codegen/xai-grok-shell/src/agent/mvp_agent/folder_trust_prompt.rs
+100644 5cc38519fcb7faef8a9795122e8934e99ba8a818 1	crates/codegen/xai-grok-shell/src/agent/mvp_agent/mod.rs
+100644 adb4a11271ee9b2f3a751d75264d37546dbe6625 2	crates/codegen/xai-grok-shell/src/agent/mvp_agent/mod.rs
+100644 df160c7db86a16a36bb84c0dc73c1c38f6c5cdf0 3	crates/codegen/xai-grok-shell/src/agent/mvp_agent/mod.rs
+100644 5a7bdaf9213749651804ac04630d503b75244cbe 1	crates/codegen/xai-grok-shell/src/agent/mvp_agent/tests.rs
+100644 2f6685dc3adae58e104ba3624270b49380a19d98 2	crates/codegen/xai-grok-shell/src/agent/mvp_agent/tests.rs
+100644 cef7b08cb9adfcdf3fd19b13ea6334037a0010e7 3	crates/codegen/xai-grok-shell/src/agent/mvp_agent/tests.rs
+100644 423163fadace6a020c33e483cb552854ff0d5e9d 1	crates/codegen/xai-grok-shell/src/agent/subscription_check.rs
+100644 0b37a6b024518cad2f2f4cf9e3ea4f805f8afcc1 2	crates/codegen/xai-grok-shell/src/agent/subscription_check.rs
+100644 7f0a0a20712b54d10370f807853a1211e9e0f1f6 3	crates/codegen/xai-grok-shell/src/agent/subscription_check.rs
+100644 214d3998096ab7ed793a9ee1d89135cb6c6b9043 1	crates/codegen/xai-grok-shell/src/auth/manager.rs
+100644 e975df0a6dca3840fffd2906ac0b1a31959d7be0 2	crates/codegen/xai-grok-shell/src/auth/manager.rs
+100644 74023940f5f8faf09bdf539d61c28502f18e1c2f 1	crates/codegen/xai-grok-shell/src/builtin.rs
+100644 75f5d537216372999f2c1849cd5c739bd12a7323 2	crates/codegen/xai-grok-shell/src/builtin.rs
+100644 4d998cf8b3a55d62707394d260c3256b0be03784 3	crates/codegen/xai-grok-shell/src/builtin.rs
+100644 a11d909064cf128b6e8d6dcc1781341eb111baea 1	crates/codegen/xai-grok-shell/src/claude_import.rs
+100644 be1d50704f1ac3ad2590d8c46be763226e9a62d3 2	crates/codegen/xai-grok-shell/src/claude_import.rs
+100644 54ef06c0287767096eebcd6bc1755f5cc40b5bcb 3	crates/codegen/xai-grok-shell/src/claude_import.rs
+100644 c08e85c7e2299a9be95d7436d9cce17ff0418da7 1	crates/codegen/xai-grok-shell/src/claude_import_state.rs
+100644 fad8206ec765d6dd9e3ed7a796622b9bb767b211 2	crates/codegen/xai-grok-shell/src/claude_import_state.rs
+100644 5bd4feeaaff11e5f71552da7c64a1a7c1bad0b38 3	crates/codegen/xai-grok-shell/src/claude_import_state.rs
+100644 f38bd344eb671dc47a0a8c906240b4a9ab82e24e 1	crates/codegen/xai-grok-shell/src/cli_models.rs
+100644 c1404e36d457958d7b7a2c2f881ec324e422e0cc 2	crates/codegen/xai-grok-shell/src/cli_models.rs
+100644 328f84bd1a787f918ee45b94fbbb52f15768f807 3	crates/codegen/xai-grok-shell/src/cli_models.rs
+100644 b9990ec3accf2f9f3d0e925608ff5745af743977 1	crates/codegen/xai-grok-shell/src/config/mod.rs
+100644 f0a151ee499e2bbea93ce72fe55da5e45a86b8aa 2	crates/codegen/xai-grok-shell/src/config/mod.rs
+100644 7c90654f380bf495de3780b7d54ca1b86361322d 3	crates/codegen/xai-grok-shell/src/config/mod.rs
+100644 cd22e6976512206e5bc7a6b2c01e94178db7bebf 1	crates/codegen/xai-grok-shell/src/config/reloader.rs
+100644 048f5fadd2dbfec437db0ba3eb9f2ce372c7fdde 2	crates/codegen/xai-grok-shell/src/config/reloader.rs
+100644 89a6b4a16c42de31c27d4cb76d4a0d2fc9a1fd23 3	crates/codegen/xai-grok-shell/src/config/reloader.rs
+100644 9ab3b64206741cc42b409ebda09c3876c192f1db 1	crates/codegen/xai-grok-shell/src/config/tests.rs
+100644 de19e7b7439d6830288ea76a2e83bc5273d0cdd1 2	crates/codegen/xai-grok-shell/src/config/tests.rs
+100644 e211b61cd60120fa18bef8a21d6daa5ad2560535 3	crates/codegen/xai-grok-shell/src/config/tests.rs
+100644 e0a5664c8aabc0031d99846024363b5b8c9ffa76 1	crates/codegen/xai-grok-shell/src/config/watcher.rs
+100644 226839dfcb7b9a633837adcefa0c149889465843 2	crates/codegen/xai-grok-shell/src/config/watcher.rs
+100644 7c1a95c27b75d3916a2363a866bfa7bad13cabc1 3	crates/codegen/xai-grok-shell/src/config/watcher.rs
+100644 28b519efc5672ad78d194d0ff0283203869d87a8 1	crates/codegen/xai-grok-shell/src/extensions/billing.rs
+100644 884b5d62ec656b35fad5f59348abc5f975d3fd62 2	crates/codegen/xai-grok-shell/src/extensions/billing.rs
+100644 27b08d2536a156f05b5900561e1e24727da0d7d9 3	crates/codegen/xai-grok-shell/src/extensions/billing.rs
+100644 afcf6360a7e56b78b0e32112b39e8e485f013b9a 1	crates/codegen/xai-grok-shell/src/extensions/marketplace.rs
+100644 d975043342c86daed9bfd8dde7fea591c6a23bc6 2	crates/codegen/xai-grok-shell/src/extensions/marketplace.rs
+100644 c0a367b2af7e98444aebb0003cd0b87c3cbdf493 3	crates/codegen/xai-grok-shell/src/extensions/marketplace.rs
+100644 82a1e69de43460adc0d099880f705414cfc6a081 1	crates/codegen/xai-grok-shell/src/extensions/session_admin.rs
+100644 f8b153aff511e3505bd7ac195826df08ab503b99 2	crates/codegen/xai-grok-shell/src/extensions/session_admin.rs
+100644 e8aaa102fbc3c0101d460b11109d21d1b55c48cf 3	crates/codegen/xai-grok-shell/src/extensions/session_admin.rs
+100644 1abb7ee392500d636b9040ed187565e068263db9 1	crates/codegen/xai-grok-shell/src/extensions/share.rs
+100644 fc02fe62d3ee42699a07e8e1404f2928f754af55 2	crates/codegen/xai-grok-shell/src/extensions/share.rs
+100644 cfc027e96235ed3fa207385ffa3f407a89c1fe4d 3	crates/codegen/xai-grok-shell/src/extensions/share.rs
+100644 091085cde470cf6a0b1875cee25247c165aae75d 1	crates/codegen/xai-grok-shell/src/inspect/mod.rs
+100644 3635da3105bc2606e6904f3cd1a6f660ad986166 2	crates/codegen/xai-grok-shell/src/inspect/mod.rs
+100644 9e1b16c77aa419ebe1bcf7b12910a70d4cba7cea 3	crates/codegen/xai-grok-shell/src/inspect/mod.rs
+100644 f7380a81d16fbeac94b6e6fde40e1aa0020307f8 1	crates/codegen/xai-grok-shell/src/leader/lock.rs
+100644 7ca2fd8f19d841afe84293f3cde59874421625c4 2	crates/codegen/xai-grok-shell/src/leader/lock.rs
+100644 7c800838f4b58bcaa46810cb24c61d242ddd7b35 3	crates/codegen/xai-grok-shell/src/leader/lock.rs
+100644 9b629cdb5d12f5d76f906cd52163ec7038ead777 1	crates/codegen/xai-grok-shell/src/leader/mod.rs
+100644 656f044281c8f5b13e95020c8e4128d80d27d9e9 2	crates/codegen/xai-grok-shell/src/leader/mod.rs
+100644 3481645f4e8c9f129e3d4bcf0567c781aad3de7c 3	crates/codegen/xai-grok-shell/src/leader/mod.rs
+100644 6aef87ad1222ad2e5554c9606495516788b12563 1	crates/codegen/xai-grok-shell/src/managed_config.rs
+100644 30e573682d854c502bc4410f567a2cea2f4d5069 2	crates/codegen/xai-grok-shell/src/managed_config.rs
+100644 d8e38cc8b92127ea25c2065dd1b9beb14e87a4f1 1	crates/codegen/xai-grok-shell/src/plugin/mod.rs
+100644 99f4b01b54dcfb0fc305c7494a1ad263a142be41 2	crates/codegen/xai-grok-shell/src/plugin/mod.rs
+100644 c2bb0627e9230b26002defbb4b0f4496b4521087 3	crates/codegen/xai-grok-shell/src/plugin/mod.rs
+100644 a62f38fa2635dccded052d33ade5f9e4f51280b7 1	crates/codegen/xai-grok-shell/src/remote/client_tests.rs
+100644 232f7c286682d1e50a96ce33b2955c00e5a681ec 2	crates/codegen/xai-grok-shell/src/remote/client_tests.rs
+100644 e397b7ff3f80229bd8dbb6e337beb0721d5665a4 3	crates/codegen/xai-grok-shell/src/remote/client_tests.rs
+100644 f13d3c454d2d94de7755463af3909992888e9089 1	crates/codegen/xai-grok-shell/src/remote/skills_client.rs
+100644 9dec962150dde3168e4412387a5eb8033a4f232e 2	crates/codegen/xai-grok-shell/src/remote/skills_client.rs
+100644 cd450676222d2c851c50cac3acd5bd07e02f4e87 3	crates/codegen/xai-grok-shell/src/remote/skills_client.rs
+100644 17be09282cfa5826f64bc46731963edb54bdd62a 1	crates/codegen/xai-grok-shell/src/sampling/error.rs
+100644 681fb787873cf6b2681b65ddfa01e2d93b168c23 2	crates/codegen/xai-grok-shell/src/sampling/error.rs
+100644 1658f852064222948db1e6a3194c5aa0cd7cca99 3	crates/codegen/xai-grok-shell/src/sampling/error.rs
+100644 3161d3f3be33f2aa49f0517ed7f1d5727e9617b1 1	crates/codegen/xai-grok-shell/src/session/acp_conversion.rs
+100644 f16f47e2b2dd1097f493826d0b95dc68c271a5ec 2	crates/codegen/xai-grok-shell/src/session/acp_conversion.rs
+100644 3cd55671b2dfef9629766ebb91f736e3811e3f81 3	crates/codegen/xai-grok-shell/src/session/acp_conversion.rs
+100644 709f55b54b86745997f770ed9718d87893d8d9ac 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/laziness.rs
+100644 f42b7ec48e23c178da03249c391972789187583c 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/laziness.rs
+100644 55b39461f86bc7bedd9331f39f5197d15eed5f66 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/laziness.rs
+100644 ec0a234e749597975293272dd48ca70cd94bef2b 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/mcp.rs
+100644 f8a3342a1e240ac10b2d8b4e34ddeceb00983e2e 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/mcp.rs
+100644 3e3198bdc2474c32b7fed3086abe542eadf13e56 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/mcp.rs
+100644 0386c7676f2602c03fdc373e03222fd994e08de6 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/memory_dream.rs
+100644 6d8c303de691398f48902a1b9bc903256c44e25d 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/memory_dream.rs
+100644 dd543e829a3dece73e1e4646c4925dcdcd124017 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/memory_dream.rs
+100644 69e496021424810d6f8b9419d90779bdb38d277a 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs
+100644 6baa699ef1b02107b2d5f19ce3b96c3abc0e96d8 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs
+100644 f6ad8294b665f2a6c08a14ab3efb47d841b5691e 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs
+100644 e5679b0a66cf9ddf0acbac5f574b6eb01a2391dd 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/recap.rs
+100644 5bad764999b3193bfb82ecef3a3a77d18121809d 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/recap.rs
+100644 e49716f6e89324e43157a6a6cba318189b94f5ee 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/recap.rs
+100644 31926e02fccfb39ff0bdcb315374bf18ffe1ba73 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/run_loop.rs
+100644 17dece1eb17e329c120b56c983aa08fe074164a9 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/run_loop.rs
+100644 ab30a524464f3be8b3129229a5d4edce5f23f075 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/run_loop.rs
+100644 966c4bd1387f33d70d80c5bd2acb0db25a3afd87 1	crates/codegen/xai-grok-shell/src/session/acp_session_impl/tool_calls.rs
+100644 25ae92a2ac7003d45d78073a198d4d83fd4489c0 2	crates/codegen/xai-grok-shell/src/session/acp_session_impl/tool_calls.rs
+100644 b15a7fa9b33226f677d3166a1fdd3c0e3c1b5982 3	crates/codegen/xai-grok-shell/src/session/acp_session_impl/tool_calls.rs
+100644 5a30083436efa44970144eaf01d03f185218d430 1	crates/codegen/xai-grok-shell/src/session/acp_session_tests/auth_error_no_retry_tests.rs
+100644 eb71ccb408fe89fa22b6f864967de61ccc588d35 2	crates/codegen/xai-grok-shell/src/session/acp_session_tests/auth_error_no_retry_tests.rs
+100644 560efd8c9066e04734583e76234fd364bb54ab2c 3	crates/codegen/xai-grok-shell/src/session/acp_session_tests/auth_error_no_retry_tests.rs
+100644 af1f7312215663f8306885a0439ae9c6ca161e44 1	crates/codegen/xai-grok-shell/src/session/acp_session_tests/inline_auto_compact_flow_tests.rs
+100644 0755ea076bae90e58dcc70dad03cc4f2d8b0534a 2	crates/codegen/xai-grok-shell/src/session/acp_session_tests/inline_auto_compact_flow_tests.rs
+100644 acf5a6757ecfe130d85f295a2ced747c5e07b198 3	crates/codegen/xai-grok-shell/src/session/acp_session_tests/inline_auto_compact_flow_tests.rs
+100644 f0016e29d16428a720efefa5027156652e69c46b 1	crates/codegen/xai-grok-shell/src/session/acp_session_tests/prompt_queue_actor_tests.rs
+100644 f049df1939af240cd79bd685fcd1882e65d31f55 2	crates/codegen/xai-grok-shell/src/session/acp_session_tests/prompt_queue_actor_tests.rs
+100644 d0b030835b4dc23006419e886d92ed39f2310a36 3	crates/codegen/xai-grok-shell/src/session/acp_session_tests/prompt_queue_actor_tests.rs
+100644 1c6fc4655342957b88cb7e669643a96fd3afc617 1	crates/codegen/xai-grok-shell/src/session/acp_session_tests/support.rs
+100644 620b268d59f5e670464d74c8f4923602a15281d6 2	crates/codegen/xai-grok-shell/src/session/acp_session_tests/support.rs
+100644 18742ed02e3fb3f15e54fd17e4c7eddfd267fafc 3	crates/codegen/xai-grok-shell/src/session/acp_session_tests/support.rs
+100644 ec761f556add29e973ece53e567fd5245fd01211 1	crates/codegen/xai-grok-shell/src/session/acp_session_tests/turn/auth_retry_budget_tests.rs
+100644 c9025cda6fc01c5386e3813b7f3fb5b08b54b91b 2	crates/codegen/xai-grok-shell/src/session/acp_session_tests/turn/auth_retry_budget_tests.rs
+100644 1cec51525412933873d2393149fc31515d21ef5a 3	crates/codegen/xai-grok-shell/src/session/acp_session_tests/turn/auth_retry_budget_tests.rs
+100644 34937cde7de4f6e319bbafe8feb608b7d43551a6 1	crates/codegen/xai-grok-shell/src/session/agent_rebuild.rs
+100644 65f8bf2c175e4edbf21dcf057b2f005992c2b8c6 2	crates/codegen/xai-grok-shell/src/session/agent_rebuild.rs
+100644 951231fbc6715ab07422a1c7db4968b4af398902 3	crates/codegen/xai-grok-shell/src/session/agent_rebuild.rs
+100644 30e83252fca9a9179f3347debc841d14bf31e9a9 1	crates/codegen/xai-grok-shell/src/session/commands.rs
+100644 40ee42be1141a6c872c54fde77c84702b482df44 2	crates/codegen/xai-grok-shell/src/session/commands.rs
+100644 70567da6537091150f31e95b0bede453b7631366 3	crates/codegen/xai-grok-shell/src/session/commands.rs
+100644 dbcf58b5f18199a8bc0f0a48e6e970adf721774f 1	crates/codegen/xai-grok-shell/src/session/feedback.rs
+100644 e1e9311f7a45534114eb983d9a154342ead1a21b 2	crates/codegen/xai-grok-shell/src/session/feedback.rs
+100644 75a967df393d2fcdf6b0931588d2c9fc2ea0dc71 3	crates/codegen/xai-grok-shell/src/session/feedback.rs
+100644 7ab58a97726ce244356c13af5c615fe62e5046db 1	crates/codegen/xai-grok-shell/src/session/feedback_manager.rs
+100644 cbc1726b49062d051c44e9e7ee835dd579ff6e4b 2	crates/codegen/xai-grok-shell/src/session/feedback_manager.rs
+100644 419ba2dbedb19c645374a7380e287229e57d5abf 3	crates/codegen/xai-grok-shell/src/session/feedback_manager.rs
+100644 968dadd3dc13a6c1c004369923c3f30fd6e64359 1	crates/codegen/xai-grok-shell/src/session/image_describe.rs
+100644 cdf030e27bc486e08f51cfef961701135e9e7286 2	crates/codegen/xai-grok-shell/src/session/image_describe.rs
+100644 4384659422e7f00181399bb9d2b4cda8c8df8731 3	crates/codegen/xai-grok-shell/src/session/image_describe.rs
+100644 06c5ac8db78b7cac95cd543a700cb104fa1eef33 1	crates/codegen/xai-grok-shell/src/session/persistence.rs
+100644 d17a362c8f6c5149fd90409e106700984dcd16a6 2	crates/codegen/xai-grok-shell/src/session/persistence.rs
+100644 4586af1d83ec778bf6d125386f16b443a8d6b760 3	crates/codegen/xai-grok-shell/src/session/persistence.rs
+100644 74ccebc70a5d6021a730d2c2cb7f27e048e234b3 1	crates/codegen/xai-grok-shell/src/session/prompt_parser.rs
+100644 453a43245e78742e4153c2aa3d9bf003eed96afa 2	crates/codegen/xai-grok-shell/src/session/prompt_parser.rs
+100644 a19c5c44f1a936a439397e5ed62f41f9f5e493b8 3	crates/codegen/xai-grok-shell/src/session/prompt_parser.rs
+100644 3f017f2da6765fc680fbe431d0e776fdd5b2122f 1	crates/codegen/xai-grok-shell/src/session/slash_commands.rs
+100644 982e21e36d885b141893bf9903fef7ffd53afa6c 2	crates/codegen/xai-grok-shell/src/session/slash_commands.rs
+100644 cd8f799485bc1a7c438f0009852a472e77edb0cc 3	crates/codegen/xai-grok-shell/src/session/slash_commands.rs
+100644 f0a6ccdfd0a6bad0b43fe7df89bc481734c9c603 1	crates/codegen/xai-grok-shell/src/session/storage/relocation/mod.rs
+100644 57cc5237c3aa2468e387daad807a543b3399ce9c 2	crates/codegen/xai-grok-shell/src/session/storage/relocation/mod.rs
+100644 4a4ef531710461381fb2f468395c95ac1d735f10 3	crates/codegen/xai-grok-shell/src/session/storage/relocation/mod.rs
+100644 84bb627bef092c1d206ce7e0390c3a8f20fc9b57 1	crates/codegen/xai-grok-shell/src/session/worktree_pool.rs
+100644 ba7bba04add506da548d92917130f427f2f34bca 2	crates/codegen/xai-grok-shell/src/session/worktree_pool.rs
+100644 0d465f2db8751805cd3914ce0ec5d2f01447f8c4 3	crates/codegen/xai-grok-shell/src/session/worktree_pool.rs
+100644 0c3280b1d5f740e1f7576ed17381a1734c51ca38 1	crates/codegen/xai-grok-shell/src/tools/config.rs
+100644 ec07ae80820228f32ba455e4c4497a4e338047df 2	crates/codegen/xai-grok-shell/src/tools/config.rs
+100644 44a0d97bacf46a819754c678b96b59d1c7a71aef 3	crates/codegen/xai-grok-shell/src/tools/config.rs
+100644 fb3a034276d9f61093df736e373add25357f7e53 1	crates/codegen/xai-grok-shell/src/tools/notification_bridge.rs
+100644 8b8af263416848c5bb43509d987ae1e091c49f2e 2	crates/codegen/xai-grok-shell/src/tools/notification_bridge.rs
+100644 a2ae64f09737965f5c68d2ed9eb02621c0e56321 3	crates/codegen/xai-grok-shell/src/tools/notification_bridge.rs
+100644 66f19bd8d05e92115001b5e9fc3b6e07b2b7bcaf 1	crates/codegen/xai-grok-shell/src/util/config/campaigns.rs
+100644 c251e9fc1d22ece3624e0a8e33af63f542c259e4 2	crates/codegen/xai-grok-shell/src/util/config/campaigns.rs
+100644 bc58254238595f96e4e9f563419fc828c95cec41 3	crates/codegen/xai-grok-shell/src/util/config/campaigns.rs
+100644 a8b66d1784f08adfd2c719a86516870f8357f8f4 1	crates/codegen/xai-grok-shell/src/util/config/mcp.rs
+100644 e54cd20b9facf512439af4c6aa1a7ff95af79267 2	crates/codegen/xai-grok-shell/src/util/config/mcp.rs
+100644 23f8268d29d021004c7c166458223d5d1a2e628c 3	crates/codegen/xai-grok-shell/src/util/config/mcp.rs
+100644 75579df6b333336f7d9c64e71e8f27062ad27b43 1	crates/codegen/xai-grok-shell/src/util/config/persist.rs
+100644 f25fafb96bf693145c8b60e2eb8aac85afb55864 2	crates/codegen/xai-grok-shell/src/util/config/persist.rs
+100644 579159d0adc5cbf6cc8b41860403b916306345ea 3	crates/codegen/xai-grok-shell/src/util/config/persist.rs
+100644 52fafd269f773cafa61506a02347005f4ae45f7f 1	crates/codegen/xai-grok-shell/src/util/config/resolve/mcp.rs
+100644 68a9b82b70f657485ce910bbce4f9ff13e70ed8b 2	crates/codegen/xai-grok-shell/src/util/config/resolve/mcp.rs
+100644 d0c5e015e474aa915c3e6a32242e3a8d12d9a07f 3	crates/codegen/xai-grok-shell/src/util/config/resolve/mcp.rs
+100644 9959fff1b11da004592d2082b726b7efe60c364a 1	crates/codegen/xai-grok-shell/src/util/config/resolve/system_prompt.rs
+100644 c25f98fa7216998f86d07699d94ef0bb2aba4e3b 2	crates/codegen/xai-grok-shell/src/util/config/resolve/system_prompt.rs
+100644 cc862dba8404f3d36f17b49efa9cb846d934e559 3	crates/codegen/xai-grok-shell/src/util/config/resolve/system_prompt.rs
+100644 ed03a0700526be339af27c4fe101dc503fe28e47 1	crates/codegen/xai-grok-shell/src/util/config/resolve/toolset.rs
+100644 0f5728c5af8ed5b70606dd71a1d32b85e9ff9846 2	crates/codegen/xai-grok-shell/src/util/config/resolve/toolset.rs
+100644 c9ebb27afb98aa6a5fd7a99e0892ecc26d0a99f1 3	crates/codegen/xai-grok-shell/src/util/config/resolve/toolset.rs
+100644 f17f177fbd466ea640779ea5371286ee8ab67b68 1	crates/codegen/xai-grok-shell/src/util/config/resolve/version.rs
+100644 e7bbeab8dde4dd2bc23934ddb9c0f87c2f8d561e 2	crates/codegen/xai-grok-shell/src/util/config/resolve/version.rs
+100644 140d528dffe60d28ee20d6dd1e39330c5864396c 3	crates/codegen/xai-grok-shell/src/util/config/resolve/version.rs
+100644 63a3d523543314e0958ff1cba5f4fe7ef4a44449 1	crates/codegen/xai-grok-shell/src/util/hooks.rs
+100644 544f3bfbe3933f448032ec66b3c496165327957f 2	crates/codegen/xai-grok-shell/src/util/hooks.rs
+100644 e28b913b56b7842b885fa1e03f77b6915d9c3a95 3	crates/codegen/xai-grok-shell/src/util/hooks.rs
+100644 311c2ce825e9649a1898e956e51cae7f94045ebe 1	crates/codegen/xai-grok-shell/tests/external_auth_expired_credential.rs
+100644 bab78383de7acb56d465145e8bcc2f5326ad6462 2	crates/codegen/xai-grok-shell/tests/external_auth_expired_credential.rs
+100644 d2e1454c78cec1f5485eb43e2c3ae645ab21fede 3	crates/codegen/xai-grok-shell/tests/external_auth_expired_credential.rs
+100644 d7f7ee1f628ad3402328d8fb6ca46cc851beedfd 1	crates/codegen/xai-grok-shell/tests/git_contention_e2e.rs
+100644 0283dd0979e3a9db88b7a24b72a2579c18b9e3e6 2	crates/codegen/xai-grok-shell/tests/git_contention_e2e.rs
+100644 bbcef09454cec191be478a78680e5bc9a771c7bc 1	crates/codegen/xai-grok-shell/tests/session_load_perf.rs
+100644 d795a7602a5be6432e8305ebecd4edbea867f85a 2	crates/codegen/xai-grok-shell/tests/session_load_perf.rs
+100644 557a83a0ff3542abab9ea4c991a3bf1661779612 1	crates/codegen/xai-grok-shell/tests/test_agent_type_invariant.rs
+100644 df5f22104aad8f30431557ce9f638923bfe1022c 2	crates/codegen/xai-grok-shell/tests/test_agent_type_invariant.rs
+100644 0ec45e492feb71615042ff15f992c8730df02556 1	crates/codegen/xai-grok-shell/tests/test_auth_provider_command_e2e.rs
+100644 83f3a351d9eb8394637c7b4ea8cfafdc397918af 2	crates/codegen/xai-grok-shell/tests/test_auth_provider_command_e2e.rs
+100644 ad2f54ec000bec4d1ac4a7c329d49f8e81739b94 3	crates/codegen/xai-grok-shell/tests/test_auth_provider_command_e2e.rs
+100644 b00e28e75f415dc0b127acc1d7241aa5bc679400 1	crates/codegen/xai-grok-shell/tests/test_built_binary_e2e.rs
+100644 decffad02b5943799a385dfd2c62b3885abc723d 2	crates/codegen/xai-grok-shell/tests/test_built_binary_e2e.rs
+100644 fe1069f7b423e907c966784caec52ccbebe76c3b 1	crates/codegen/xai-grok-shell/tests/test_config_update_isolation.rs
+100644 18c3d5368a3ce275bccdcf3050eb697a6e21843c 2	crates/codegen/xai-grok-shell/tests/test_config_update_isolation.rs
+100644 4ae31bb7e4e19d8fc24c4faf97c583d43e7afef9 3	crates/codegen/xai-grok-shell/tests/test_config_update_isolation.rs
+100644 2475bee727d000497fbe212b1d00468f23d00b8f 1	crates/codegen/xai-grok-shell/tests/test_debug_logging.rs
+100644 aa8cf85d4c8bddd4a56869ec467250334955dc85 2	crates/codegen/xai-grok-shell/tests/test_debug_logging.rs
+100644 9c11a4ac8ead0be8a33a68b8be59e67a67d1238a 1	crates/codegen/xai-grok-shell/tests/test_global_extra_headers_e2e.rs
+100644 1f9ac953464a917bc69f2bd509695a1a7b91c185 2	crates/codegen/xai-grok-shell/tests/test_global_extra_headers_e2e.rs
+100644 83af50326677ebd0be6d35456208584b74391b0b 1	crates/codegen/xai-grok-shell/tests/test_leader_soak.rs
+100644 a29d50b8e365e3e5ea2fa4567e1976ce42a96814 2	crates/codegen/xai-grok-shell/tests/test_leader_soak.rs
+100644 0df70bb8a9355e450dbe9c1f07e025cd88cbe902 1	crates/codegen/xai-grok-shell/tests/test_leader_stdio_integration.rs
+100644 533ed815c7347346f2d291c1c58aa6cdb9a64c90 2	crates/codegen/xai-grok-shell/tests/test_leader_stdio_integration.rs
+100644 1fa947b413d32967c761713ad78e3863614110ef 3	crates/codegen/xai-grok-shell/tests/test_leader_stdio_integration.rs
+100644 9a66812ff2dbe2dd852b8317a06c1f7f4dec4230 1	crates/codegen/xai-grok-shell/tests/test_leader_version_skew.rs
+100644 8e8ae45a1ef8eda64b3ff5725838b9b0c3d835bb 2	crates/codegen/xai-grok-shell/tests/test_leader_version_skew.rs
+100644 61a9897c72e7caa8f9eb1a8bd5c8913444bb87db 1	crates/codegen/xai-grok-shell/tests/test_mcp_permission_persistence.rs
+100644 1d5aadc086d3148e0d3eb5643ea61388f96a7563 2	crates/codegen/xai-grok-shell/tests/test_mcp_permission_persistence.rs
+100644 6aa1fc851bb77d1b5e39de4c75086d20070bb0b5 3	crates/codegen/xai-grok-shell/tests/test_mcp_permission_persistence.rs
+100644 1e4e4760f869a04734d6e7d20b08f90df8874ddf 1	crates/codegen/xai-grok-shell/tests/test_session_load_memory.rs
+100644 06351005cc35fdf68413d007e9a08d201bc30d29 2	crates/codegen/xai-grok-shell/tests/test_session_load_memory.rs
+100644 fc857fccda176a19bec7dfa974aa368dc43c79fe 1	crates/codegen/xai-grok-shell/tests/test_summary_reasoning_effort.rs
+100644 ec4cbbe6967cc09560058a14fbed31b63da0aecb 2	crates/codegen/xai-grok-shell/tests/test_summary_reasoning_effort.rs
+100644 0826c0aa66a3660c79a25b6248792c6be0800120 1	crates/codegen/xai-grok-shell/tests/test_tool_dispatch_duration_smoke.rs
+100644 eb2f413c89934a724c6481db17183afe36babdd0 2	crates/codegen/xai-grok-shell/tests/test_tool_dispatch_duration_smoke.rs
+100644 dedbe0247843d688893425d071593609752468bd 1	crates/codegen/xai-grok-shell/tests/test_trusted_local_plugin_refresh_e2e.rs
+100644 fa14a0632ef25ee7835aa4866b50a19efd6a044d 2	crates/codegen/xai-grok-shell/tests/test_trusted_local_plugin_refresh_e2e.rs
+100644 ace302765c3104006676620e7de8ac5c656be821 3	crates/codegen/xai-grok-shell/tests/test_trusted_local_plugin_refresh_e2e.rs
+100644 6b2f807bbb0775defeac23fb2505d0b4bf29f185 1	crates/codegen/xai-grok-shell/tests/test_vendor_compat.rs
+100644 758780229f9a0b254f5f2366bc19cfa6bf043714 2	crates/codegen/xai-grok-shell/tests/test_vendor_compat.rs
+100644 e3d07f344bad05e50849a10f24f839aa6eb987f6 1	crates/codegen/xai-grok-telemetry/src/config.rs
+100644 6f150cc49d80eedce52802161d4ce0410984f2fa 2	crates/codegen/xai-grok-telemetry/src/config.rs
+100644 bed3b1766db68f5b42dfe8aaa7f71524c57189ac 3	crates/codegen/xai-grok-telemetry/src/config.rs
+100644 a11fa7f7623f58b90e9af85c4619881824e57d2b 1	crates/codegen/xai-grok-telemetry/src/debug_log.rs
+100644 d743ffc963965af9f5bea4be5bf4990614b399c7 2	crates/codegen/xai-grok-telemetry/src/debug_log.rs
+100644 53ec15815c5937edf17649019ce1448ba80aa393 3	crates/codegen/xai-grok-telemetry/src/debug_log.rs
+100644 a31ed1183e2428d20f96a8e05ab39b189d5d1c7f 1	crates/codegen/xai-grok-telemetry/src/events/mod.rs
+100644 3c6c2f5b5d9125de51aff7705bb8703eff2a6873 2	crates/codegen/xai-grok-telemetry/src/events/mod.rs
+100644 afceed207f790c44a75d4dc8659ce0f35a13abfa 3	crates/codegen/xai-grok-telemetry/src/events/mod.rs
+100644 3dec54f4f44d2634ac9ec1f433f7711a22d9548b 1	crates/codegen/xai-grok-telemetry/src/external/config.rs
+100644 a4832e3a4cd75573533ffe18f11bb869a7d5ec8d 2	crates/codegen/xai-grok-telemetry/src/external/config.rs
+100644 b4ecc30e7a8f6841cb857879ba3fd3c6456e1b1d 3	crates/codegen/xai-grok-telemetry/src/external/config.rs
+100644 38a2b2f3c2d29bc77afa17bfdc34d2f71e86c934 1	crates/codegen/xai-grok-telemetry/src/external/mod.rs
+100644 0a30f00dee05a72d08bd7b7186a62ed3bd114190 2	crates/codegen/xai-grok-telemetry/src/external/mod.rs
+100644 1f4d682070500f4e998310351687ff3209ba96d9 3	crates/codegen/xai-grok-telemetry/src/external/mod.rs
+100644 aad1bc5776ff12e65a50b40dfe95169e3932fddb 1	crates/codegen/xai-grok-telemetry/src/hooks_log.rs
+100644 cf93a7e460d90eea172eaeb7d7a3b43cb49b670b 2	crates/codegen/xai-grok-telemetry/src/hooks_log.rs
+100644 13827608dfdea2cb988e964750464f874e1a256f 3	crates/codegen/xai-grok-telemetry/src/hooks_log.rs
+100644 2619058f20b04547fa39422547e901b356f1f67b 1	crates/codegen/xai-grok-telemetry/src/id.rs
+100644 1d23f30a98a2912d9b6759b763eb47e9c94d2739 2	crates/codegen/xai-grok-telemetry/src/id.rs
+100644 a5055680c32a1228b21c84f232dbf32b645ec1d3 3	crates/codegen/xai-grok-telemetry/src/id.rs
+100644 0e9e71d9c52dba04ec03f03430f0b41e3ebc1c78 1	crates/codegen/xai-grok-telemetry/src/lib.rs
+100644 734173bf9b40b30ec363420dee5142d7ec95e619 2	crates/codegen/xai-grok-telemetry/src/lib.rs
+100644 ce0e0f323d1b8acf5ea0082fe1ae0de56e2d72b8 3	crates/codegen/xai-grok-telemetry/src/lib.rs
+100644 1bc4d28d90a8b381505902d00eafde52fb8c32f2 1	crates/codegen/xai-grok-telemetry/src/memory_log.rs
+100644 b74525ff76fb81e37cac9c460fa9b1a07144c748 2	crates/codegen/xai-grok-telemetry/src/memory_log.rs
+100644 bc4f746cfd9c88c2b03cb1c4d82591b0034203ac 3	crates/codegen/xai-grok-telemetry/src/memory_log.rs
+100644 618df50190ef2fc9383d100748efa075f7fca2cd 1	crates/codegen/xai-grok-telemetry/src/unified_log.rs
+100644 085e797f1f3eb993cffe48277474c349439a44da 2	crates/codegen/xai-grok-telemetry/src/unified_log.rs
+100644 9b7db2879b4ee8af956ae6298d8597ee0ad25790 3	crates/codegen/xai-grok-telemetry/src/unified_log.rs
+100644 ca96172c975141929294bea049e2a42fb51d24c2 1	crates/codegen/xai-grok-test-support/README.md
+100644 83e1b8136b9081047b5c5a9cc8f2d99269a40b5f 2	crates/codegen/xai-grok-test-support/README.md
+100644 146909012577d2b4b226e3f0cfa34b18a5ad7d2a 3	crates/codegen/xai-grok-test-support/README.md
+100644 25d7c5df6009c74f9eb0b2945b9f8054ea3a3df8 1	crates/codegen/xai-grok-test-support/src/lib.rs
+100644 e57092b743a8d9505c63e9351e6202ac15118de4 2	crates/codegen/xai-grok-test-support/src/lib.rs
+100644 229c6664a081aea437aec6b61a6ee32d909a27b7 3	crates/codegen/xai-grok-test-support/src/lib.rs
+100644 b69700fc70dab82f1e1e21055f3d2f1e49afecb1 1	crates/codegen/xai-grok-test-support/src/sandbox.rs
+100644 196a9fcd37a612bd773d85c3f7c99002b917e6c6 2	crates/codegen/xai-grok-test-support/src/sandbox.rs
+100644 53099271a2cae58d91a64f54615572ba8339f566 3	crates/codegen/xai-grok-test-support/src/sandbox.rs
+100644 8a935336b35e4eba91bef9b1b670bbb574c2aaaf 1	crates/codegen/xai-grok-tools/build.rs
+100644 ba368b34c1511f0f074ded7091319258016484e7 2	crates/codegen/xai-grok-tools/build.rs
+100644 49953ed2750aa6f0740ee80727cce48997b23c99 3	crates/codegen/xai-grok-tools/build.rs
+100644 d85974eb2cf192072dc7ed2a5c2476040216b910 1	crates/codegen/xai-grok-tools/src/computer/local/embedded_search_tools.rs
+100644 7876d919f5d1983eb2948214ec2e2abeff0eba86 2	crates/codegen/xai-grok-tools/src/computer/local/embedded_search_tools.rs
+100644 089d8dd40110bfb931e7b062e89acbd2be81fc1f 3	crates/codegen/xai-grok-tools/src/computer/local/embedded_search_tools.rs
+100644 0d9e3280574ce8bcf59464443ec80c57985ea207 1	crates/codegen/xai-grok-tools/src/computer/local/terminal.rs
+100644 e31b4320f652762fd9963ebfd377208316ad52b4 2	crates/codegen/xai-grok-tools/src/computer/local/terminal.rs
+100644 e40e30c92401ac72361b3e6f821acb977894ed8a 3	crates/codegen/xai-grok-tools/src/computer/local/terminal.rs
+100644 cc68e8d9cf4775e2a12354e5016a9f5c11f285f9 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/exit_plan_mode/mod.rs
+100644 d0ce2943bab97add3a74584d0ad33ac6ed949528 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/exit_plan_mode/mod.rs
+100644 f0a62c78d9fd9433057367a8f31f38526eff4a81 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/exit_plan_mode/mod.rs
+100644 eecb8dceb2e1851680f6b5720a049cbc16da96ee 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/grep/ripgrep.rs
+100644 c28d97a1a13c114755c027932fbf551afa20551e 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/grep/ripgrep.rs
+100644 6946a2a6ac33cc92d2f7403e1c6dfe38f1037358 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/grep/ripgrep.rs
+100644 78a2689fb1995fb2b55dcb39a87789ab89b544a9 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/image_gen/mod.rs
+100644 ec1ede0c33f92f4c9a8bdcd58b1aebb1d48bfeb1 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/image_gen/mod.rs
+100644 53f5e8e962c4d977e5ea53fb6fb7050b99befe68 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/image_gen/mod.rs
+100644 e2f8a86286c803559c28b7a5e59132f196604a24 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/read_file/mod.rs
+100644 73900df11c4a3f8edba2bc8b2aaacf9b5f4543a1 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/read_file/mod.rs
+100644 c90d44f49d4107559abb38feca9567cd2e47d6c7 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/read_file/mod.rs
+100644 fc0d4463a8cdcf2dbfa447f7081277bd2358a774 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs
+100644 80f4ab7fe91fc19d721369da97b8c8cd466d2f86 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs
+100644 1443181cc0ee9d2946175cf45af0f36bd43898ba 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs
+100644 5985947a6bf2b6f88168e3aa32d4b1fb06affb70 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/video_gen/mod.rs
+100644 853e0b9d31f623f476a91041c866c8ec57d8dd1d 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/video_gen/mod.rs
+100644 6f24bfa1369331187200277195777cc790f409eb 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/video_gen/mod.rs
+100644 81ad8c90941f9d00081a6bf23406dfd3a56d1420 1	crates/codegen/xai-grok-tools/src/implementations/grok_build/workflow/mod.rs
+100644 f5e0b334bb326551cf3f201fb929d3077537e502 2	crates/codegen/xai-grok-tools/src/implementations/grok_build/workflow/mod.rs
+100644 51cea8c667d448ca64eb8271fc2d2715d801e23d 3	crates/codegen/xai-grok-tools/src/implementations/grok_build/workflow/mod.rs
+100644 b2ba322773fe29ece598bcc57cf52487376e21dd 1	crates/codegen/xai-grok-tools/src/implementations/skills/discovery.rs
+100644 1bb5af9fff250d87a996c8563bc1d7024710fb88 2	crates/codegen/xai-grok-tools/src/implementations/skills/discovery.rs
+100644 56c36abd1e68d4274a91d353dcd064575aec2984 3	crates/codegen/xai-grok-tools/src/implementations/skills/discovery.rs
+100644 9406c4200ef6f915430595ac472cdf8e963f17e4 1	crates/codegen/xai-grok-tools/src/implementations/skills/skill.rs
+100644 733c6a82d2366a16f210dbe13623d43fc0062d8d 2	crates/codegen/xai-grok-tools/src/implementations/skills/skill.rs
+100644 c54d4f247ff21d5744cc39d1ee84d4e01fefcac1 3	crates/codegen/xai-grok-tools/src/implementations/skills/skill.rs
+100644 fd4d507867ba36ba56593da4373a403389c40810 1	crates/codegen/xai-grok-tools/src/implementations/web_search/types.rs
+100644 968ab8ea1cf9db02abad26385056c3b4f038d86e 2	crates/codegen/xai-grok-tools/src/implementations/web_search/types.rs
+100644 c50f4b058b3cc61a32a23ee7bbab0c003a36764d 3	crates/codegen/xai-grok-tools/src/implementations/web_search/types.rs
+100644 20c179559678f9797b36c4421ed05d28a46b0a31 1	crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs
+100644 eef84e202666446a2bdbc81688667e48797bafde 2	crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs
+100644 82eab9b96ad746477ae1394fb6f1ba9ff357f320 3	crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs
+100644 76422380d00bc13847808ae9e38a4a7ad13c2bf5 1	crates/codegen/xai-grok-tools/src/types/compat.rs
+100644 643f6e1b27e48a9a1e0254196db979ff97479594 2	crates/codegen/xai-grok-tools/src/types/compat.rs
+100644 833a6292f5a8d8a80ea6afd4266f88628ac7463b 3	crates/codegen/xai-grok-tools/src/types/compat.rs
+100644 b796032db01f13145a9995bae205ef6dead54be3 1	crates/codegen/xai-grok-tools/src/types/resources.rs
+100644 95c8345b02b229aac126a572f7aa72018ae1dda3 2	crates/codegen/xai-grok-tools/src/types/resources.rs
+100644 2205227289d4313cd09bdd2892b3a135e9939c8a 3	crates/codegen/xai-grok-tools/src/types/resources.rs
+100644 511ff51dce2f6aa3baaef34373792ae12c96e6e2 1	crates/codegen/xai-grok-tools/src/types/tool_metadata.rs
+100644 56eb8cbfbd2254a97721d1eb919004f3906fbe1e 2	crates/codegen/xai-grok-tools/src/types/tool_metadata.rs
+100644 824421544106b5170a1dfa676ee9b8f1951ed19e 3	crates/codegen/xai-grok-tools/src/types/tool_metadata.rs
+100644 784963bc5a5140d06db554fe2bad12661a86d08a 1	crates/codegen/xai-grok-tools/src/util/mcp_truncate.rs
+100644 6a9c16d7ce911bb74a47c246e8b1980bb968eed5 2	crates/codegen/xai-grok-tools/src/util/mcp_truncate.rs
+100644 588288949a3959cbce56c024a5ce17cfcb6b1622 3	crates/codegen/xai-grok-tools/src/util/mcp_truncate.rs
+100644 d5e734b4467b46f733a576a50015abcc877590a8 1	crates/codegen/xai-grok-update/src/auto_update.rs
+100644 1d44e1dea79713ec9c3fe79e0d0ece77de81f854 2	crates/codegen/xai-grok-update/src/auto_update.rs
+100644 1fe3dfab5afdc0b9a1d650551595a617dfba391d 3	crates/codegen/xai-grok-update/src/auto_update.rs
+100644 3519bd1141d51b537366efecba600ea9dd0b4fd8 1	crates/codegen/xai-grok-update/src/auto_update_tests.rs
+100644 9c46f7e2e06f065497f2a35e758996690b8c649b 2	crates/codegen/xai-grok-update/src/auto_update_tests.rs
+100644 1d0c9120c18b5e7f54b754eb04202271b9a5eda2 3	crates/codegen/xai-grok-update/src/auto_update_tests.rs
+100644 721d859bfac7b955665634e63b53c949935d2a85 1	crates/codegen/xai-grok-update/src/version.rs
+100644 cd374079b2b2fc867b1d131ec7272d94dd038c83 2	crates/codegen/xai-grok-update/src/version.rs
+100644 343f59b92852cce98b9f24d147168298e006165c 3	crates/codegen/xai-grok-update/src/version.rs
+100644 9845e49f8c839f88525d460d3e13b178c9f61ce8 1	crates/codegen/xai-grok-update/tests/common/mod.rs
+100644 2083d431a4f7079556e1b3978a0af7b8f9baef7a 2	crates/codegen/xai-grok-update/tests/common/mod.rs
+100644 1ecebb5dc1b7c00e6da2076da5869e23a6bfb8ec 3	crates/codegen/xai-grok-update/tests/common/mod.rs
+100644 7db620f1b9699bbf472a70e0abb48273318b7fe5 1	crates/codegen/xai-grok-update/tests/test_blitz_cancel.rs
+100644 82f173c3358041d17eb246a8e585c547862bf475 2	crates/codegen/xai-grok-update/tests/test_blitz_cancel.rs
+100644 a2df953d36f54261bf5f7e94858a1204d501fa58 3	crates/codegen/xai-grok-update/tests/test_blitz_cancel.rs
+100644 230fdbf0f537aa70737209ceb5aed1107d2097e9 1	crates/codegen/xai-grok-update/tests/test_check_status_regression.rs
+100644 05688f290b40d9292523b5eb0bf26939f9d73c0c 2	crates/codegen/xai-grok-update/tests/test_check_status_regression.rs
+100644 8efb23c5e31b41e9659ad785d65f2a6c45ffa8a5 3	crates/codegen/xai-grok-update/tests/test_check_status_regression.rs
+100644 c53bc2bb81ab937513d71d5d2b1360b11395b185 1	crates/codegen/xai-grok-update/tests/test_concurrent_convergence.rs
+100644 e377c10067026d54510559f0a5eca6ce354d94e3 2	crates/codegen/xai-grok-update/tests/test_concurrent_convergence.rs
+100644 67ff80be8e4bff4cad2c08b3936f3c3108bec698 3	crates/codegen/xai-grok-update/tests/test_concurrent_convergence.rs
+100644 db207ccd7c8a2aaf1cc910bbe5dd49851818f1eb 1	crates/codegen/xai-grok-update/tests/test_downgrade_matrix.rs
+100644 973ddcf517d61949d0ecf3a7b7cb30f3e9397bee 2	crates/codegen/xai-grok-update/tests/test_downgrade_matrix.rs
+100644 81d33e197b705c9de78f276e7d2dc56f0abbdef9 3	crates/codegen/xai-grok-update/tests/test_downgrade_matrix.rs
+100644 734948a0163b88d504d1b30363ab24c1887b5743 1	crates/codegen/xai-grok-update/tests/test_install_internal.rs
+100644 5ad2178e1cc063ec2d4e58dea5591b4e85cefeb9 2	crates/codegen/xai-grok-update/tests/test_install_internal.rs
+100644 3781b611d8258d341551d8b16e45e959f3f165b4 3	crates/codegen/xai-grok-update/tests/test_install_internal.rs
+100644 e14b992e216e3f6374936dfe627925e2a75ae531 1	crates/codegen/xai-grok-update/tests/test_install_sh.rs
+100644 43f13f0f7c28e254c2d25ec0707a945197d4f2ca 2	crates/codegen/xai-grok-update/tests/test_install_sh.rs
+100644 fb2b3279fd6d7b728b32ab26753d429c7a7947c8 3	crates/codegen/xai-grok-update/tests/test_install_sh.rs
+100644 8625383ee4d4b06cd45d3c0bb8585d9bf58dbe5a 1	crates/codegen/xai-grok-update/tests/test_io.rs
+100644 9e453110b8b0fc342e2c3dbc1593cf97d2f4d9a2 2	crates/codegen/xai-grok-update/tests/test_io.rs
+100644 be307568dd9e12e133777170f7e0dd2545915134 3	crates/codegen/xai-grok-update/tests/test_io.rs
+100644 8f5b3efe3abdac0eeeeb43a33089c01a0d0d92d8 1	crates/codegen/xai-grok-update/tests/test_network.rs
+100644 da897f324e21722708e25a1afed119fa02bd76af 2	crates/codegen/xai-grok-update/tests/test_network.rs
+100644 abb96481b0f6758238b23d180532a0ffc7f74a9b 3	crates/codegen/xai-grok-update/tests/test_network.rs
+100644 5fd9c7568cd776ca5bd1735823ce43153123098d 1	crates/codegen/xai-grok-voice/src/bin/voice_probe.rs
+100644 713f86ac967db0599b52032f34a9087e5299bb24 2	crates/codegen/xai-grok-voice/src/bin/voice_probe.rs
+100644 fa651fc678bde04113a61476ccecfdda67b107b5 3	crates/codegen/xai-grok-voice/src/bin/voice_probe.rs
+100644 d878402bfcd5912be121f38816d8e7aa49ded7e6 1	crates/codegen/xai-grok-voice/src/config.rs
+100644 ef7381cee5ac5bcab159552c59419867444e63b6 2	crates/codegen/xai-grok-voice/src/config.rs
+100644 d41b4a5948065f46c3e353c6df66621f2db1db3a 3	crates/codegen/xai-grok-voice/src/config.rs
+100644 db8d0287f5918779d7298310b3dc3dc2c082f0f5 1	crates/codegen/xai-grok-voice/src/language.rs
+100644 930dff6b444bb3cccf97fb7fbeaf14da56907b4b 2	crates/codegen/xai-grok-voice/src/language.rs
+100644 51a4c5ff43510dc52637549692a275c5b0377347 3	crates/codegen/xai-grok-voice/src/language.rs
+100644 480ba616a65aa1a9fedfcdb8cd0d008f3907695e 1	crates/codegen/xai-grok-voice/src/lib.rs
+100644 e33c627149a7c00929a0af3929411ac46eee0898 2	crates/codegen/xai-grok-voice/src/lib.rs
+100644 2cc387d40443b21e885b41de349e716c5f3da8c2 3	crates/codegen/xai-grok-voice/src/lib.rs
+100644 17dc31836626042f048b8d237e768133e4a8682a 1	crates/codegen/xai-grok-voice/src/stt/streaming.rs
+100644 080bea955d93059db4ffe1b7dc36f837e485a87d 2	crates/codegen/xai-grok-voice/src/stt/streaming.rs
+100644 b4486bdf9e8399408d04539efd4a75bf6e01e65d 3	crates/codegen/xai-grok-voice/src/stt/streaming.rs
+100644 963a001900945692d9966cd137caa18d06ea28ee 1	crates/codegen/xai-grok-workspace-client/src/lib.rs
+100644 5fec021b71b6b70439ee0336f0f2474ea1eaab54 2	crates/codegen/xai-grok-workspace-client/src/lib.rs
+100644 e3c0539d1b7c12b432d936f6cb88ec86043b6d91 3	crates/codegen/xai-grok-workspace-client/src/lib.rs
+100644 8d1c8b3f537c3060ef9f2ccabd0901aa46be77f8 1	crates/codegen/xai-grok-workspace-types/src/binding.rs
+100644 c61bb723f2a16daebaa061c8c4dec5bbc75ec34a 2	crates/codegen/xai-grok-workspace-types/src/binding.rs
+100644 28b85181efaea41061cc682aecfaf14cae0d5113 3	crates/codegen/xai-grok-workspace-types/src/binding.rs
+100644 34f6372813224b5ec98951eee4a38be34702a495 1	crates/codegen/xai-grok-workspace-types/src/rpc/repos.rs
+100644 12f137db3565ebf2d1602772c76b3fdf92be787c 2	crates/codegen/xai-grok-workspace-types/src/rpc/repos.rs
+100644 fcdb9e64dd784ba3e029230170f54ad1f98e853d 3	crates/codegen/xai-grok-workspace-types/src/rpc/repos.rs
+100644 637c4515a5bddb2d8477126ededdc8cf267a224e 1	crates/codegen/xai-grok-workspace/src/bin/workspace_server.rs
+100644 6771a49a914ecd621c78d4a44bbc403fa779cb1c 2	crates/codegen/xai-grok-workspace/src/bin/workspace_server.rs
+100644 cdfdfb2a835b98acd9e1c0eebe0550324c8a29cb 3	crates/codegen/xai-grok-workspace/src/bin/workspace_server.rs
+100644 15185761c41f2e686576369e6c8a6fed6f9d6c34 1	crates/codegen/xai-grok-workspace/src/bin/workspace_server_probe.rs
+100644 0fc5f7b7094243487a50672f6f09b8b9ea715973 2	crates/codegen/xai-grok-workspace/src/bin/workspace_server_probe.rs
+100644 fcf192f7270a11f80d3e4f090b4a85fbaf267a5d 3	crates/codegen/xai-grok-workspace/src/bin/workspace_server_probe.rs
+100644 d4e309c3945e1242eece82b2383aad0b4eb1868d 1	crates/codegen/xai-grok-workspace/src/config.rs
+100644 9484644b0b0829d0127e2a1c14913b7978dd0f37 2	crates/codegen/xai-grok-workspace/src/config.rs
+100644 1d89a894eaa3b76e8e1e60c734b8f6f531b2dc48 3	crates/codegen/xai-grok-workspace/src/config.rs
+100644 051209e0db17003eac0d01edbb8826e522325f83 1	crates/codegen/xai-grok-workspace/src/discovery.rs
+100644 410605d5f90b067e063ace881bde8430bc833809 2	crates/codegen/xai-grok-workspace/src/discovery.rs
+100644 7fa794c32fa2aa0c9d8d1270d2137f7f3ee3e1de 3	crates/codegen/xai-grok-workspace/src/discovery.rs
+100644 0b1fb48ec17f12c3800d0aa58fbe7f9d25592f2e 1	crates/codegen/xai-grok-workspace/src/file_system/acp_fs.rs
+100644 89996e33e797446fc9699db900574d41634a50af 2	crates/codegen/xai-grok-workspace/src/file_system/acp_fs.rs
+100644 a053529dfac92bf0ae1a344698695daaf45d45d6 3	crates/codegen/xai-grok-workspace/src/file_system/acp_fs.rs
+100644 29b2c1573e22aa0009bdeddfbc4cb3d1768d95e5 1	crates/codegen/xai-grok-workspace/src/file_system/attach_file.rs
+100644 39927ffeacf1cd62edfe31e506f433de0edccb63 2	crates/codegen/xai-grok-workspace/src/file_system/attach_file.rs
+100644 b25b0507ad8a029acdaa4644d576cb46c206104d 3	crates/codegen/xai-grok-workspace/src/file_system/attach_file.rs
+100644 fcacf66376c3cba1ed4b406a366863ff02eb254c 1	crates/codegen/xai-grok-workspace/src/file_system/codebase_index.rs
+100644 e952c40203892fda31053a6a7fb7fb369b189409 2	crates/codegen/xai-grok-workspace/src/file_system/codebase_index.rs
+100644 e44b9e79af5c93ee6558ac977ccd894695849b9f 3	crates/codegen/xai-grok-workspace/src/file_system/codebase_index.rs
+100644 15e4fe092d46a52bbb977f75b58e9d3046058cda 1	crates/codegen/xai-grok-workspace/src/folder_trust.rs
+100644 ea88dc5600aedc5448a8d282c5401423f6ce2d5c 2	crates/codegen/xai-grok-workspace/src/folder_trust.rs
+100644 0e6d9093b8e9ac2cd45c4fec7450bb67909dc293 3	crates/codegen/xai-grok-workspace/src/folder_trust.rs
+100644 305682d500a08b8f608e05b6387a0407c9cf360c 1	crates/codegen/xai-grok-workspace/src/fs_notify.rs
+100644 81d0a572160a6247ade2f456494539e7c5868de9 2	crates/codegen/xai-grok-workspace/src/fs_notify.rs
+100644 7babe6ea7539f9387826e44156e5ca913431b90f 3	crates/codegen/xai-grok-workspace/src/fs_notify.rs
+100644 e3da0c324de24d417001b6d1a8b07b3a36d77c24 1	crates/codegen/xai-grok-workspace/src/handle.rs
+100644 0f5e2d25e844becb8b8716625492f30abf264ab9 2	crates/codegen/xai-grok-workspace/src/handle.rs
+100644 479db774a41896c62be9a4c73a354828d1c4f726 3	crates/codegen/xai-grok-workspace/src/handle.rs
+100644 ef2664c2ff2b39b444e95f0fe57e466c7d245120 1	crates/codegen/xai-grok-workspace/src/hub_auth.rs
+100644 2b47a0092c8c2c4550a62e6d4a36d40f0f5fad80 2	crates/codegen/xai-grok-workspace/src/hub_auth.rs
+100644 b0dea3823d1df66da1a92aa023d27206f652dee3 1	crates/codegen/xai-grok-workspace/src/lib.rs
+100644 e9a5294a269de48f4d2a592712a42124cbfc8a59 2	crates/codegen/xai-grok-workspace/src/lib.rs
+100644 4e774cafeda0fab03dd28ff5702473ec55a27069 3	crates/codegen/xai-grok-workspace/src/lib.rs
+100644 b969b5d5b3eeb49c17382cd499455c28f2fc682e 1	crates/codegen/xai-grok-workspace/src/permission/auto_mode/mod.rs
+100644 93e8e25f5cc4eb9210aa29e00f576083f87fbbdf 2	crates/codegen/xai-grok-workspace/src/permission/auto_mode/mod.rs
+100644 8e205944be383ddcea45fd05fe93432f6b6b60ed 3	crates/codegen/xai-grok-workspace/src/permission/auto_mode/mod.rs
+100644 69ac2bb2123a218e9fd8fd9ef1ba073bb59bec2f 1	crates/codegen/xai-grok-workspace/src/permission/prompter.rs
+100644 5c35c2e3e8b6e923ad787ca6cd113e9628dc0d21 2	crates/codegen/xai-grok-workspace/src/permission/prompter.rs
+100644 6899e78775494b78bc55d3057947c28ef16a3dc4 3	crates/codegen/xai-grok-workspace/src/permission/prompter.rs
+100644 aa0da8fbf1743b7113f1e022d966795266828343 1	crates/codegen/xai-grok-workspace/src/permission/resolution.rs
+100644 a99441dd701551f2df84521591e9d648d52d403c 2	crates/codegen/xai-grok-workspace/src/permission/resolution.rs
+100644 e3b5c77deba4fff49c4ff6b92ff8ab92714c94e9 3	crates/codegen/xai-grok-workspace/src/permission/resolution.rs
+100644 2e91923721ff3c548b69079218fc083884cd4e01 1	crates/codegen/xai-grok-workspace/src/permission/resolution_tests.rs
+100644 513ab4084f401175204eead4a0262bcbae587930 2	crates/codegen/xai-grok-workspace/src/permission/resolution_tests.rs
+100644 f2eef5e886cff92f416babb7b0f5e4cb0edfb304 3	crates/codegen/xai-grok-workspace/src/permission/resolution_tests.rs
+100644 f31cfbe0eab7810eddaae059ead22a1e7c55216f 1	crates/codegen/xai-grok-workspace/src/permission/rules.rs
+100644 960c32c1d406c450604316976811d31cecbd261d 2	crates/codegen/xai-grok-workspace/src/permission/rules.rs
+100644 f4d8a6e99ba8a1770368b5382c4cd4dcaeb35ac5 3	crates/codegen/xai-grok-workspace/src/permission/rules.rs
+100644 bd864a8cb7b6eb0107093992a30a92f605d27250 1	crates/codegen/xai-grok-workspace/src/permission/shell_access.rs
+100644 9d22b3288d4a11c4532f4fc06df3c0914624efc0 2	crates/codegen/xai-grok-workspace/src/permission/shell_access.rs
+100644 1a1dee4be06585b9809fd0136d2ec533e0bc4d26 3	crates/codegen/xai-grok-workspace/src/permission/shell_access.rs
+100644 546e2150e1fa27cccf8250d17577cac006f9ad52 1	crates/codegen/xai-grok-workspace/src/permission/state.rs
+100644 efed7f66939fbb568367b1a7883a2a0deaaa9e9e 2	crates/codegen/xai-grok-workspace/src/permission/state.rs
+100644 972d8a69a57a1b4a4fdd5abcdcb7d0e7282ff182 3	crates/codegen/xai-grok-workspace/src/permission/state.rs
+100644 aeb7d4a2f187831ba6acccc9e8c47d423e1ad63e 1	crates/codegen/xai-grok-workspace/src/permission/types.rs
+100644 31b963105162d6d0df23e8d9676f1ae8c85ad497 2	crates/codegen/xai-grok-workspace/src/permission/types.rs
+100644 6fcf6987f98cd1fb80bf3006c44026a0329a165d 3	crates/codegen/xai-grok-workspace/src/permission/types.rs
+100644 abdec034796f3ad1229a8ca518f6c6a4839e779c 1	crates/codegen/xai-grok-workspace/src/project_config.rs
+100644 2df9bf27dd38dc92760bf1112f185534f1657e6c 2	crates/codegen/xai-grok-workspace/src/project_config.rs
+100644 960e17b037955f089b9124282fb3a192ceb26996 3	crates/codegen/xai-grok-workspace/src/project_config.rs
+100644 65900084f18a89b18dbfb9ad91f96fb829a5e191 1	crates/codegen/xai-grok-workspace/src/session/git.rs
+100644 20a74393871969ea6fdeb8fc499de740b8a2585c 2	crates/codegen/xai-grok-workspace/src/session/git.rs
+100644 24ad58aff75ea503907252f8c8f4d1913e5b01dc 3	crates/codegen/xai-grok-workspace/src/session/git.rs
+100644 1af36bad134fb2ab7e35accee48d7bc6675984f7 1	crates/codegen/xai-grok-workspace/src/session/git_tests.rs
+100644 fbf158979c5a548933f58d526d7e95f79c4a2560 2	crates/codegen/xai-grok-workspace/src/session/git_tests.rs
+100644 b59070622959022c45bca7026b2e0cd5f45ace77 3	crates/codegen/xai-grok-workspace/src/session/git_tests.rs
+100644 e561bfd07591813bbecf809f3cb9d0337f95ea6e 1	crates/codegen/xai-grok-workspace/src/session/mod.rs
+100644 36646a29915b39cda5987d9bb931e4e22b1bba44 2	crates/codegen/xai-grok-workspace/src/session/mod.rs
+100644 f3ddc7ad20bc46ada3360d4c119412857b4f924c 3	crates/codegen/xai-grok-workspace/src/session/mod.rs
+100644 9758ff0b4fab21e8b50d57da9578117fae7d3b19 1	crates/codegen/xai-grok-workspace/src/trust.rs
+100644 041bb64a60af1561d84e77cde07c3f892625a129 2	crates/codegen/xai-grok-workspace/src/trust.rs
+100644 57a09da4e99b92249e776af09d26b9b790bc350f 3	crates/codegen/xai-grok-workspace/src/trust.rs
+100644 926409d21fb131457f579119b8f54a8c5cf403d6 1	crates/codegen/xai-grok-workspace/src/workspace_ops.rs
+100644 39b4bd0b802054db92b5b11fbce6e0c8dd722051 2	crates/codegen/xai-grok-workspace/src/workspace_ops.rs
+100644 2535fd7e48be579ffb032eafed70d5f3a45bb2eb 3	crates/codegen/xai-grok-workspace/src/workspace_ops.rs
+100644 d6ea0f049565e9f32a17fa71e4665479f14974bc 1	crates/codegen/xai-grok-workspace/src/worktree/mod.rs
+100644 93831c86ad535a2512a1ded044b8f02498606e9e 2	crates/codegen/xai-grok-workspace/src/worktree/mod.rs
+100644 05166b098c727bb304dfcc05c7c994addd42f758 3	crates/codegen/xai-grok-workspace/src/worktree/mod.rs
+100644 7816c02e4ffd19013dcaf2be1cc138b917c8bd1c 1	crates/codegen/xai-hooks-plugins-types/src/lib.rs
+100644 1acb8aa4918b18761d0a7af25d582b65fedfa04a 2	crates/codegen/xai-hooks-plugins-types/src/lib.rs
+100644 c30264e689be51407c58b18afdaf8af5d2a50afb 3	crates/codegen/xai-hooks-plugins-types/src/lib.rs
+100644 a3108e6f022eb55bd8b9047aef4030f04d48491a 1	crates/codegen/xai-tty-utils/src/lib.rs
+100644 00aaab19c6985bbc4f3f90303cd5c754c68f5248 2	crates/codegen/xai-tty-utils/src/lib.rs
+100644 0c9839f0e9163d803148ca2d5c6dc409aefe9619 3	crates/codegen/xai-tty-utils/src/lib.rs
+
+=== UNMERGED PATHS ===
+Cargo.lock
+crates/codegen/xai-chat-state/src/actor/tests.rs
+crates/codegen/xai-chat-state/src/commands.rs
+crates/codegen/xai-codebase-graph/src/index_manager.rs
+crates/codegen/xai-crash-handler/src/lib.rs
+crates/codegen/xai-dirs/src/lib.rs
+crates/codegen/xai-fast-worktree/src/api.rs
+crates/codegen/xai-fast-worktree/src/api/gc.rs
+crates/codegen/xai-fast-worktree/src/btrfs/detect.rs
+crates/codegen/xai-fast-worktree/src/btrfs/snapshot.rs
+crates/codegen/xai-fast-worktree/src/db/mod.rs
+crates/codegen/xai-fast-worktree/src/db/queries.rs
+crates/codegen/xai-fast-worktree/src/overlay/snapshot.rs
+crates/codegen/xai-file-utils/src/queue.rs
+crates/codegen/xai-file-utils/src/storage_client.rs
+crates/codegen/xai-file-utils/src/workspace_classifier.rs
+crates/codegen/xai-grok-active-sessions/src/lib.rs
+crates/codegen/xai-grok-agent/src/builder.rs
+crates/codegen/xai-grok-agent/src/config.rs
+crates/codegen/xai-grok-agent/src/discovery.rs
+crates/codegen/xai-grok-agent/src/plugins/discovery.rs
+crates/codegen/xai-grok-agent/src/plugins/git_install.rs
+crates/codegen/xai-grok-agent/src/plugins/local_refresh.rs
+crates/codegen/xai-grok-agent/src/plugins/manifest.rs
+crates/codegen/xai-grok-agent/src/plugins/trust.rs
+crates/codegen/xai-grok-agent/src/prompt/agents_md.rs
+crates/codegen/xai-grok-agent/src/prompt/context.rs
+crates/codegen/xai-grok-agent/src/prompt/prompt_encrypted.rs
+crates/codegen/xai-grok-agent/src/prompt/skills.rs
+crates/codegen/xai-grok-agent/src/prompt/template.rs
+crates/codegen/xai-grok-agent/src/prompt/user_message.rs
+crates/codegen/xai-grok-agent/src/repo.rs
+crates/codegen/xai-grok-config-types/src/lib.rs
+crates/codegen/xai-grok-config-types/src/memory.rs
+crates/codegen/xai-grok-config/src/env_overlay.rs
+crates/codegen/xai-grok-config/src/global_hook_sources.rs
+crates/codegen/xai-grok-config/src/lib.rs
+crates/codegen/xai-grok-config/src/loader.rs
+crates/codegen/xai-grok-config/src/macos_managed.rs
+crates/codegen/xai-grok-config/src/paths.rs
+crates/codegen/xai-grok-config/src/validation.rs
+crates/codegen/xai-grok-env/Cargo.toml
+crates/codegen/xai-grok-env/src/lib.rs
+crates/codegen/xai-grok-hooks/src/dispatcher.rs
+crates/codegen/xai-grok-hooks/src/event.rs
+crates/codegen/xai-grok-hooks/src/lib.rs
+crates/codegen/xai-grok-hooks/src/matcher.rs
+crates/codegen/xai-grok-hooks/src/runner/command.rs
+crates/codegen/xai-grok-hooks/src/runner/http.rs
+crates/codegen/xai-grok-hooks/src/trust.rs
+crates/codegen/xai-grok-login/src/attribution.rs
+crates/codegen/xai-grok-login/src/auth_provider_tests.rs
+crates/codegen/xai-grok-login/src/config.rs
+crates/codegen/xai-grok-login/src/credential_provider.rs
+crates/codegen/xai-grok-login/src/device_code.rs
+crates/codegen/xai-grok-login/src/external_auth.rs
+crates/codegen/xai-grok-login/src/flow.rs
+crates/codegen/xai-grok-login/src/manager_tests.rs
+crates/codegen/xai-grok-markdown-core/src/lib.rs
+crates/codegen/xai-grok-mcp/src/credentials.rs
+crates/codegen/xai-grok-mcp/src/lib.rs
+crates/codegen/xai-grok-mcp/src/oauth.rs
+crates/codegen/xai-grok-memory/src/lib.rs
+crates/codegen/xai-grok-memory/src/storage.rs
+crates/codegen/xai-grok-memory/src/watcher.rs
+crates/codegen/xai-grok-models/default_models.json
+crates/codegen/xai-grok-pager-bin/src/main.rs
+crates/codegen/xai-grok-pager-pty-harness/src/flows.rs
+crates/codegen/xai-grok-pager-pty-harness/src/leader.rs
+crates/codegen/xai-grok-pager-pty-harness/src/pty.rs
+crates/codegen/xai-grok-pager-pty-harness/src/scripted.rs
+crates/codegen/xai-grok-pager-pty-harness/tests/privacy_banner_e2e.rs
+crates/codegen/xai-grok-pager-pty-harness/tests/settings_locked_row_e2e.rs
+crates/codegen/xai-grok-pager-render/src/appearance/mod.rs
+crates/codegen/xai-grok-pager-render/src/appearance/watcher.rs
+crates/codegen/xai-grok-pager-render/src/clipboard/mod.rs
+crates/codegen/xai-grok-pager-render/src/clipboard/trust.rs
+crates/codegen/xai-grok-pager-render/src/input/scroll_log.rs
+crates/codegen/xai-grok-pager-render/src/prompt_images.rs
+crates/codegen/xai-grok-pager-render/src/render/osc8.rs
+crates/codegen/xai-grok-pager-render/src/syntax.rs
+crates/codegen/xai-grok-pager-render/src/terminal/mod.rs
+crates/codegen/xai-grok-pager-render/src/theme/cache.rs
+crates/codegen/xai-grok-pager-render/src/theme/color_support.rs
+crates/codegen/xai-grok-pager-render/src/theme/grokday.rs
+crates/codegen/xai-grok-pager-render/src/theme/groknight.rs
+crates/codegen/xai-grok-pager-render/src/theme/mod.rs
+crates/codegen/xai-grok-pager-render/src/util.rs
+crates/codegen/xai-grok-pager/benches/edit_highlight.rs
+crates/codegen/xai-grok-pager/docs/custom-hooks.md
+crates/codegen/xai-grok-pager/docs/tutorial/09-where-next.md
+crates/codegen/xai-grok-pager/docs/user-guide/01-getting-started.md
+crates/codegen/xai-grok-pager/docs/user-guide/04-slash-commands.md
+crates/codegen/xai-grok-pager/docs/user-guide/05-configuration.md
+crates/codegen/xai-grok-pager/docs/user-guide/06-theming.md
+crates/codegen/xai-grok-pager/docs/user-guide/08-skills.md
+crates/codegen/xai-grok-pager/docs/user-guide/09-plugins.md
+crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md
+crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md
+crates/codegen/xai-grok-pager/docs/user-guide/12-project-rules.md
+crates/codegen/xai-grok-pager/docs/user-guide/13-memory.md
+crates/codegen/xai-grok-pager/docs/user-guide/15-agent-mode.md
+crates/codegen/xai-grok-pager/docs/user-guide/16-subagents.md
+crates/codegen/xai-grok-pager/docs/user-guide/18-sandbox.md
+crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md
+crates/codegen/xai-grok-pager/docs/user-guide/23-dashboard.md
+crates/codegen/xai-grok-pager/docs/user-guide/24-monitoring-usage.md
+crates/codegen/xai-grok-pager/examples/real_session_benchmark.rs
+crates/codegen/xai-grok-pager/npm/astra/bin/astra
+crates/codegen/xai-grok-pager/npm/astra/bin/grok-bootstrap.js
+crates/codegen/xai-grok-pager/npm/astra/bin/postinstall.js
+crates/codegen/xai-grok-pager/npm/astra/scripts/test-postinstall.js
+crates/codegen/xai-grok-pager/scripts/install-enterprise.ps1
+crates/codegen/xai-grok-pager/scripts/install-enterprise.sh
+crates/codegen/xai-grok-pager/scripts/install.ps1
+crates/codegen/xai-grok-pager/scripts/install.sh
+crates/codegen/xai-grok-pager/src/acp/mod.rs
+crates/codegen/xai-grok-pager/src/acp/model_state.rs
+crates/codegen/xai-grok-pager/src/actions/defaults.rs
+crates/codegen/xai-grok-pager/src/app/acp_handler/permissions.rs
+crates/codegen/xai-grok-pager/src/app/acp_handler/tests/announcements.rs
+crates/codegen/xai-grok-pager/src/app/acp_handler/tests/mod.rs
+crates/codegen/xai-grok-pager/src/app/actions.rs
+crates/codegen/xai-grok-pager/src/app/agent_view/notices.rs
+crates/codegen/xai-grok-pager/src/app/agent_view/shell_completion.rs
+crates/codegen/xai-grok-pager/src/app/app_view.rs
+crates/codegen/xai-grok-pager/src/app/app_view_tests.rs
+crates/codegen/xai-grok-pager/src/app/cli.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/billing.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/modes.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/notes.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/permissions.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/router.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/session/lifecycle.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/settings/setters.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/status.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/dashboard.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/mod.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/prompt.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/router.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/foreign.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/lifecycle.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/session/load.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/settings.rs
+crates/codegen/xai-grok-pager/src/app/dispatch/tests/status.rs
+crates/codegen/xai-grok-pager/src/app/event_loop.rs
+crates/codegen/xai-grok-pager/src/app/leader_cluster/mod.rs
+crates/codegen/xai-grok-pager/src/app/leader_cluster/scenarios.rs
+crates/codegen/xai-grok-pager/src/app/mermaid_worker.rs
+crates/codegen/xai-grok-pager/src/app/mod.rs
+crates/codegen/xai-grok-pager/src/app/modals.rs
+crates/codegen/xai-grok-pager/src/app/session_startup.rs
+crates/codegen/xai-grok-pager/src/app/session_title_resolve_tests.rs
+crates/codegen/xai-grok-pager/src/app/subagent.rs
+crates/codegen/xai-grok-pager/src/client_identity.rs
+crates/codegen/xai-grok-pager/src/completions_cmd.rs
+crates/codegen/xai-grok-pager/src/config_toml_edit.rs
+crates/codegen/xai-grok-pager/src/diagnostics/doctor_format_tests.rs
+crates/codegen/xai-grok-pager/src/diagnostics/fix.rs
+crates/codegen/xai-grok-pager/src/diagnostics/fix_tests.rs
+crates/codegen/xai-grok-pager/src/diagnostics/mod.rs
+crates/codegen/xai-grok-pager/src/diagnostics/model.rs
+crates/codegen/xai-grok-pager/src/disk_usage_cmd/tests.rs
+crates/codegen/xai-grok-pager/src/doctor_cmd/tests.rs
+crates/codegen/xai-grok-pager/src/git_info.rs
+crates/codegen/xai-grok-pager/src/headless/reducer/messages/tests/mod.rs
+crates/codegen/xai-grok-pager/src/headless/reducer/messages/web_search.rs
+crates/codegen/xai-grok-pager/src/headless/reducer/messages/wire.rs
+crates/codegen/xai-grok-pager/src/headless/reducer/mod.rs
+crates/codegen/xai-grok-pager/src/lib.rs
+crates/codegen/xai-grok-pager/src/mcp_cmd.rs
+crates/codegen/xai-grok-pager/src/memory_trace.rs
+crates/codegen/xai-grok-pager/src/notifications/mod.rs
+crates/codegen/xai-grok-pager/src/scrollback/render_tests.rs
+crates/codegen/xai-grok-pager/src/settings/defs.rs
+crates/codegen/xai-grok-pager/src/settings/registry.rs
+crates/codegen/xai-grok-pager/src/slash/commands/dashboard.rs
+crates/codegen/xai-grok-pager/src/slash/commands/docs.rs
+crates/codegen/xai-grok-pager/src/slash/commands/mod.rs
+crates/codegen/xai-grok-pager/src/slash/commands/model.rs
+crates/codegen/xai-grok-pager/src/slash/commands/tutorial.rs
+crates/codegen/xai-grok-pager/src/test_util.rs
+crates/codegen/xai-grok-pager/src/views/dashboard/mod.rs
+crates/codegen/xai-grok-pager/src/views/dashboard/render.rs
+crates/codegen/xai-grok-pager/src/views/dashboard/state.rs
+crates/codegen/xai-grok-pager/src/views/dashboard/state_tests.rs
+crates/codegen/xai-grok-pager/src/views/extensions_modal.rs
+crates/codegen/xai-grok-pager/src/views/import_claude_modal.rs
+crates/codegen/xai-grok-pager/src/views/modal.rs
+crates/codegen/xai-grok-pager/src/views/permission_view.rs
+crates/codegen/xai-grok-pager/src/views/prompt_widget/mod.rs
+crates/codegen/xai-grok-pager/src/views/prompt_widget/tests.rs
+crates/codegen/xai-grok-pager/src/views/question_view.rs
+crates/codegen/xai-grok-pager/src/views/session_picker.rs
+crates/codegen/xai-grok-pager/src/views/settings_modal/state.rs
+crates/codegen/xai-grok-pager/src/views/settings_modal/tests.rs
+crates/codegen/xai-grok-pager/src/views/welcome/hero_box.rs
+crates/codegen/xai-grok-pager/src/views/welcome/logo.rs
+crates/codegen/xai-grok-pager/src/views/welcome/mod.rs
+crates/codegen/xai-grok-pager/src/voice/auth.rs
+crates/codegen/xai-grok-pager/tests/doctor_early_dispatch.rs
+crates/codegen/xai-grok-pager/tests/fixtures/historic_bash_cmds.txt
+crates/codegen/xai-grok-pager/tests/grok_home_paths.rs
+crates/codegen/xai-grok-pager/tests/leader_pty_e2e/campaign_leader_mode_remote_dismiss_on_model_pick.rs
+crates/codegen/xai-grok-pager/tests/leader_pty_e2e/leader_two_clients_shared_session.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/common.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/feedback_slash_opens_descriptive_pane.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_cwd_is_home_git_repo_no_prompt.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/folder_trust_home_git_repo_subdir_keys_on_subdir.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/forced_wheel_mode_env_scrolls_exact_rows.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/mid_text_skill_token_echo_styled_pty.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_cli_screen_mode_does_not_persist.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_commits_thinking_body_to_scrollback.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_feedback_session_gate_and_pane.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_new_session_keeps_history_and_resets.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_from_fullscreen.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_slash_switches_to_fullscreen.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/permission_prompt_hook_chimes_only_on_real_wait.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/requirements_version_failure_exits_2_with_guidance.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/undo_tip_seen_count_never_persisted.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/welcome_screen_braille_logo_renders_correctly.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e/word_select_tip_on_double_click_pty.rs
+crates/codegen/xai-grok-pager/tests/pty_e2e_smoke.rs
+crates/codegen/xai-grok-pager/tests/settings_e2e.rs
+crates/codegen/xai-grok-plugin-marketplace/src/catalog.rs
+crates/codegen/xai-grok-plugin-marketplace/src/config.rs
+crates/codegen/xai-grok-plugin-marketplace/src/index.rs
+crates/codegen/xai-grok-plugin-marketplace/src/installer.rs
+crates/codegen/xai-grok-plugin-marketplace/src/lib.rs
+crates/codegen/xai-grok-plugin-marketplace/src/scanner.rs
+crates/codegen/xai-grok-sampler/src/client.rs
+crates/codegen/xai-grok-sampler/src/stream/chat_completions.rs
+crates/codegen/xai-grok-sampling-types/src/conversation.rs
+crates/codegen/xai-grok-sampling-types/src/conversation/messages.rs
+crates/codegen/xai-grok-sampling-types/src/conversation/responses_tests.rs
+crates/codegen/xai-grok-sampling-types/src/error.rs
+crates/codegen/xai-grok-sandbox/src/logging.rs
+crates/codegen/xai-grok-sandbox/src/paths.rs
+crates/codegen/xai-grok-sandbox/src/profiles.rs
+crates/codegen/xai-grok-sandbox/tests/deny_paths_e2e.rs
+crates/codegen/xai-grok-shared/src/ui_config.rs
+crates/codegen/xai-grok-shell-base/src/util/changelog.rs
+crates/codegen/xai-grok-shell-base/src/util/mod.rs
+crates/codegen/xai-grok-shell-base/src/util/tips.rs
+crates/codegen/xai-grok-shell-session-support/src/managed_mcp.rs
+crates/codegen/xai-grok-shell-terminal/src/local_terminal.rs
+crates/codegen/xai-grok-shell/README.md
+crates/codegen/xai-grok-shell/src/agent/auth_method.rs
+crates/codegen/xai-grok-shell/src/agent/config.rs
+crates/codegen/xai-grok-shell/src/agent/config_tests.rs
+crates/codegen/xai-grok-shell/src/agent/folder_trust.rs
+crates/codegen/xai-grok-shell/src/agent/models/cache.rs
+crates/codegen/xai-grok-shell/src/agent/models/fetch.rs
+crates/codegen/xai-grok-shell/src/agent/models/tests.rs
+crates/codegen/xai-grok-shell/src/agent/mvp_agent/folder_trust_prompt.rs
+crates/codegen/xai-grok-shell/src/agent/mvp_agent/mod.rs
+crates/codegen/xai-grok-shell/src/agent/mvp_agent/tests.rs
+crates/codegen/xai-grok-shell/src/agent/subscription_check.rs
+crates/codegen/xai-grok-shell/src/auth/manager.rs
+crates/codegen/xai-grok-shell/src/builtin.rs
+crates/codegen/xai-grok-shell/src/claude_import.rs
+crates/codegen/xai-grok-shell/src/claude_import_state.rs
+crates/codegen/xai-grok-shell/src/cli_models.rs
+crates/codegen/xai-grok-shell/src/config/mod.rs
+crates/codegen/xai-grok-shell/src/config/reloader.rs
+crates/codegen/xai-grok-shell/src/config/tests.rs
+crates/codegen/xai-grok-shell/src/config/watcher.rs
+crates/codegen/xai-grok-shell/src/extensions/billing.rs
+crates/codegen/xai-grok-shell/src/extensions/marketplace.rs
+crates/codegen/xai-grok-shell/src/extensions/session_admin.rs
+crates/codegen/xai-grok-shell/src/extensions/share.rs
+crates/codegen/xai-grok-shell/src/inspect/mod.rs
+crates/codegen/xai-grok-shell/src/leader/lock.rs
+crates/codegen/xai-grok-shell/src/leader/mod.rs
+crates/codegen/xai-grok-shell/src/managed_config.rs
+crates/codegen/xai-grok-shell/src/plugin/mod.rs
+crates/codegen/xai-grok-shell/src/remote/client_tests.rs
+crates/codegen/xai-grok-shell/src/remote/skills_client.rs
+crates/codegen/xai-grok-shell/src/sampling/error.rs
+crates/codegen/xai-grok-shell/src/session/acp_conversion.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/laziness.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/mcp.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/memory_dream.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/recap.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/run_loop.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_impl/tool_calls.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_tests/auth_error_no_retry_tests.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_tests/inline_auto_compact_flow_tests.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_tests/prompt_queue_actor_tests.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_tests/support.rs
+crates/codegen/xai-grok-shell/src/session/acp_session_tests/turn/auth_retry_budget_tests.rs
+crates/codegen/xai-grok-shell/src/session/agent_rebuild.rs
+crates/codegen/xai-grok-shell/src/session/commands.rs
+crates/codegen/xai-grok-shell/src/session/feedback.rs
+crates/codegen/xai-grok-shell/src/session/feedback_manager.rs
+crates/codegen/xai-grok-shell/src/session/image_describe.rs
+crates/codegen/xai-grok-shell/src/session/persistence.rs
+crates/codegen/xai-grok-shell/src/session/prompt_parser.rs
+crates/codegen/xai-grok-shell/src/session/slash_commands.rs
+crates/codegen/xai-grok-shell/src/session/storage/relocation/mod.rs
+crates/codegen/xai-grok-shell/src/session/worktree_pool.rs
+crates/codegen/xai-grok-shell/src/tools/config.rs
+crates/codegen/xai-grok-shell/src/tools/notification_bridge.rs
+crates/codegen/xai-grok-shell/src/util/config/campaigns.rs
+crates/codegen/xai-grok-shell/src/util/config/mcp.rs
+crates/codegen/xai-grok-shell/src/util/config/persist.rs
+crates/codegen/xai-grok-shell/src/util/config/resolve/mcp.rs
+crates/codegen/xai-grok-shell/src/util/config/resolve/system_prompt.rs
+crates/codegen/xai-grok-shell/src/util/config/resolve/toolset.rs
+crates/codegen/xai-grok-shell/src/util/config/resolve/version.rs
+crates/codegen/xai-grok-shell/src/util/hooks.rs
+crates/codegen/xai-grok-shell/tests/external_auth_expired_credential.rs
+crates/codegen/xai-grok-shell/tests/git_contention_e2e.rs
+crates/codegen/xai-grok-shell/tests/session_load_perf.rs
+crates/codegen/xai-grok-shell/tests/test_agent_type_invariant.rs
+crates/codegen/xai-grok-shell/tests/test_auth_provider_command_e2e.rs
+crates/codegen/xai-grok-shell/tests/test_built_binary_e2e.rs
+crates/codegen/xai-grok-shell/tests/test_config_update_isolation.rs
+crates/codegen/xai-grok-shell/tests/test_debug_logging.rs
+crates/codegen/xai-grok-shell/tests/test_global_extra_headers_e2e.rs
+crates/codegen/xai-grok-shell/tests/test_leader_soak.rs
+crates/codegen/xai-grok-shell/tests/test_leader_stdio_integration.rs
+crates/codegen/xai-grok-shell/tests/test_leader_version_skew.rs
+crates/codegen/xai-grok-shell/tests/test_mcp_permission_persistence.rs
+crates/codegen/xai-grok-shell/tests/test_session_load_memory.rs
+crates/codegen/xai-grok-shell/tests/test_summary_reasoning_effort.rs
+crates/codegen/xai-grok-shell/tests/test_tool_dispatch_duration_smoke.rs
+crates/codegen/xai-grok-shell/tests/test_trusted_local_plugin_refresh_e2e.rs
+crates/codegen/xai-grok-shell/tests/test_vendor_compat.rs
+crates/codegen/xai-grok-telemetry/src/config.rs
+crates/codegen/xai-grok-telemetry/src/debug_log.rs
+crates/codegen/xai-grok-telemetry/src/events/mod.rs
+crates/codegen/xai-grok-telemetry/src/external/config.rs
+crates/codegen/xai-grok-telemetry/src/external/mod.rs
+crates/codegen/xai-grok-telemetry/src/hooks_log.rs
+crates/codegen/xai-grok-telemetry/src/id.rs
+crates/codegen/xai-grok-telemetry/src/lib.rs
+crates/codegen/xai-grok-telemetry/src/memory_log.rs
+crates/codegen/xai-grok-telemetry/src/unified_log.rs
+crates/codegen/xai-grok-test-support/README.md
+crates/codegen/xai-grok-test-support/src/lib.rs
+crates/codegen/xai-grok-test-support/src/sandbox.rs
+crates/codegen/xai-grok-tools/build.rs
+crates/codegen/xai-grok-tools/src/computer/local/embedded_search_tools.rs
+crates/codegen/xai-grok-tools/src/computer/local/terminal.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/exit_plan_mode/mod.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/grep/ripgrep.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/image_gen/mod.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/read_file/mod.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/video_gen/mod.rs
+crates/codegen/xai-grok-tools/src/implementations/grok_build/workflow/mod.rs
+crates/codegen/xai-grok-tools/src/implementations/skills/discovery.rs
+crates/codegen/xai-grok-tools/src/implementations/skills/skill.rs
+crates/codegen/xai-grok-tools/src/implementations/web_search/types.rs
+crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs
+crates/codegen/xai-grok-tools/src/types/compat.rs
+crates/codegen/xai-grok-tools/src/types/resources.rs
+crates/codegen/xai-grok-tools/src/types/tool_metadata.rs
+crates/codegen/xai-grok-tools/src/util/mcp_truncate.rs
+crates/codegen/xai-grok-update/src/auto_update.rs
+crates/codegen/xai-grok-update/src/auto_update_tests.rs
+crates/codegen/xai-grok-update/src/version.rs
+crates/codegen/xai-grok-update/tests/common/mod.rs
+crates/codegen/xai-grok-update/tests/test_blitz_cancel.rs
+crates/codegen/xai-grok-update/tests/test_check_status_regression.rs
+crates/codegen/xai-grok-update/tests/test_concurrent_convergence.rs
+crates/codegen/xai-grok-update/tests/test_downgrade_matrix.rs
+crates/codegen/xai-grok-update/tests/test_install_internal.rs
+crates/codegen/xai-grok-update/tests/test_install_sh.rs
+crates/codegen/xai-grok-update/tests/test_io.rs
+crates/codegen/xai-grok-update/tests/test_network.rs
+crates/codegen/xai-grok-voice/src/bin/voice_probe.rs
+crates/codegen/xai-grok-voice/src/config.rs
+crates/codegen/xai-grok-voice/src/language.rs
+crates/codegen/xai-grok-voice/src/lib.rs
+crates/codegen/xai-grok-voice/src/stt/streaming.rs
+crates/codegen/xai-grok-workspace-client/src/lib.rs
+crates/codegen/xai-grok-workspace-types/src/binding.rs
+crates/codegen/xai-grok-workspace-types/src/rpc/repos.rs
+crates/codegen/xai-grok-workspace/src/bin/workspace_server.rs
+crates/codegen/xai-grok-workspace/src/bin/workspace_server_probe.rs
+crates/codegen/xai-grok-workspace/src/config.rs
+crates/codegen/xai-grok-workspace/src/discovery.rs
+crates/codegen/xai-grok-workspace/src/file_system/acp_fs.rs
+crates/codegen/xai-grok-workspace/src/file_system/attach_file.rs
+crates/codegen/xai-grok-workspace/src/file_system/codebase_index.rs
+crates/codegen/xai-grok-workspace/src/folder_trust.rs
+crates/codegen/xai-grok-workspace/src/fs_notify.rs
+crates/codegen/xai-grok-workspace/src/handle.rs
+crates/codegen/xai-grok-workspace/src/hub_auth.rs
+crates/codegen/xai-grok-workspace/src/lib.rs
+crates/codegen/xai-grok-workspace/src/permission/auto_mode/mod.rs
+crates/codegen/xai-grok-workspace/src/permission/prompter.rs
+crates/codegen/xai-grok-workspace/src/permission/resolution.rs
+crates/codegen/xai-grok-workspace/src/permission/resolution_tests.rs
+crates/codegen/xai-grok-workspace/src/permission/rules.rs
+crates/codegen/xai-grok-workspace/src/permission/shell_access.rs
+crates/codegen/xai-grok-workspace/src/permission/state.rs
+crates/codegen/xai-grok-workspace/src/permission/types.rs
+crates/codegen/xai-grok-workspace/src/project_config.rs
+crates/codegen/xai-grok-workspace/src/session/git.rs
+crates/codegen/xai-grok-workspace/src/session/git_tests.rs
+crates/codegen/xai-grok-workspace/src/session/mod.rs
+crates/codegen/xai-grok-workspace/src/trust.rs
+crates/codegen/xai-grok-workspace/src/workspace_ops.rs
+crates/codegen/xai-grok-workspace/src/worktree/mod.rs
+crates/codegen/xai-hooks-plugins-types/src/lib.rs
+crates/codegen/xai-tty-utils/src/lib.rs
