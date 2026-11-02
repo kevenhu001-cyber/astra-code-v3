@@ -48,7 +48,7 @@ function Get-FileWithRetry {
   for ($i = 1; $i -le $MaxAttempts; $i++) {
     try {
       Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $OutFile `
-        -TimeoutSec $TimeoutSec -MaximumRetryCount 3 -RetryIntervalSec 2
+        -TimeoutSec $TimeoutSec
       if ((Test-Path $OutFile) -and ((Get-Item $OutFile).Length -gt 0)) {
         return $true
       }
