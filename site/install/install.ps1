@@ -1,7 +1,7 @@
 #
 # Astra CLI one-line installer (Windows PowerShell 5.1+).
 #
-#   irm https://astracode.topodrive.top/install/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.ps1 | iex
 #
 # Override the target directory with:
 #   $env:ASTRA_INSTALL_DIR = "D:\astra"
