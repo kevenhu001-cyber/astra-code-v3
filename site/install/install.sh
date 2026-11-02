@@ -2,7 +2,7 @@
 #
 # Astra CLI one-line installer (Linux / macOS).
 #
-#   curl -fsSL https://astracode.topodrive.top/install/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.sh | sh
 #
 # Override the target directory with:
 #   ASTRA_INSTALL_DIR=/opt/astra ./install.sh
