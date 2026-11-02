@@ -39,8 +39,8 @@ for the version of the code present in this tree.
 Prebuilt binaries are published for macOS, Linux, and Windows:
 
 ```sh
-curl -fsSL https://astracode.topodrive.top/install/install.sh | bash   # macOS / Linux / Git Bash
-irm https://astracode.topodrive.top/install/install.ps1 | iex          # Windows PowerShell
+curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.sh | bash   # macOS / Linux / Git Bash
+irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.ps1 | iex          # Windows PowerShell
 astra --version
 ```
 
@@ -57,16 +57,16 @@ user data directory.
 
 ```sh
 # macOS / Linux / Git Bash
-curl -fsSL https://astracode.topodrive.top/install/uninstall.sh | sh
+curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.sh | sh
 # or, to also remove ~/.astra:
-curl -fsSL https://astracode.topodrive.top/install/uninstall.sh | sh -s -- --purge
+curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.sh | sh -s -- --purge
 ```
 
 ```powershell
 # Windows PowerShell
-irm https://astracode.topodrive.top/install/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.ps1 | iex
 # or, to also remove the user data directory:
-irm https://astracode.topodrive.top/install/uninstall.ps1 | iex -Purge
+irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.ps1 | iex -Purge
 ```
 
 Add `--dry-run` (`-DryRun` on PowerShell) to preview what would be removed
