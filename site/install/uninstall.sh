@@ -2,7 +2,7 @@
 #
 # Astra CLI uninstaller (Linux / macOS).
 #
-#   curl -fsSL https://astracode.topodrive.top/install/uninstall.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.sh | sh
 #
 # Flags:
 #   --purge / -p    Also remove ~/.astra (config, sessions, caches).
@@ -228,7 +228,7 @@ else
   cat <<'NOTE'
 Note: your config and sessions were kept in ~/.astra.
 To remove them later, re-run with --purge:
-  curl -fsSL https://astracode.topodrive.top/install/uninstall.sh | sh -s -- --purge
+  curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.sh | sh -s -- --purge
 NOTE
 fi
 exit 0
