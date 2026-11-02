@@ -1,7 +1,7 @@
 #
 # Astra CLI uninstaller (Windows PowerShell 5.1+).
 #
-#   irm https://astracode.topodrive.top/install/uninstall.ps1 | iex
+#   irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.ps1 | iex
 #
 # Flags (use them on the pipeline or pass as args):
 #   -Purge           Also remove the user data directory (default: keep it).
@@ -169,7 +169,7 @@ else {
         Write-Host "  preserved user data at $dataDir (use -Purge to remove)"
         Write-Host ''
         Write-Host '  Note: to remove your config and sessions later, re-run with -Purge:'
-        Write-Host '    irm https://astracode.topodrive.top/install/uninstall.ps1 | iex -Purge'
+        Write-Host '    irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/uninstall.ps1 | iex -Purge'
     }
 }
 # --- 4. summary --------------------------------------------------------
