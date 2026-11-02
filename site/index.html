@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("astra_theme")||"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
   <title>Astra — uncertainty-driven software engineering runtime</title>
   <meta name="description" content="Astra is an uncertainty-driven software engineering runtime for the terminal. Goals, claims, evidence, and unknowns as first-class citizens.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/assets/site.css?v=4">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css?v=7">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -17,14 +19,15 @@
     <div class="shell-wide header-inner">
       <a class="brand" href="/" aria-label="Astra home"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
       <nav class="nav" aria-label="Primary">
-        <a href="#features">Features</a>
-        <a href="#protocol">Protocol</a>
-        <a href="#install">Install</a>
+        <a href="/" aria-current="page">Home</a>
+        <a href="/#install">Install</a>
         <a href="/login">Sign in</a>
-        <a href="/account">Account</a>
       </nav>
       <div class="nav-cta">
-        <a class="btn btn-quiet" href="/authorize">Authorize a device</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          <span data-theme-label>Dark</span>
+        </button>
         <a class="btn btn-primary" href="/login">Get started</a>
       </div>
     </div>
@@ -123,15 +126,14 @@
 
         <div class="cli" aria-label="terminal usage">
           <span class="label">terminal</span>
-          <div><span class="prompt">$</span> <span class="cmd">curl -fsSL https://astracode.topodrive.top/install/install.sh | sh</span></div>
           <div><span class="prompt">$</span> <span class="cmd">astra login</span></div>
-          <div class="out">  Open: http://localhost:8080/authorize?code=K7Q2-XM9D</div>
+          <div class="out">  Open: http://localhost:8080/authorize</div>
           <div class="out">  Code: K7Q2-XM9D</div>
           <div class="out">&nbsp;</div>
           <div class="out-ok">  logged in as you@example.com</div>
           <div><span class="prompt">$</span> <span class="cmd">astra "design a query layer for the events store"</span></div>
         </div>
-        <p class="cli-note" style="color:var(--text-30);font-size:12.5px;margin-top:10px">
+        <p class="install-note" style="margin-top:10px">
           Astra is a single Rust binary &mdash; no runtime, no Go toolchain, no build step on the host.
           For source builds see the <a href="https://github.com/kevenhu001-cyber/astra-harness/blob/main/README.md#building-from-source" style="color:var(--text-70)">build instructions</a>.
         </p>
@@ -201,16 +203,15 @@
         </div>
         <div class="footer-col">
           <h2>Product</h2>
-          <a href="#features">Features</a>
-          <a href="#protocol">Protocol</a>
-          <a href="#install">Install</a>
-          <a href="/login">Create account</a>
+          <a href="/#features">Features</a>
+          <a href="/#install">Install</a>
+          <a href="/#protocol">Protocol</a>
         </div>
         <div class="footer-col">
           <h2>Account</h2>
+          <a href="/login">Sign in</a>
           <a href="/account">My account</a>
           <a href="/authorize">Authorize device</a>
-          <a href="/login">Sign in</a>
         </div>
         <div class="footer-col">
           <h2>Run</h2>
@@ -225,6 +226,7 @@
     </div>
   </footer>
 
+  <script src="/assets/auth.js?v=7"></script>
   <script>
     // One-line install command copy buttons.
     (function () {

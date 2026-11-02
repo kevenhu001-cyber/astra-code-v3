@@ -3,32 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("astra_theme")||"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
   <title>Sign in &mdash; Astra</title>
   <meta name="description" content="Create an account or sign in to Astra.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/assets/site.css?v=3">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css?v=7">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
     <div class="shell-wide header-inner">
-      <a class="brand" href="/"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
+      <a class="brand" href="/" aria-label="Astra home"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
       <nav class="nav" aria-label="Primary">
         <a href="/">Home</a>
+        <a href="/#install">Install</a>
         <a href="/login" aria-current="page">Sign in</a>
-        <a href="/account">Account</a>
       </nav>
       <div class="nav-cta">
-        <a class="btn btn-primary" href="/authorize">Authorize a device</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          <span data-theme-label>Dark</span>
+        </button>
+        <a class="btn btn-primary" href="/login#create">Create account</a>
       </div>
     </div>
   </header>
 
   <main id="main">
-    <div class="auth-wrap">
+    <div class="page-wrap">
       <div class="auth-card">
         <div class="auth-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -40,30 +46,28 @@
         <h1 id="cardTitle">Welcome back</h1>
         <p class="sub" id="cardSub">Sign in to manage your account and authorize devices.</p>
 
-        <div class="tabs" role="tablist">
-          <div class="tab active" id="tabLogin" role="tab" aria-selected="true">Sign in</div>
-          <div class="tab" id="tabRegister" role="tab" aria-selected="false">Create account</div>
+        <div class="tabs" role="tablist" aria-label="Account access">
+          <button class="tab active" id="tabLogin" type="button" role="tab" aria-selected="true" aria-controls="loginPanel">Sign in</button>
+          <button class="tab" id="tabRegister" type="button" role="tab" aria-selected="false" aria-controls="registerPanel">Create account</button>
         </div>
 
         <div class="msg err" id="formErr" role="alert"></div>
         <div class="msg ok" id="formOk"></div>
 
-        <form id="loginForm" autocomplete="on">
+        <form id="loginPanel" role="tabpanel" aria-labelledby="tabLogin" autocomplete="on">
           <div class="field">
             <label for="loginEmail">Email</label>
             <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
           </div>
           <div class="field">
-            <div class="field-row">
-              <label for="loginPassword">Password</label>
-              <a href="#" id="resendLink">Resend verification</a>
-            </div>
+            <label for="loginPassword">Password</label>
             <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
           </div>
           <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+          <p class="form-foot">Still waiting for your verification email? <a href="#" id="resendLink">Resend the link</a></p>
         </form>
 
-        <form id="registerForm" hidden autocomplete="on">
+        <form id="registerPanel" role="tabpanel" aria-labelledby="tabRegister" hidden autocomplete="on">
           <div class="field">
             <label for="regEmail">Email</label>
             <input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
@@ -81,10 +85,10 @@
         </form>
 
         <div id="verifyPending" hidden>
-          <div class="msg info" style="display:block">
+          <div class="msg info show">
             <strong>Check your inbox.</strong>
-            <p style="margin:8px 0 0">We sent a verification link to your email. Click it to activate your account &mdash; you will be signed in automatically.</p>
-            <p style="margin:8px 0 0;color:var(--text-30);font-size:12.5px">Self-hosted? The verification link is printed to the server log.</p>
+            <p>We sent a verification link to your email. Click it to activate your account &mdash; you will be signed in automatically.</p>
+            <p style="color:var(--text-30);font-size:12.5px">Self-hosted? The verification link is printed to the server log.</p>
           </div>
         </div>
       </div>
@@ -101,12 +105,13 @@
         </div>
         <div class="footer-col">
           <h2>Product</h2>
-          <a href="/">Home</a>
-          <a href="/login">Sign in</a>
-          <a href="/account">Account</a>
+          <a href="/#features">Features</a>
+          <a href="/#install">Install</a>
+          <a href="/#protocol">Protocol</a>
         </div>
         <div class="footer-col">
           <h2>Account</h2>
+          <a href="/login">Sign in</a>
           <a href="/account">My account</a>
           <a href="/authorize">Authorize device</a>
         </div>
@@ -123,7 +128,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=3"></script>
+  <script src="/assets/auth.js?v=7"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -134,8 +139,8 @@
         document.getElementById('tabLogin').setAttribute('aria-selected', String(login));
         document.getElementById('tabRegister').classList.toggle('active', !login);
         document.getElementById('tabRegister').setAttribute('aria-selected', String(!login));
-        document.getElementById('loginForm').hidden = !login;
-        document.getElementById('registerForm').hidden = login;
+        document.getElementById('loginPanel').hidden = !login;
+        document.getElementById('registerPanel').hidden = login;
         document.getElementById('verifyPending').hidden = true;
         document.getElementById('cardTitle').textContent = login ? 'Welcome back' : 'Create your account';
         document.getElementById('cardSub').textContent = login
@@ -146,7 +151,13 @@
       document.getElementById('tabLogin').addEventListener('click', function () { switchTab('login'); });
       document.getElementById('tabRegister').addEventListener('click', function () { switchTab('register'); });
 
-      document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      // `/login#create` opens the registration tab directly, so the header
+      // call-to-action and the in-page tab land on the same screen.
+      if (window.location.hash.replace('#', '') === 'create') {
+        switchTab('register');
+      }
+
+      document.getElementById('loginPanel').addEventListener('submit', async function (e) {
         e.preventDefault();
         A.setErr(''); A.setOk('');
         try {
@@ -164,7 +175,7 @@
         }
       });
 
-      document.getElementById('registerForm').addEventListener('submit', async function (e) {
+      document.getElementById('registerPanel').addEventListener('submit', async function (e) {
         e.preventDefault();
         A.setErr(''); A.setOk('');
         var p1 = document.getElementById('regPassword').value;
@@ -174,8 +185,8 @@
         if (p1.length < 8) { A.setErr('Password must be at least 8 characters'); return; }
         try {
           await A.api('/register', { body: { email: document.getElementById('regEmail').value, password: p1 } });
-          document.getElementById('loginForm').hidden = true;
-          document.getElementById('registerForm').hidden = true;
+          document.getElementById('loginPanel').hidden = true;
+          document.getElementById('registerPanel').hidden = true;
           document.getElementById('verifyPending').hidden = false;
           document.getElementById('cardTitle').textContent = 'Verify your email';
           document.getElementById('cardSub').textContent = 'Click the link we sent to activate your account.';

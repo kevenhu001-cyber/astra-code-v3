@@ -52,7 +52,10 @@
       headers['Authorization'] = 'Bearer ' + sid;
       headers['X-Session-Token'] = sid;
     }
-    var res = await fetch(API + path, {
+    // Account endpoints live under /api/auth, while administrator endpoints
+    // have their own /api/admin namespace.
+    var endpoint = path.indexOf('/admin/') === 0 ? '/api' + path : API + path;
+    var res = await fetch(endpoint, {
       method: opts.method || 'POST',
       headers: headers,
       credentials: 'same-origin',
@@ -137,6 +140,27 @@
     try { sessionStorage.removeItem(BOUNCE_KEY); } catch (e) {}
   }
 
+  function setTheme(theme) {
+    var next = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('astra_theme', next); } catch (e) {}
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
+      var target = next === 'light' ? 'dark' : 'light';
+      var label = target === 'dark' ? 'Dark' : 'Light';
+      button.setAttribute('aria-label', 'Switch to ' + target + ' mode');
+      button.setAttribute('aria-pressed', String(next === 'dark'));
+      var text = button.querySelector('[data-theme-label]');
+      if (text) text.textContent = label;
+    });
+  }
+
+  setTheme(document.documentElement.dataset.theme || 'light');
+  document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+  });
+
   function redirectLogin() {
     var here = window.location.pathname.replace(/\/+$/, '') || '/';
     var dest = here === '/login' ? '' : 'login';
@@ -181,5 +205,6 @@
     setSid: setSid,
     clearSid: clearSid,
     logout: logout,
+    setTheme: setTheme,
   };
 })();

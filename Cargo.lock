@@ -374,10 +374,13 @@ name = "astra-auth"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-stream",
  "axum",
  "base64 0.22.1",
  "bcrypt",
+ "bytes",
  "chrono",
+ "futures-util",
  "jsonwebtoken 9.3.1",
  "rand 0.9.5",
  "reqwest 0.12.24",

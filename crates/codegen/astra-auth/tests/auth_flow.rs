@@ -62,6 +62,8 @@ fn seed_user(store: &Store, id: &str, email: &str, password: &str) {
             display_name: None,
             created_at: chrono::Utc::now(),
             verified_at: None,
+            is_admin: false,
+            balance_microusd: 0,
         })
         .unwrap();
 }

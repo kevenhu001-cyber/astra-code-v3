@@ -3,32 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("astra_theme")||"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
   <title>Connect your CLI &mdash; Astra</title>
   <meta name="description" content="Authorize the Astra CLI by signing in and pasting the one-time code into your terminal.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/assets/site.css?v=3">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css?v=7">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
     <div class="shell-wide header-inner">
-      <a class="brand" href="/"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
+      <a class="brand" href="/" aria-label="Astra home"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
       <nav class="nav" aria-label="Primary">
         <a href="/">Home</a>
+        <a href="/#install">Install</a>
         <a href="/login">Sign in</a>
-        <a href="/account">Account</a>
       </nav>
       <div class="nav-cta">
-        <a class="btn btn-quiet" href="/login">Different account</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          <span data-theme-label>Dark</span>
+        </button>
+        <a class="btn btn-primary" href="/account">Account</a>
       </div>
     </div>
   </header>
 
   <main id="main">
-    <div class="auth-wrap">
+    <div class="page-wrap">
       <div class="auth-card">
         <div class="auth-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -45,7 +51,7 @@
 
         <div class="session-row" id="sessionBox">
           <span class="avatar" id="sessionAvatar">&middot;</span>
-          <span><span id="sessionEmail" style="color:var(--text-90)"></span><br><span style="color:var(--text-30);font-size:12px">Signed in</span></span>
+          <span><span class="session-email" id="sessionEmail"></span><br><span class="session-note">Signed in</span></span>
         </div>
 
         <form id="loginForm" autocomplete="on">
@@ -58,20 +64,19 @@
             <input id="authPassword" type="password" autocomplete="current-password" required>
           </div>
           <button class="btn btn-primary btn-block" type="submit">Sign in &amp; generate code</button>
-          <p class="hint" style="text-align:center;margin-top:12px">No account? <a href="/login" style="color:var(--text-70)">Create one</a> &mdash; you will be brought back here.</p>
+          <p class="form-foot">No account? <a href="/login#create">Create one</a> &mdash; you will be brought back here.</p>
         </form>
 
         <div id="approveBox" hidden>
           <div class="code-box">
             <p class="code-uri-note" id="codeNote">Your one-time code:</p>
-            <input class="code-chip-input" id="codeInput" type="text" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX" hidden>
             <div class="code-chip" id="codeChip">&middot;&middot;&middot;&middot;&middot;&middot;</div>
-            <p class="hint" id="codeExpiry" style="margin:6px 0 0;color:var(--text-30);font-size:12.5px"></p>
+            <p class="code-expiry" id="codeExpiry"></p>
           </div>
           <button class="btn btn-primary btn-block" id="approveBtn" type="button" hidden>Approve login</button>
-          <button class="btn btn-primary btn-block" id="genBtn" type="button">Generate code for terminal</button>
-          <button class="btn btn-quiet btn-block" id="copyBtn" type="button" hidden>Copy code</button>
-          <p class="hint" id="hintText" style="text-align:center;margin-top:10px">Paste this code into your terminal where you ran <code>astra login</code>. The CLI will receive a bearer token tied to your account; you can revoke it from <a href="/account" style="color:var(--text-70)">your account</a>.</p>
+          <button class="btn btn-primary btn-block" id="copyBtn" type="button" hidden>Copy code</button>
+          <button class="btn btn-quiet btn-block" id="genBtn" type="button" hidden>Generate a new code</button>
+          <p class="form-foot" id="hintText"></p>
         </div>
       </div>
     </div>
@@ -86,12 +91,13 @@
         </div>
         <div class="footer-col">
           <h2>Product</h2>
-          <a href="/">Home</a>
-          <a href="/login">Sign in</a>
-          <a href="/account">Account</a>
+          <a href="/#features">Features</a>
+          <a href="/#install">Install</a>
+          <a href="/#protocol">Protocol</a>
         </div>
         <div class="footer-col">
           <h2>Account</h2>
+          <a href="/login">Sign in</a>
           <a href="/account">My account</a>
           <a href="/authorize">Authorize device</a>
         </div>
@@ -108,13 +114,12 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=5"></script>
+  <script src="/assets/auth.js?v=7"></script>
   <script>
     (function () {
       var A = window.Astra;
       var code = (A.qs('code') || '').trim();
       var chip = document.getElementById('codeChip');
-      var codeInput = document.getElementById('codeInput');
       var codeNote = document.getElementById('codeNote');
       var codeExpiry = document.getElementById('codeExpiry');
       var approveBox = document.getElementById('approveBox');
@@ -141,11 +146,10 @@
         approveBtn.hidden = false;
         genBtn.hidden = true;
         copyBtn.hidden = true;
+        hintText.innerHTML = 'Confirming hands a bearer token tied to your account to this CLI. You can revoke it later from <a href="/account">your account</a>.';
       } else {
         pageTitle.textContent = 'Connect your CLI';
-        pageSub.textContent = 'Sign in here, copy the one-time code below, and paste it into your terminal where you ran `astra login`.';
-        chip.hidden = true;
-        codeInput.hidden = true;
+        pageSub.innerHTML = 'Sign in here, copy the one-time code below, and paste it into your terminal where you ran <code>astra login</code>.';
         codeNote.textContent = 'Your one-time code:';
         hintText.innerHTML = 'Paste this code into your terminal where you ran <code>astra login</code>. Valid for 10 minutes.';
         approveBtn.hidden = true;
@@ -162,11 +166,10 @@
           var m = Math.floor(left / 60), s = left % 60;
           codeExpiry.textContent = left > 0
             ? 'Expires in ' + m + ':' + (s < 10 ? '0' : '') + s
-            : 'Expired — click "Generate code" for a fresh one.';
+            : 'Expired — generate a new code.';
           if (left <= 0) {
             chip.classList.add('is-muted');
             genBtn.disabled = false;
-            genBtn.textContent = 'Generate code for terminal';
             if (expiryTimer) { clearInterval(expiryTimer); expiryTimer = null; }
           }
         }
@@ -181,7 +184,6 @@
         try {
           var d = await A.api('/device/generate', { method: 'POST', body: {} });
           chip.classList.remove('is-muted');
-          chip.hidden = false;
           chip.textContent = d.user_code;
           codeNote.textContent = 'Paste this code into your terminal:';
           copyBtn.hidden = false;
@@ -200,27 +202,17 @@
           }
         } catch (err) {
           genBtn.disabled = false;
-          genBtn.textContent = 'Generate code for terminal';
+          genBtn.textContent = 'Generate a new code';
           if (err.status === 401) A.setErr('Please sign in first.');
           else A.setErr(err.message);
         }
       }
 
-      function currentCode() {
-        if (isForward) return code;
-        return (codeInput.value || '').trim().toUpperCase();
-      }
-
       async function tryApprove() {
         if (!isForward) return; // reverse-flow caller should never end up here
         A.setErr(''); A.setOk('');
-        var userCode = currentCode();
-        if (!userCode) {
-          A.setErr('Confirm the code shown in your terminal to continue.');
-          return;
-        }
         try {
-          await A.api('/device/approve', { body: { user_code: userCode } });
+          await A.api('/device/approve', { body: { user_code: code } });
           chip.classList.remove('is-muted');
           chip.textContent = 'Approved';
           chip.classList.add('is-ok');
@@ -246,7 +238,6 @@
           });
         }
       });
-      codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); tryApprove(); } });
 
       function showSignedIn(user) {
         sessionBox.classList.add('show');

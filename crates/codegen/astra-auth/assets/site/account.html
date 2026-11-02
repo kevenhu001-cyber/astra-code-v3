@@ -3,101 +3,94 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("astra_theme")||"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
   <title>My account &mdash; Astra</title>
   <meta name="description" content="Manage your Astra account, display name, and authorized CLI devices.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/assets/site.css?v=3">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css?v=7">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
     <div class="shell-wide header-inner">
-      <a class="brand" href="/"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
+      <a class="brand" href="/" aria-label="Astra home"><span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><title>ASTRA</title><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span></a>
       <nav class="nav" aria-label="Primary">
         <a href="/">Home</a>
+        <a href="/#install">Install</a>
         <a href="/login">Sign in</a>
-        <a href="/account" aria-current="page">Account</a>
+        <a href="/admin" data-admin-link hidden>Admin</a>
       </nav>
       <div class="nav-cta">
-        <a class="btn btn-quiet" href="/authorize">Authorize another device</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          <span data-theme-label>Dark</span>
+        </button>
+        <a class="btn btn-primary" href="/authorize">Authorize device</a>
       </div>
     </div>
   </header>
 
   <main id="main">
-    <div class="app-wrap">
-      <aside class="app-side" aria-label="Account navigation">
-        <p class="kicker">Account</p>
-        <nav>
-          <a href="#profile" class="is-current"><span>01</span>Profile</a>
-          <a href="#tokens"><span>02</span>API tokens</a>
-          <a href="/authorize"><span>03</span>Authorize device</a>
-        </nav>
-        <p class="note">Need help? Write to the Astra maintainers on <a href="https://github.com/kevenhu001-cyber/astra-harness">GitHub</a>.</p>
-      </aside>
+    <div class="page-wrap page-wrap-wide">
+      <div class="acct-card">
+        <h1>My account</h1>
+        <p class="sub">Your profile and the CLI devices you have authorized.</p>
 
-      <div>
-        <div class="acct-card" id="profile">
-          <h1>My account</h1>
-          <p class="sub">Your profile and the devices you have authorized.</p>
+        <div class="msg err" id="formErr" role="alert"></div>
+        <div class="msg ok" id="formOk"></div>
 
-          <div class="msg err" id="formErr" role="alert"></div>
-          <div class="msg ok" id="formOk"></div>
-
-          <div id="profileBox">
-            <div class="acct-meta">
-              <span class="avatar" id="avatar">&middot;</span>
-              <div style="min-width:0">
-                <div class="email" id="email">&mdash;</div>
-                <div class="since" id="since"></div>
-                <div style="margin-top:8px">
-                  <span class="section-title" style="font-size:10px">Display name</span>
-                  <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
-                    <span id="displayName" class="editable" title="Click to edit" style="font-size:14.5px;color:var(--text-90)">&mdash;</span>
-                    <button class="btn-link" id="editNameBtn" type="button" style="font-size:12.5px">Edit</button>
-                  </div>
-                  <form id="nameForm" hidden style="display:flex;gap:8px;margin-top:6px">
-                    <input id="nameInput" type="text" maxlength="60" style="flex:1;padding:9px 11px;background:#000;border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;outline:0">
-                    <button class="btn btn-primary" type="submit" style="min-height:36px;padding:6px 14px;font-size:13px">Save</button>
-                    <button class="btn btn-quiet" id="cancelNameBtn" type="button" style="min-height:36px;padding:6px 14px;font-size:13px">Cancel</button>
-                  </form>
+        <div id="profileBox">
+          <div class="acct-meta">
+            <span class="avatar" id="avatar">&middot;</span>
+            <div>
+              <div class="email" id="email">&mdash;</div>
+              <div class="since" id="since"></div>
+              <div class="acct-name">
+                <p class="section-title">Display name</p>
+                <div class="name-row">
+                  <span class="name-value" id="displayName">&mdash;</span>
+                  <button class="btn-link" id="editNameBtn" type="button">Edit</button>
                 </div>
+                <form id="nameForm" class="name-form" hidden>
+                  <input id="nameInput" type="text" maxlength="60" placeholder="How you want to be shown">
+                  <button class="btn btn-primary" type="submit">Save</button>
+                  <button class="btn btn-quiet" id="cancelNameBtn" type="button">Cancel</button>
+                </form>
               </div>
             </div>
+          </div>
 
-            <div class="divider"></div>
-
-            <p class="section-title" id="tokens">API tokens</p>
-            <p class="section-help">Tokens authorize the Astra CLI. Revoke any you do not recognize.</p>
-            <ul class="token-list" id="tokenList"></ul>
-
-            <div class="divider"></div>
-
-            <p class="section-title">Device authorization</p>
-            <p class="section-help">Generate a one-time code here, then paste it in your terminal when <code>astra login</code> asks for it. Valid for 10 minutes.</p>
-            <div style="display:flex;gap:8px;align-items:center;margin:10px 0">
-              <button class="btn btn-primary" id="genCodeBtn" type="button">Generate device code</button>
-              <span id="genCodeHint" style="color:var(--text-30);font-size:12.5px"></span>
+          <section class="balance-summary" aria-labelledby="balanceTitle">
+            <div>
+              <p class="section-title" id="balanceTitle">Available balance</p>
+              <strong class="balance-value" id="balanceValue">&mdash;</strong>
             </div>
-            <div class="code-box" id="genCodeBox" hidden style="display:flex;flex-direction:column;gap:8px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:12px;background:#0b0b0b">
-              <div class="code-chip" id="genCodeChip" style="font-size:22px;letter-spacing:3px;font-weight:700;color:var(--text-90)">····-····</div>
-              <p class="hint" id="genCodeExpiry" style="margin:0;color:var(--text-30)"></p>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-quiet" id="copyCodeBtn" type="button">Copy code</button>
-                <a class="btn btn-quiet" href="/authorize" target="_blank">Open authorize page</a>
-              </div>
-            </div>
+            <p class="balance-note">CLI requests are billed from this balance using the configured model rates.</p>
+          </section>
 
-            <div class="divider"></div>
+          <div class="usage-section">
+            <p class="section-title">Recent activity</p>
+            <ul class="ledger-list" id="ledgerList">
+              <li class="ledger-empty">Loading balance activity&hellip;</li>
+            </ul>
+          </div>
 
-            <p class="section-title">Session</p>
-            <div class="actions-row">
-              <button class="btn btn-quiet" id="logoutBtn" type="button">Sign out of this browser</button>
-              <a class="btn btn-quiet" href="/authorize">Authorize another device</a>
-            </div>
+          <div class="divider"></div>
+
+          <p class="section-title" id="tokens">API tokens</p>
+          <p class="section-help">Tokens authorize the Astra CLI. Revoke any you do not recognize.</p>
+          <ul class="token-list" id="tokenList"></ul>
+
+          <div class="divider"></div>
+
+          <p class="section-title">Session</p>
+          <p class="section-help">You are signed in on this browser only. Revoke tokens above to cut off any CLI.</p>
+          <div class="actions-row">
+            <button class="btn btn-quiet" id="logoutBtn" type="button">Sign out of this browser</button>
           </div>
         </div>
       </div>
@@ -113,12 +106,13 @@
         </div>
         <div class="footer-col">
           <h2>Product</h2>
-          <a href="/">Home</a>
-          <a href="/login">Sign in</a>
-          <a href="/account">Account</a>
+          <a href="/#features">Features</a>
+          <a href="/#install">Install</a>
+          <a href="/#protocol">Protocol</a>
         </div>
         <div class="footer-col">
           <h2>Account</h2>
+          <a href="/login">Sign in</a>
           <a href="/account">My account</a>
           <a href="/authorize">Authorize device</a>
         </div>
@@ -135,7 +129,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=4"></script>
+  <script src="/assets/auth.js?v=7"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -145,9 +139,7 @@
         list.innerHTML = '';
         if (!tokens || !tokens.length) {
           var li = document.createElement('li');
-          li.className = 'muted';
-          li.style.border = '1px dashed var(--line-strong)';
-          li.style.background = 'transparent';
+          li.className = 'muted empty';
           li.textContent = 'No active tokens. Run astra login to authorize this CLI.';
           list.appendChild(li);
           return;
@@ -198,23 +190,68 @@
         if (name && name.trim()) {
           dn.textContent = name;
           dn.dataset.value = name;
+          dn.classList.remove('is-empty');
         } else {
-          dn.textContent = '(not set)';
+          dn.textContent = 'Not set';
           dn.dataset.value = '';
+          dn.classList.add('is-empty');
         }
+      }
+
+      function formatUsd(microusd) {
+        var amount = Number(microusd || 0) / 1000000;
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+      }
+
+      function renderLedger(entries) {
+        var list = document.getElementById('ledgerList');
+        list.innerHTML = '';
+        if (!entries || !entries.length) {
+          var empty = document.createElement('li');
+          empty.className = 'ledger-empty';
+          empty.textContent = 'No credits or model usage yet.';
+          list.appendChild(empty);
+          return;
+        }
+        entries.forEach(function (entry) {
+          var row = document.createElement('li');
+          var description = document.createElement('div');
+          description.className = 'ledger-description';
+          var title = document.createElement('strong');
+          title.textContent = entry.note || 'Account activity';
+          var detail = document.createElement('span');
+          var date = new Date(entry.created_at).toLocaleString();
+          var tokenCount = Number(entry.input_tokens || 0) + Number(entry.output_tokens || 0);
+          detail.textContent = tokenCount ? date + ' · ' + tokenCount.toLocaleString() + ' tokens' : date;
+          description.appendChild(title);
+          description.appendChild(detail);
+          var amount = document.createElement('span');
+          amount.className = 'ledger-amount ' + (entry.delta_microusd >= 0 ? 'is-credit' : 'is-debit');
+          amount.textContent = (entry.delta_microusd > 0 ? '+' : '') + formatUsd(entry.delta_microusd);
+          row.appendChild(description);
+          row.appendChild(amount);
+          list.appendChild(row);
+        });
       }
 
       A.me().then(function (u) {
         if (!u) { A.redirectLogin(); return; }
+        var adminLink = document.querySelector('[data-admin-link]');
+        if (adminLink && u.is_admin) adminLink.hidden = false;
         document.getElementById('email').textContent = u.email;
         document.getElementById('avatar').textContent = (u.email || '?').charAt(0).toUpperCase();
         document.getElementById('since').textContent = 'Member since ' + new Date(u.created_at).toLocaleDateString();
         setDisplayName(u.display_name);
-        return A.api('/tokens', { method: 'GET' }).then(function (d) { renderTokens(d.tokens); });
+        return Promise.all([
+          A.api('/tokens', { method: 'GET' }).then(function (d) { renderTokens(d.tokens); }),
+          A.api('/balance', { method: 'GET' }).then(function (d) {
+            document.getElementById('balanceValue').textContent = formatUsd(d.balance_microusd);
+            renderLedger(d.transactions);
+          })
+        ]);
       }).catch(function () { A.redirectLogin(); });
 
       document.getElementById('editNameBtn').addEventListener('click', showNameEditor);
-      document.getElementById('displayName').addEventListener('click', showNameEditor);
       document.getElementById('cancelNameBtn').addEventListener('click', hideNameEditor);
       document.getElementById('nameForm').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -226,43 +263,6 @@
           hideNameEditor();
           A.setOk('Display name updated.');
         } catch (err) { A.setErr(err.message); }
-      });
-
-      // Reverse device code: generate on this page, consume in CLI `astra login`.
-      var genTimer = null;
-      function startExpiryCountdown(expiresIn) {
-        var expiryEl = document.getElementById('genCodeExpiry');
-        var end = Date.now() + expiresIn * 1000;
-        if (genTimer) clearInterval(genTimer);
-        function tick() {
-          var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-          var m = Math.floor(left / 60), s = left % 60;
-          expiryEl.textContent = left > 0 ? 'Expires in ' + m + ':' + (s < 10 ? '0' : '') + s : 'Expired — generate again';
-          if (left <= 0) { clearInterval(genTimer); genTimer = null; }
-        }
-        tick();
-        genTimer = setInterval(tick, 1000);
-      }
-      document.getElementById('genCodeBtn').addEventListener('click', async function () {
-        var btn = document.getElementById('genCodeBtn');
-        btn.disabled = true; A.setErr(''); A.setOk('');
-        try {
-          var d = await A.api('/device/generate', { method: 'POST', body: {} });
-          document.getElementById('genCodeChip').textContent = d.user_code;
-          document.getElementById('genCodeBox').hidden = false;
-          document.getElementById('genCodeBox').style.display = 'flex';
-          document.getElementById('genCodeHint').textContent = 'Code ready — paste in terminal';
-          A.setOk('Code ' + d.user_code + ' generated. Paste it in astra login.');
-          startExpiryCountdown(d.expires_in || 600);
-        } catch (err) { A.setErr(err.message); }
-        btn.disabled = false;
-      });
-      document.getElementById('copyCodeBtn').addEventListener('click', function () {
-        var code = document.getElementById('genCodeChip').textContent;
-        if (!code || code.indexOf('·') !== -1) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code).then(function(){ A.setOk('Copied ' + code); }, function(){ A.setErr('Copy failed'); });
-        }
       });
 
       document.getElementById('logoutBtn').addEventListener('click', async function () {

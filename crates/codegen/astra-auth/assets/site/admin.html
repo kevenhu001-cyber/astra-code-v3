@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("astra_theme")||"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
+  <title>Admin &mdash; Astra</title>
+  <meta name="description" content="Configure Astra model routes and account credit.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css?v=7">
+</head>
+<body class="admin-body">
+  <a class="skip-link" href="#adminMain">Skip to content</a>
+
+  <div class="admin-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <a class="admin-brand" href="/" aria-label="Astra home">
+        <span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 29 5" focusable="false"><path d="M1 0h3v1h-3zM0 1h1v1h-1zM4 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM0 3h5v1h-5zM0 4h1v1h-1zM4 4h1v1h-1zM6 0h5v1h-5zM6 1h1v1h-1zM6 2h5v1h-5zM10 3h1v1h-1zM6 4h5v1h-5zM12 0h5v1h-5zM14 1h1v4h-1zM18 0h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM18 2h4v1h-4zM18 3h1v1h-1zM22 3h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 0h4v1h-4zM24 1h1v1h-1zM28 1h1v1h-1zM24 2h1v1h-1zM28 2h1v1h-1zM24 3h5v1h-5zM24 4h1v1h-1zM28 4h1v1h-1z"/></svg></span>
+        <span class="admin-brand-label">CONTROL</span>
+      </a>
+
+      <nav class="admin-nav" aria-label="Admin sections">
+        <button class="admin-nav-item is-active" type="button" data-admin-section="routes" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5" r="2.2"/><circle cx="18" cy="19" r="2.2"/><circle cx="18" cy="5" r="2.2"/><path d="M8.2 5H13a5 5 0 0 1 5 5v6.8M8 6.5l6.4 6.4"/></svg>
+          <span>Model routes</span>
+        </button>
+        <button class="admin-nav-item" type="button" data-admin-section="users">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg>
+          <span>Users &amp; balance</span>
+        </button>
+      </nav>
+
+      <div class="admin-sidebar-bottom">
+        <div class="admin-signed-in">
+          <span>Signed in as</span>
+          <strong id="adminEmail">&mdash;</strong>
+        </div>
+        <a class="admin-account-link" href="/account">My account <span aria-hidden="true">&rarr;</span></a>
+      </div>
+    </aside>
+
+    <main class="admin-main" id="adminMain">
+      <header class="admin-topbar">
+        <span class="admin-topbar-label">Astra / Admin</span>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          <span data-theme-label>Dark</span>
+        </button>
+      </header>
+
+      <div class="admin-page-head">
+        <div>
+          <h1 id="adminTitle">Model routes</h1>
+          <p id="adminDescription">Choose how Astra sends CLI requests to providers.</p>
+        </div>
+        <button class="admin-primary" id="addRouteBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Add route</span>
+        </button>
+      </div>
+
+      <div class="admin-message" id="adminMessage" role="alert" hidden></div>
+      <div class="admin-workspace" id="adminWorkspace">
+        <div class="admin-content">
+          <section class="admin-view" id="routesView" aria-label="Model routes">
+            <div class="admin-table-wrap">
+              <table class="admin-table route-table">
+                <thead><tr><th>Display name</th><th>Protocol</th><th>Upstream model</th><th>Endpoint</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+                <tbody id="routeRows"></tbody>
+              </table>
+              <div class="admin-empty" id="routesEmpty" hidden>
+                <span class="empty-mark" aria-hidden="true">/</span>
+                <h2>No model routes yet</h2>
+                <p>Add an upstream provider and choose the model name Astra users will see.</p>
+                <button class="admin-secondary" type="button" data-open-route>Add your first route</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-view" id="usersView" aria-label="Users and balance" hidden>
+            <div class="admin-table-wrap">
+              <table class="admin-table user-table">
+                <thead><tr><th>User</th><th>Role</th><th>Available balance</th><th>Joined</th><th><span class="sr-only">Actions</span></th></tr></thead>
+                <tbody id="userRows"></tbody>
+              </table>
+              <div class="admin-empty" id="usersEmpty" hidden>
+                <span class="empty-mark" aria-hidden="true">/</span>
+                <h2>No accounts yet</h2>
+                <p>Verified Astra accounts will appear here.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="admin-panel" id="routePanel" aria-labelledby="routePanelTitle" hidden>
+          <div class="admin-panel-head">
+            <h2 id="routePanelTitle">New route</h2>
+            <button class="icon-button" type="button" data-close-panel aria-label="Close route editor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+          <form class="admin-form" id="routeForm">
+            <input id="routeId" type="hidden">
+            <div class="admin-field">
+              <label for="routeName">Display name</label>
+              <p>This is the model name shown to CLI users.</p>
+              <input id="routeName" name="display_name" type="text" maxlength="80" placeholder="Astra Code" required>
+            </div>
+            <div class="admin-field">
+              <label for="routeProtocol">Protocol</label>
+              <p>How Astra talks to the upstream provider.</p>
+              <select id="routeProtocol" name="protocol">
+                <option value="openai-compatible">OpenAI-compatible</option>
+                <option value="anthropic-messages">Anthropic Messages</option>
+              </select>
+            </div>
+            <div class="admin-field">
+              <label for="routeBaseUrl">API base URL</label>
+              <p>Provider API root. Astra appends the protocol endpoint.</p>
+              <input id="routeBaseUrl" name="base_url" type="url" placeholder="https://api.example.com/v1" required>
+            </div>
+            <div class="admin-field">
+              <label for="routeUpstreamModel">Upstream model ID</label>
+              <p>The model identifier used by the provider.</p>
+              <input id="routeUpstreamModel" name="upstream_model" type="text" placeholder="provider-model-id" required>
+            </div>
+            <div class="admin-field">
+              <label for="routeContextWindow">Context window</label>
+              <p>Maximum context tokens supported by this model.</p>
+              <input id="routeContextWindow" type="number" min="1024" max="2000000" step="1024" value="128000" required>
+            </div>
+            <div class="admin-field">
+              <label for="routeApiKey">API key</label>
+              <p id="apiKeyHint">Stored by Astra and never returned to the browser.</p>
+              <input id="routeApiKey" name="api_key" type="password" autocomplete="new-password" placeholder="Provider API key">
+              <label class="admin-check clear-key" id="clearKeyRow" hidden><input id="clearApiKey" type="checkbox"> Remove the saved key</label>
+            </div>
+            <div class="admin-field-group">
+              <div class="admin-field">
+                <label for="inputPrice">Input price / 1M tokens</label>
+                <div class="price-input"><span>$</span><input id="inputPrice" type="number" min="0" max="1000000000" step="0.000001" value="0" required></div>
+              </div>
+              <div class="admin-field">
+                <label for="outputPrice">Output price / 1M tokens</label>
+                <div class="price-input"><span>$</span><input id="outputPrice" type="number" min="0" max="1000000000" step="0.000001" value="0" required></div>
+              </div>
+            </div>
+            <div class="admin-options">
+              <label class="admin-check"><input id="routeEnabled" type="checkbox" checked> Enabled</label>
+              <label class="admin-check"><input id="routeDefault" type="checkbox"> Default route</label>
+            </div>
+            <div class="admin-panel-actions">
+              <button class="admin-primary" type="submit" id="saveRouteBtn">Save route</button>
+              <button class="admin-secondary" type="button" data-close-panel>Cancel</button>
+            </div>
+          </form>
+        </aside>
+
+        <aside class="admin-panel" id="creditPanel" aria-labelledby="creditPanelTitle" hidden>
+          <div class="admin-panel-head">
+            <h2 id="creditPanelTitle">Add credit</h2>
+            <button class="icon-button" type="button" data-close-panel aria-label="Close credit form">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+          <form class="admin-form credit-form" id="creditForm">
+            <input id="creditUserId" type="hidden">
+            <div class="credit-user" id="creditUserEmail">&mdash;</div>
+            <div class="admin-field">
+              <label for="creditAmount">Amount</label>
+              <p>Credit is added to the account balance immediately.</p>
+              <div class="price-input price-input-large"><span>$</span><input id="creditAmount" type="number" min="0.000001" max="1000000000" step="0.01" placeholder="10.00" required></div>
+            </div>
+            <div class="admin-field">
+              <label for="creditNote">Note</label>
+              <input id="creditNote" type="text" maxlength="100" placeholder="Manual credit">
+            </div>
+            <div class="admin-panel-actions">
+              <button class="admin-primary" type="submit">Add credit</button>
+              <button class="admin-secondary" type="button" data-close-panel>Cancel</button>
+            </div>
+          </form>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/auth.js?v=7"></script>
+  <script src="/assets/admin.js?v=1"></script>
+</body>
+</html>
