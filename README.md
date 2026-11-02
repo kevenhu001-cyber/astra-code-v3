@@ -38,11 +38,19 @@ for the version of the code present in this tree.
 
 Prebuilt binaries are published for macOS, Linux, and Windows:
 
+**macOS / Linux (Terminal)**
+
 ```sh
-curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.sh | bash   # macOS / Linux / Git Bash
-irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.ps1 | iex          # Windows PowerShell
-astra --version
+curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.sh | sh
 ```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.ps1 | iex
+```
+
+After installation, open a new terminal and run `astra --version` to verify.
 
 See the [changelog](https://example.invalid/changelog) for the latest fixes,
 features, and improvements in each release.
