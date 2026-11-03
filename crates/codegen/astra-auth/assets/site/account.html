@@ -114,7 +114,6 @@
           </div>
         </div>
       </div>
-      </div>
     </div>
   </main>
 
@@ -150,7 +149,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=9"></script>
+  <script src="/assets/auth.js?v=10"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -313,7 +312,7 @@
       }
 
       A.me().then(function (u) {
-        if (!u) { A.redirectLogin('/account'); return; }
+        if (!u) { A.redirectLogin(window.location.pathname + window.location.hash); return; }
         document.body.removeAttribute('data-auth-pending');
         if (u.is_admin) {
           var adminLink = document.querySelector('[data-admin-link]');

@@ -543,7 +543,9 @@ pub(super) fn dispatch_send_prompt_submission(
     // Recorded before the registry runs, because most command outcomes return on their own path.
     let recorded_as_command = !literal && consume_input && trimmed.starts_with('/');
     if recorded_as_command {
-        agent.record_prompt_in_history(trimmed);
+        let history_text =
+            redact_connect_api_key_from_history(trimmed).unwrap_or_else(|| trimmed.to_owned());
+        agent.record_prompt_in_history(&history_text);
     }
 
     let mut effects = prelude;
@@ -1034,6 +1036,26 @@ pub(super) fn dispatch_send_prompt_submission(
         app, None,
     ));
     effects
+}
+
+/// Preserve a typed `/connect` invocation in local prompt history without
+/// retaining the one-shot API key argument.
+fn redact_connect_api_key_from_history(text: &str) -> Option<String> {
+    let invocation = crate::slash::parse_invocation(text)?;
+    if !invocation.token.eq_ignore_ascii_case("connect") {
+        return None;
+    }
+
+    let mut args = invocation.args.split_whitespace();
+    let provider = args.next()?;
+    let model_id = args.next()?;
+    args.next()?; // API key
+    let mut redacted = format!("/{} {provider} {model_id} [REDACTED]", invocation.token);
+    if let Some(base_url) = args.next() {
+        redacted.push(' ');
+        redacted.push_str(base_url);
+    }
+    Some(redacted)
 }
 
 /// Enqueue a bash command and try to drain immediately.

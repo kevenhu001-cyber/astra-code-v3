@@ -2147,7 +2147,16 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             vec![]
         }
         TaskResult::SettingPersisted { key, value } => {
-            tracing::trace!(target: "settings", ?key, ?value, "setting persisted");
+            if key == "custom_model_api_key" {
+                tracing::trace!(
+                    target: "settings",
+                    ?key,
+                    value = "[REDACTED]",
+                    "setting persisted",
+                );
+            } else {
+                tracing::trace!(target: "settings", ?key, ?value, "setting persisted");
+            }
             vec![]
         }
         TaskResult::SettingPersistFailed {
@@ -2156,7 +2165,17 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             error,
         } => {
             let rollback_effects = apply_setting_rollback(app, key, &rollback_value);
-            tracing::warn!(target: "settings", ?key, ?rollback_value, %error, "setting persist failed; rolled back");
+            if key == "custom_model_api_key" {
+                tracing::warn!(
+                    target: "settings",
+                    ?key,
+                    rollback_value = "[REDACTED]",
+                    %error,
+                    "setting persist failed; rolled back",
+                );
+            } else {
+                tracing::warn!(target: "settings", ?key, ?rollback_value, %error, "setting persist failed; rolled back");
+            }
             let scrubbed = scrub_error_for_toast(&error);
             app.show_toast(&format!("\u{2717} Could not save {key}: {scrubbed}"));
             rollback_effects

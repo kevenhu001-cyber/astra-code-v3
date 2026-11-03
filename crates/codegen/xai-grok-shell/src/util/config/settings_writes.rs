@@ -533,16 +533,20 @@ pub async fn set_custom_model_provider(value: String) -> Result<()> {
         // `custom_model_base_url` setting owns it) and only reset the
         // protocol + think flag to defaults so a stale preset value from a
         // previous connection doesn't leak into the new one.
-        super::persist::set_custom_model_field("api_backend", "chat_completions").await?;
-        return super::persist::set_custom_model_field("injects_think_tags_in_content", "false")
-            .await;
+        return super::persist::set_custom_model_fields(&[
+            ("api_backend", "chat_completions"),
+            ("injects_think_tags_in_content", "false"),
+        ])
+        .await;
     };
-    super::persist::set_custom_model_field("api_backend", backend).await?;
-    super::persist::set_custom_model_field("base_url", base_url).await?;
-    super::persist::set_custom_model_field(
-        "injects_think_tags_in_content",
-        if injects { "true" } else { "false" },
-    )
+    super::persist::set_custom_model_fields(&[
+        ("api_backend", backend),
+        ("base_url", base_url),
+        (
+            "injects_think_tags_in_content",
+            if injects { "true" } else { "false" },
+        ),
+    ])
     .await
 }
 
@@ -565,6 +569,31 @@ pub async fn set_custom_model_display_name(value: String) -> Result<()> {
 /// Persist the custom-model API key (`api_key` on `[model.astra-custom]`). Empty clears.
 pub async fn set_custom_model_api_key(value: String) -> Result<()> {
     super::persist::set_custom_model_field("api_key", &value).await
+}
+
+/// Persist a complete `/connect` model configuration as a single protected
+/// read-modify-write, so the selected protocol and endpoint cannot be
+/// overwritten by concurrent per-field setting tasks.
+pub async fn set_custom_model_config(
+    model_id: String,
+    display_name: String,
+    api_key: String,
+    base_url: String,
+    api_backend: String,
+    injects_think_tags: bool,
+) -> Result<()> {
+    super::persist::set_custom_model_fields(&[
+        ("api_backend", &api_backend),
+        ("base_url", &base_url),
+        ("model", &model_id),
+        ("name", &display_name),
+        ("api_key", &api_key),
+        (
+            "injects_think_tags_in_content",
+            if injects_think_tags { "true" } else { "false" },
+        ),
+    ])
+    .await
 }
 
 /// Persist the custom-model think-tag injection flag

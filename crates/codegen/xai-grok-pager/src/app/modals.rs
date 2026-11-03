@@ -411,13 +411,13 @@ impl AgentView {
                     // Close the wizard before re-dispatching so the user
                     // sees the modal disappear immediately.
                     self.active_modal = None;
-                    let display_name = format!("{} · {}", result.provider, result.model_id);
                     return InputOutcome::Action(crate::app::actions::Action::ConnectCustomModel {
                         provider: result.provider,
                         model_id: result.model_id,
-                        display_name,
-                        api_key: result.api_key,
+                        display_name: result.display_name,
+                        api_key: result.api_key.into(),
                         base_url: result.base_url,
+                        api_backend: Some(result.protocol.as_str().to_string()),
                         injects_think_tags: result.injects_think_tags,
                     });
                 }
@@ -1408,8 +1408,9 @@ impl AgentView {
                         provider: result.provider,
                         model_id: result.model_id,
                         display_name: result.display_name,
-                        api_key: result.api_key,
+                        api_key: result.api_key.into(),
                         base_url: result.base_url,
+                        api_backend: Some(result.protocol.as_str().to_string()),
                         injects_think_tags: result.injects_think_tags,
                     });
                 }

@@ -1,4 +1,4 @@
-//! Subscription tier checks, credit-limit upsells, and auto-topup handling.
+//! Credit-limit handling, account-availability notices, and auto-topup.
 
 use super::queue::{maybe_drain_queue, note_peek_page_flip};
 use crate::app::actions::Effect;
@@ -15,7 +15,7 @@ pub(super) const PAYWALL_AUTO_CHECK_TIMEOUT: Duration = Duration::from_secs(10 *
 
 /// Whether the user is at the highest subscription tier (SuperGrok Heavy).
 /// Returns `true` only when `subscription_tier` positively matches a known max-tier identifier.
-/// An unknown (`None`) or unrecognized tier returns `false`, so lower-tier users always get the Q&A modal with the upgrade option.
+/// This is used for billing telemetry only; it does not gate tools or modal choices.
 pub(super) fn is_max_tier(subscription_tier: Option<&str>) -> bool {
     let Some(t) = subscription_tier else {
         return false; // Unknown: default to Q&A.
@@ -23,10 +23,6 @@ pub(super) fn is_max_tier(subscription_tier: Option<&str>) -> bool {
     // Lowercase and replace spaces with underscores to match both JWT-derived keys ("supergrok_heavy") and CCP display names ("SuperGrok Heavy")
     t.to_ascii_lowercase().replace(' ', "_") == "supergrok_heavy"
 }
-
-/// URL for upgrading the subscription tier.
-pub(crate) const UPSELL_URL_UPGRADE: &str =
-    "https://astracode.topodrive.top/upgrade?referrer=astra-build";
 
 /// URL for managing pay-as-you-go / on-demand spending / purchasing credits.
 pub(crate) const UPSELL_URL_PAYG: &str = "https://astracode.topodrive.top/usage";
@@ -77,16 +73,15 @@ pub(crate) const CREDIT_LIMIT_RETRY_OPTION_ID: &str = "retry-last-prompt";
 
 struct CreditLimitCopy {
     heading: &'static str,
-    upgrade_tier_desc: &'static str,
     secondary_label: &'static str,
     secondary_desc: &'static str,
     second_choice: xai_grok_telemetry::events::CreditLimitChoice,
     payg_telemetry: bool,
 }
 
-/// Open the credit-limit upsell Q&A on the given agent.
-/// Non-max-tier: Upgrade tier + buy-credits (or PAYG) + Try Again.
-/// Max-tier (SuperGrok Heavy): buy-credits (or PAYG) + Try Again — no upgrade option. URL options carry the target in `id` so the submit handler is position-independent.
+/// Open the credit-limit Q&A on the given agent.
+/// Every tier gets the same payment and retry choices; subscription upgrades are not offered.
+/// `max_tier` is retained for the billing-shown telemetry event.
 pub(super) fn open_credit_limit_upsell(
     agent: &mut AgentView,
     mode: CreditLimitUpsellMode,
@@ -104,7 +99,6 @@ pub(super) fn open_credit_limit_upsell(
     let copy = match mode {
         CreditLimitUpsellMode::UnifiedCredits => CreditLimitCopy {
             heading: "You hit your weekly limit.",
-            upgrade_tier_desc: "Upgrade to a higher tier for more usage",
             secondary_label: "Buy more credits",
             secondary_desc: "Purchase credits to keep using Astra",
             second_choice: xai_grok_telemetry::events::CreditLimitChoice::PurchaseCredits,
@@ -112,7 +106,6 @@ pub(super) fn open_credit_limit_upsell(
         },
         CreditLimitUpsellMode::LegacyPayg { enabled: true } => CreditLimitCopy {
             heading: "You\u{2019}ve hit your spending cap.",
-            upgrade_tier_desc: "Upgrade to a higher tier for more credits",
             secondary_label: "Increase limit",
             secondary_desc: "Raise your pay-as-you-go spending cap",
             second_choice: xai_grok_telemetry::events::CreditLimitChoice::PayAsYouGo,
@@ -120,7 +113,6 @@ pub(super) fn open_credit_limit_upsell(
         },
         CreditLimitUpsellMode::LegacyPayg { enabled: false } => CreditLimitCopy {
             heading: "You\u{2019}ve hit the credit limit for your plan.",
-            upgrade_tier_desc: "Upgrade to a higher tier for more credits",
             secondary_label: "Pay as you go",
             secondary_desc: "Enable pay-as-you-go credits for on-demand usage",
             second_choice: xai_grok_telemetry::events::CreditLimitChoice::PayAsYouGo,
@@ -138,15 +130,6 @@ pub(super) fn open_credit_limit_upsell(
 
     let mut options = Vec::new();
     let mut choices = Vec::new();
-    if !max_tier {
-        options.push(QuestionOption {
-            label: "Upgrade tier".into(),
-            description: copy.upgrade_tier_desc.into(),
-            preview: None,
-            id: Some(UPSELL_URL_UPGRADE.into()),
-        });
-        choices.push(xai_grok_telemetry::events::CreditLimitChoice::UpgradeTier);
-    }
     options.push(QuestionOption {
         label: copy.secondary_label.into(),
         description: copy.secondary_desc.into(),
@@ -404,10 +387,9 @@ pub(super) fn handle_credit_limit_recheck_complete(
 
     if tier_changed && !user_moved_on {
         if let Some(prompt) = agent.credit_limit_stashed_prompt.take() {
-            let tier_name = app.subscription_tier.as_deref().unwrap_or("a higher tier");
-            agent.scrollback.push_block(RenderBlock::system(format!(
-                "Subscription upgraded to {tier_name}. Retrying\u{2026}"
-            )));
+            agent.scrollback.push_block(RenderBlock::system(
+                "Account limits updated. Retrying\u{2026}",
+            ));
             agent.session.enqueue_in_flight_prompt_front(prompt);
         }
     } else if !user_moved_on {
@@ -419,7 +401,6 @@ pub(super) fn handle_credit_limit_recheck_complete(
         let max_tier = is_max_tier(app.subscription_tier.as_deref());
         open_credit_limit_upsell(agent, mode, max_tier);
         // Keep the stashed prompt so Try Again can resubmit after the user buys credits or the limit resets.
-        // user buys credits or the limit resets.
     } else {
         agent.credit_limit_stashed_prompt = None;
     }
@@ -433,7 +414,6 @@ pub(super) fn handle_credit_limit_recheck_complete(
     note_peek_page_flip(app, agent_id, drain.page_flip_entry);
     drain.effects
 }
-
 /// Resubmit the prompt that hit the credit limit (modal option or card button).
 pub(super) fn dispatch_retry_credit_limit_prompt(app: &mut AppView) -> Vec<Effect> {
     use crate::app::app_view::ActiveView;
@@ -468,4 +448,3 @@ pub(super) fn dispatch_retry_credit_limit_prompt(app: &mut AppView) -> Vec<Effec
     note_peek_page_flip(app, agent_id, drain.page_flip_entry);
     drain.effects
 }
-

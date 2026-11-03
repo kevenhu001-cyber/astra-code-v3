@@ -739,8 +739,7 @@ impl VideoGenConfig {
 }
 
 /// Error for video tool calls in a ZDR session with no output bucket.
-/// A verbatim tool *error* (unlike the [`TIER_RESTRICTED_UPSELL`] prose):
-/// paraphrasing a privacy-adjacent message risks distortion.
+/// Keep this privacy-adjacent message verbatim to avoid paraphrasing it incorrectly.
 pub(crate) const ZDR_RESTRICTED_MESSAGE: &str = "Video generation tools are unavailable under zero data retention (ZDR). To enable, either turn off /privacy mode to disable ZDR or supply a user-hosted storage bucket (see https://astracode.topodrive.top/docs/settings/zdr-video-storage).";
 
 fn zdr_restricted_error() -> xai_tool_runtime::ToolError {
@@ -1330,6 +1329,51 @@ mod tests {
                 .get(reqwest::header::AUTHORIZATION)
                 .and_then(|v| v.to_str().ok()),
             Some("Bearer tok")
+        );
+    }
+
+    #[tokio::test]
+    async fn server_tier_rejection_is_returned_to_the_tool_caller() {
+        use wiremock::matchers::{header, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/v1/videos/generations"))
+            .and(header("authorization", "Bearer test-key"))
+            .respond_with(ResponseTemplate::new(429).set_body_string("account tier limit reached"))
+            .mount(&server)
+            .await;
+
+        let cfg = VideoGenConfig::Enabled {
+            api_key: "test-key".into(),
+            base_url: format!("{}/v1", server.uri()),
+            extra_headers: indexmap::IndexMap::new(),
+            zdr_video_output_s3: None,
+            zdr_restricted: false,
+        };
+        let client = VideoGenClient::new(&cfg, None).unwrap();
+
+        let result = client
+            .generate_with_images(
+                XAI_VIDEO_MODEL,
+                "a test video",
+                None,
+                None,
+                DEFAULT_RESOLUTION,
+                None,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+            )
+            .await;
+        let error = match result {
+            Err(error) => error,
+            Ok(_) => panic!("server tier rejection must not be bypassed"),
+        };
+        assert!(
+            error.to_string().contains("HTTP 429"),
+            "server rejection should be preserved, got: {error}"
         );
     }
 

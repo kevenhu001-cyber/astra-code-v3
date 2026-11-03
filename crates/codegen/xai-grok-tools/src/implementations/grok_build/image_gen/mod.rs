@@ -583,6 +583,37 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn server_tier_rejection_is_returned_to_the_tool_caller() {
+        use wiremock::matchers::{header, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/v1/images/generations"))
+            .and(header("authorization", "Bearer test-key"))
+            .respond_with(ResponseTemplate::new(429).set_body_string("account tier limit reached"))
+            .mount(&server)
+            .await;
+
+        let cfg = ImageGenConfig::Enabled {
+            api_key: "test-key".into(),
+            base_url: format!("{}/v1", server.uri()),
+            extra_headers: indexmap::IndexMap::new(),
+            image_gen_enabled: true,
+            image_edit_enabled: true,
+            model_override: None,
+            edit_model_override: None,
+        };
+        let client = ImageGenClient::new(&cfg, None).unwrap();
+
+        let error = client.generate("a test image", "auto").await.unwrap_err();
+        assert!(
+            error.to_string().contains("HTTP 429"),
+            "server rejection should be preserved, got: {error}"
+        );
+    }
+
     #[test]
     fn client_selects_model_from_override() {
         let mk = |model_override: Option<&str>| ImageGenConfig::Enabled {
@@ -660,5 +691,4 @@ mod tests {
             "Expected MissingResource error, got: {err_msg}"
         );
     }
-
 }

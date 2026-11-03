@@ -789,7 +789,7 @@ pub(in crate::app::dispatch) fn action_for_reset(
             Some(Action::SetCustomModelDisplayName((*s).to_owned()))
         }
         ("custom_model_api_key", SettingValue::String(s)) => {
-            Some(Action::SetCustomModelApiKey((*s).to_owned()))
+            Some(Action::SetCustomModelApiKey((*s).to_owned().into()))
         }
         ("custom_model_base_url", SettingValue::String(s)) => {
             Some(Action::SetCustomModelBaseUrl((*s).to_owned()))
@@ -1084,6 +1084,7 @@ pub(in crate::app::dispatch) fn apply_setting_rollback(
         // Custom-model fields have no in-memory mirror (raw-TOML writes);
         // rollback is a no-op because the disk write already failed.
         ("custom_model_provider", SettingValue::Enum(_))
+        | ("custom_model_config", SettingValue::Bool(_))
         | ("custom_model_id", SettingValue::String(_))
         | ("custom_model_display_name", SettingValue::String(_))
         | ("custom_model_api_key", SettingValue::String(_))

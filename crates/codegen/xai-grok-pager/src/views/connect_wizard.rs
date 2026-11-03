@@ -111,7 +111,7 @@ pub const PRESETS: &[(&str, &str)] = &[
     ("openai", "https://api.openai.com/v1"),
     ("openai_responses", "https://api.openai.com/v1"),
     ("anthropic", "https://api.anthropic.com/v1"),
-    ("xai", "https://api.topodrive.top/v1"),
+    ("topodrive", "https://api.topodrive.top/v1"),
     ("deepseek", "https://api.deepseek.com/v1"),
     ("zhipu", "https://open.bigmodel.cn/api/paas/v4"),
     ("xiaomi", "https://api.xiaomimimo.com/v1"),
@@ -173,7 +173,7 @@ impl std::str::FromStr for ProtocolBackend {
 }
 
 /// Result of running the wizard.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ConnectWizardResult {
     pub provider: String,
     pub model_id: String,
@@ -182,6 +182,20 @@ pub struct ConnectWizardResult {
     pub base_url: String,
     pub protocol: ProtocolBackend,
     pub injects_think_tags: bool,
+}
+
+impl std::fmt::Debug for ConnectWizardResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConnectWizardResult")
+            .field("provider", &self.provider)
+            .field("model_id", &self.model_id)
+            .field("display_name", &self.display_name)
+            .field("api_key", &"[REDACTED]")
+            .field("base_url", &self.base_url)
+            .field("protocol", &self.protocol)
+            .field("injects_think_tags", &self.injects_think_tags)
+            .finish()
+    }
 }
 
 /// Focused fields in the connect form.
@@ -1848,6 +1862,18 @@ mod tests {
     }
 
     #[test]
+    fn wizard_presets_match_shell_configuration() {
+        let configured = xai_grok_shell::util::config::CUSTOM_MODEL_PROVIDER_PRESETS;
+        assert_eq!(PRESET_DEFS.len(), configured.len());
+        for (wizard, configured) in PRESET_DEFS.iter().zip(configured) {
+            assert_eq!(wizard.id, configured.id);
+            assert_eq!(wizard.base_url, configured.base_url);
+            assert_eq!(wizard.protocol.as_str(), configured.api_backend);
+            assert_eq!(wizard.injects_think_tags, configured.injects_think_tags);
+        }
+    }
+
+    #[test]
     fn custom_preset_clears_url() {
         let mut s = ConnectWizardState::default();
         s.set_preset(9); // custom
@@ -1888,6 +1914,41 @@ mod tests {
         assert_eq!(res.model_id, "gpt-5.6-luna");
         assert_eq!(res.base_url, "https://api.openai.com/v1");
         assert!(!res.injects_think_tags);
+    }
+
+    #[test]
+    fn validation_preserves_protocol_override() {
+        let mut s = ConnectWizardState {
+            model_id: "claude-sonnet".into(),
+            api_key: "sk-test".into(),
+            protocol: ProtocolBackend::Messages,
+            ..ConnectWizardState::default()
+        };
+        let result = s.validate_and_build().expect("valid");
+        assert_eq!(result.protocol, ProtocolBackend::Messages);
+    }
+
+    #[test]
+    fn result_debug_redacts_api_key() {
+        let result = ConnectWizardResult {
+            provider: "openai".into(),
+            model_id: "gpt-test".into(),
+            display_name: "Test".into(),
+            api_key: "secret-test-key".into(),
+            base_url: "https://api.openai.com/v1".into(),
+            protocol: ProtocolBackend::ChatCompletions,
+            injects_think_tags: false,
+        };
+        let debug = format!("{result:?}");
+        assert!(!debug.contains("secret-test-key"));
+        assert!(debug.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn wizard_state_debug_omits_api_key() {
+        let mut state = ConnectWizardState::default();
+        state.api_key = "secret-test-key".into();
+        assert!(!format!("{state:?}").contains("secret-test-key"));
     }
 
     #[test]

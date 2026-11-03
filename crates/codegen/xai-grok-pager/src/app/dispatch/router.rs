@@ -1143,7 +1143,7 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::SetCustomModelProvider(v) => set_custom_model_provider(app, v),
         Action::SetCustomModelId(v) => set_custom_model_id(app, v),
         Action::SetCustomModelDisplayName(v) => set_custom_model_display_name(app, v),
-        Action::SetCustomModelApiKey(v) => set_custom_model_api_key(app, v),
+        Action::SetCustomModelApiKey(v) => set_custom_model_api_key(app, v.into_secret()),
         Action::SetCustomModelBaseUrl(v) => set_custom_model_base_url(app, v),
         Action::SetCustomModelInjectsThinkTags(v) => set_custom_model_injects_think_tags(app, v),
         Action::ConnectCustomModel {
@@ -1152,14 +1152,16 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             display_name,
             api_key,
             base_url,
+            api_backend,
             injects_think_tags,
         } => connect_custom_model(
             app,
             provider,
             model_id,
             display_name,
-            api_key,
+            api_key.into_secret(),
             base_url,
+            api_backend,
             injects_think_tags,
         ),
         Action::SetMaxThoughtsWidth(v) => set_max_thoughts_width(app, v),
@@ -1388,7 +1390,10 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             }
             vec![]
         }
-        Action::OpenConnectWizard => dispatch_open_connect_wizard(app),
+        Action::OpenConnectWizard => dispatch_open_connect_wizard(app, None),
+        Action::OpenConnectWizardForPreset(preset) => {
+            dispatch_open_connect_wizard(app, Some(&preset))
+        }
         Action::OpenGboom => dispatch_open_gboom(app),
         Action::SuspendForEditor {
             path,

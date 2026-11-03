@@ -152,16 +152,35 @@ pub fn read_to_string_or_empty(path: &std::path::Path) -> std::io::Result<String
 /// Atomic write via temp file then `rename` (mirrors [`save_config`]) so a crash mid-write can't truncate `config.toml`.
 /// Preserves the dest mode on unix.
 pub fn atomic_write_string(path: &std::path::Path, content: &str) -> std::io::Result<()> {
+    atomic_write_string_inner(path, content, false)
+}
+
+/// Atomically write plaintext secret material with owner-only file permissions.
+/// On Unix the temporary file is created as `0o600`; on Windows its ACL is
+/// restricted to the current user before it is renamed into place.
+fn atomic_write_secure_string(path: &std::path::Path, content: &str) -> std::io::Result<()> {
+    atomic_write_string_inner(path, content, true)
+}
+
+fn atomic_write_string_inner(
+    path: &std::path::Path,
+    content: &str,
+    owner_only: bool,
+) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     #[cfg(unix)]
-    let prior_mode: Option<u32> = match std::fs::metadata(path) {
-        Ok(m) => {
-            use std::os::unix::fs::PermissionsExt;
-            Some(m.permissions().mode())
+    let prior_mode: Option<u32> = if owner_only {
+        None
+    } else {
+        match std::fs::metadata(path) {
+            Ok(m) => {
+                use std::os::unix::fs::PermissionsExt;
+                Some(m.permissions().mode())
+            }
+            Err(_) => None,
         }
-        Err(_) => None,
     };
     #[cfg(not(unix))]
     let prior_mode: Option<u32> = None;
@@ -173,9 +192,17 @@ pub fn atomic_write_string(path: &std::path::Path, content: &str) -> std::io::Re
         format!("toml.tmp.{}.{}", std::process::id(), nanos)
     };
     let tmp = path.with_extension(suffix);
-    std::fs::write(&tmp, content)?;
+    let write_result = if owner_only {
+        xai_grok_shell_base::util::secure_file::write_secure_file(&tmp, content.as_bytes())
+    } else {
+        std::fs::write(&tmp, content)
+    };
+    if let Err(e) = write_result {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
     #[cfg(unix)]
-    if let Some(mode) = prior_mode {
+    if !owner_only && let Some(mode) = prior_mode {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode));
     }
@@ -264,21 +291,83 @@ pub const CUSTOM_MODEL_KEY: &str = "astra-custom";
 
 /// Upsert one scalar field on the `[model.astra-custom]` block (creating the
 /// block if needed). `[model.*]` is not modeled in the typed [`Config`], so it
-/// must be edited in place rather than through [`update_config`].
+/// must be edited in place rather than through [`update_config`]. The known
+/// think-tag field is stored as a TOML boolean.
 ///
 /// Once a non-empty `model` id is present, the entry is pinned as
 /// `[models].default`. An empty `value` removes the field.
 pub async fn set_custom_model_field(field: &str, value: &str) -> Result<()> {
-    let _guard = SAVE_LOCK.lock().await;
+    set_custom_model_fields(&[(field, value)]).await
+}
+
+/// Update several `[model.astra-custom]` scalar fields in one read-modify-write.
+/// This keeps `/connect`'s protocol, endpoint, model, and key from racing each
+/// other as independent settings tasks.
+pub(super) async fn set_custom_model_fields(fields: &[(&str, &str)]) -> Result<()> {
+    if fields.is_empty() {
+        return Ok(());
+    }
+    let _guard = lock_config_writes().await?;
     let path = user_config_path();
     let mut root: TomlValue = match tokio::fs::read_to_string(&path).await {
-        Ok(s) => {
-            toml::from_str::<TomlValue>(&s).unwrap_or_else(|_| TomlValue::Table(TomlMap::new()))
-        }
-        Err(_) => TomlValue::Table(TomlMap::new()),
+        Ok(s) => parse_existing_config_toml(&s).map_err(|parse_err| {
+            anyhow::anyhow!(
+                "refusing to overwrite unparseable {}: {}; save a backup \
+                 and fix the syntax error before retrying",
+                path.display(),
+                parse_err,
+            )
+        })?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => TomlValue::Table(TomlMap::new()),
+        Err(e) => return Err(e.into()),
     };
-    if !matches!(root, TomlValue::Table(_)) {
-        root = TomlValue::Table(TomlMap::new());
+    apply_custom_model_fields(&mut root, fields)?;
+    let has_api_key = root
+        .as_table()
+        .and_then(|table| table.get("model"))
+        .and_then(|model| model.as_table())
+        .and_then(|model| model.get(CUSTOM_MODEL_KEY))
+        .and_then(|entry| entry.as_table())
+        .and_then(|entry| entry.get("api_key"))
+        .and_then(TomlValue::as_str)
+        .is_some_and(|key| !key.is_empty());
+    let toml_str = toml::to_string_pretty(&root)?;
+    if has_api_key {
+        atomic_write_secure_string(&path, &toml_str)?;
+    } else {
+        atomic_write_string(&path, &toml_str)?;
+    }
+    Ok(())
+}
+
+fn apply_custom_model_fields(root: &mut TomlValue, fields: &[(&str, &str)]) -> Result<()> {
+    const ALLOWED_FIELDS: &[&str] = &[
+        "model",
+        "name",
+        "api_key",
+        "base_url",
+        "api_backend",
+        "injects_think_tags_in_content",
+    ];
+    for (field, value) in fields {
+        if !ALLOWED_FIELDS.contains(field) {
+            anyhow::bail!("unsupported custom-model field: {field}");
+        }
+        if *field == "api_backend"
+            && !value.is_empty()
+            && !matches!(*value, "chat_completions" | "responses" | "messages")
+        {
+            anyhow::bail!("unsupported custom-model API backend: {value}");
+        }
+        if *field == "injects_think_tags_in_content"
+            && !value.is_empty()
+            && !matches!(*value, "true" | "false")
+        {
+            anyhow::bail!("invalid custom-model think-tag flag: {value}");
+        }
+    }
+    if root.as_table().is_none() {
+        *root = TomlValue::Table(TomlMap::new());
     }
     let root_table = root.as_table_mut().expect("root must be a table");
 
@@ -297,10 +386,16 @@ pub async fn set_custom_model_field(field: &str, value: &str) -> Result<()> {
         *entry = TomlValue::Table(TomlMap::new());
     }
     let entry_table = entry.as_table_mut().expect("model entry must be a table");
-    if value.is_empty() {
-        entry_table.remove(field);
-    } else {
-        entry_table.insert(field.to_string(), TomlValue::String(value.to_string()));
+    for (field, value) in fields {
+        if value.is_empty() {
+            entry_table.remove(*field);
+        } else {
+            let toml_value = match *field {
+                "injects_think_tags_in_content" => TomlValue::Boolean(*value == "true"),
+                _ => TomlValue::String((*value).to_string()),
+            };
+            entry_table.insert((*field).to_string(), toml_value);
+        }
     }
 
     // Pin as the default once a model id exists, so the configured model is
@@ -324,9 +419,6 @@ pub async fn set_custom_model_field(field: &str, value: &str) -> Result<()> {
                 TomlValue::String(CUSTOM_MODEL_KEY.to_string()),
             );
     }
-
-    let toml_str = toml::to_string_pretty(&root)?;
-    atomic_write_string(&path, &toml_str)?;
     Ok(())
 }
 #[cfg(test)]

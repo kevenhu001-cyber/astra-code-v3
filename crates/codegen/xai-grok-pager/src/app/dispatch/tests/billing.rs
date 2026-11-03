@@ -3,15 +3,15 @@
 use super::*;
 use xai_grok_shell::sampling::error::is_free_usage_exhausted_error;
 
-// ── Credit-limit upsell / max-tier tests ───────────────────────────
+// ── Credit-limit choices / tier telemetry tests ────────────────────
 
-/// Open the non-max-tier Q&A upsell modal. Panics if the modal was not created.
+/// Open the credit-limit Q&A modal. Panics if the modal was not created.
 fn open_upsell_qa(app: &mut AppView, mode: CreditLimitUpsellMode) {
     let agent = app.agents.get_mut(&AgentId(0)).unwrap();
     open_credit_limit_upsell(agent, mode, false);
 }
 
-/// Open the max-tier inline scrollback card upsell.
+/// Open the max-tier credit-limit choices (used to cover tier telemetry).
 fn open_upsell_max_card(app: &mut AppView, mode: CreditLimitUpsellMode) {
     let agent = app.agents.get_mut(&AgentId(0)).unwrap();
     open_credit_limit_upsell(agent, mode, true);
@@ -273,7 +273,7 @@ fn credit_limit_translate_retry_option_dispatches_retry() {
         .question_view
         .take()
         .expect("expected credit-limit upsell modal");
-    qv.selections[0] = QuestionSelection::Single(Some(2));
+    qv.selections[0] = QuestionSelection::Single(Some(1));
     let kind = qv
         .local_kind
         .take()
@@ -322,7 +322,7 @@ fn is_max_tier_non_max_and_unknown() {
     assert!(!is_max_tier(Some("supergrok")));
     assert!(!is_max_tier(Some("premium")));
     assert!(!is_max_tier(Some("free")));
-    // Unknown defaults to non-max, so the Q&A is shown
+    // Unknown is conservatively attributed as non-max.
     assert!(!is_max_tier(None));
 }
 
@@ -341,21 +341,19 @@ fn is_max_tier_rejects_partial_matches() {
 }
 
 #[test]
-fn upsell_non_max_shows_qa_with_retry_option() {
+fn upsell_non_max_shows_payment_and_retry_options() {
     let mut app = test_app_with_agent();
     open_upsell_qa(
         &mut app,
         CreditLimitUpsellMode::LegacyPayg { enabled: false },
     );
     let q = &agent_qv(&app).questions[0];
-    assert_eq!(q.options.len(), 3);
-    assert_eq!(q.options[0].label, "Upgrade tier");
-    assert_eq!(q.options[0].id.as_deref(), Some(UPSELL_URL_UPGRADE));
-    assert_eq!(q.options[1].label, "Pay as you go");
-    assert_eq!(q.options[1].id.as_deref(), Some(UPSELL_URL_PAYG));
-    assert_eq!(q.options[2].label, "Try Again");
+    assert_eq!(q.options.len(), 2);
+    assert_eq!(q.options[0].label, "Pay as you go");
+    assert_eq!(q.options[0].id.as_deref(), Some(UPSELL_URL_PAYG));
+    assert_eq!(q.options[1].label, "Try Again");
     assert_eq!(
-        q.options[2].id.as_deref(),
+        q.options[1].id.as_deref(),
         Some(crate::app::dispatch::CREDIT_LIMIT_RETRY_OPTION_ID)
     );
 }
@@ -368,9 +366,9 @@ fn upsell_non_max_payg_on_shows_increase_label() {
         CreditLimitUpsellMode::LegacyPayg { enabled: true },
     );
     let q = &agent_qv(&app).questions[0];
-    assert_eq!(q.options.len(), 3);
-    assert_eq!(q.options[1].label, "Increase limit");
-    assert_eq!(q.options[2].label, "Try Again");
+    assert_eq!(q.options.len(), 2);
+    assert_eq!(q.options[0].label, "Increase limit");
+    assert_eq!(q.options[1].label, "Try Again");
 }
 
 #[test]
@@ -402,28 +400,13 @@ fn upsell_non_max_qa_heading_is_spending_cap_when_payg_on() {
 }
 
 #[test]
-fn upsell_non_max_upgrade_url_is_supergrok() {
-    let mut app = test_app_with_agent();
-    open_upsell_qa(
-        &mut app,
-        CreditLimitUpsellMode::LegacyPayg { enabled: false },
-    );
-    let url = agent_qv(&app).questions[0].options[0]
-        .id
-        .as_deref()
-        .unwrap();
-    assert!(url.contains("/upgrade"), "got: {url}");
-    assert!(url.contains("referrer=astra-build"), "got: {url}");
-}
-
-#[test]
 fn upsell_non_max_payg_url_is_usage() {
     let mut app = test_app_with_agent();
     open_upsell_qa(
         &mut app,
         CreditLimitUpsellMode::LegacyPayg { enabled: false },
     );
-    let url = agent_qv(&app).questions[0].options[1]
+    let url = agent_qv(&app).questions[0].options[0]
         .id
         .as_deref()
         .unwrap();
@@ -438,7 +421,7 @@ fn upsell_non_max_payg_on_description_mentions_spending_cap() {
         CreditLimitUpsellMode::LegacyPayg { enabled: true },
     );
     assert_eq!(
-        agent_qv(&app).questions[0].options[1].description,
+        agent_qv(&app).questions[0].options[0].description,
         "Raise your pay-as-you-go spending cap"
     );
 }
@@ -451,7 +434,7 @@ fn upsell_non_max_payg_off_description_mentions_on_demand() {
         CreditLimitUpsellMode::LegacyPayg { enabled: false },
     );
     assert_eq!(
-        agent_qv(&app).questions[0].options[1].description,
+        agent_qv(&app).questions[0].options[0].description,
         "Enable pay-as-you-go credits for on-demand usage"
     );
 }
@@ -464,25 +447,23 @@ fn upsell_non_max_unified_shows_buy_credits() {
     assert!(q.question.contains("weekly limit"));
     assert_eq!(
         q.options[0].description,
-        "Upgrade to a higher tier for more usage"
-    );
-    assert_eq!(q.options[1].label, "Buy more credits");
-    assert_eq!(
-        q.options[1].description,
         "Purchase credits to keep using Astra"
     );
-    assert_eq!(q.options[2].label, "Try Again");
+    assert_eq!(q.options.len(), 2);
+    assert_eq!(q.options[0].label, "Buy more credits");
+    assert_eq!(q.options[0].id.as_deref(), Some(UPSELL_URL_PAYG));
+    assert_eq!(q.options[1].label, "Try Again");
 }
 
 #[test]
-fn upsell_max_unified_qa_omits_upgrade() {
+fn upsell_max_unified_keeps_purchase_and_retry_choices() {
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
     open_upsell_max_card(&mut app, CreditLimitUpsellMode::UnifiedCredits);
     assert_eq!(
         agent_scrollback_len(&app),
         before,
-        "max-tier upsell must not push a scrollback card"
+        "credit-limit choices must not push a scrollback card"
     );
     let q = &agent_qv(&app).questions[0];
     assert!(q.question.contains("weekly limit"));
@@ -618,7 +599,7 @@ fn upsell_non_max_idempotent_when_question_view_already_open() {
 }
 
 #[test]
-fn upsell_max_tier_opens_qa_without_upgrade_payg_off() {
+fn upsell_max_tier_offers_payg_and_retry_when_payg_is_off() {
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
     open_upsell_max_card(
@@ -636,7 +617,7 @@ fn upsell_max_tier_opens_qa_without_upgrade_payg_off() {
 }
 
 #[test]
-fn upsell_max_tier_opens_qa_without_upgrade_payg_on() {
+fn upsell_max_tier_offers_limit_and_retry_when_payg_is_on() {
     let mut app = test_app_with_agent();
     open_upsell_max_card(
         &mut app,
@@ -1304,20 +1285,18 @@ fn account_availability_notice_submit_does_not_open_url() {
 
     let q = xai_grok_tools::implementations::grok_build::ask_user_question::Question {
         question: "This command is not available for the current account.".into(),
-        options: vec![xai_grok_tools::implementations::grok_build::ask_user_question::QuestionOption {
-            label: "OK".into(),
-            description: String::new(),
-            preview: None,
-            id: None,
-        }],
+        options: vec![
+            xai_grok_tools::implementations::grok_build::ask_user_question::QuestionOption {
+                label: "OK".into(),
+                description: String::new(),
+                preview: None,
+                id: None,
+            },
+        ],
         multi_select: Some(false),
         id: None,
     };
-    let mut qv = QuestionViewState::new(
-        "account-availability".into(),
-        vec![q],
-        Default::default(),
-    );
+    let mut qv = QuestionViewState::new("account-availability".into(), vec![q], Default::default());
     qv.selections[0] = QuestionSelection::Single(Some(0));
 
     assert!(matches!(
@@ -1357,7 +1336,10 @@ fn restricted_command_submit_opens_neutral_notice() {
         Some(crate::views::question_view::LocalQuestionKind::AccountAvailabilityNotice)
     ));
     let q = &qv.questions[0];
-    assert_eq!(q.question, "This command is not available for the current account.");
+    assert_eq!(
+        q.question,
+        "This command is not available for the current account."
+    );
     assert_eq!(q.options.len(), 1);
     assert_eq!(q.options[0].label, "OK");
     assert!(q.options[0].id.is_none());
@@ -1448,7 +1430,7 @@ fn unknown_non_restricted_command_still_passes_through() {
 
 /// `Action::OpenUrl` for a billing CTA must push a scrollback system message that includes the full URL when the OS browser opener cannot run.
 /// The opener failure is simulated via a broken `GROK_TEST_OPEN_URL_FILE` path.
-/// On a headless VM the opener always fails, so without this message the Upgrade and Buy-more-credits buttons do nothing visible.
+/// On a headless VM the opener always fails, so without this message billing choices do nothing visible.
 #[serial_test::serial(GROK_TEST_OPEN_URL_FILE)]
 #[test]
 fn open_url_shows_manual_url_when_browser_unavailable() {
@@ -1462,7 +1444,7 @@ fn open_url_shows_manual_url_when_browser_unavailable() {
 
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
-    let url = UPSELL_URL_UPGRADE;
+    let url = UPSELL_URL_PAYG;
     let effects = dispatch(Action::OpenUrl(url.to_string()), &mut app);
     assert!(effects.is_empty());
 
@@ -1597,11 +1579,10 @@ fn credit_limit_upsell_submit_shows_url_when_browser_unavailable() {
         .question_view
         .take()
         .expect("expected credit-limit upsell modal");
-    // Select option 1, "Buy more credits" (credits / usage URL)
-    qv.selections[0] = QuestionSelection::Single(Some(1));
+    // Select option 0, "Buy more credits" (credits / usage URL).
+    qv.selections[0] = QuestionSelection::Single(Some(0));
     let kind = LocalQuestionKind::CreditLimitUpsell {
         choices: vec![
-            xai_grok_telemetry::events::CreditLimitChoice::UpgradeTier,
             xai_grok_telemetry::events::CreditLimitChoice::PurchaseCredits,
             xai_grok_telemetry::events::CreditLimitChoice::RetryLastPrompt,
         ],

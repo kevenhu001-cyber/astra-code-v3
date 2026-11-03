@@ -1890,6 +1890,7 @@ fn canonical_custom_model_provider(value: &str) -> &'static str {
         "openai" => "openai",
         "openai_responses" => "openai_responses",
         "anthropic" => "anthropic",
+        "topodrive" => "topodrive",
         "xai" => "xai",
         "deepseek" => "deepseek",
         "zhipu" => "zhipu",
@@ -1973,7 +1974,6 @@ pub(in crate::app::dispatch) fn set_custom_model_api_key(
     tracing::info!(
         target: "settings",
         key = "custom_model_api_key",
-        value_len = value.len(),
         "setting changed",
     );
     app.show_toast("\u{2713} Custom model API key updated (restart to apply)");
@@ -2030,11 +2030,8 @@ pub(in crate::app::dispatch) fn set_custom_model_injects_think_tags(
     }]
 }
 
-/// Configure a custom model end-to-end via the `/connect` command. Persists
-/// the full `[model.astra-custom]` block: provider (api_backend + base_url),
-/// model id, display name, API key, and the think-tag injection flag. The
-/// `custom` preset carries no baked-in endpoint, so `base_url` must be set
-/// by the caller; the helper still writes it verbatim.
+/// Configure a custom model end-to-end via `/connect`, persisting all fields
+/// in one protected config write.
 pub(in crate::app::dispatch) fn connect_custom_model(
     app: &mut AppView,
     provider: String,
@@ -2042,6 +2039,7 @@ pub(in crate::app::dispatch) fn connect_custom_model(
     display_name: String,
     api_key: String,
     base_url: String,
+    api_backend: Option<String>,
     injects_think_tags: bool,
 ) -> Vec<Effect> {
     refresh_open_settings_modals(app);
@@ -2056,38 +2054,19 @@ pub(in crate::app::dispatch) fn connect_custom_model(
     app.show_toast(&format!(
         "\u{2713} Connected {display_name} ({model_id}) — restart to apply"
     ));
-    vec![
-        Effect::PersistSetting {
-            key: "custom_model_provider",
-            value: crate::settings::SettingValue::Enum(canonical),
-            rollback_value: crate::settings::SettingValue::Enum("openai"),
-        },
-        Effect::PersistSetting {
-            key: "custom_model_base_url",
-            value: crate::settings::SettingValue::String(base_url.clone()),
-            rollback_value: crate::settings::SettingValue::String(base_url),
-        },
-        Effect::PersistSetting {
-            key: "custom_model_id",
-            value: crate::settings::SettingValue::String(model_id.clone()),
-            rollback_value: crate::settings::SettingValue::String(model_id),
-        },
-        Effect::PersistSetting {
-            key: "custom_model_display_name",
-            value: crate::settings::SettingValue::String(display_name.clone()),
-            rollback_value: crate::settings::SettingValue::String(display_name),
-        },
-        Effect::PersistSetting {
-            key: "custom_model_api_key",
-            value: crate::settings::SettingValue::String(api_key.clone()),
-            rollback_value: crate::settings::SettingValue::String(api_key),
-        },
-        Effect::PersistSetting {
-            key: "custom_model_injects_think_tags",
-            value: crate::settings::SettingValue::Bool(injects_think_tags),
-            rollback_value: crate::settings::SettingValue::Bool(injects_think_tags),
-        },
-    ]
+    let api_backend = api_backend.unwrap_or_else(|| {
+        xai_grok_shell::util::config::find_custom_model_provider(canonical)
+            .map(|preset| preset.api_backend.to_string())
+            .unwrap_or_else(|| "chat_completions".to_string())
+    });
+    vec![Effect::PersistCustomModelConfig {
+        model_id,
+        display_name,
+        api_key: api_key.into(),
+        base_url,
+        api_backend,
+        injects_think_tags,
+    }]
 }
 
 // max_thoughts_width is an Int-valued setting

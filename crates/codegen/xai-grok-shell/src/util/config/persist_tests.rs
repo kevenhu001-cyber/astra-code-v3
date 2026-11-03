@@ -1281,3 +1281,95 @@ custom_unknown_key = 42
         "unmodeled (unknown to the schema) field must survive"
     );
 }
+
+#[test]
+fn atomic_write_secure_string_restricts_secret_config_permissions() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("config.toml");
+    std::fs::write(&path, "old = true\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    }
+
+    atomic_write_secure_string(&path, "api_key = \"secret\"\n").unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "api_key = \"secret\"\n"
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "secret config must be owner-readable only");
+    }
+}
+
+#[test]
+fn custom_model_fields_keep_native_types_and_existing_config() {
+    let mut root: TomlValue = toml::from_str(
+        r#"
+        [model.astra-custom]
+        custom_field = "keep"
+
+        [models]
+        fallback = "other-model"
+        "#,
+    )
+    .unwrap();
+    apply_custom_model_fields(
+        &mut root,
+        &[
+            ("model", "vendor-model"),
+            ("name", "Vendor Model"),
+            ("api_key", "secret-test-key"),
+            ("base_url", "https://vendor.example/v1"),
+            ("api_backend", "messages"),
+            ("injects_think_tags_in_content", "true"),
+        ],
+    )
+    .unwrap();
+
+    let custom = root
+        .get("model")
+        .and_then(|model| model.get(CUSTOM_MODEL_KEY))
+        .unwrap();
+    assert_eq!(
+        custom
+            .get("injects_think_tags_in_content")
+            .and_then(TomlValue::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        custom.get("api_backend").and_then(TomlValue::as_str),
+        Some("messages")
+    );
+    assert_eq!(
+        custom.get("custom_field").and_then(TomlValue::as_str),
+        Some("keep")
+    );
+    assert_eq!(
+        root.get("models")
+            .and_then(|models| models.get("fallback"))
+            .and_then(TomlValue::as_str),
+        Some("other-model")
+    );
+    assert_eq!(
+        root.get("models")
+            .and_then(|models| models.get("default"))
+            .and_then(TomlValue::as_str),
+        Some(CUSTOM_MODEL_KEY)
+    );
+}
+
+#[test]
+fn custom_model_fields_reject_unknown_fields_and_invalid_protocols() {
+    let mut root = TomlValue::Table(TomlMap::new());
+    assert!(apply_custom_model_fields(&mut root, &[("unknown", "value")]).is_err());
+    assert!(apply_custom_model_fields(&mut root, &[("api_backend", "not-a-protocol")]).is_err());
+    assert!(
+        apply_custom_model_fields(&mut root, &[("injects_think_tags_in_content", "yes")]).is_err()
+    );
+}

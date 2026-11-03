@@ -11,6 +11,39 @@ use crate::scrollback::entry::EntryId;
 use agent_client_protocol as acp;
 use xai_grok_shell::sampling::types::ReasoningEffort;
 use xai_grok_shell::session::unified_list::SessionKind;
+
+/// A string whose contents must not appear in diagnostic output.
+#[derive(Clone, Default, PartialEq, Eq)]
+pub struct SecretString(String);
+
+impl SecretString {
+    pub fn expose_secret(&self) -> &str {
+        &self.0
+    }
+
+    pub fn into_secret(self) -> String {
+        self.0
+    }
+}
+
+impl From<String> for SecretString {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for SecretString {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl std::fmt::Debug for SecretString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("[REDACTED]")
+    }
+}
+
 /// Typed error for model switch failures.
 /// Replaces the raw `String` in `TaskResult::SwitchModelComplete` so dispatch can match on the variant instead of parsing strings.
 #[derive(Debug, Clone)]
@@ -553,7 +586,7 @@ pub enum Action {
     SetCustomModelDisplayName(String),
     /// Commit the custom-model API key. Persists `[model.astra-custom]`
     /// `api_key`. Empty clears the field. Restart-required.
-    SetCustomModelApiKey(String),
+    SetCustomModelApiKey(SecretString),
     /// Commit an explicit custom-model base URL. Persists `[model.astra-custom]`
     /// `base_url`. Empty clears the field. Restart-required.
     SetCustomModelBaseUrl(String),
@@ -572,10 +605,12 @@ pub enum Action {
         model_id: String,
         /// Human-readable name shown in the model picker.
         display_name: String,
-        /// API key for the provider.
-        api_key: String,
+        /// API key for the provider, redacted from debug output.
+        api_key: SecretString,
         /// Explicit base URL (required for the `custom` preset).
         base_url: String,
+        /// Optional wizard protocol override. `None` uses the selected preset's default.
+        api_backend: Option<String>,
         /// Whether the provider injects `<think>…</think>` tags into content.
         injects_think_tags: bool,
     },
@@ -929,9 +964,10 @@ pub enum Action {
     /// API key — and submits the same [`Action::ConnectCustomModel`] action
     /// the one-shot command path uses, so the persistence + restart
     /// semantics stay identical. The wizard is also where the user lands
-    /// when `/connect` is run with too few args to one-shot (empty, just a
-    /// preset, or a preset + model id with no key).
+    /// when `/connect` is run without a preset.
     OpenConnectWizard,
+    /// Open the `/connect` wizard with a particular preset selected.
+    OpenConnectWizardForPreset(String),
     /// Open the hidden `/gboom` easter egg (DOOM-style raycaster modal).
     OpenGboom,
     /// Suspend the TUI and open a configuration file in `$EDITOR`.
@@ -1665,6 +1701,15 @@ pub enum Effect {
         key: crate::settings::SettingKey,
         value: crate::settings::SettingValue,
         rollback_value: crate::settings::SettingValue,
+    },
+    /// Persist the complete custom-model block in one locked config write.
+    PersistCustomModelConfig {
+        model_id: String,
+        display_name: String,
+        api_key: SecretString,
+        base_url: String,
+        api_backend: String,
+        injects_think_tags: bool,
     },
     /// Toggle mouse reporting off and on to unwedge xterm.js's button tracker
     /// (see `AgentView::reset_wedged_mouse_reporting`). An effect so it rides the escape

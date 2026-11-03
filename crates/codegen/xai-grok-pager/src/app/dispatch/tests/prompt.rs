@@ -4859,6 +4859,23 @@ mod prompt_history_recording_tests {
         assert_eq!(history(&app), ["/rename payment retries"]);
     }
 
+    #[test]
+    fn connect_api_key_is_redacted_from_prompt_history() {
+        let mut app = test_app_with_agent();
+
+        dispatch(
+            Action::SendPrompt(
+                "/connect openai gpt-test sk-secret https://api.openai.com/v1".into(),
+            ),
+            &mut app,
+        );
+
+        assert_eq!(
+            history(&app),
+            ["/connect openai gpt-test [REDACTED] https://api.openai.com/v1"]
+        );
+    }
+
     /// The shell returns prompts it was sent, including ones the local list already holds.
     #[test]
     fn the_fetch_does_not_reorder_what_the_shell_also_knows() {

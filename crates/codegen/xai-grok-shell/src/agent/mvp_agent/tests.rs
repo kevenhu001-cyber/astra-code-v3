@@ -3660,23 +3660,17 @@ async fn prepare_video_gen_config_respects_feature_flag() {
         VideoGenConfig::Disabled
     ));
 }
-/// The imagine tier gate fails **open**: with no resolved auth we can't confirm a restricted personal tier. The tools stay advertised and un-flagged. The server 429 remains the authoritative backstop.
-/// Guards against accidentally disabling a paid feature when tier info hasn't loaded.
+/// Imagine requests carry the account bearer to the API, where per-account authorization is enforced.
+/// The client does not locally infer tier access from subscription metadata.
 #[tokio::test(flavor = "current_thread")]
-async fn prepare_image_gen_config_fails_open_without_auth() {
+async fn prepare_image_gen_config_does_not_locally_gate_tier_access() {
     use xai_grok_tools::implementations::grok_build::image_gen::ImageGenConfig;
     let agent = build_minimal_agent_for_tests();
     agent.sampling_config.borrow_mut().api_key = Some("test-key".to_string());
-    let ImageGenConfig::Enabled {
-        tier_restricted, ..
-    } = agent.prepare_image_gen_config()
-    else {
+    let ImageGenConfig::Enabled { api_key, .. } = agent.prepare_image_gen_config() else {
         panic!("expected Enabled");
     };
-    assert!(
-        !tier_restricted,
-        "no resolved auth ⇒ fail open (tools not tier-restricted)"
-    );
+    assert_eq!(api_key, "test-key");
 }
 /// The imagine tools bypass cli-chat-proxy (direct API calls).
 /// The server can only scope the coding data-retention opt-out (`/privacy opt-out`) to Build traffic via the `x-grok-client-identifier` header.

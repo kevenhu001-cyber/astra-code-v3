@@ -23,8 +23,7 @@ use crate::app::actions::Action;
 use crate::slash::command::{AppCtx, ArgItem, CommandExecCtx, CommandResult, SlashCommand};
 
 /// Canonical preset ids advertised by `/connect`. Mirrors the shell's
-/// `CUSTOM_MODEL_PROVIDER_PRESETS` (kept inline so the pager dropdown needs
-/// no extra dependency on shell config internals).
+/// `CUSTOM_MODEL_PROVIDER_PRESETS`; model examples are local suggestions only.
 const CONNECT_PRESETS: &[(&str, &str)] = &[
     ("openai", "OpenAI (Chat Completions)"),
     ("openai_responses", "OpenAI (Responses)"),
@@ -62,16 +61,11 @@ fn preset_example_models(provider: &str) -> &'static [&'static str] {
         .unwrap_or(&[])
 }
 
-/// Presets that embed reasoning as `<think>…</think>` tags in `content`.
-/// The official endpoints of the listed preset vendors all expose a native
-/// reasoning channel, so this list is intentionally empty — the think-tag
-/// splitter is opt-in for endpoints (custom proxies / self-hosted) that don't
-/// surface a native reasoning field.
-/// `minimax_cn` is the exception: its OpenAI-compatible /v1/chat/completions
-/// endpoint does not expose a native reasoning_content delta - MiniMax
-/// embeds thinking in content as <thinking>...</thinking> tags. The splitter
-/// is a no-op when the stream carries no such tags, so it is safe to enable.
-const THINK_TAG_PRESETS: &[&str] = &["minimax_cn"];
+fn preset_injects_think_tags(provider: &str) -> bool {
+    xai_grok_shell::util::config::custom_model_provider_backend(provider)
+        .map(|(_, _, injects)| injects)
+        .unwrap_or(false)
+}
 
 pub struct ConnectCommand;
 
@@ -175,10 +169,10 @@ impl SlashCommand for ConnectCommand {
         }
 
         if model_id.is_empty() {
-            return CommandResult::Action(Action::OpenConnectWizard);
+            return CommandResult::Action(Action::OpenConnectWizardForPreset(provider.to_string()));
         }
 
-        let injects_think_tags = THINK_TAG_PRESETS.contains(&provider);
+        let injects_think_tags = preset_injects_think_tags(provider);
         let is_custom = provider == "custom";
 
         // For preset vendors, default the base URL from the canonical preset so
@@ -196,17 +190,11 @@ impl SlashCommand for ConnectCommand {
 
         let display_name = display_name_for(provider, &model_id);
 
-        // API key is optional for providers that use session/network auth; warn
-        // but proceed so a URL-only endpoint still connects.
+        // Prefer the masked wizard over suggesting a literal key argument.
         if api_key.is_empty() {
             return CommandResult::Message(format!(
-                "No API key supplied for {provider}. Re-run with a key:\n\
-                 /connect {provider} {model_id} <api_key>{0}",
-                if is_custom {
-                    format!(" {resolved_base_url}")
-                } else {
-                    String::new()
-                }
+                "No API key supplied for {provider}. Run `/connect {provider}` to open the guided form, \
+                 then enter the model ID and API key in the masked fields."
             ));
         }
 
@@ -214,8 +202,9 @@ impl SlashCommand for ConnectCommand {
             provider: provider.to_string(),
             model_id,
             display_name,
-            api_key,
+            api_key: api_key.into(),
             base_url: resolved_base_url,
+            api_backend: None,
             injects_think_tags,
         })
     }
@@ -223,18 +212,9 @@ impl SlashCommand for ConnectCommand {
 
 /// Baked-in base URL for a preset vendor (mirrors the shell's presets).
 fn preset_base_url(provider: &str) -> &'static str {
-    match provider {
-        "openai" => "https://api.openai.com/v1",
-        "openai_responses" => "https://api.openai.com/v1",
-        "anthropic" => "https://api.anthropic.com/v1",
-        "xai" => "https://api.topodrive.top/v1",
-        "deepseek" => "https://api.deepseek.com/v1",
-        "zhipu" => "https://open.bigmodel.cn/api/paas/v4",
-        "xiaomi" => "https://api.xiaomimimo.com/v1",
-        "minimax_cn" => "https://api.minimaxi.com/v1",
-        "zai" => "https://api.z.ai/api/paas/v4",
-        _ => "",
-    }
+    xai_grok_shell::util::config::find_custom_model_provider(provider)
+        .map(|preset| preset.base_url)
+        .unwrap_or("")
 }
 
 /// Human-readable default display name for a connected model.
@@ -320,13 +300,24 @@ mod tests {
     }
 
     #[test]
+    fn advertised_presets_match_shell_configuration() {
+        let command_ids: Vec<_> = CONNECT_PRESETS.iter().map(|(id, _)| *id).collect();
+        let configured_ids: Vec<_> = xai_grok_shell::util::config::CUSTOM_MODEL_PROVIDER_PRESETS
+            .iter()
+            .map(|preset| preset.id)
+            .collect();
+        assert_eq!(command_ids, configured_ids);
+    }
+
+    #[test]
     fn preset_only_opens_wizard() {
         // `/connect openai` alone (no model id, no key) also routes to the
         // wizard — it's the typed shortcut to "open the form pre-loaded
         // with this preset".
         assert!(matches!(
             run("openai"),
-            CommandResult::Action(Action::OpenConnectWizard)
+            CommandResult::Action(Action::OpenConnectWizardForPreset(ref provider))
+                if provider == "openai"
         ));
     }
 
@@ -339,13 +330,8 @@ mod tests {
     }
 
     #[test]
-    fn unknown_provider_with_no_args_opens_wizard() {
-        // Empty args or single-token unknown names both end up in the
-        // wizard; the wizard then validates the preset on its own.
-        assert!(matches!(
-            run(""),
-            CommandResult::Action(Action::OpenConnectWizard)
-        ));
+    fn unknown_provider_errors_even_without_model_id() {
+        assert!(matches!(run("bogus"), CommandResult::Error(_)));
     }
 
     #[test]
@@ -358,14 +344,39 @@ mod tests {
                 display_name,
                 api_key,
                 base_url,
+                api_backend,
                 injects_think_tags,
             }) => {
                 assert_eq!(provider, "openai");
                 assert_eq!(model_id, "gpt-5.6-luna");
-                assert_eq!(api_key, "sk-test123");
+                assert_eq!(api_key.expose_secret(), "sk-test123");
                 assert_eq!(base_url, "https://api.openai.com/v1");
+                assert_eq!(api_backend, None);
                 assert!(!injects_think_tags);
                 assert!(display_name.contains("gpt-5.6-luna"));
+            }
+            other => panic!("expected ConnectCustomModel, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn one_shot_action_debug_redacts_api_key() {
+        let CommandResult::Action(action) = run("openai gpt-5.6-luna sk-do-not-print") else {
+            panic!("expected ConnectCustomModel action");
+        };
+        let debug = format!("{action:?}");
+        assert!(!debug.contains("sk-do-not-print"));
+        assert!(debug.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn topodrive_preset_uses_registered_endpoint() {
+        match run("topodrive model-id test-key") {
+            CommandResult::Action(Action::ConnectCustomModel {
+                provider, base_url, ..
+            }) => {
+                assert_eq!(provider, "topodrive");
+                assert_eq!(base_url, "https://api.topodrive.top/v1");
             }
             other => panic!("expected ConnectCustomModel, got {other:?}"),
         }

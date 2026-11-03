@@ -1711,6 +1711,40 @@ fn set_compact_mode_toast_format() {
     assert!(toast.contains("Compact mode"));
     assert!(toast.contains("off"));
 }
+
+#[test]
+fn connect_custom_model_persists_selected_protocol() {
+    let mut app = test_app_with_agent();
+    let effects = dispatch(
+        Action::ConnectCustomModel {
+            provider: "openai".into(),
+            model_id: "gpt-test".into(),
+            display_name: "Test model".into(),
+            api_key: "sk-test".into(),
+            base_url: "https://api.openai.com/v1".into(),
+            api_backend: Some("responses".into()),
+            injects_think_tags: false,
+        },
+        &mut app,
+    );
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::PersistCustomModelConfig {
+            api_backend,
+            model_id,
+            ..
+        }] if api_backend == "responses" && model_id == "gpt-test"
+    ));
+}
+
+#[test]
+fn custom_model_api_key_action_debug_redacts_secret() {
+    let action = Action::SetCustomModelApiKey("sk-do-not-print".into());
+    let debug = format!("{action:?}");
+    assert!(!debug.contains("sk-do-not-print"));
+    assert!(debug.contains("[REDACTED]"));
+}
+
 /// `set_simple_mode_inner` propagates to the active agent's `input_mode`.
 /// Without the propagation, the toast says "Simple mode: on" but the current session keeps Vim input.
 #[test]

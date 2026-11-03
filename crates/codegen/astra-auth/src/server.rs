@@ -1897,19 +1897,45 @@ fn record_usage(store: &Store, user_id: &str, route: &ModelRoute, usage: TokenUs
     );
 }
 
-fn choose_model_route(store: &Store, requested_model: &str) -> Option<ModelRoute> {
-    let routes = store.model_routes();
+#[derive(Debug, PartialEq, Eq)]
+enum ModelRouteSelectionError {
+    NoEnabledRoutes,
+    NoDefaultRoute,
+    UnknownModel,
+}
+
+fn choose_model_route(
+    store: &Store,
+    requested_model: &str,
+) -> Result<ModelRoute, ModelRouteSelectionError> {
+    choose_model_route_from(store.model_routes(), requested_model)
+}
+
+fn choose_model_route_from(
+    routes: Vec<ModelRoute>,
+    requested_model: &str,
+) -> Result<ModelRoute, ModelRouteSelectionError> {
     let enabled: Vec<_> = routes.into_iter().filter(|route| route.enabled).collect();
+    if enabled.is_empty() {
+        return Err(ModelRouteSelectionError::NoEnabledRoutes);
+    }
+    let requested_model = requested_model.trim();
+    if !requested_model.is_empty() {
+        return enabled
+            .into_iter()
+            .find(|route| {
+                route.id == requested_model
+                    || route.display_name.eq_ignore_ascii_case(requested_model)
+                    || route.upstream_model == requested_model
+            })
+            .ok_or(ModelRouteSelectionError::UnknownModel);
+    }
     enabled
         .iter()
-        .find(|route| {
-            route.id == requested_model
-                || route.display_name.eq_ignore_ascii_case(requested_model)
-                || route.upstream_model == requested_model
-        })
+        .find(|route| route.is_default)
         .cloned()
-        .or_else(|| enabled.iter().find(|route| route.is_default).cloned())
         .or_else(|| (enabled.len() == 1).then(|| enabled[0].clone()))
+        .ok_or(ModelRouteSelectionError::NoDefaultRoute)
 }
 
 async fn handlers_gateway_models(State(s): State<Server>, req: axum::extract::Request) -> Response {
@@ -1977,12 +2003,25 @@ async fn handlers_gateway_chat(State(s): State<Server>, req: axum::extract::Requ
         .get("model")
         .and_then(Value::as_str)
         .unwrap_or_default()
+        .trim()
         .to_string();
-    let Some(route) = choose_model_route(&s.store, &requested_model) else {
-        return write_err(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "no model route is configured",
-        );
+    let route = match choose_model_route(&s.store, &requested_model) {
+        Ok(route) => route,
+        Err(ModelRouteSelectionError::UnknownModel) => {
+            return write_err(StatusCode::NOT_FOUND, "requested model is not enabled");
+        }
+        Err(ModelRouteSelectionError::NoEnabledRoutes) => {
+            return write_err(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "no enabled model route is configured",
+            );
+        }
+        Err(ModelRouteSelectionError::NoDefaultRoute) => {
+            return write_err(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "no default model route is configured",
+            );
+        }
     };
     let client_wants_stream = request.get("stream").and_then(Value::as_bool) == Some(true);
     match route.protocol.as_str() {
@@ -3165,4 +3204,62 @@ fn gateway_stream_response(
         .header("x-accel-buffering", "no")
         .body(Body::from_stream(output))
         .unwrap_or_else(|_| Response::new(Body::empty()))
+}
+
+#[cfg(test)]
+mod model_route_selection_tests {
+    use super::*;
+
+    fn route(id: &str, enabled: bool, is_default: bool) -> ModelRoute {
+        ModelRoute {
+            id: id.to_string(),
+            display_name: format!("{id} display"),
+            protocol: "openai-compatible".to_string(),
+            base_url: "https://upstream.example/v1".to_string(),
+            upstream_model: format!("{id}-upstream"),
+            context_window: 128_000,
+            api_key: None,
+            input_price_microusd_per_million: 0,
+            output_price_microusd_per_million: 0,
+            enabled,
+            is_default,
+        }
+    }
+
+    #[test]
+    fn requested_model_selects_its_route() {
+        let selected = choose_model_route_from(
+            vec![route("default", true, true), route("other", true, false)],
+            "other",
+        )
+        .unwrap();
+
+        assert_eq!(selected.id, "other");
+    }
+
+    #[test]
+    fn unknown_model_does_not_fall_back_to_default() {
+        let result = choose_model_route_from(
+            vec![route("default", true, true), route("other", true, false)],
+            "unknown",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModelRouteSelectionError::UnknownModel)
+        ));
+    }
+
+    #[test]
+    fn missing_model_uses_enabled_default_or_sole_route() {
+        let selected = choose_model_route_from(
+            vec![route("default", true, true), route("other", true, false)],
+            "",
+        )
+        .unwrap();
+        assert_eq!(selected.id, "default");
+
+        let selected = choose_model_route_from(vec![route("only", true, false)], "").unwrap();
+        assert_eq!(selected.id, "only");
+    }
 }

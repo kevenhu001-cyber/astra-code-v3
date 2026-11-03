@@ -2286,6 +2286,37 @@ pub(crate) fn execute(
                     }
                 });
         }
+        Effect::PersistCustomModelConfig {
+            model_id,
+            display_name,
+            api_key,
+            base_url,
+            api_backend,
+            injects_think_tags,
+        } => {
+            tasks.spawn(async move {
+                match xai_grok_shell::util::config::set_custom_model_config(
+                    model_id,
+                    display_name,
+                    api_key.into_secret(),
+                    base_url,
+                    api_backend,
+                    injects_think_tags,
+                )
+                .await
+                {
+                    Ok(()) => TaskResult::SettingPersisted {
+                        key: "custom_model_config",
+                        value: crate::settings::SettingValue::Bool(true),
+                    },
+                    Err(error) => TaskResult::SettingPersistFailed {
+                        key: "custom_model_config",
+                        rollback_value: crate::settings::SettingValue::Bool(false),
+                        error: error.to_string(),
+                    },
+                }
+            });
+        }
         Effect::Authenticate {
             request_seq,
             method_id,

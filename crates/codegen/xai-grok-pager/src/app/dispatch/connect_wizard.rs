@@ -13,17 +13,25 @@ use crate::views::modal::ActiveModal;
 /// Push the `/connect` wizard modal onto the active agent. If no agent view
 /// is active, the call is a no-op — `/connect` is session-scoped so the
 /// caller (slash command) should already have routed to one.
-pub(super) fn dispatch_open_connect_wizard(app: &mut AppView) -> Vec<Effect> {
+pub(super) fn dispatch_open_connect_wizard(app: &mut AppView, preset: Option<&str>) -> Vec<Effect> {
     let ActiveView::Agent(id) = app.active_view else {
         return vec![];
     };
     let Some(agent) = app.agents.get_mut(&id) else {
         return vec![];
     };
-    // Replace any existing connect wizard (re-running /connect is a no-op
-    // visually; it just re-opens the wizard at default state).
+    // Replace any existing connect wizard. A preset-only `/connect` command
+    // opens the same form with that provider preselected.
+    let mut state = ConnectWizardState::default();
+    if let Some(preset) = preset
+        && let Some(idx) = crate::views::connect_wizard::PRESET_DEFS
+            .iter()
+            .position(|definition| definition.id.eq_ignore_ascii_case(preset))
+    {
+        state.set_preset(idx);
+    }
     agent.active_modal = Some(ActiveModal::ConnectWizard {
-        state: Box::new(ConnectWizardState::default()),
+        state: Box::new(state),
     });
     vec![]
 }

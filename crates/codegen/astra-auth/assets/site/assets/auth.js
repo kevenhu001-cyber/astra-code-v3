@@ -123,7 +123,7 @@
 
   function loginDestination() {
     var next = qs('next');
-    if (next === '/account#admin' || next === '/authorize') return next;
+    if (next === '/admin' || next === '/account#admin' || next === '/authorize') return next;
     return '/account';
   }
 
@@ -151,7 +151,7 @@
   function redirectLogin(next) {
     if (window.location.pathname === '/login') return;
     var destination = next || (window.location.pathname === '/authorize' ? '/authorize' : '/account');
-    if (destination !== '/account#admin' && destination !== '/authorize') destination = '/account';
+    if (destination !== '/admin' && destination !== '/account#admin' && destination !== '/authorize') destination = '/account';
     window.location.replace('/login?next=' + encodeURIComponent(destination));
   }
 
