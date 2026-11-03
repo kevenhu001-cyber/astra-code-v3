@@ -165,7 +165,7 @@ fn usage_modal_renders_allowance_from_app_balance() {
 
     let content = render_with_modal(&mut state, area, Some(&balance));
     assert!(content.contains("Usage limit"), "{content}");
-    assert!(content.contains("(SuperGrok)"), "{content}");
+    assert!(!content.contains("SuperGrok"), "{content}");
     assert!(content.contains("42%"), "{content}");
     assert!(content.contains("Resets: May 29, 00:00"), "{content}");
     assert!(

@@ -4859,14 +4859,12 @@ fn media_gen_ref_skips_uploaded_only_video() {
         "uploaded_url-only media must not claim a local open path"
     );
 }
-/// A tier-restricted (free / X Basic) imagine call short-circuits with the SuperGrok upsell as `ToolOutput::Text` on a `Completed` status.
-/// The media renderer has no file to open, so it must surface the upsell text in the card body (not a bare title).
-/// It must NOT mark the card as an error.
+/// An unavailable image-generation response is rendered in the card body rather than as a bare title.
+/// It must NOT mark the card as an error when the server reports a completed tool call.
 #[test]
-fn tier_restricted_media_shows_upsell_text_not_error() {
-    let upsell = "Image generation is a SuperGrok feature. Upgrade at \
-         https://grok.com/supergrok?referrer=grok-build";
-    let output = ToolOutput::Text(xai_grok_tools::types::output::TextOutput::from(upsell));
+fn restricted_media_response_shows_neutral_text_not_error() {
+    let notice = "Image generation is not available for the current account.";
+    let output = ToolOutput::Text(xai_grok_tools::types::output::TextOutput::from(notice));
     let tc = acp::ToolCall::new(
         acp::ToolCallId::new(Arc::from("tier-restricted-img")),
         "image_gen",
@@ -4874,7 +4872,7 @@ fn tier_restricted_media_shows_upsell_text_not_error() {
     .kind(acp::ToolKind::Other)
     .status(acp::ToolCallStatus::Completed)
     .content(vec![acp::ToolCallContent::Content(acp::Content::new(
-        acp::ContentBlock::Text(acp::TextContent::new(upsell)),
+        acp::ContentBlock::Text(acp::TextContent::new(notice)),
     ))])
     .raw_input(Some(serde_json::json!({ "variant": "ImageGen" })))
     .raw_output(serde_json::to_value(output).ok())
@@ -4884,15 +4882,15 @@ fn tier_restricted_media_shows_upsell_text_not_error() {
     };
     assert!(
         block.is_success(),
-        "the upsell is a successful result, not an error"
+        "a completed response is a successful tool call, not an error"
     );
     assert!(
         block
             .output
             .as_deref()
             .unwrap_or_default()
-            .contains("SuperGrok"),
-        "upsell text must be shown in the card body, got: {:?}",
+            .contains("not available"),
+        "response text must be shown in the card body, got: {:?}",
         block.output
     );
 }

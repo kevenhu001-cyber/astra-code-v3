@@ -14,12 +14,11 @@ use agent_client_protocol as acp;
 /// Clients derive user-facing text via [`format_rate_limited_user_message`]. The desktop path (`prompt_complete_fields`) reports the stop reason with no detail.
 pub const RATE_LIMITED_ERROR_CODE: i32 = -32003;
 
-/// OAuth / session rate-limit copy (personal plan upgrade path).
+/// OAuth / session rate-limit copy.
 pub const RATE_LIMITED_USER_MESSAGE_OAUTH: &str =
-    "You\u{2019}ve hit the rate limit for your plan. Upgrade your account or try again later.";
+    "You\u{2019}ve hit the rate limit. Try again later.";
 
-/// API key / team rate-limit copy. Personal grok.com upgrades do not raise API
-/// team limits; admins purchase credits or a higher spend-based tier.
+/// API key / team rate-limit copy.
 /// See https://astracode.topodrive.top/docs/rate-limits
 pub const RATE_LIMITED_USER_MESSAGE_API_KEY: &str = "You\u{2019}ve hit your team\u{2019}s API rate limit. Ask a team admin to purchase more credits for higher limits, or try again later. See https://astracode.topodrive.top/docs/rate-limits";
 
@@ -28,9 +27,9 @@ pub const RATE_LIMITED_USER_MESSAGE_API_KEY: &str = "You\u{2019}ve hit your team
 /// sampling-types' `parse_error_bytes` prepends the flat `code` to the flattened message, so this reaches clients embedded in error detail.
 pub const FREE_USAGE_EXHAUSTED_ERROR_CODE: &str = "subscription:free-usage-exhausted";
 
-/// User-facing free-usage exhaustion copy (paywall). Deliberately promises no
-/// reset duration — the quota window is backend-config-driven.
-pub const FREE_USAGE_USER_MESSAGE: &str = "You\u{2019}ve reached your free Astra usage limit for now. Get SuperGrok for much higher limits, or try again later: https://astracode.topodrive.top/upgrade?referrer=astra-build";
+/// Neutral copy for a server-reported usage limit. The quota window is backend-configured.
+pub const FREE_USAGE_USER_MESSAGE: &str =
+    "You\u{2019}ve reached the current usage limit. Try again later.";
 
 /// Whether flattened server detail is free-usage-quota exhaustion (paywall), not transient throttling.
 /// Sniffs the well-known code embedded by `parse_error_bytes`.
@@ -38,8 +37,8 @@ pub fn is_free_usage_exhausted_error(detail: &str) -> bool {
     detail.contains(FREE_USAGE_EXHAUSTED_ERROR_CODE)
 }
 
-/// User-facing text for an ACP -32003 rate-limit error. The free-usage code wins first (consumer-only; checked before the API-key rewrite).
-/// An API-key caller whose detail pushes the personal SuperGrok upsell gets the team credits copy instead. Otherwise the body is shown after stripping the `API error (status …):` prefix (SamplingError Display).
+/// User-facing text for an ACP -32003 rate-limit error. Known account-upgrade prompts are replaced with neutral rate-limit copy.
+/// Otherwise the body is shown after stripping the `API error (status …):` prefix (SamplingError Display).
 /// An empty detail falls back to the OAuth or API-key message. Callers that show this in UI should still run their usual sanitizer (scrub/cap).
 pub fn format_rate_limited_user_message(
     server_detail: Option<&str>,
@@ -51,8 +50,12 @@ pub fn format_rate_limited_user_message(
     }
     if let Some(detail) = server_detail.map(str::trim).filter(|s| !s.is_empty()) {
         let detail = strip_sampling_api_error_prefix(detail);
-        if is_api_key_auth && pushes_consumer_subscription_upsell(detail) {
-            return RATE_LIMITED_USER_MESSAGE_API_KEY.to_string();
+        if pushes_consumer_subscription_upsell(detail) {
+            return if is_api_key_auth {
+                RATE_LIMITED_USER_MESSAGE_API_KEY.to_string()
+            } else {
+                RATE_LIMITED_USER_MESSAGE_OAUTH.to_string()
+            };
         }
         return detail.to_string();
     }
@@ -76,13 +79,24 @@ fn strip_sampling_api_error_prefix(detail: &str) -> &str {
     detail.trim()
 }
 
-/// IC sometimes reuses OAuth free-tier upsell copy on 429s ("upgrade to a Astra
-/// subscription" / grok.com/supergrok). That is wrong for API-key / team auth:
-/// higher limits come from credits and spend-based rate-limit tiers, not a
-/// personal SuperGrok plan.
+/// Detect old account-upgrade copy so it is not shown as a CLI subscription prompt.
 fn pushes_consumer_subscription_upsell(detail: &str) -> bool {
     let d = detail.to_ascii_lowercase();
-    d.contains("grok.com/supergrok") || d.contains("upgrade to a grok subscription")
+    d.contains("supergrok")
+        || d.contains("subscription required")
+        || d.contains("requires a astra subscription")
+        || d.contains("upgrade to a grok subscription")
+        || (d.contains("upgrade") && d.contains("subscription"))
+        || d.contains("upgrade your subscription")
+}
+
+fn neutralize_subscription_requirement(detail: String) -> String {
+    if pushes_consumer_subscription_upsell(&detail) {
+        "This request is not available for the current account. Try another model or contact your administrator."
+            .to_string()
+    } else {
+        detail
+    }
 }
 
 /// User-facing copy for capacity/overload failures (stream `overloaded_error`, HTTP 529, proxy-wrapped 5xx).
@@ -117,17 +131,7 @@ pub(crate) fn map_sampling_err_to_acp(err: SamplingError) -> acp::Error {
             // Examples: content-safety blocks, ZDR-gated operations, remote-settings-blocked users
             // Passing the proxy's message via internal_error keeps the explanation visible without triggering the client's re-auth flow on -32000
             StatusCode::FORBIDDEN => {
-                let message = if message.contains("requires a Astra subscription")
-                    && crate::agent::auth_method::has_xai_api_key_env()
-                {
-                    format!(
-                        "{message}\n\nYou have an API key set (XAI_API_KEY). \
-                         Your cached OAuth session is being used instead. \
-                         To use your API key, run `grok logout` or type /logout in the TUI."
-                    )
-                } else {
-                    message
-                };
+                let message = neutralize_subscription_requirement(message);
                 // 403 is content-safety, never auth: on this setup path it stays `internal_error`, which maps to `server_error`
                 acp::Error::internal_error().data(message)
             }
@@ -521,7 +525,7 @@ mod tests {
             format_rate_limited_user_message(None, true),
             RATE_LIMITED_USER_MESSAGE_API_KEY
         );
-        assert!(RATE_LIMITED_USER_MESSAGE_OAUTH.contains("Upgrade your account"));
+        assert!(!RATE_LIMITED_USER_MESSAGE_OAUTH.contains("Upgrade"));
         assert!(RATE_LIMITED_USER_MESSAGE_API_KEY.contains("team"));
         assert!(RATE_LIMITED_USER_MESSAGE_API_KEY.contains("credits"));
         assert!(
@@ -553,14 +557,16 @@ mod tests {
     }
 
     #[test]
-    fn format_rate_limited_api_key_rewrites_consumer_subscription_upsell() {
+    fn format_rate_limited_replaces_subscription_upgrade_copy() {
         let body = "Some resource has been exhausted: You are sending requests too quickly. \
              Please slow down, or upgrade to a Astra subscription for higher limits: \
              https://grok.com/supergrok";
         let wire = format!("API error (status 429 Too Many Requests): {body}");
-        // OAuth keeps the IC body (personal plan upgrade is correct).
-        assert_eq!(format_rate_limited_user_message(Some(&wire), false), body);
-        // API key must not push grok.com SuperGrok; it gets the team credits / rate-limit tiers copy
+        assert_eq!(
+            format_rate_limited_user_message(Some(&wire), false),
+            RATE_LIMITED_USER_MESSAGE_OAUTH
+        );
+        // API-key callers receive the team rate-limit guidance instead.
         assert_eq!(
             format_rate_limited_user_message(Some(&wire), true),
             RATE_LIMITED_USER_MESSAGE_API_KEY
@@ -590,7 +596,7 @@ mod tests {
     }
 
     #[test]
-    fn format_rate_limited_free_usage_uses_paywall_copy() {
+    fn format_rate_limited_free_usage_uses_neutral_copy() {
         let wire = "API error (status 429 Too Many Requests): \
             subscription:free-usage-exhausted: You have used all your free usage.";
         assert_eq!(
@@ -602,6 +608,8 @@ mod tests {
             format_rate_limited_user_message(Some(wire), true),
             FREE_USAGE_USER_MESSAGE
         );
+        assert!(!FREE_USAGE_USER_MESSAGE.contains("SuperGrok"));
+        assert!(!FREE_USAGE_USER_MESSAGE.contains("upgrade"));
     }
 
     #[test]
@@ -802,7 +810,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn forbidden_subscription_error_includes_api_key_hint_when_env_set() {
+    fn forbidden_subscription_error_is_neutral_when_api_key_is_set() {
         with_api_key_env(Some("xai-test"), || {
             let err = SamplingError::Api {
                 status: StatusCode::FORBIDDEN,
@@ -815,20 +823,15 @@ mod tests {
             let acp_err = map_sampling_err_to_acp(err);
             let data = acp_err.data.unwrap();
             let msg = data.as_str().unwrap();
-            assert!(
-                msg.contains("grok logout"),
-                "should suggest grok logout when API key is available: {msg}"
-            );
-            assert!(
-                msg.contains("/logout"),
-                "should mention /logout TUI command: {msg}"
-            );
+            assert!(msg.contains("not available for the current account"), "{msg}");
+            assert!(!msg.contains("subscription"), "{msg}");
+            assert!(!msg.contains("grok logout"), "{msg}");
         });
     }
 
     #[test]
     #[serial_test::serial]
-    fn forbidden_subscription_error_no_hint_without_api_key() {
+    fn forbidden_subscription_error_is_neutral_without_api_key() {
         with_api_key_env(None, || {
             let err = SamplingError::Api {
                 status: StatusCode::FORBIDDEN,
@@ -841,10 +844,8 @@ mod tests {
             let acp_err = map_sampling_err_to_acp(err);
             let data = acp_err.data.unwrap();
             let msg = data.as_str().unwrap();
-            assert!(
-                !msg.contains("grok logout"),
-                "should NOT suggest logout when no API key is available: {msg}"
-            );
+            assert!(msg.contains("not available for the current account"), "{msg}");
+            assert!(!msg.contains("subscription"), "{msg}");
         });
     }
 

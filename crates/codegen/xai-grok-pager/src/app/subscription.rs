@@ -1,4 +1,4 @@
-//! Free-to-paid subscription detection and gate imposition/lift.
+//! Legacy subscription-gate helpers.
 //!
 //! All gate transitions go through [`AppView::impose_gate`] / [`AppView::lift_gate`].
 //! That keeps the defer-vs-show decision and the lift bookkeeping (focus, telemetry, JWT-refresh check) in one place.
@@ -74,7 +74,7 @@ impl AppView {
         }
     }
 
-    /// Whether the watch (and the refocus check) should run: enabled, consumer session, and gated or possibly-free.
+    /// Whether an eligible consumer session needs periodic gate verification.
     pub fn subscription_watch_wanted(&self) -> bool {
         self.subscription_watch_interval().is_some()
             && self.is_consumer_session()
@@ -260,7 +260,7 @@ mod tests {
         app.subscription_tier = Some("SuperGrok".into());
         assert!(!app.subscription_watch_wanted(), "paid tier is dormant");
 
-        // Gated: watches regardless of the (stale) tier string
+        // A gated session watches regardless of its possibly stale tier value.
         app.gate = Some(watch_gate());
         assert!(app.subscription_watch_wanted(), "gated session watches");
         app.gate = None;

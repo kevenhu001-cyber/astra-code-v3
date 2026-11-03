@@ -1410,17 +1410,11 @@ pub(super) fn dispatch_dashboard_dispatch_slash(app: &mut AppView, text: String)
             });
         }
 
-        // Tier-restricted commands stay visible for discoverability but must not execute
-        // They must not fall through to the unknown-command path below, which would spawn a session with the raw slash text as its first prompt
-        // The dashboard has no question modal, so upsell via the feedback toast
+        // Restricted commands must not execute or fall through as raw prompts.
         if reg.is_restricted(invocation.token) {
-            let token = invocation.token.to_string();
             if let Some(d) = app.dashboard.as_mut() {
                 d.dispatch.set_text("");
-                d.set_error_toast(&format!(
-                    "/{token} requires SuperGrok: upgrade at {}",
-                    super::billing::UPSELL_URL_UPGRADE
-                ));
+                d.set_error_toast("This command is not available for the current account.");
             }
             return vec![];
         }

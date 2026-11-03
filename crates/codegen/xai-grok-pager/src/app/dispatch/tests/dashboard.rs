@@ -2985,12 +2985,12 @@ fn dashboard_slash_model_stages_pending_model() {
     );
 }
 /// A tier-restricted command typed into the dashboard dispatch input must
-/// upsell via the feedback toast — not execute, and (crucially) not fall
+/// show a neutral access notice — not execute, and (crucially) not fall
 /// through the unknown-command path, which would spawn a session whose
 /// first prompt is the raw slash text.
 #[serial_test::serial(ASTRA_AGENT_DASHBOARD)]
 #[test]
-fn dashboard_slash_restricted_command_upsells_via_toast() {
+fn dashboard_slash_restricted_command_shows_notice_via_toast() {
     let mut app = test_app();
     app.tier_restricted_commands = vec!["imagine".to_string()];
     open_dashboard(&mut app);
@@ -3006,10 +3006,10 @@ fn dashboard_slash_restricted_command_upsells_via_toast() {
         .unwrap()
         .error_toast
         .as_deref()
-        .expect("restricted command must set the upsell toast");
+        .expect("restricted command must set the access notice");
     assert!(
-        toast.contains("/imagine") && toast.contains("SuperGrok"),
-        "toast must carry the upsell: {toast}"
+        toast.contains("not available") && !toast.contains("SuperGrok"),
+        "toast must be neutral and must not upsell: {toast}"
     );
 }
 /// A slash command that fails (`CommandResult::Error`) surfaces on

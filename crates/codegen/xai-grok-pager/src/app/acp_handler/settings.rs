@@ -201,10 +201,6 @@ pub(super) fn handle_settings_update(notif: &acp::ExtNotification, app: &mut App
         app.subscription_watch_interval_secs = Some(v);
     }
 
-    // Neither condition met: don't touch the gate
-    // In particular, allow_access=Some(false) without a gate_message must NOT clear the gate
-    // (gate_from_settings returns None when gate_message is absent, which would incorrectly lift an existing gate.)
-
     // A fresh machine has no auth at startup, so the prefetch never runs and the startup seed sees no settings
     // Welcome only: seeding the gate behind a session would block new sessions on an unseen screen
     if let Some(gate) = update.consent_gate.as_ref()
@@ -227,15 +223,12 @@ pub(super) fn handle_settings_update(notif: &acp::ExtNotification, app: &mut App
     if update.allow_access == Some(true) {
         let effs = app.lift_gate();
         app.pending_effects.extend(effs);
-    } else if let Some(msg) = update.gate_message.as_ref()
-        && !msg.is_empty()
-    {
-        // (An empty gate_message would only clear the gate message text, NOT access, so it does not touch the gate here.)
-        let effs = app.impose_gate(xai_grok_login::GateInfo {
-            message: msg.clone(),
-            url: update.gate_url.clone(),
-            label: update.gate_label.clone(),
-        });
+    } else if let Some(gate) = AppView::gate_info_from_fields(
+        update.gate_message.as_deref(),
+        update.gate_url.as_deref(),
+        update.gate_label.as_deref(),
+    ) {
+        let effs = app.impose_gate(gate);
         app.pending_effects.extend(effs);
     }
 

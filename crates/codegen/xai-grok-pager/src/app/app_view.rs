@@ -1331,18 +1331,29 @@ impl AppView {
             && matches!(self.trust_state, TrustState::Done)
             && matches!(self.consent_state, ConsentState::Done)
     }
-    /// Extract `GateInfo` from `RemoteSettings`.
+    /// Build the server's access gate without exposing plan or upgrade copy.
     pub fn gate_from_settings(
         rs: &xai_grok_shell::util::config::RemoteSettings,
     ) -> Option<xai_grok_login::GateInfo> {
-        let msg = rs.gate_message.as_ref()?;
-        if msg.is_empty() {
-            return None;
-        }
+        Self::gate_info_from_fields(
+            rs.gate_message.as_deref(),
+            rs.gate_url.as_deref(),
+            rs.gate_label.as_deref(),
+        )
+    }
+    /// Preserve server-enforced access gates while replacing their display text
+    /// and link with a neutral sign-in/support message.
+    pub(crate) fn gate_info_from_fields(
+        message: Option<&str>,
+        _url: Option<&str>,
+        _label: Option<&str>,
+    ) -> Option<xai_grok_login::GateInfo> {
+        let _message = message.filter(|message| !message.trim().is_empty())?;
         Some(xai_grok_login::GateInfo {
-            message: msg.clone(),
-            url: rs.gate_url.clone(),
-            label: rs.gate_label.clone(),
+            message: "Astra access is currently unavailable. Check your sign-in or contact your administrator."
+                .to_owned(),
+            url: None,
+            label: None,
         })
     }
     /// Apply typed auth metadata from the shell.
@@ -1356,7 +1367,13 @@ impl AppView {
         self.team_role = meta.team_role.clone();
         self.coding_data_retention_opt_out = meta.coding_data_retention_opt_out;
         self.shell_feedback_trace_offer = meta.feedback_trace_offer;
-        self.gate = meta.gate.clone();
+        self.gate = meta.gate.as_ref().and_then(|gate| {
+            Self::gate_info_from_fields(
+                Some(&gate.message),
+                gate.url.as_deref(),
+                gate.label.as_deref(),
+            )
+        });
         if was_gated && self.gate.is_none() {
             self.paywall_check_started = None;
             xai_grok_telemetry::session_ctx::log_event(
@@ -3970,11 +3987,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                 {
                     return InputOutcome::Action(Action::CheckSubscription);
                 }
-                if let Some(rect) = ctx.gate_url_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::OpenSupergrokUrl);
-                }
                 if let Some(rect) = ctx.upgrade_cta_rect
                     && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
                 {
@@ -4199,13 +4211,12 @@ fn dispatch_zdr_menu_action(index: usize) -> InputOutcome {
         _ => InputOutcome::Unchanged,
     }
 }
-/// Menu actions when user is access-gated: item 0 is Subscribe CTA, item 1 is Logout, item 2 is Quit.
+/// Menu actions when user is access-gated: item 0 is Logout, item 1 is Quit.
 /// "Refresh" (ctrl-r) is handled as a direct key shortcut, not a menu item.
 fn dispatch_access_gate_menu_action(index: usize) -> InputOutcome {
     match index {
-        0 => InputOutcome::Action(Action::OpenSupergrokUrl),
-        1 => InputOutcome::Action(Action::Logout),
-        2 => InputOutcome::Action(Action::Quit),
+        0 => InputOutcome::Action(Action::Logout),
+        1 => InputOutcome::Action(Action::Quit),
         _ => InputOutcome::Unchanged,
     }
 }
@@ -4721,19 +4732,6 @@ impl AppView {
                                 cached_lines,
                                 compact,
                                 &theme,
-                            );
-                        }
-                        if !has_access && !self.access_gate_shown_logged {
-                            self.access_gate_shown_logged = true;
-                            xai_grok_telemetry::session_ctx::log_event(
-                                xai_grok_telemetry::events::SuperGrokUpsellShown {
-                                    source:
-                                        xai_grok_telemetry::events::SuperGrokUpsell::WelcomeScreen,
-                                    auth_method: self
-                                        .login_method_id
-                                        .as_ref()
-                                        .map(|id| id.0.to_string()),
-                                },
                             );
                         }
                         if let Some(tutorial) = self.tutorial.as_mut() {

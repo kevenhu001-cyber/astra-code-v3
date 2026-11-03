@@ -522,7 +522,6 @@ pub(super) fn dispatch_send_prompt_submission(
     let auto_mode_gate_from_app = app.auto_mode_gate;
     let ask_user_question_timeout_enabled_from_app = app.ask_user_question_timeout_enabled;
     let voice_stt_language_from_app = app.voice_config.language.clone();
-    let login_method_id_from_app = app.login_method_id.as_ref().map(|id| id.0.to_string());
     let leader_mode = app.leader_mode;
     let Some(agent) = app.agents.get_mut(&id) else {
         return prelude;
@@ -569,8 +568,7 @@ pub(super) fn dispatch_send_prompt_submission(
             if consume_input {
                 agent.prompt.set_text("");
             }
-            let opened =
-                super::billing::open_restricted_command_upsell(agent, login_method_id_from_app);
+            let opened = super::billing::open_restricted_command_notice(agent);
             debug_assert!(opened, "no modal was open, so the upsell must open");
         }
         return effects;
@@ -1327,10 +1325,9 @@ pub(super) fn handle_prompt_response(
                 }));
         let request_failed_shown = scrollback_has_recent_request_failed(&agent.scrollback);
         // A dedicated prompt/modal/banner replaces the generic TurnFailed marker and error toast
-        // The cases: rate limit, free-usage paywall, model incompatibility, credit 402/403, 401 re-auth, context overflow, and disk-full
+        // Free-usage exhaustion deliberately uses the generic error path, not an upgrade modal.
         // A formatted RequestFailed banner from RetryState also counts
-        let dedicated_ux_shown = rate_limited
-            || free_usage_blocked
+        let dedicated_ux_shown = (rate_limited && !free_usage_blocked)
             || model_incompatible
             || credit_limit_blocked
             || reauth_prompted
@@ -1550,12 +1547,9 @@ pub(super) fn handle_prompt_response(
             return vec![Effect::CreditLimitRecheck { agent_id }];
         }
 
-        // Free-usage paywall (a 429 with subscription:free-usage-exhausted)
-        // Driver-only by construction: viewers never receive a PromptResponse
-        // No queue drain: queued prompts would fail on the same exhausted quota
+        // Do not retry queued work after a server-reported usage limit.
+        // The failed turn already carries neutral rate-limit copy, and no subscription prompt is shown.
         if free_usage_blocked {
-            let auth_method = app.login_method_id.as_ref().map(|id| id.0.to_string());
-            super::billing::open_free_usage_upsell(agent, auth_method);
             if let Some(p) = pending_adoption {
                 agent.discard_pending_adoption_updates(&p.prompt_id);
             }

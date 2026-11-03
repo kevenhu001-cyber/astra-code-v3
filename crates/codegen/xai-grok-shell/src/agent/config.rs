@@ -47,6 +47,9 @@ pub(crate) fn default_agent_type() -> String {
 }
 pub const CLI_CHAT_PROXY_BASE_URL_DEFAULT: &str =
     "https://cli-chat-proxy.astracode.topodrive.top/v1";
+/// Default model-inference gateway for session-authenticated CLI requests.
+/// Keep this separate from the cli-chat-proxy, which serves login and auxiliary APIs.
+pub const ASTRA_GATEWAY_BASE_URL_DEFAULT: &str = "https://astracode.topodrive.top/v1";
 /// Default base URL for the public Astra API.
 pub const XAI_API_BASE_URL_DEFAULT: &str = "https://api.astracode.topodrive.top/v1";
 const NO_INLINE_CITATIONS_RESPONSE_INCLUDE: &str = "no_inline_citations";
@@ -271,17 +274,35 @@ impl EndpointsConfig {
         resolved.external_otel_master_switch = external_otel_master_switch;
         resolved
     }
-    /// The cli-chat-proxy base URL through which all auxiliary services (and OAuth/session inference) resolve.
+    /// The cli-chat-proxy base URL through which auth and auxiliary services resolve.
     /// Explicit `cli_chat_proxy_base_url`, else the public default.
     /// NEVER falls back to `xai_api_base_url`: that is the inference endpoint (API-key auth) only.
     pub fn proxy_url(&self) -> String {
         blank_as_unset(&self.cli_chat_proxy_base_url)
             .unwrap_or_else(|| CLI_CHAT_PROXY_BASE_URL_DEFAULT.to_owned())
     }
+    /// Session-authenticated model requests use the deployment gateway by default.
+    /// Explicit `models_base_url` or legacy `cli_chat_proxy_base_url` overrides still win.
     pub(crate) fn resolve_inference_base_url(&self) -> String {
         self.models_base_url
             .clone()
-            .unwrap_or_else(|| self.proxy_url())
+            .or_else(|| blank_as_unset(&self.cli_chat_proxy_base_url))
+            .unwrap_or_else(|| ASTRA_GATEWAY_BASE_URL_DEFAULT.to_owned())
+    }
+    /// The deployed Astra gateway accepts OpenAI Chat Completions requests.
+    /// Other configured endpoints retain the bundled model protocol.
+    fn uses_astra_gateway(&self) -> bool {
+        url::Url::parse(&self.resolve_inference_base_url())
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_owned))
+            .is_some_and(|host| host.eq_ignore_ascii_case("astracode.topodrive.top"))
+    }
+    pub(crate) fn resolve_inference_api_backend(&self) -> ApiBackend {
+        if self.uses_astra_gateway() {
+            ApiBackend::ChatCompletions
+        } else {
+            ApiBackend::Responses
+        }
     }
     /// Feedback endpoint, an auxiliary service, so it defaults to the cli-chat-proxy, never `xai_api_base_url`.
     pub(crate) fn resolve_feedback_base_url(&self) -> String {
@@ -3707,7 +3728,11 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 temperature: m.temperature,
                 top_p: m.top_p,
                 max_completion_tokens: m.max_completion_tokens,
-                api_backend: m.api_backend,
+                api_backend: if endpoints.uses_astra_gateway() {
+                    ApiBackend::ChatCompletions
+                } else {
+                    m.api_backend
+                },
                 auth_scheme: None,
                 agent_type: m.agent_type,
                 inference_idle_timeout_secs: m.inference_idle_timeout_secs,
@@ -3724,7 +3749,8 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 supports_reasoning_effort: m.supports_reasoning_effort,
                 reasoning_efforts: m.reasoning_efforts,
                 variants: m.variants,
-                supports_backend_search: m.supports_backend_search,
+                supports_backend_search: m.supports_backend_search
+                    && !endpoints.uses_astra_gateway(),
                 compactions_remaining: m.compactions_remaining,
                 compaction_at_tokens: m.compaction_at_tokens,
                 show_model_fingerprint: m.show_model_fingerprint,
@@ -4965,7 +4991,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 max_completion_tokens: None,
                 temperature: None,
                 top_p: None,
-                api_backend: ApiBackend::Responses,
+                api_backend: endpoints.resolve_inference_api_backend(),
                 auth_scheme: Default::default(),
                 extra_headers: IndexMap::new(),
                 query_params: IndexMap::new(),
@@ -5190,7 +5216,7 @@ fn resolve_hidden_default_web_search_sampling_config(
             max_completion_tokens: None,
             temperature: None,
             top_p: None,
-            api_backend: ApiBackend::Responses,
+            api_backend: endpoints.resolve_inference_api_backend(),
             auth_scheme: Default::default(),
             extra_headers: IndexMap::new(),
             query_params: IndexMap::new(),

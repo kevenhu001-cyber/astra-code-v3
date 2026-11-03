@@ -114,12 +114,43 @@ fn is_promo(a: &xai_grok_announcements::RemoteAnnouncement) -> bool {
     a.severity.as_deref() == Some("promo")
 }
 
+/// Keep legacy branding and subscription-upgrade copy out of the CLI even when it arrives remotely.
+fn is_hidden_subscription_copy(a: &xai_grok_announcements::RemoteAnnouncement) -> bool {
+    let text = [
+        a.title.as_deref(),
+        a.message.as_deref(),
+        a.cta.as_ref().and_then(|cta| cta.label.as_deref()),
+        a.cta.as_ref().and_then(|cta| cta.caption.as_deref()),
+        a.cta.as_ref().and_then(|cta| cta.url.as_deref()),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" ")
+    .to_ascii_lowercase();
+
+    text.contains("grok")
+        || (is_promo(a)
+            && ["upgrade", "subscription", "paid tier", "paid plan"]
+                .iter()
+                .any(|needle| text.contains(needle)))
+        || [
+            "subscription required",
+            "requires a subscription",
+            "must subscribe",
+        ]
+        .iter()
+        .any(|needle| text.contains(needle))
+}
+
 /// One definition of "live critical" (visible message + critical + not expired) shared by every predicate below so the meanings cannot drift.
 fn is_live_critical(
     a: &xai_grok_announcements::RemoteAnnouncement,
     now: chrono::DateTime<chrono::Utc>,
 ) -> bool {
-    is_critical(a) && !xai_grok_announcements::is_expired_at(a, now)
+    is_critical(a)
+        && !is_hidden_subscription_copy(a)
+        && !xai_grok_announcements::is_expired_at(a, now)
 }
 
 /// Promo twin of [`is_live_critical`].
@@ -129,7 +160,9 @@ fn is_live_promo(
     a: &xai_grok_announcements::RemoteAnnouncement,
     now: chrono::DateTime<chrono::Utc>,
 ) -> bool {
-    is_promo(a) && !xai_grok_announcements::is_expired_at(a, now)
+    is_promo(a)
+        && !is_hidden_subscription_copy(a)
+        && !xai_grok_announcements::is_expired_at(a, now)
 }
 
 /// The session-surfaced severities (critical or promo).
@@ -1014,6 +1047,37 @@ mod tests {
         assert!(!has_session_announcements(&info_only));
     }
 
+    #[test]
+    fn subscription_and_legacy_branding_announcements_are_not_selected() {
+        let hidden_brand = promo(
+            "brand",
+            "Upgrade to SuperGrok Heavy",
+            Some(("Upgrade", "https://grok.com/supergrok")),
+        );
+        let hidden_requirement = RemoteAnnouncement {
+            severity: Some("critical".into()),
+            title: Some("Subscription required".into()),
+            message: Some("Subscribe to continue".into()),
+            ..Default::default()
+        };
+        let unrelated = promo("release", "Astra release notes", Some(("Read", "https://example.com")));
+
+        assert!(
+            first_session_announcement(
+                &[hidden_brand.clone(), hidden_requirement.clone()],
+                &no_hidden(),
+            )
+            .is_none(),
+            "subscription and legacy-branding copy must not reach the CLI"
+        );
+        assert_eq!(
+            first_session_announcement(&[hidden_brand, unrelated], &no_hidden())
+                .and_then(|a| a.id.as_deref()),
+            Some("release"),
+            "unrelated announcements remain available"
+        );
+    }
+
     /// Draw-time expiry for promo, via the same injectable clock.
     #[test]
     fn first_promo_session_announcement_at_skips_expired() {
@@ -1409,7 +1473,7 @@ mod tests {
         let mut ann = promo(
             "p",
             "New promo",
-            Some(("Get SuperGrok", "https://x.ai/grok")),
+            Some(("See the latest preview", "https://example.com/preview")),
         );
         ann.cta.as_mut().unwrap().caption = Some("or use Ctrl+O".into());
         let anns = [ann];
@@ -1418,7 +1482,7 @@ mod tests {
         let hits = render_banner(area, &mut buf, &anns, &no_hidden(), false, false, true);
 
         let row0 = buf_row(&buf, area, 0);
-        assert!(row0.starts_with("[Get SuperGrok]"), "row0={row0:?}");
+        assert!(row0.starts_with("[See the latest preview]"), "row0={row0:?}");
         assert!(
             !row0.contains("New promo"),
             "message must not paint on the banner; row0={row0:?}"
@@ -1474,7 +1538,7 @@ mod tests {
             "p",
             "msg",
             Some((
-                "Upgrade to SuperGrok Heavy for the exclusive preview",
+                "See the latest Astra preview",
                 "https://x.ai",
             )),
         )];
@@ -1482,7 +1546,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         let hits = render_banner(area, &mut buf, &anns, &no_hidden(), false, false, true);
         let row0 = buf_row(&buf, area, 0);
-        assert!(row0.starts_with("[Upgrade"), "row0={row0:?}");
+        assert!(row0.starts_with("[See latest"), "row0={row0:?}");
         assert!(
             row0.contains('…'),
             "button label must truncate; row0={row0:?}"

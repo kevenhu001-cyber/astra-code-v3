@@ -1705,7 +1705,7 @@ fn user_override_adds_api_key_to_default_model() {
     assert_eq!(model.api_key, Some("user-custom-api-key".to_string()));
     assert_eq!(model.info.model, dm);
     assert_eq!(
-        model.info.base_url, "https://cli-chat-proxy.astracode.topodrive.top/v1",
+        model.info.base_url, "https://astracode.topodrive.top/v1",
         "base_url should inherit from default, not be stale"
     );
 }
@@ -3252,7 +3252,7 @@ fn config_models_default_custom_model_is_in_resolved_model_list() {
     assert_eq!(model.info.base_url, "https://inference.example.com/v1");
 }
 #[test]
-fn e2e_default_model_with_session_routes_to_proxy() {
+fn e2e_default_model_with_session_routes_to_gateway() {
     let (_, models) = resolve_models_from_toml("", None);
     let model = models
         .get(crate::models::default_model())
@@ -3260,8 +3260,8 @@ fn e2e_default_model_with_session_routes_to_proxy() {
     let sampling = resolve_sampling(model, Some("session-token-123"));
     assert_eq!(sampling.api_key.as_deref(), Some("session-token-123"));
     assert_eq!(
-        sampling.base_url, "https://cli-chat-proxy.astracode.topodrive.top/v1",
-        "session auth should route to the Astra cli-chat-proxy"
+        sampling.base_url, "https://astracode.topodrive.top/v1",
+        "session auth should route model inference through the Astra gateway"
     );
 }
 #[test]
@@ -3560,8 +3560,8 @@ fn unset_endpoint_env_vars() {
         unsafe { std::env::remove_var(k) };
     }
 }
-/// INVARIANT: auxiliary-service resolvers resolve to the cli-chat-proxy, never `xai_api_base_url`.
-/// Overriding ONLY inference keeps every aux endpoint on the proxy; explicit per-service overrides win verbatim.
+/// Auxiliary-service resolvers use the cli-chat-proxy, while default model inference uses the deployment gateway.
+/// Explicit per-service overrides win verbatim.
 #[test]
 #[serial]
 fn aux_endpoints_resolve_to_proxy_never_inference() {
@@ -3574,7 +3574,10 @@ fn aux_endpoints_resolve_to_proxy_never_inference() {
     };
     let proxy = CLI_CHAT_PROXY_BASE_URL_DEFAULT;
     assert_eq!(cfg.proxy_url(), proxy);
-    assert_eq!(cfg.resolve_inference_base_url(), proxy);
+    assert_eq!(
+        cfg.resolve_inference_base_url(),
+        ASTRA_GATEWAY_BASE_URL_DEFAULT
+    );
     assert_eq!(cfg.resolve_models_list_url(), format!("{proxy}/models"));
     assert_eq!(
         cfg.resolve_managed_config_url(),

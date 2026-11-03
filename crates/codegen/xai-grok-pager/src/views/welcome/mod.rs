@@ -562,7 +562,7 @@ pub(super) fn render_version_badge(
     let mut spans = Vec::new();
 
     let (show_team, show_tier, show_api_key, align) = match &mode {
-        VersionBadgeMode::Full { .. } => (true, true, true, Alignment::Right),
+        VersionBadgeMode::Full { .. } => (true, false, true, Alignment::Right),
         VersionBadgeMode::HeroFooter => (true, false, true, Alignment::Right),
         VersionBadgeMode::HeroInline => (false, false, false, Alignment::Left),
     };
@@ -852,7 +852,10 @@ pub fn render_welcome(
 
     let mut result = match params.auth_state {
         AuthState::Pending { error } => {
-            let label = params.login_label.unwrap_or("grok.com");
+            let label = params
+                .login_label
+                .filter(|name| !name.to_ascii_lowercase().contains("grok"))
+                .unwrap_or("Astra");
             let login_text = format!("Login with {}", label);
             let menu = [("l", login_text.as_str()), ("q", "Quit")];
             let msg = error.as_deref().map(|e| (e, theme.accent_error));
@@ -1872,13 +1875,8 @@ fn render_welcome_done(
     // Plain compact mode keeps the normal welcome layout
     let welcome_compact = show_picker;
 
-    let cta = p
-        .gate
-        .and_then(|g| g.label.as_deref())
-        .unwrap_or("Upgrade Subscription");
     let in_vscode_family = welcome_in_vscode_family();
-    let (key_g, key_l, key_q) = (
-        "ctrl+g",
+    let (key_l, key_q) = (
         "ctrl+l",
         if in_vscode_family { "ctrl+d" } else { "ctrl+q" },
     );
@@ -1924,7 +1922,7 @@ fn render_welcome_done(
     let gate_menu;
     let owned_menu;
     let menu_items: &[(&str, &str)] = if !p.has_access {
-        gate_menu = [(key_g, cta), (key_l, "Logout"), (key_q, "Quit")];
+        gate_menu = [(key_l, "Logout"), (key_q, "Quit")];
         &gate_menu
     } else {
         let (key_w, key_resume, key_q, key_i_with_x) = (
@@ -2175,7 +2173,7 @@ fn render_welcome_done(
     let (cursor_pos, post_flush_escapes) = if show_picker {
         (None, None)
     } else if !p.has_access {
-        // Show CTA message and version instead of the prompt.
+        // Show the account-access notice and version instead of the prompt.
         let [_, centered, _] = Layout::horizontal([
             Constraint::Min(0),
             Constraint::Length(content_area.width),
@@ -2183,49 +2181,33 @@ fn render_welcome_done(
         ])
         .flex(Flex::Center)
         .areas(layout.prompt);
-        // Show the user's current tier and a clickable refresh button above the gate message
-        let tier_label = p.subscription_tier.unwrap_or("Free");
-        let tier_prefix = format!("Tier: {tier_label}  ");
+        // Keep a retry affordance without exposing subscription labels or upgrade links.
         let refresh_text = "[Refresh]";
-        let total_width = tier_prefix.len() + refresh_text.len();
-        let tier_line = Line::from(vec![
-            Span::styled("Tier: ", Style::default().fg(theme.gray)),
-            Span::styled(
-                tier_label,
-                Style::default()
-                    .fg(theme.gray_bright)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled("  ", Style::default()),
-            Span::styled(
+        let total_width = refresh_text.len();
+        let retry_line = Line::from(Span::styled(
                 refresh_text,
                 Style::default()
                     .fg(theme.accent_user)
                     .add_modifier(Modifier::UNDERLINED),
-            ),
-        ])
+            ))
         .alignment(Alignment::Center);
-        let tier_area = Rect {
+        let retry_area = Rect {
             height: 1,
             ..centered
         };
-        Paragraph::new(tier_line).render(tier_area, buf);
+        Paragraph::new(retry_line).render(retry_area, buf);
 
         // Compute the click rect for "[Refresh]" within the centered line.
-        let line_start_x = tier_area.x + tier_area.width.saturating_sub(total_width as u16) / 2;
+        let line_start_x = retry_area.x + retry_area.width.saturating_sub(total_width as u16) / 2;
         refresh_hit_rect = Some(Rect {
-            x: line_start_x + tier_prefix.len() as u16,
-            y: tier_area.y,
+            x: line_start_x,
+            y: retry_area.y,
             width: refresh_text.len() as u16,
             height: 1,
         });
 
-        let gate_text = p
-            .gate
-            .map(|g| g.message.as_str())
-            .unwrap_or("SuperGrok subscription required");
         let msg = Line::from(Span::styled(
-            gate_text,
+            "Astra access is currently unavailable. Check your sign-in or contact your administrator.",
             Style::default().fg(theme.gray_bright),
         ))
         .alignment(Alignment::Center);
@@ -2237,36 +2219,6 @@ fn render_welcome_done(
             },
             buf,
         );
-
-        if centered.height > 2 {
-            let url_area = Rect {
-                y: centered.y + 2,
-                height: 1,
-                ..centered
-            };
-            let gate_link = p
-                .gate
-                .and_then(|g| g.url.as_deref())
-                .unwrap_or("https://astracode.topodrive.top/upgrade?referrer=astra-build");
-            let url = Line::from(Span::styled(
-                gate_link,
-                Style::default()
-                    .fg(theme.accent_user)
-                    .add_modifier(Modifier::UNDERLINED),
-            ))
-            .alignment(Alignment::Center);
-            Paragraph::new(url).render(url_area, buf);
-
-            // Compute click rect for the gate URL text (centered within url_area).
-            let link_width = gate_link.len() as u16;
-            let link_x = url_area.x + url_area.width.saturating_sub(link_width) / 2;
-            gate_url_hit_rect = Some(Rect {
-                x: link_x,
-                y: url_area.y,
-                width: link_width.min(url_area.width),
-                height: 1,
-            });
-        }
 
         render_version_badge(
             layout.version,
@@ -4567,7 +4519,7 @@ the usual channels. "
         let area = Rect::new(0, 0, 100, 32);
         let ann = xai_grok_announcements::RemoteAnnouncement {
             title: Some("Upgrade".into()),
-            message: Some("SuperGrok Heavy is available for your team today.".into()),
+            message: Some("Astra updates are available for your team today.".into()),
             ..Default::default()
         };
         let input = |prompt_height| WelcomeLayoutInput {

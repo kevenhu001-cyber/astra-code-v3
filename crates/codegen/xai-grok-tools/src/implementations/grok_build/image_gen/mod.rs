@@ -40,12 +40,6 @@ pub use xai_grok_tools_api::slash_commands::{
     IMAGE_GEN_TOOL_NAME, IMAGINE_COMMAND_NAME, imagine_instruction, imagine_usage_message,
 };
 
-/// Prose returned to the model (as a normal, successful tool result) when a
-/// free / X Basic user calls `image_gen` or `image_edit`. The model relays it
-/// to the user. The deliberate `/imagine` slash command shows the richer
-/// SuperGrok upsell modal instead; this covers the natural-language path.
-pub(crate) const TIER_RESTRICTED_UPSELL: &str = "Image generation is a SuperGrok feature and isn't available on the free or X Basic tier. Let the user know they can unlock image and video generation by upgrading to SuperGrok: https://astracode.topodrive.top/upgrade?referrer=astra-build. Do not retry this tool.";
-
 /// HTTP client for xAI Imagine API. Cloned per-request; shares `Arc` state.
 #[derive(Clone)]
 pub struct ImageGenClient {
@@ -62,10 +56,6 @@ pub struct ImageGenClient {
     /// Imagine API emits an `auth_401_attribution` event with
     /// `consumer == "ImageGen"` for unified auth-failure telemetry.
     attribution_callback: Option<SharedAttributionCallback>,
-    /// When `true`, the user is on a tier the Imagine server zero-limits (free / X Basic).
-    /// `image_gen` / `image_edit` short-circuit before any HTTP call and return the SuperGrok
-    /// upsell prose instead. See [`ImageGenClient::is_tier_restricted`].
-    tier_restricted: bool,
     /// Per-request [`SESSION_ID_HEADER`]; kept off `default_headers` so the
     /// transport stays session-independent and cacheable.
     session_header: Option<HeaderValue>,
@@ -83,7 +73,6 @@ impl ImageGenClient {
             extra_headers,
             model_override,
             edit_model_override,
-            tier_restricted,
             ..
         } = config
         else {
@@ -155,7 +144,6 @@ impl ImageGenClient {
             writer: super::storage::SessionFileWriter::new(DEFAULT_IMAGE_DIR, "jpg"),
             api_key_provider,
             attribution_callback: None,
-            tier_restricted: *tier_restricted,
             session_header: None,
             defaults_have_session_header,
         })
@@ -170,13 +158,6 @@ impl ImageGenClient {
             self.session_header = Some(value);
         }
         self
-    }
-
-    /// Whether the current user's tier (free / X Basic) is zero-limited on
-    /// Imagine server-side. `image_gen` / `image_edit` use this to short-circuit
-    /// with the SuperGrok upsell instead of issuing a doomed request.
-    pub(crate) fn is_tier_restricted(&self) -> bool {
-        self.tier_restricted
     }
 
     /// Wire a 401-attribution callback into this client. Idempotent;
@@ -319,10 +300,6 @@ pub enum ImageGenConfig {
         /// the remote `image_gen_model_override` config flag. `image_edit` is unaffected.
         model_override: Option<String>,
         edit_model_override: Option<String>,
-        /// `true` when the user is on a tier the Imagine server zero-limits (free / X Basic). The tools stay advertised to the
-        /// model, but `image_gen` / `image_edit` short-circuit at call time with the SuperGrok upsell prose instead of a doomed
-        /// request. Set by the host from the subscription tier; always `false` for team / API-key / workspace callers.
-        tier_restricted: bool,
     },
 }
 
@@ -466,13 +443,6 @@ impl xai_tool_runtime::Tool for ImageGenTool {
             res.require::<ImageGenClient>()?.clone()
         };
 
-        // Free / X Basic users are zero-limited on Imagine server-side; return
-        // the upsell prose instead of a doomed request (the tool stays
-        // advertised so the model can surface the nudge in-conversation).
-        if client.is_tier_restricted() {
-            return Ok(ToolOutput::Text(TIER_RESTRICTED_UPSELL.into()));
-        }
-
         let generate_span = tracing::info_span!(
             "image_gen.generate_wait",
             elapsed_ms = tracing::field::Empty,
@@ -530,7 +500,6 @@ mod tests {
             image_edit_enabled: true,
             model_override: Some("grok-imagine-image".into()),
             edit_model_override: None,
-            tier_restricted: false,
         };
         assert!(cfg.has_credentials());
         assert!(!cfg.image_gen_enabled());
@@ -552,7 +521,6 @@ mod tests {
             image_edit_enabled: true,
             model_override: None,
             edit_model_override: None,
-            tier_restricted: false,
         };
         let client = ImageGenClient::new(&cfg, None)
             .unwrap()
@@ -567,7 +535,6 @@ mod tests {
             image_edit_enabled: true,
             model_override: None,
             edit_model_override: None,
-            tier_restricted: false,
         };
         let client = ImageGenClient::new(&cfg_plain, None)
             .unwrap()
@@ -590,7 +557,6 @@ mod tests {
             image_edit_enabled: true,
             model_override: None,
             edit_model_override: None,
-            tier_restricted: false,
         };
         let client = ImageGenClient::new(&cfg, None)
             .unwrap()
@@ -627,7 +593,6 @@ mod tests {
             image_edit_enabled: true,
             model_override: model_override.map(String::from),
             edit_model_override: None,
-            tier_restricted: false,
         };
         // No override → default quality model.
         assert_eq!(
@@ -658,7 +623,6 @@ mod tests {
             image_edit_enabled: true,
             model_override: None,
             edit_model_override: edit_model_override.map(String::from),
-            tier_restricted: false,
         };
         assert_eq!(
             ImageGenClient::new(&mk(None), None).unwrap().edit_model(),
@@ -697,46 +661,4 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn tier_restricted_short_circuits_with_upsell() {
-        // A free / X Basic user's image_gen call returns the SuperGrok upsell prose as a normal
-        // result (no HTTP, no error card) so the model can relay it. Only the client is inserted —
-        // the short-circuit returns before any other resource (e.g. SessionFolder) is required.
-        let cfg = ImageGenConfig::Enabled {
-            api_key: "k".into(),
-            base_url: "https://api.astracode.topodrive.top/v1".into(),
-            extra_headers: indexmap::IndexMap::new(),
-            image_gen_enabled: true,
-            image_edit_enabled: true,
-            model_override: None,
-            edit_model_override: None,
-            tier_restricted: true,
-        };
-        let mut resources = crate::types::resources::Resources::new();
-        resources.insert(ImageGenClient::new(&cfg, None).unwrap());
-
-        let result = xai_tool_runtime::Tool::run(
-            &ImageGenTool,
-            test_ctx_with_call_id(resources.into_shared(), "test-call"),
-            ImageGenInput {
-                prompt: "a cat".into(),
-                aspect_ratio: "auto".into(),
-            },
-        )
-        .await
-        .expect("tier-restricted call must succeed with upsell prose");
-
-        match result {
-            ToolOutput::Text(t) => {
-                assert!(t.text.contains("SuperGrok"), "got: {}", t.text);
-                assert!(
-                    t.text
-                        .contains("astracode.topodrive.top/upgrade?referrer=astra-build"),
-                    "got: {}",
-                    t.text
-                );
-            }
-            other => panic!("expected Text upsell, got {other:?}"),
-        }
-    }
 }

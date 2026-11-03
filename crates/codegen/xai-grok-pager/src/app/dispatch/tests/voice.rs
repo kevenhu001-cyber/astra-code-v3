@@ -364,10 +364,10 @@ fn voice_ctrl_space_release_leaves_toggle_recording_running() {
     );
 }
 
-/// A free-tier user hitting the voice keybinding gets the SuperGrok upsell instead of a doomed voice session.
+/// A restricted account gets a neutral notice instead of starting a doomed voice session.
 /// The keybinding bypasses the slash registry, so this dispatcher is the enforcement point.
 #[test]
-fn voice_keybinding_on_restricted_tier_opens_upsell() {
+fn voice_keybinding_on_restricted_tier_shows_notice() {
     if !xai_grok_voice::AUDIO_SUPPORTED {
         return; // The tier check runs after the AUDIO_SUPPORTED gate.
     }
@@ -380,8 +380,8 @@ fn voice_keybinding_on_restricted_tier_opens_upsell() {
     dispatch(Action::EnableVoiceMode, &mut app);
 
     assert!(
-        app.agents.get(&AgentId(0)).unwrap().question_view.is_some(),
-        "restricted-tier voice keybinding must open the SuperGrok upsell"
+        app.agents.get(&AgentId(0)).unwrap().question_view.is_none(),
+        "restricted-tier voice keybinding must not open a subscription modal"
     );
     assert!(
         !app.voice_listening(),

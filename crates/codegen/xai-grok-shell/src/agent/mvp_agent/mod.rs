@@ -1053,8 +1053,7 @@ struct AuthRequestMeta {
     headless: bool,
     #[serde(default)]
     reauth: bool,
-    /// `--oauth`: force loopback.
-    /// The only transport override sent over ACP (loopback is the default; device is opt-in via env/config).
+    /// Legacy `--oauth` alias. First-party OAuth2 sign-in now always uses the shared code flow.
     #[serde(default)]
     use_oauth: bool,
     /// When true, skip cached tokens and force the interactive browser login flow.
@@ -1068,10 +1067,10 @@ struct AuthRequestMeta {
     request_seq: Option<u64>,
 }
 impl AuthRequestMeta {
-    /// `--oauth` forces loopback; otherwise default (loopback).
+    /// Legacy `--oauth` is accepted, but uses the shared code flow like the default.
     fn login_override(&self) -> xai_grok_login::LoginTransportOverride {
         if self.use_oauth {
-            xai_grok_login::LoginTransportOverride::ForceLoopback
+            xai_grok_login::LoginTransportOverride::ForceDevice
         } else {
             xai_grok_login::LoginTransportOverride::None
         }

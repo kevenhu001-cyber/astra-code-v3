@@ -34,35 +34,34 @@ fn is_cached_credential_compatible(auth: &GrokAuth, grok_com_config: &GrokComCon
     }
     true
 }
-/// CLI-flag override for the interactive login transport.
-/// `--oauth` forces the loopback-callback flow; `--device-auth` forces the device flow.
-/// `None` falls through to env / config / default.
+/// CLI hint for the interactive login transport.
+/// Both `--oauth` (legacy) and `--device-auth` now use the shared reverse device-code flow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LoginTransportOverride {
-    /// No CLI override; resolve from env / config / default.
+    /// No CLI hint.
     #[default]
     None,
-    /// `--oauth`: force the loopback-callback flow.
+    /// Legacy `--oauth` flag. OAuth2 sign-in still uses the shared code flow.
     ForceLoopback,
-    /// `--device-auth`: force the RFC 8628 device flow.
+    /// `--device-auth`: use the shared code flow.
     ForceDevice,
     /// Transport already resolved (and logged) upstream; `true` means device, `false` means loopback.
     /// The inner flow honors the carried value without re-resolving, so it's never re-logged or mis-attributed to `cli`.
     Preresolved(bool),
 }
 impl LoginTransportOverride {
-    /// Resolve from the `--oauth` / `--device-auth` flags; `--oauth` wins if both are somehow set.
+    /// Resolve from the `--oauth` / `--device-auth` flags.
+    /// Both now select the same code-based sign-in experience.
     /// Both the CLI (`run_cli_login`) and ACP (`AuthRequestMeta`) entry points resolve through here.
     pub fn from_flags(force_loopback: bool, force_device: bool) -> Self {
-        if force_loopback {
-            Self::ForceLoopback
-        } else if force_device {
+        if force_loopback || force_device {
             Self::ForceDevice
         } else {
             Self::None
         }
     }
     /// Map to a `BoolFlag` CLI value: `Some(true)` means device, `Some(false)` means loopback, `None` means no override.
+    #[cfg(test)]
     fn as_cli_bool(self) -> Option<bool> {
         match self {
             Self::None => None,
@@ -72,8 +71,9 @@ impl LoginTransportOverride {
         }
     }
 }
-/// Device-flow precedence, highest first: CLI, env, config, remote feature flag, then the loopback default.
-/// Returns the deciding tier so the caller can log which one chose the transport.
+/// Legacy transport resolver retained for compatibility tests.
+/// Interactive first-party OAuth2 sign-in uses reverse device-code flow regardless of these settings.
+#[cfg(test)]
 fn resolve_device_flow(
     login_override: LoginTransportOverride,
     config: Option<bool>,
@@ -97,40 +97,19 @@ async fn cli_should_use_device(
     !crate::oidc::is_configured(config)
         && should_use_device_flow(login_override, config_device_flow, proxy_base_url).await
 }
-/// Whether interactive OAuth2 login uses the RFC 8628 device flow (vs loopback).
-/// Precedence: CLI flags, then the device-flow env, then config, then the remote flag; loopback is the default.
-/// The caller supplies `proxy_base_url` so this stays off the effective-config load.
+/// Whether interactive first-party OAuth2 login uses the reverse device-code flow.
+/// Enterprise OIDC is handled separately and continues to use its loopback callback.
 async fn should_use_device_flow(
-    login_override: LoginTransportOverride,
-    config_device_flow: Option<bool>,
-    proxy_base_url: &str,
+    _login_override: LoginTransportOverride,
+    _config_device_flow: Option<bool>,
+    _proxy_base_url: &str,
 ) -> bool {
-    if let LoginTransportOverride::Preresolved(use_device) = login_override {
-        return use_device;
-    }
-    let resolved = if login_override.as_cli_bool().is_some() {
-        resolve_device_flow(login_override, None, None)
-    } else {
-        let env = xai_grok_config::env_bool("GROK_LOGIN_DEVICE_FLOW");
-        let remote = if env.is_none() && config_device_flow.is_none() {
-            tokio::time::timeout(
-                std::time::Duration::from_secs(2),
-                fetch_login_device_flow(proxy_base_url),
-            )
-            .await
-            .ok()
-            .flatten()
-        } else {
-            None
-        };
-        resolve_device_flow(login_override, config_device_flow, remote)
-    };
     tracing::info!(
-        transport = if resolved.value { "device" } else { "loopback" },
-        source = %resolved.source,
-        "login: resolved interactive transport",
+        transport = "reverse_device",
+        source = "unified",
+        "login: using the shared code-based sign-in flow",
     );
-    resolved.value
+    true
 }
 /// How login presents itself; sent to the TUI via `x.ai/auth/get_url`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -728,8 +707,8 @@ async fn persist_or_use_minted(auth_manager: &AuthManager, new_auth: GrokAuth) -
 pub fn report_signed_in(auth: &GrokAuth) {
     eprint!("\r\x1b[K");
     match auth.email {
-        Some(ref email) => eprintln!("✓ Signed in as {email}"),
-        None => eprintln!("✓ Signed in"),
+        Some(ref email) => eprintln!("✓ Signed in to Astra as {email}"),
+        None => eprintln!("✓ Signed in to Astra"),
     }
 }
 /// CLI auth entrypoint. For GUI, use `run_auth_flow_with_stderr_bridge`.
@@ -816,9 +795,9 @@ pub async fn ensure_authenticated_or_noninteractive(
         .map(Some)
     }
 }
-/// Unified `grok login` handler for CLI entry points (tui, pager). Precedence: `--oauth` forces loopback, `--device-auth` forces device.
-/// Otherwise `GROK_LOGIN_DEVICE_FLOW` env, then `[auth] login_device_flow` config, then the loopback default.
-/// Both transports run through `run_auth_flow_inner` so the external auth provider and devbox auto-migration are tried first.
+/// Unified `grok login` handler for CLI entry points (TUI, pager).
+/// First-party OAuth2 always uses reverse device-code sign-in; enterprise OIDC keeps its loopback callback.
+/// Both paths run through `run_auth_flow_inner` so the external auth provider and devbox auto-migration are tried first.
 pub async fn run_cli_login(
     grok_com_config: GrokComConfig,
     config_device_flow: Option<bool>,
@@ -883,7 +862,7 @@ async fn run_cli_login_steps(
     } else {
         if device_auth && crate::oidc::is_configured(grok_com_config) {
             eprintln!(
-                "Device-code login isn't available for your SSO provider; using browser sign-in."
+                "Code-based sign-in isn't available for your SSO provider; using browser sign-in."
             );
         }
         let (auth, did_auth) = run_auth_flow(
@@ -952,6 +931,7 @@ pub fn perform_logout(
         api_key_still_set: crate::auth_method::has_xai_api_key_env(),
     })
 }
+#[cfg(test)]
 #[derive(serde::Deserialize)]
 struct LoginConfigResponse {
     /// Tri-state: `Some` forces a transport; `None` or an absent flag keeps the client default.
@@ -961,6 +941,7 @@ struct LoginConfigResponse {
 /// Fetch the remote device-flow flag from unauthenticated `GET /v1/login-config`.
 /// Best-effort: any error or unset flag returns `None` so the caller keeps the loopback default.
 /// Caps at 1.5s with no retries since it's on the login path.
+#[cfg(test)]
 async fn fetch_login_device_flow(cli_chat_proxy_base_url: &str) -> Option<bool> {
     let agent_id = tokio::task::spawn_blocking(xai_grok_telemetry::id::agent_id)
         .await
@@ -1332,23 +1313,23 @@ mod tests {
         );
     }
     #[tokio::test]
-    async fn preresolved_bypasses_resolver_and_is_never_cli() {
+    async fn oauth2_login_uses_shared_code_flow_regardless_of_legacy_overrides() {
         {
             let _guard = EnvVarGuard::set("GROK_LOGIN_DEVICE_FLOW", "false");
             assert!(
                 should_use_device_flow(LoginTransportOverride::Preresolved(true), None, "").await,
-                "Preresolved(true) honors device without re-resolving"
+                "first-party OAuth2 uses the shared code flow"
             );
         }
         {
             let _guard = EnvVarGuard::set("GROK_LOGIN_DEVICE_FLOW", "true");
             assert!(
-                !should_use_device_flow(LoginTransportOverride::Preresolved(false), None, "").await,
-                "Preresolved(false) honors loopback without re-resolving"
+                should_use_device_flow(LoginTransportOverride::Preresolved(false), None, "").await,
+                "legacy loopback selection cannot split the login experience"
             );
             assert!(
                 should_use_device_flow(LoginTransportOverride::None, None, "").await,
-                "the resolver path still honors env (sole resolution)"
+                "unset legacy settings use the shared code flow"
             );
         }
         with_device_flow_env(None, || {
@@ -1361,14 +1342,14 @@ mod tests {
         });
     }
     #[test]
-    fn from_flags_prefers_oauth_over_device() {
+    fn legacy_oauth_and_device_flags_select_the_same_code_flow() {
         assert_eq!(
             LoginTransportOverride::from_flags(true, true),
-            LoginTransportOverride::ForceLoopback
+            LoginTransportOverride::ForceDevice
         );
         assert_eq!(
             LoginTransportOverride::from_flags(true, false),
-            LoginTransportOverride::ForceLoopback
+            LoginTransportOverride::ForceDevice
         );
         assert_eq!(
             LoginTransportOverride::from_flags(false, true),

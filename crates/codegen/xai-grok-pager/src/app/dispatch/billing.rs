@@ -7,7 +7,6 @@ use crate::app::agent_view::AgentView;
 use crate::app::app_view::AppView;
 use crate::scrollback::block::RenderBlock;
 use std::time::Duration;
-use xai_grok_telemetry::events::{SuperGrokUpsell, SuperGrokUpsellClicked};
 use xai_grok_telemetry::session_ctx::log_event;
 
 /// How long the pager auto-checks subscription status before stopping.
@@ -182,39 +181,16 @@ pub(super) fn open_credit_limit_upsell(
     agent.prompt.set_text("");
 }
 
-/// Open the free-usage paywall on the given agent: a Q&A modal in the [`open_credit_limit_upsell`] style with two upgrade options.
-/// Each option's `id` carries its target URL so the submit handler is position-independent.
-/// Only the driver can reach this: the PromptResponse handler calls it, and viewers never receive that response.
-pub(super) fn open_free_usage_upsell(agent: &mut AgentView, auth_method: Option<String>) {
-    open_supergrok_upsell(agent, UpsellReason::FreeUsageLimit, auth_method);
+/// Explain that a tier-restricted command is unavailable without suggesting an upgrade.
+/// Returns whether the notice opened (`false` when another question modal is already up).
+pub(super) fn open_restricted_command_notice(agent: &mut AgentView) -> bool {
+    open_account_availability_notice(
+        agent,
+        "This command is not available for the current account.",
+    )
 }
 
-/// Open the SuperGrok upsell for a tier-restricted slash command (`/usage`, `/imagine`, …).
-/// Returns whether the modal opened (`false` when another question modal is already up).
-/// The caller uses that to decide whether to consume the input that triggered it.
-pub(super) fn open_restricted_command_upsell(
-    agent: &mut AgentView,
-    auth_method: Option<String>,
-) -> bool {
-    open_supergrok_upsell(agent, UpsellReason::RestrictedCommand, auth_method)
-}
-
-/// Which situation opened the SuperGrok upsell modal; it controls the heading and the telemetry source.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum UpsellReason {
-    /// Free-usage quota exhausted (429 paywall).
-    FreeUsageLimit,
-    /// A tier-restricted slash command was invoked.
-    RestrictedCommand,
-}
-
-/// Shared builder behind [`open_free_usage_upsell`] and [`open_restricted_command_upsell`]: a Q&A modal in the [`open_credit_limit_upsell`] style.
-/// Upgrade options carry their target URL in the option `id`, so submit handling does not depend on option position.
-fn open_supergrok_upsell(
-    agent: &mut AgentView,
-    reason: UpsellReason,
-    auth_method: Option<String>,
-) -> bool {
+fn open_account_availability_notice(agent: &mut AgentView, heading: &str) -> bool {
     use crate::views::question_view::{LocalQuestionKind, QuestionViewState};
     use xai_grok_tools::implementations::grok_build::ask_user_question::{
         Question, QuestionOption,
@@ -226,59 +202,25 @@ fn open_supergrok_upsell(
         return false;
     }
 
-    let (heading, source, modal_id_prefix) = match reason {
-        UpsellReason::FreeUsageLimit => (
-            "You hit your free usage limit.",
-            SuperGrokUpsell::FreeUsagePaywall,
-            "free-usage-upsell",
-        ),
-        UpsellReason::RestrictedCommand => (
-            "Unlock all features with SuperGrok.",
-            SuperGrokUpsell::RestrictedCommand,
-            "restricted-command-upsell",
-        ),
-    };
-
-    log_event(xai_grok_telemetry::events::SuperGrokUpsellShown {
-        source,
-        auth_method,
-    });
-
-    // /supergrok lists all plans; every upgrade option lands there.
-    let options = vec![
-        QuestionOption {
-            label: "Upgrade to SuperGrok".into(),
-            description: "For everyday coding and productivity tasks".into(),
-            preview: None,
-            id: Some(UPSELL_URL_UPGRADE.into()),
-        },
-        QuestionOption {
-            label: "Upgrade to SuperGrok Plus".into(),
-            description: "Significantly higher usage and rate limits".into(),
-            preview: None,
-            id: Some(UPSELL_URL_UPGRADE.into()),
-        },
-        QuestionOption {
-            label: "Upgrade to SuperGrok Heavy".into(),
-            description: "Get the most out of Astra. Highest usage limits.".into(),
-            preview: None,
-            id: Some(UPSELL_URL_UPGRADE.into()),
-        },
-    ];
     let question = Question {
-        question: heading.into(),
-        options,
+        question: heading.to_owned(),
+        options: vec![QuestionOption {
+            label: "OK".into(),
+            description: String::new(),
+            preview: None,
+            id: None,
+        }],
         multi_select: Some(false),
         id: None,
     };
 
     let stashed = agent.prompt.stash();
     let state = QuestionViewState::new(
-        format!("{modal_id_prefix}-{}", uuid::Uuid::new_v4()),
+        format!("account-availability-{}", uuid::Uuid::new_v4()),
         vec![question],
         stashed,
     )
-    .with_local_kind(LocalQuestionKind::FreeUsageUpsell { source })
+    .with_local_kind(LocalQuestionKind::AccountAvailabilityNotice)
     .with_no_freeform();
     agent.install_local_question(state);
     agent.prompt.set_text("");
@@ -527,25 +469,3 @@ pub(super) fn dispatch_retry_credit_limit_prompt(app: &mut AppView) -> Vec<Effec
     drain.effects
 }
 
-// Action handlers.
-
-pub(super) fn dispatch_open_supergrok_url(app: &mut AppView) -> Vec<Effect> {
-    log_event(SuperGrokUpsellClicked {
-        source: SuperGrokUpsell::WelcomeScreen,
-        auth_method: app.login_method_id.as_ref().map(|id| id.0.to_string()),
-    });
-    let url = app
-        .gate
-        .as_ref()
-        .and_then(|g| g.url.as_deref())
-        .unwrap_or("https://astracode.topodrive.top/upgrade?referrer=astra-build");
-    // Funnel attribution: tag CLI-originated SuperGrok upsell clicks
-    // with `referrer=grok-build`, matching the OAuth consent flow and
-    // x.ai/cli marketing links. Applied even when the URL came from
-    // remote settings's `gate_url`, so we don't depend on the remote flag
-    // being correctly configured. If the URL already specifies a
-    // referrer it's left alone.
-    let url = crate::app::link_opener::ensure_query_param(url, "referrer", "grok-build");
-    super::ctx::open_url_or_show(app, &url);
-    vec![]
-}

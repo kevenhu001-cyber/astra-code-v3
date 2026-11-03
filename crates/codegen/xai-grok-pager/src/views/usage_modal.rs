@@ -71,7 +71,7 @@ pub struct UsageInfoContext {
     pub chat_kind: bool,
     /// Remote-settings kill switch: link out instead of showing billing.
     pub billing_redirect_url: Option<String>,
-    /// Plan name for the allowance header (e.g. "SuperGrok").
+    /// Internal tier metadata. The UI deliberately omits plan names.
     pub subscription_tier: Option<String>,
 }
 
@@ -923,12 +923,11 @@ fn allowance_lines(
 ) -> Vec<Line<'static>> {
     let mut lines: Vec<Line<'static>> = Vec::new();
 
-    // "Weekly limit", "Monthly limit", or "Usage", plus the plan name
-    let header = match &state.ctx.subscription_tier {
-        Some(tier) => format!("{} ({tier})", bal.usage_label()),
-        None => bal.usage_label().to_string(),
-    };
-    lines.push(Line::styled(header, header_style(theme)));
+    // Show usage without exposing subscription/plan names.
+    lines.push(Line::styled(
+        bal.usage_label().to_string(),
+        header_style(theme),
+    ));
     lines.push(Line::default());
 
     const BAR_WIDTH: usize = 30;
@@ -1135,7 +1134,11 @@ mod tests {
         let theme = Theme::current();
         let lines = usage_limit_lines(&state, Some(&bal), &theme);
         let text: Vec<String> = lines.iter().map(|l| l.to_string()).collect();
-        assert_eq!(text[0], "Weekly limit (SuperGrok)");
+        assert_eq!(text[0], "Weekly limit");
+        assert!(
+            text.iter().all(|line| !line.contains("SuperGrok")),
+            "plan names must not be shown: {text:?}"
+        );
         assert!(text[2].ends_with("50%"), "bar row: {:?}", text[2]);
         assert!(text.iter().any(|l| l.contains("Resets: May 29, 00:00")));
         assert!(text.iter().any(|l| l == "Pay as you go: Enabled"));

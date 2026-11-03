@@ -1233,69 +1233,10 @@ fn free_usage_error_detected_by_embedded_code() {
     ));
 }
 
+/// Replay a server-reported free-usage limit through the production handlers.
+/// Access stays blocked, but no subscription modal is shown.
 #[test]
-fn free_usage_upsell_displaces_feedback_before_opening_question() {
-    let mut app = test_app_with_agent();
-    let agent = app.agents.get_mut(&AgentId(0)).unwrap();
-    agent.feedback_modal = Some(crate::views::feedback_modal::FeedbackModalState::new(
-        crate::views::feedback_modal::OpenFeedbackModal {
-            text: Some("unsent report".to_owned()),
-            ..Default::default()
-        },
-    ));
-
-    open_free_usage_upsell(agent, None);
-
-    assert!(agent.feedback_modal.is_none());
-    assert!(agent.question_view.is_some());
-}
-
-#[test]
-fn free_usage_upsell_shows_three_options_with_exact_labels() {
-    let mut app = test_app_with_agent();
-    let agent = app.agents.get_mut(&AgentId(0)).unwrap();
-    open_free_usage_upsell(agent, None);
-
-    let qv = agent_qv(&app);
-    assert!(matches!(
-        qv.local_kind,
-        Some(
-            crate::views::question_view::LocalQuestionKind::FreeUsageUpsell {
-                source: xai_grok_telemetry::events::SuperGrokUpsell::FreeUsagePaywall,
-            }
-        )
-    ));
-    let q = &qv.questions[0];
-    assert_eq!(q.question, "You hit your free usage limit.");
-    let expected = [
-        (
-            "Upgrade to SuperGrok",
-            "For everyday coding and productivity tasks",
-            Some(UPSELL_URL_UPGRADE),
-        ),
-        (
-            "Upgrade to SuperGrok Plus",
-            "Significantly higher usage and rate limits",
-            Some(UPSELL_URL_UPGRADE),
-        ),
-        (
-            "Upgrade to SuperGrok Heavy",
-            "Get the most out of Astra. Highest usage limits.",
-            Some(UPSELL_URL_UPGRADE),
-        ),
-    ];
-    assert_eq!(q.options.len(), expected.len());
-    for (opt, (label, desc, id)) in q.options.iter().zip(expected) {
-        assert_eq!(opt.label, label);
-        assert_eq!(opt.description, desc);
-        assert_eq!(opt.id.as_deref(), id);
-    }
-}
-
-/// Replay the REAL free-usage sequence (send, `RetryState::Retrying`, `Exhausted`, PromptResponse error) through the production handlers.
-/// The paywall modal must open on the turn-end error.
-#[test]
-fn free_usage_failure_opens_paywall_modal() {
+fn free_usage_failure_does_not_open_subscription_modal() {
     use crate::app::acp_handler::apply_session_event_for_test;
     use xai_grok_shell::extensions::notification::{RetryState, SessionUpdate};
 
@@ -1338,7 +1279,7 @@ fn free_usage_failure_opens_paywall_modal() {
         assert!(agent.session.free_usage_blocked);
     }
 
-    // 4. Turn-end RPC error opens the upsell modal.
+    // 4. Turn-end RPC error stays on the generic error path.
     let _ = dispatch(
         Action::TaskComplete(TaskResult::PromptResponse {
             agent_id: id,
@@ -1349,40 +1290,47 @@ fn free_usage_failure_opens_paywall_modal() {
         &mut app,
     );
     assert!(
-        app.agents[&id].question_view.is_some(),
-        "paywall modal must open"
+        app.agents[&id].question_view.is_none(),
+        "free-usage exhaustion must not open a subscription modal"
     );
 }
 
-/// Answer translation: every upgrade option opens the upgrade URL.
+/// Account-availability notices have no link action.
 #[test]
-fn free_usage_translate_local_submit_maps_options() {
+fn account_availability_notice_submit_does_not_open_url() {
     use crate::app::agent_view::translate_local_submit_for_test;
     use crate::app::app_view::InputOutcome;
-    use crate::views::question_view::{LocalQuestionKind, QuestionSelection};
+    use crate::views::question_view::{LocalQuestionKind, QuestionSelection, QuestionViewState};
 
-    let mut app = test_app_with_agent();
-    let agent = app.agents.get_mut(&AgentId(0)).unwrap();
-    open_free_usage_upsell(agent, None);
-    let mut qv = agent.question_view.take().unwrap();
-    let kind = || LocalQuestionKind::FreeUsageUpsell {
-        source: xai_grok_telemetry::events::SuperGrokUpsell::FreeUsagePaywall,
+    let q = xai_grok_tools::implementations::grok_build::ask_user_question::Question {
+        question: "This command is not available for the current account.".into(),
+        options: vec![xai_grok_tools::implementations::grok_build::ask_user_question::QuestionOption {
+            label: "OK".into(),
+            description: String::new(),
+            preview: None,
+            id: None,
+        }],
+        multi_select: Some(false),
+        id: None,
     };
+    let mut qv = QuestionViewState::new(
+        "account-availability".into(),
+        vec![q],
+        Default::default(),
+    );
+    qv.selections[0] = QuestionSelection::Single(Some(0));
 
-    for idx in [0, 1, 2] {
-        qv.selections[0] = QuestionSelection::Single(Some(idx));
-        match translate_local_submit_for_test(&qv, kind(), false) {
-            InputOutcome::Action(Action::OpenUrl(url)) => assert_eq!(url, UPSELL_URL_UPGRADE),
-            other => panic!("expected OpenUrl for option {idx}, got {other:?}"),
-        }
-    }
+    assert!(matches!(
+        translate_local_submit_for_test(&qv, LocalQuestionKind::AccountAvailabilityNotice, false),
+        InputOutcome::Changed
+    ));
 }
 
-// ── Restricted-command upsell tests ─────────────────────────────────
+// ── Restricted-command access notice tests ──────────────────────────
 
-/// Submitting a tier-restricted command opens the three-option SuperGrok upsell and neither runs the command nor leaks the text to the model.
+/// Submitting a tier-restricted command shows a neutral notice and neither runs the command nor leaks the text to the model.
 #[test]
-fn restricted_command_submit_opens_three_option_upsell() {
+fn restricted_command_submit_opens_neutral_notice() {
     let mut app = test_app_with_agent();
     let id = AgentId(0);
     app.agents
@@ -1406,26 +1354,18 @@ fn restricted_command_submit_opens_three_option_upsell() {
     let qv = agent_qv(&app);
     assert!(matches!(
         qv.local_kind,
-        Some(
-            crate::views::question_view::LocalQuestionKind::FreeUsageUpsell {
-                source: xai_grok_telemetry::events::SuperGrokUpsell::RestrictedCommand,
-            }
-        )
+        Some(crate::views::question_view::LocalQuestionKind::AccountAvailabilityNotice)
     ));
     let q = &qv.questions[0];
-    assert_eq!(q.question, "Unlock all features with SuperGrok.");
-    assert_eq!(q.options.len(), 3);
-    assert_eq!(q.options[0].label, "Upgrade to SuperGrok");
-    assert_eq!(q.options[0].id.as_deref(), Some(UPSELL_URL_UPGRADE));
-    assert_eq!(q.options[1].label, "Upgrade to SuperGrok Plus");
-    assert_eq!(q.options[1].id.as_deref(), Some(UPSELL_URL_UPGRADE));
-    assert_eq!(q.options[2].label, "Upgrade to SuperGrok Heavy");
-    assert_eq!(q.options[2].id.as_deref(), Some(UPSELL_URL_UPGRADE));
+    assert_eq!(q.question, "This command is not available for the current account.");
+    assert_eq!(q.options.len(), 1);
+    assert_eq!(q.options[0].label, "OK");
+    assert!(q.options[0].id.is_none());
 }
 
-/// Aliases of a restricted command hit the same upsell (deny-list matching covers aliases via the registry).
+/// Aliases of a restricted command hit the same notice (deny-list matching covers aliases via the registry).
 #[test]
-fn restricted_command_alias_also_upsells() {
+fn restricted_command_alias_also_shows_notice() {
     let mut app = test_app_with_agent();
     let id = AgentId(0);
     app.agents
@@ -1436,11 +1376,11 @@ fn restricted_command_alias_also_upsells() {
     let effects = dispatch(Action::SendPrompt("/cost".into()), &mut app);
 
     assert!(effects.is_empty());
-    assert!(app.agents[&id].question_view.is_some(), "upsell must open");
+    assert!(app.agents[&id].question_view.is_some(), "notice must open");
 }
 
 /// A restricted submit while ANOTHER question modal is already open must not silently drop the typed text.
-/// The upsell can't open (the guard never displaces a modal), so the composer keeps the text for a resubmit after the modal closes.
+/// The notice can't open (the guard never displaces a modal), so the composer keeps the text for a resubmit after the modal closes.
 /// No passthrough, nothing enqueued, and the existing modal survives untouched.
 #[test]
 fn restricted_command_with_open_modal_keeps_composer_text() {

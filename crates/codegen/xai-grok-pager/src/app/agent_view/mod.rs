@@ -1620,21 +1620,7 @@ fn translate_local_submit(
             );
             InputOutcome::Action(Action::OpenUrl(url.to_string()))
         }
-        LocalQuestionKind::FreeUsageUpsell { source } => {
-            let url = qv
-                .questions
-                .first()
-                .and_then(|q| q.options.get(*idx))
-                .and_then(|o| o.id.as_deref())
-                .unwrap_or(super::dispatch::UPSELL_URL_UPGRADE);
-            xai_grok_telemetry::session_ctx::log_event(
-                xai_grok_telemetry::events::SuperGrokUpsellClicked {
-                    source,
-                    auth_method: None,
-                },
-            );
-            InputOutcome::Action(Action::OpenUrl(url.to_string()))
-        }
+        LocalQuestionKind::AccountAvailabilityNotice => InputOutcome::Changed,
         LocalQuestionKind::AgentTypeMismatch { model_id, effort } => {
             let start_new = *idx == 0;
             InputOutcome::Action(Action::AgentTypeMismatchAnswered {
