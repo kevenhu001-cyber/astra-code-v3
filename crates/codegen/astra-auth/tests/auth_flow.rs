@@ -220,9 +220,16 @@ fn site_pages_serve() {
         "/login",
         "/authorize",
         "/account",
+        "/assets/fonts.css",
         "/assets/site.css",
+        "/assets/marketing.css",
+        "/assets/account.css",
         "/assets/auth.js",
+        "/assets/admin.js",
+        "/assets/site.js",
         "/favicon.svg",
+        "/media/fonts/geist-sans-variable.woff2",
+        "/media/fonts/geist-mono-variable.woff2",
     ] {
         let resp = reqwest::blocking::get(format!("{base}{p}")).unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "{p}");

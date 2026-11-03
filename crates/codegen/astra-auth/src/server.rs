@@ -534,18 +534,43 @@ impl Server {
         // /assets/* served from the embedded assets directory.
         if let Some(rest) = path.strip_prefix("/assets/") {
             let content = match rest {
+                "fonts.css" => crate::assets::FONTS_CSS,
                 "site.css" => crate::assets::SITE_CSS,
+                "marketing.css" => crate::assets::MARKETING_CSS,
+                "account.css" => crate::assets::ACCOUNT_CSS,
                 "auth.js" => crate::assets::AUTH_JS,
                 "admin.js" => crate::assets::ADMIN_JS,
+                "site.js" => crate::assets::SITE_JS,
                 _ => return StatusCode::NOT_FOUND.into_response(),
             };
-            let ctype = if rest == "site.css" {
+            let ctype = if rest.ends_with(".css") {
                 "text/css; charset=utf-8"
             } else {
                 "application/javascript; charset=utf-8"
             };
             return (
                 [(header::CONTENT_TYPE, HeaderValue::from_static(ctype))],
+                Body::from(content),
+            )
+                .into_response();
+        }
+
+        // Vendored webfonts. They are immutable content-addressed bytes, so
+        // they get the long cache the stylesheets' query strings also assume.
+        if let Some(rest) = path.strip_prefix("/media/fonts/") {
+            let content: &'static [u8] = match rest {
+                "geist-sans-variable.woff2" => crate::assets::GEIST_SANS_WOFF2,
+                "geist-mono-variable.woff2" => crate::assets::GEIST_MONO_WOFF2,
+                _ => return StatusCode::NOT_FOUND.into_response(),
+            };
+            return (
+                [
+                    (header::CONTENT_TYPE, HeaderValue::from_static("font/woff2")),
+                    (
+                        header::CACHE_CONTROL,
+                        HeaderValue::from_static("public, max-age=604800, immutable"),
+                    ),
+                ],
                 Body::from(content),
             )
                 .into_response();

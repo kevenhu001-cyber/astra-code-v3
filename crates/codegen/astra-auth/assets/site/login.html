@@ -7,12 +7,10 @@
   <title>Sign in &mdash; Astra</title>
   <meta name="description" content="Create an account or sign in to Astra.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/assets/site.css?v=8">
+  <link rel="stylesheet" href="/assets/fonts.css?v=9">
+  <link rel="stylesheet" href="/assets/site.css?v=9">
 </head>
-<body data-auth-pending="true">
+<body class="auth-page" data-auth-pending="true">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -33,7 +31,7 @@
     </div>
   </header>
 
-  <main id="main">
+  <main id="main" class="auth-main">
     <div class="page-wrap">
       <div class="auth-card">
         <div class="auth-ico" aria-hidden="true">
@@ -88,7 +86,7 @@
           <div class="msg info show">
             <strong>Check your inbox.</strong>
             <p>We sent a verification link to your email. Click it to activate your account &mdash; you will be signed in automatically.</p>
-            <p style="color:var(--text-30);font-size:12.5px">Self-hosted? The verification link is printed to the server log.</p>
+            <p class="hint">Self-hosted? The verification link is printed to the server log.</p>
           </div>
         </div>
       </div>
@@ -128,7 +126,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=8"></script>
+  <script src="/assets/auth.js?v=9"></script>
   <script>
     (function () {
       var A = window.Astra;

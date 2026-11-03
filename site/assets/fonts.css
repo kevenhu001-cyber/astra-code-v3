@@ -1,0 +1,39 @@
+/* Self-hosted typefaces.
+   Geist Sans and Geist Mono are vendored under site/media/fonts/ and served
+   by the auth server from the embedded copy, so the site makes no third-party
+   font request. The binaries are upstream variable woff2 builds; their SIL OFL
+   1.1 text sits next to them at site/media/fonts/LICENSE.txt.
+
+   CJK is not vendored: the Chinese stack falls through to the platform face
+   (PingFang SC / Hiragino / Microsoft YaHei), which every Chinese reader
+   already has. Shipping ~5.7 MB of Noto Sans SC subsets for a marketing site
+   whose copy is English is not worth the bytes. */
+
+/* Geist Sans — one variable file, weight axis 100-900.
+   P_cjk-punctuation-full-width: Geist carries narrow, Latin-proportioned
+   glyphs for the CJK punctuation blocks (U+3000-303F and U+FF00-FFEF). A face
+   without a unicode-range may be used for every code point, so the browser
+   hands ，。！？；：（） to Geist — the first family in the stack — and a Chinese
+   sentence renders them at half width: the text is full width in the DOM but
+   reads as English punctuation on screen. Excluding the two blocks lets those
+   code points fall through to the CJK stack, which carries the full-width
+   metrics. Everything Geist does cover (Latin, digits, arrows, quotes, dashes)
+   keeps its own glyphs, so the Latin face is unchanged. */
+@font-face {
+  font-family: 'Geist Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/media/fonts/geist-sans-variable.woff2') format('woff2');
+  unicode-range: U+0000-2E7F, U+3040-FEFF, U+FFF0-FFFF;
+}
+
+/* Geist Mono — kickers, code, device codes and metric rows. */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/media/fonts/geist-mono-variable.woff2') format('woff2');
+  unicode-range: U+0000-2E7F, U+3040-FEFF, U+FFF0-FFFF;
+}
