@@ -364,8 +364,11 @@ fn new_from_toml_cfg_restores_web_search_and_session_summary_models() {
         Some("custom-id-model".to_owned())
     );
 }
+/// The hidden default web-search model resolves through the same inference endpoint as every
+/// other default model, and takes its backend from that endpoint rather than pinning one:
+/// the Astra deployment gateway speaks Chat Completions, so the backend follows the endpoint.
 #[test]
-fn hidden_default_web_search_resolution_is_explicit_and_responses_only() {
+fn hidden_default_web_search_resolution_is_explicit_and_endpoint_derived() {
     let endpoints = EndpointsConfig::default();
     let resolved = resolve_web_search_sampling_config(
         crate::models::default_web_search_model(),
@@ -378,8 +381,11 @@ fn hidden_default_web_search_resolution_is_explicit_and_responses_only() {
     )
     .expect("hidden default web search model should resolve");
     assert_eq!(resolved.model, crate::models::default_web_search_model());
-    assert_eq!(resolved.base_url, endpoints.proxy_url());
-    assert_eq!(resolved.api_backend, ApiBackend::Responses);
+    assert_eq!(resolved.base_url, endpoints.resolve_inference_base_url());
+    assert_eq!(
+        resolved.api_backend,
+        endpoints.resolve_inference_api_backend()
+    );
     assert_eq!(
         resolved.api_key.as_deref(),
         Some("session-token"),
@@ -1232,8 +1238,8 @@ fn default_models_dual_endpoint_routing() {
         let session_creds = resolve_credentials(&entry, Some("tok"));
         assert_eq!(
             session_creds.base_url,
-            endpoints.proxy_url(),
-            "{model_id}: SessionToken must route to cli-chat-proxy"
+            endpoints.resolve_inference_base_url(),
+            "{model_id}: SessionToken must route through the Astra inference gateway"
         );
         let api_key_creds = ResolvedCredentials {
             api_key: Some("key".into()),
@@ -3392,8 +3398,8 @@ fn e2e_duplicate_model_field_both_entries_survive() {
     let sampling = resolve_sampling(default, Some("session-key"));
     assert_eq!(sampling.api_key.as_deref(), Some("session-key"));
     assert_eq!(
-        sampling.base_url,
-        "https://cli-chat-proxy.astracode.topodrive.top/v1"
+        sampling.base_url, "https://astracode.topodrive.top/v1",
+        "session auth should route model inference through the Astra gateway"
     );
 }
 #[test]
@@ -5545,7 +5551,11 @@ fn config_accepts_all_known_sections() {
             login_shell_capture = true
             [grok_com_config]
             token_header = "test"
-            [auth.oidc]
+            # `[auth.oidc]` is gone: the customer-IdP config field was removed with
+            # enterprise SSO, so it is an unrecognized key now (see
+            # `legacy_oidc_tables_are_ignored`). Exercise the `[auth]` alias with a
+            # provider descriptor that still exists.
+            [auth.oauth2]
             issuer = "https://sso.corp.com"
             client_id = "abc123"
             [storage]

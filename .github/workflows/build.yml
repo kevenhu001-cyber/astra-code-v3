@@ -306,7 +306,11 @@ jobs:
           Write-Host "WiX Toolset v3 not found; installing wix3141rtm..."
           $dir = Join-Path $env:RUNNER_TEMP "wix3"
           $zip = Join-Path $env:RUNNER_TEMP "wix3.zip"
-          curl.exe -sSL -o $zip "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix3141rtm.zip"
+          # The release tag is `wix3141rtm`; the asset inside it is named
+          # `wix314-binaries.zip`. The asset is NOT named after the tag, so
+          # guessing the tag as the asset name yields a 404 and the MSI job
+          # dies in Expand-Archive.
+          curl.exe -sSL -o $zip "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip"
           Expand-Archive -Path $zip -DestinationPath $dir -Force
           $bin = Join-Path $dir "bin"
           if (-not (Test-Path (Join-Path $bin "candle.exe"))) {

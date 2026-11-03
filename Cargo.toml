@@ -219,7 +219,7 @@ opentelemetry-proto = { version = "0.32", features = ["gen-tonic"] }
 opentelemetry_sdk = { version = "0.32.1", features = ["spec_unstable_metrics_views"] }
 parking_lot = "0.12.4"
 pbjson-build = "0.9"
-pdf_oxide = { version = "0.3.43", features = ["rendering"] }
+pdf_oxide = { version = "0.3.78", features = ["rendering"] }
 petgraph = { version = "0.6.5", default-features = false, features = ["serde-1", "stable_graph"] }
 portable-pty = "0.9"
 pprof = "0.15"
@@ -382,7 +382,7 @@ xai-tool-types = { path = "crates/common/xai-tool-types" }
 xai-tracing = { path = "crates/common/xai-tracing" }
 xai-tty-utils = { path = "crates/codegen/xai-tty-utils" }
 zbus = { version = "5" }
-zip = "3"
+zip = "9"
 zstd = "0.13"
 
 [profile.release]

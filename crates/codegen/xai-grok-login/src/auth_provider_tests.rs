@@ -743,6 +743,7 @@ async fn provider_helper_env_scrubs_first_party_credentials() {
         "GROK_AUTH",
         "GROK_AUTH_PATH",
         "ASTRA_DEPLOYMENT_KEY",
+        "ASTRA_API_KEY",
         "XAI_API_KEY",
         "GROK_DEPLOYMENT_KEY",
         "GROK_CODE_XAI_API_KEY",

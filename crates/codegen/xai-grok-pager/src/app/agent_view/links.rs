@@ -987,6 +987,9 @@ mod link_click_tests {
         );
     }
     /// Header twin: the top-header upgrade CTA rect must drop under an open dropdown too (the occluder variant of this test lives below).
+    /// The fixture copy stays neutral on purpose: the session banner drops promos carrying
+    /// subscription-upgrade or legacy-brand wording, so an upgrade-labelled fixture would never
+    /// reach the header slot. That filter has its own test in `views::announcements`.
     #[test]
     fn open_prompt_dropdown_suppresses_header_upgrade_cta_click_target() {
         let reg = ActionRegistry::defaults();
@@ -998,8 +1001,8 @@ mod link_click_tests {
             message: Some("ZZPROMO".into()),
             dismissible: Some(false),
             cta: Some(xai_grok_announcements::AnnouncementCta {
-                label: Some("Upgrade Account".into()),
-                url: Some("https://x.ai/promo".into()),
+                label: Some("Read more".into()),
+                url: Some("https://example.com/promo".into()),
                 caption: None,
             }),
             ..Default::default()
@@ -1132,6 +1135,9 @@ mod link_click_tests {
     }
     /// In-session header upgrade CTA: a promo owning the slot arms `hit_upgrade_cta`, whose click dispatches `AnnouncementsOpenCta(Header)`.
     /// The draw caches `pinned_upgrade_cta_live` so `Ctrl+O` can override YOLO, but only for a pinned (non-dismissible) promo.
+    /// The fixture copy stays neutral on purpose: the session banner drops promos carrying
+    /// subscription-upgrade or legacy-brand wording, so an upgrade-labelled fixture would never
+    /// reach the header slot. That filter has its own test in `views::announcements`.
     #[test]
     fn header_upgrade_cta_rect_and_ctrl_o_override() {
         use crate::actions::ActionId;
@@ -1139,8 +1145,8 @@ mod link_click_tests {
         let reg = ActionRegistry::defaults();
         let cta = || {
             Some(xai_grok_announcements::AnnouncementCta {
-                label: Some("Upgrade Account".into()),
-                url: Some("https://x.ai/promo".into()),
+                label: Some("Read more".into()),
+                url: Some("https://example.com/promo".into()),
                 caption: None,
             })
         };
@@ -1166,10 +1172,7 @@ mod link_click_tests {
         let header_row: String = (0..120)
             .filter_map(|x| buf.cell((x, rect.y)).map(|c| c.symbol().to_string()))
             .collect();
-        assert!(
-            header_row.contains("[Upgrade Account]"),
-            "row={header_row:?}"
-        );
+        assert!(header_row.contains("[Read more]"), "row={header_row:?}");
         assert!(
             !header_row.contains("Ctrl+O"),
             "top-header button must stay bare; row={header_row:?}"

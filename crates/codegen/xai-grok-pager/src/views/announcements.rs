@@ -1318,14 +1318,18 @@ mod tests {
 
     /// `promo_cta` projects the owner + validated `(label, url)` all surfaces paint from.
     /// `is_dismissible(owner)` distinguishes the pinned (Ctrl+O) promo from a dismissible one.
+    /// The fixture copy stays neutral on purpose: `is_hidden_subscription_copy` drops promos whose
+    /// text carries subscription-upgrade or legacy-brand wording, so an upgrade-labelled fixture
+    /// would be filtered out before `promo_cta` ever sees it. That filter has its own test
+    /// (`subscription_and_legacy_branding_announcements_are_not_selected`).
     #[test]
     fn promo_cta_returns_label_and_pinned_flag() {
-        let mut pinned = promo("p", "msg", Some(("Upgrade Account", "https://x.ai/promo")));
+        let mut pinned = promo("p", "msg", Some(("Read more", "https://example.com/promo")));
         pinned.dismissible = Some(false);
         let pinned = [pinned];
         let (owner, label, url) = promo_cta(&pinned, &no_hidden()).expect("usable cta");
-        assert_eq!(label, "Upgrade Account");
-        assert_eq!(url, "https://x.ai/promo");
+        assert_eq!(label, "Read more");
+        assert_eq!(url, "https://example.com/promo");
         assert!(
             !is_dismissible(owner),
             "pinned promo drives the Ctrl+O override"
@@ -1499,8 +1503,8 @@ mod tests {
         assert!(row0.ends_with(HIDE_BUTTON), "row0={row0:?}");
         assert!(row0.contains(HIDE_CTA), "row0={row0:?}");
 
-        // [Label] is 15 cols at x 0; [hide] right-aligns at 80 minus 6 = 74; the hide CTA sits one gap left of it (74 minus 2 minus 25 = 47)
-        assert_eq!(hits.cta, Some(Rect::new(0, 0, 15, 1)), "[Label] hit rect");
+        // [Label] is 24 cols at x 0 ("See the latest preview" + brackets); [hide] right-aligns at 80 minus 6 = 74; the hide CTA sits one gap left of it (74 minus 2 minus 25 = 47)
+        assert_eq!(hits.cta, Some(Rect::new(0, 0, 24, 1)), "[Label] hit rect");
         assert_eq!(hits.hide, Some(Rect::new(74, 0, 6, 1)), "[hide] hit rect");
 
         let theme = Theme::current();
@@ -1548,7 +1552,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         let hits = render_banner(area, &mut buf, &anns, &no_hidden(), false, false, true);
         let row0 = buf_row(&buf, area, 0);
-        assert!(row0.starts_with("[See latest"), "row0={row0:?}");
+        assert!(row0.starts_with("[See the lates…"), "row0={row0:?}");
         assert!(
             row0.contains('…'),
             "button label must truncate; row0={row0:?}"
