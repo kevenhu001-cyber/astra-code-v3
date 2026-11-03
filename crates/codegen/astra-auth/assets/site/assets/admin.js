@@ -236,12 +236,21 @@
     workspace.classList.remove('with-panel');
   }
 
+  function formatRoutePrice(val) {
+    if (val === null || val === undefined || val === '' || isNaN(val)) return '0.00';
+    var n = Number(val);
+    if (!isFinite(n) || n === 0) return '0.00';
+    return (Math.round(n * 10000) / 10000).toString();
+  }
+
   function openRoute() {
     document.getElementById('routeForm').reset();
     document.getElementById('routeId').value = '';
     setProtocol('openai-compatible');
     document.getElementById('routePanelTitle').textContent = 'New route';
     document.getElementById('saveRouteBtn').textContent = 'Save route';
+    document.getElementById('inputPrice').value = '0.00';
+    document.getElementById('outputPrice').value = '0.00';
     document.getElementById('routeEnabled').checked = true;
     document.getElementById('routeDefault').checked = routes.length === 0;
     document.getElementById('clearApiKey').checked = false;
@@ -262,8 +271,8 @@
     document.getElementById('routeBaseUrl').value = route.base_url;
     document.getElementById('routeUpstreamModel').value = route.upstream_model;
     document.getElementById('routeContextWindow').value = route.context_window || 128000;
-    document.getElementById('inputPrice').value = route.input_price_usd_per_million;
-    document.getElementById('outputPrice').value = route.output_price_usd_per_million;
+    document.getElementById('inputPrice').value = formatRoutePrice(route.input_price_usd_per_million);
+    document.getElementById('outputPrice').value = formatRoutePrice(route.output_price_usd_per_million);
     document.getElementById('routeEnabled').checked = !!route.enabled;
     document.getElementById('routeDefault').checked = !!route.is_default;
     document.getElementById('routeApiKey').value = '';
@@ -294,7 +303,7 @@
   function openCredit(user) {
     document.getElementById('creditUserId').value = user.id;
     document.getElementById('creditUserEmail').textContent = user.email;
-    document.getElementById('creditAmount').value = '';
+    document.getElementById('creditAmount').value = '10.00';
     document.getElementById('creditNote').value = '';
     creditPanel.hidden = false;
     routePanel.hidden = true;
@@ -328,9 +337,34 @@
     item.addEventListener('click', function () { selectSection(item.dataset.adminSection); });
   });
 
+  ['inputPrice', 'outputPrice'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('blur', function () {
+        if (el.value !== '') {
+          el.value = formatRoutePrice(el.value);
+        }
+      });
+    }
+  });
+
+  var creditAmountEl = document.getElementById('creditAmount');
+  if (creditAmountEl) {
+    creditAmountEl.addEventListener('blur', function () {
+      if (creditAmountEl.value !== '') {
+        var n = Number(creditAmountEl.value);
+        if (isFinite(n) && n > 0) {
+          creditAmountEl.value = n.toFixed(2);
+        }
+      }
+    });
+  }
+
   document.getElementById('routeForm').addEventListener('submit', async function (event) {
     event.preventDefault();
     showMessage('', '');
+    var inputPriceVal = Number(document.getElementById('inputPrice').value || 0);
+    var outputPriceVal = Number(document.getElementById('outputPrice').value || 0);
     var payload = {
       id: document.getElementById('routeId').value || undefined,
       display_name: document.getElementById('routeName').value.trim(),
@@ -338,8 +372,8 @@
       base_url: document.getElementById('routeBaseUrl').value.trim(),
       upstream_model: document.getElementById('routeUpstreamModel').value.trim(),
       context_window: Number(document.getElementById('routeContextWindow').value),
-      input_price_usd_per_million: Number(document.getElementById('inputPrice').value || 0),
-      output_price_usd_per_million: Number(document.getElementById('outputPrice').value || 0),
+      input_price_usd_per_million: Math.round(inputPriceVal * 10000) / 10000,
+      output_price_usd_per_million: Math.round(outputPriceVal * 10000) / 10000,
       enabled: document.getElementById('routeEnabled').checked,
       is_default: document.getElementById('routeDefault').checked,
       clear_api_key: document.getElementById('clearApiKey').checked,
@@ -360,10 +394,11 @@
   document.getElementById('creditForm').addEventListener('submit', async function (event) {
     event.preventDefault();
     showMessage('', '');
+    var creditVal = Number(document.getElementById('creditAmount').value || 0);
     try {
       await A.api('/admin/users/balance', { body: {
         user_id: document.getElementById('creditUserId').value,
-        amount_usd: Number(document.getElementById('creditAmount').value),
+        amount_usd: Math.round(creditVal * 100) / 100,
         note: document.getElementById('creditNote').value.trim() || 'Administrator credit',
       } });
       await loadUsers();

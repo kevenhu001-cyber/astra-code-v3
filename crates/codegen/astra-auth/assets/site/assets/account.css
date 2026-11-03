@@ -370,30 +370,73 @@
 .admin-field input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--fill); }
 .admin-field-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-200); }
 
+/* Hide browser default number spin stepper arrows that create inner box appearance */
+.price-input input::-webkit-inner-spin-button,
+.price-input input::-webkit-outer-spin-button,
+.admin-field input[type='number']::-webkit-inner-spin-button,
+.admin-field input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.admin-field input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Price & currency input wrapper: single clean outer container */
 .price-input {
   display: flex;
   align-items: center;
   gap: var(--space-75);
-  min-height: 42px;
+  height: 42px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-lg);
   background: var(--raised);
-  padding-inline: var(--space-200);
+  padding: 0 var(--space-200);
+  box-sizing: border-box;
+  transition: border-color var(--motion-color), box-shadow var(--motion-color);
 }
-.price-input > span { color: var(--quiet); font: var(--type-body-3); }
+.price-input:hover {
+  border-color: var(--ink);
+}
+.price-input:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px var(--fill);
+}
+.price-input > span {
+  color: var(--quiet);
+  font: var(--type-body-3);
+  font-weight: 500;
+  user-select: none;
+  flex: none;
+}
+
+/* Eliminate nested inner box completely */
+.admin-field .price-input input,
+.admin-field .price-input input[type='number'],
+.admin-field .price-input input[type='text'],
 .price-input input {
+  flex: 1;
   width: 100%;
   min-width: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  padding: 0;
+  height: 100% !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
   color: var(--ink);
   font: var(--type-body-3);
   font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+.admin-field .price-input input:focus,
+.price-input input:focus {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 .price-input-large input { font: 500 1.125rem/1.4 var(--font-mono); }
-.price-input:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--fill); }
 
 .admin-check {
   display: inline-flex;

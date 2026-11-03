@@ -1479,6 +1479,12 @@ fn admin_user(s: &Server, headers: &HeaderMap) -> Result<User, Response> {
 }
 
 fn route_public(route: &ModelRoute) -> Value {
+    let input_usd =
+        ((route.input_price_microusd_per_million as f64 / 1_000_000.0) * 10_000.0).round()
+            / 10_000.0;
+    let output_usd =
+        ((route.output_price_microusd_per_million as f64 / 1_000_000.0) * 10_000.0).round()
+            / 10_000.0;
     json!({
         "id": route.id,
         "display_name": route.display_name,
@@ -1487,8 +1493,8 @@ fn route_public(route: &ModelRoute) -> Value {
         "upstream_model": route.upstream_model,
         "context_window": route.context_window,
         "api_key_set": route.api_key.as_deref().is_some_and(|key| !key.is_empty()),
-        "input_price_usd_per_million": route.input_price_microusd_per_million as f64 / 1_000_000.0,
-        "output_price_usd_per_million": route.output_price_microusd_per_million as f64 / 1_000_000.0,
+        "input_price_usd_per_million": input_usd,
+        "output_price_usd_per_million": output_usd,
         "enabled": route.enabled,
         "is_default": route.is_default,
     })

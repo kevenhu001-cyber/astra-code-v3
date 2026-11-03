@@ -234,11 +234,11 @@
             <div class="admin-field-group">
               <div class="admin-field">
                 <label for="inputPrice">Input price / 1M tokens</label>
-                <div class="price-input"><span>$</span><input id="inputPrice" type="number" min="0" max="1000000000" step="0.000001" value="0" required></div>
+                <div class="price-input"><span>$</span><input id="inputPrice" type="number" min="0" max="10000" step="0.0001" placeholder="0.00" value="0.00" required></div>
               </div>
               <div class="admin-field">
                 <label for="outputPrice">Output price / 1M tokens</label>
-                <div class="price-input"><span>$</span><input id="outputPrice" type="number" min="0" max="1000000000" step="0.000001" value="0" required></div>
+                <div class="price-input"><span>$</span><input id="outputPrice" type="number" min="0" max="10000" step="0.0001" placeholder="0.00" value="0.00" required></div>
               </div>
             </div>
             <div class="admin-options">
@@ -265,7 +265,7 @@
             <div class="admin-field">
               <label for="creditAmount">Amount</label>
               <p>Credit is added to the account balance immediately.</p>
-              <div class="price-input price-input-large"><span>$</span><input id="creditAmount" type="number" min="0.000001" max="1000000000" step="0.01" placeholder="10.00" required></div>
+              <div class="price-input price-input-large"><span>$</span><input id="creditAmount" type="number" min="0.01" max="100000" step="0.01" placeholder="10.00" value="10.00" required></div>
             </div>
             <div class="admin-field">
               <label for="creditNote">Note</label>
