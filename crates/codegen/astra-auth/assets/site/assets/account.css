@@ -480,4 +480,87 @@
   .admin-field-group { grid-template-columns: minmax(0, 1fr); }
   .token-list li { flex-direction: column; align-items: flex-start; gap: var(--space-200); }
   .name-form input { min-width: 0; }
+  .admin-quick-card { flex-direction: column; align-items: flex-start; }
+}
+
+/* ── Administrator Highlights & Tabs on Account Page ─────────────────────── */
+
+.admin-quick-card {
+  margin-top: var(--space-300);
+  margin-bottom: var(--space-400);
+  padding: var(--space-300) var(--space-400);
+  border-radius: var(--radius-2xl);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-300);
+}
+.admin-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-100);
+  margin-bottom: var(--space-50);
+}
+.role-badge--admin {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding-inline: 8px;
+  border-radius: var(--radius-full);
+  background: rgba(46, 160, 67, 0.15);
+  color: #1a7f37;
+  font: var(--type-caption-4);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-theme='dark'] .role-badge--admin {
+  background: rgba(63, 185, 80, 0.2);
+  color: #3fb950;
+}
+.admin-badge-tag {
+  color: var(--muted);
+  font: var(--type-caption-5);
+}
+.admin-quick-title {
+  display: block;
+  font: var(--type-title-3);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.admin-quick-desc {
+  margin-top: var(--space-25);
+  max-width: 60ch;
+  color: var(--muted);
+  font: var(--type-body-6);
+}
+.account-view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-100);
+  margin-top: var(--space-300);
+  margin-bottom: var(--space-400);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-100);
+}
+.acct-view-tab {
+  height: 36px;
+  padding-inline: 14px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--muted);
+  font: var(--type-button-sm);
+  transition: all var(--motion-color);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.acct-view-tab:hover {
+  color: var(--ink);
+  background: var(--fill);
+}
+.acct-view-tab.is-active {
+  background: var(--ink);
+  color: var(--paper);
 }

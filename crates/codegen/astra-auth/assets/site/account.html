@@ -20,6 +20,7 @@
       <nav class="nav" aria-label="Primary">
         <a href="/">Home</a>
         <a href="/#install">Install</a>
+        <a href="#admin" id="navAdminLink" hidden>Model Config</a>
         <a href="/login">Sign in</a>
       </nav>
       <div class="nav-cta">
@@ -39,10 +40,29 @@
         <h1>My account</h1>
         <p class="sub">Your profile and the CLI devices you have authorized.</p>
 
+        <nav class="account-view-tabs" id="accountViewTabs" hidden aria-label="Account navigation">
+          <button class="acct-view-tab is-active" type="button" data-view="all">My Profile</button>
+          <button class="acct-view-tab" type="button" data-view="routes">Model Routes &amp; Config</button>
+          <button class="acct-view-tab" type="button" data-view="users">Users &amp; Balances</button>
+        </nav>
+
         <div class="msg err" id="formErr" role="alert"></div>
         <div class="msg ok" id="formOk"></div>
 
         <div id="profileBox">
+          <div class="admin-quick-card" id="adminQuickCard" hidden>
+            <div class="admin-quick-info">
+              <div class="admin-badge-wrap">
+                <span class="role-badge role-badge--admin">System Administrator</span>
+                <span class="admin-badge-tag">Model &amp; System Routing</span>
+              </div>
+              <strong class="admin-quick-title">Control center &amp; model routing</strong>
+              <p class="admin-quick-desc">Configure the AI models, protocols (OpenAI, Anthropic, Responses), upstream endpoints, and token billing for Astra users.</p>
+            </div>
+            <div class="admin-quick-actions">
+              <button class="btn btn-primary" id="jumpToAdminBtn" type="button">Manage Model Routes &darr;</button>
+            </div>
+          </div>
           <div class="acct-meta">
             <span class="avatar" id="avatar">&middot;</span>
             <div>
@@ -284,12 +304,12 @@
         </div>
         <div class="footer-col">
           <h2>Run</h2>
-          <a href="https://github.com/kevenhu001-cyber/astra-harness">GitHub</a>
-          <a href="https://github.com/kevenhu001-cyber/astra-harness/blob/main/README.md">Documentation</a>
+          <a href="https://github.com/kevenhu001-cyber/astra-code-v3">GitHub</a>
+          <a href="https://github.com/kevenhu001-cyber/astra-code-v3/blob/main/README.md">Documentation</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 Astra Harness</span>
+        <span>&copy; 2026 Astra Code</span>
         <span>Terminal &middot; State &middot; Evidence</span>
       </div>
     </div>
@@ -405,7 +425,7 @@
       var adminSection = document.getElementById('admin');
 
       function openAdmin() {
-        if (!adminLink || adminLink.hidden || !adminSection) return;
+        if (!adminSection) return;
         adminSection.hidden = false;
         adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -415,9 +435,40 @@
         history.replaceState(null, '', '/account#admin');
         openAdmin();
       });
+      var navAdmin = document.getElementById('navAdminLink');
+      if (navAdmin) navAdmin.addEventListener('click', function (event) {
+        event.preventDefault();
+        history.replaceState(null, '', '/account#admin');
+        openAdmin();
+      });
+      var jumpBtn = document.getElementById('jumpToAdminBtn');
+      if (jumpBtn) jumpBtn.addEventListener('click', function () {
+        history.replaceState(null, '', '/account#admin');
+        openAdmin();
+      });
+
+      document.querySelectorAll('[data-view]').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var view = tab.getAttribute('data-view');
+          document.querySelectorAll('[data-view]').forEach(function (t) {
+            t.classList.toggle('is-active', t === tab);
+          });
+          if (view === 'all') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (view === 'routes') {
+            openAdmin();
+            var routesTab = document.querySelector('[data-admin-section="routes"]');
+            if (routesTab) routesTab.click();
+          } else if (view === 'users') {
+            openAdmin();
+            var usersTab = document.querySelector('[data-admin-section="users"]');
+            if (usersTab) usersTab.click();
+          }
+        });
+      });
+
       document.querySelector('[data-close-admin]').addEventListener('click', function (event) {
         event.preventDefault();
-        adminSection.hidden = true;
         history.replaceState(null, '', '/account');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
@@ -426,7 +477,13 @@
         if (!u) { A.redirectLogin('/account'); return; }
         document.body.removeAttribute('data-auth-pending');
         if (u.is_admin) {
-          adminLink.hidden = false;
+          if (adminLink) adminLink.hidden = false;
+          if (navAdmin) navAdmin.hidden = false;
+          var quickCard = document.getElementById('adminQuickCard');
+          if (quickCard) quickCard.hidden = false;
+          var viewTabs = document.getElementById('accountViewTabs');
+          if (viewTabs) viewTabs.hidden = false;
+          adminSection.hidden = false;
           window.AstraAdmin.init(u);
           if (window.location.hash === '#admin') openAdmin();
         }

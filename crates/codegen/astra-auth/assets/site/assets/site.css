@@ -806,8 +806,14 @@ code, kbd, samp, pre { font-family: var(--font-mono); }
   .nav-cta {
     gap: var(--space-50);
   }
-  .nav-cta .btn-quiet {
+  .nav-cta .btn-quiet:not(.admin-entry) {
     display: none;
+  }
+  .nav-cta .btn-quiet.admin-entry {
+    display: inline-flex;
+    height: 34px;
+    padding-inline: 10px;
+    font-size: 0.75rem;
   }
   .nav-cta .btn-primary {
     height: 34px;
