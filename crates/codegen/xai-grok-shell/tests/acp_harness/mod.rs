@@ -234,7 +234,10 @@ where
     let method = init
         .auth_methods
         .iter()
-        .find(|m| &*m.id().0 == "xai.api_key")
+        .find(|m| {
+            let id = &*m.id().0;
+            id == "astracode.api_key" || id == "xai.api_key"
+        })
         .expect("xai.api_key auth method not advertised");
     tokio::time::timeout(
         RPC_TIMEOUT,

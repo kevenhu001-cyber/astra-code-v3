@@ -4351,6 +4351,42 @@ fn authenticating_loopback_enter_with_content_submits() {
         other => panic!("expected SubmitAuthCode, got {:?}", other),
     }
 }
+/// The device-code flow is the only login path, so its paste box has to
+/// accept input; regressing this made login look like the CLI never called
+/// the gateway.
+#[test]
+fn authenticating_reverse_device_typing_edits_input() {
+    let mut app = test_app();
+    app.auth_state = AuthState::Authenticating {
+        request_seq: 1,
+        handle: None,
+        auth_url: None,
+        mode: AuthMode::ReverseDevice,
+    };
+    let outcome = app.handle_input(&key_event(KeyCode::Char('q'), KeyModifiers::NONE));
+    assert!(
+        matches!(outcome, InputOutcome::Changed),
+        "typing 'q' must edit the device code, got {outcome:?}"
+    );
+    assert_eq!(app.auth_code_input.text(), "q");
+}
+/// A code copied without its dash must still submit as `XXXX-XXXX`.
+#[test]
+fn authenticating_reverse_device_enter_normalizes_code() {
+    let mut app = test_app();
+    app.auth_state = AuthState::Authenticating {
+        request_seq: 1,
+        handle: None,
+        auth_url: None,
+        mode: AuthMode::ReverseDevice,
+    };
+    app.auth_code_input.set_text(" abcd1234 ");
+    let outcome = app.handle_input(&key_event(KeyCode::Enter, KeyModifiers::NONE));
+    match outcome {
+        InputOutcome::Action(Action::SubmitAuthCode(code)) => assert_eq!(code, "ABCD-1234"),
+        other => panic!("expected SubmitAuthCode, got {other:?}"),
+    }
+}
 /// A bare `Moved` after a press means the release was lost: the press must end, never promote into a selection.
 #[test]
 fn moved_after_press_ends_gesture_instead_of_promoting() {

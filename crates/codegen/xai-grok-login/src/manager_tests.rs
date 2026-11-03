@@ -1758,7 +1758,7 @@ async fn refresh_chain_demotes_when_attributed_tried_rt_differs_from_disk() {
     assert!(
         mgr.permanent_failure().is_none(),
         "demotion must not record a sticky verdict that locks out every \
-         sibling process until the user re-runs `grok login`",
+         sibling process until the user re-runs `astra login`",
     );
 }
 /// The demotion must *not* fire when disk still holds the very RT that was just rejected.

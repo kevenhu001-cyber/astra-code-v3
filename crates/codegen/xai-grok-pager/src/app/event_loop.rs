@@ -1380,12 +1380,13 @@ pub(crate) async fn run(
                 crate::acp::AuthStartMode::Command => super::app_view::AuthMode::Command,
             };
         } else {
-            // --force-login: find the grok.com method from the advertised list
-            let grok_com = connection
-                .auth_methods
-                .iter()
-                .find(|m| m.id().0.as_ref() == "grok.com");
-            if let Some(method) = grok_com {
+            // --force-login: use whichever advertised method needs a browser
+            // sign-in (the CLI has exactly one), never a hardcoded id.
+            let login_method = connection.auth_methods.iter().find(|m| {
+                xai_grok_shell::agent::auth_method::AuthMethodKind::from_id(m.id())
+                    .needs_interactive_login()
+            });
+            if let Some(method) = login_method {
                 app.login_label = Some(method.name().to_string());
                 app.login_method_id = Some(method.id().clone());
                 let is_provider = method

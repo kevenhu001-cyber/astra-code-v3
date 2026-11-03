@@ -241,12 +241,6 @@ See [Authentication](02-authentication.md) for the full story.
 auth_provider_command = "/usr/local/bin/my-auth-provider"
 auth_provider_label = "Acme Corp"
 auth_token_ttl = 3600
-
-[grok_com_config.oidc]
-issuer = "https://acme.okta.com"
-client_id = "0oa1b2c3d4e5f6g7h8i9"
-# scopes = ["openid", "profile", "email", "offline_access", "api:access"]
-# audience = "https://api.acme.com"
 ```
 
 ### Custom models
@@ -761,8 +755,6 @@ The key ones. See the README for the complete list.
 | `ASTRA_AUTH_PROVIDER_LABEL` | Display name on TUI login screen |
 | `ASTRA_AUTH_TOKEN_TTL` | Token lifetime in seconds |
 | `ASTRA_AUTH_EARLY_INVALIDATION_SECS` | Seconds before expiry to refresh (default: 300) |
-| `ASTRA_OIDC_ISSUER` | OIDC issuer URL |
-| `ASTRA_OIDC_CLIENT_ID` | OIDC client ID |
 
 ### Endpoints
 

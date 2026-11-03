@@ -390,6 +390,22 @@ pub enum AuthState {
         mode: AuthMode,
     },
 }
+/// Normalize a pasted / typed device code into the `XXXX-XXXX` shape the
+/// authorize page shows, so a code copied without its dash still submits.
+/// Returns non-8-character input trimmed and upper-cased, unchanged otherwise.
+fn normalize_device_code(raw: &str) -> String {
+    let cleaned: String = raw
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    if cleaned.len() == 8 {
+        format!("{}-{}", &cleaned[..4], &cleaned[4..])
+    } else {
+        raw.trim().to_ascii_uppercase()
+    }
+}
+
 /// How the auth flow presents itself to the user.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuthMode {
@@ -3870,10 +3886,12 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                 }
                 return InputOutcome::Unchanged;
             }
-            AuthState::Authenticating {
-                mode: AuthMode::Loopback,
-                ..
-            } => {
+            // The device-code flow is the only login path, so its paste box has
+            // to accept input here; `Loopback` is kept for parity with the
+            // (still-advertised) mode variants.
+            AuthState::Authenticating { mode, .. }
+                if matches!(mode, AuthMode::Loopback | AuthMode::ReverseDevice) =>
+            {
                 if key!(Esc).matches(key)
                     || key!('q', CONTROL).matches(key)
                     || key!('c', CONTROL).matches(key)
@@ -3886,13 +3904,21 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                 if key!(Enter).matches(key) {
                     let trimmed = ctx.auth_code_input.text().trim().to_string();
                     if !trimmed.is_empty() {
-                        return InputOutcome::Action(Action::SubmitAuthCode(trimmed));
+                        let code = match mode {
+                            AuthMode::ReverseDevice => normalize_device_code(&trimmed),
+                            _ => trimmed,
+                        };
+                        return InputOutcome::Action(Action::SubmitAuthCode(code));
                     }
                     return InputOutcome::Unchanged;
                 }
                 let outcome = if crate::input::key::is_paste_key(key) {
                     let Some(text) = crate::clipboard::system_clipboard_get() else {
                         return InputOutcome::Unchanged;
+                    };
+                    let text = match mode {
+                        AuthMode::ReverseDevice => normalize_device_code(&text),
+                        _ => text,
                     };
                     ctx.auth_code_input.insert_paste(&text)
                 } else if key.modifiers.intersects(
@@ -3935,11 +3961,14 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                 *ctx.prompt_focused = true;
                 return InputOutcome::ActionThenForward(Action::LeaveHome);
             }
-            AuthState::Authenticating {
-                mode: AuthMode::Loopback,
-                ..
-            } => {
-                let _ = ctx.auth_code_input.insert_paste(text);
+            AuthState::Authenticating { mode, .. }
+                if matches!(mode, AuthMode::Loopback | AuthMode::ReverseDevice) =>
+            {
+                let text = match mode {
+                    AuthMode::ReverseDevice => normalize_device_code(text),
+                    _ => text.to_string(),
+                };
+                let _ = ctx.auth_code_input.insert_paste(&text);
                 return InputOutcome::Changed;
             }
             _ => {}

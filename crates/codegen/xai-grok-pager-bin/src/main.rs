@@ -283,7 +283,7 @@ async fn run_setup_command(json: bool) {
         }
         SetupOutcome::Staged => {
             eprintln!(
-                "Managed configuration update verified; it takes effect the next time Grok starts."
+                "Managed configuration update verified; it takes effect the next time Astra starts."
             );
         }
         SetupOutcome::Failed(e) => {
@@ -1116,7 +1116,7 @@ fn shutdown_and_flush_telemetry(exit_code: i32) -> ! {
 }
 fn finalize_span_profile() {
     if let Some(path) = xai_grok_telemetry::span_profile::finalize() {
-        eprintln!("grok: span profile written to {}", path.display());
+        eprintln!("astra: span profile written to {}", path.display());
     }
 }
 #[tracing::instrument(level = "debug", skip_all)]
@@ -2018,7 +2018,7 @@ fn main() {
         xai_grok_shell::agent::external_otel_pin::strip_conflicting_process_env();
     }
     let args = configure_process_env(args).unwrap_or_else(|err| {
-        eprintln!("grok: {err:#}");
+        eprintln!("astra: {err:#}");
         std::process::exit(1);
     });
     xai_grok_pager::memory_trace::start(xai_grok_pager::memory_trace::default_dir());

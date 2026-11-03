@@ -2902,34 +2902,25 @@ fn telemetry_partial_override_retains_defaults() {
     assert_eq!(cfg.telemetry.mixpanel_token, defaults.mixpanel_token);
     assert_eq!(cfg.telemetry.mixpanel_enabled, defaults.mixpanel_enabled);
 }
+/// Enterprise IdP was removed. An existing `[auth.oidc]` /
+/// `[grok_com_config.oidc]` table must be ignored without failing the parse,
+/// so upgrades stay non-breaking even though nothing reads it anymore.
 #[test]
-fn auth_alias_maps_to_grok_com_config() {
-    let raw: toml::Value = toml::from_str(
-        r#"
-            [auth.oidc]
+fn legacy_oidc_tables_are_ignored() {
+    for table in ["auth.oidc", "grok_com_config.oidc"] {
+        let raw: toml::Value = toml::from_str(&format!(
+            r#"
+            [{table}]
             issuer = "https://example.okta.com"
             client_id = "test-id"
-            "#,
-    )
-    .unwrap();
-    let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-    let oidc = cfg.grok_com_config.oidc.expect("oidc should be set");
-    assert_eq!(oidc.issuer, "https://example.okta.com");
-    assert_eq!(oidc.client_id, "test-id");
-}
-#[test]
-fn grok_com_config_still_works() {
-    let raw: toml::Value = toml::from_str(
-        r#"
-            [grok_com_config.oidc]
-            issuer = "https://example.okta.com"
-            client_id = "test-id"
-            "#,
-    )
-    .unwrap();
-    let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-    let oidc = cfg.grok_com_config.oidc.expect("oidc should be set");
-    assert_eq!(oidc.issuer, "https://example.okta.com");
+            "#
+        ))
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw)
+            .unwrap_or_else(|e| panic!("[{table}] must not break parsing: {e}"));
+        // No customer-IdP setting survives; the config is otherwise untouched.
+        assert!(cfg.grok_com_config.preferred_method.is_none());
+    }
 }
 /// `disable_api_key_auth` parses through the `[auth]` alias, and absent means None (opt-in knob, zero impact by default).
 #[test]

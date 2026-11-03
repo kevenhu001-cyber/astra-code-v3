@@ -26,7 +26,7 @@ const MIN_DEVICE_CODE_EXPIRY_FALLBACK_SECS: i64 = 10 * 60;
 pub enum DeviceCodeError {
     #[error(
         "Device-code login is not available for this deployment. \
-         Try `grok login` or set XAI_API_KEY instead."
+         Try `astra login` instead."
     )]
     NotEnabled,
 }
@@ -202,7 +202,7 @@ pub(crate) async fn complete_device_code_login(
         tokio::time::sleep(poll_interval).await;
 
         if tokio::time::Instant::now() > deadline {
-            anyhow::bail!("Device code expired. Run `grok login --device-auth` again.");
+            anyhow::bail!("Device code expired. Run `astra login` again.");
         }
 
         let resp = with_alpha_test_key(
@@ -243,7 +243,7 @@ pub(crate) async fn complete_device_code_login(
             }
             "expired_token" => {
                 tracing::warn!(description = detail, "device auth token expired");
-                anyhow::bail!("Device code expired. Run `grok login --device-auth` again.");
+                anyhow::bail!("Device code expired. Run `astra login` again.");
             }
             other => {
                 tracing::warn!(
@@ -534,7 +534,9 @@ pub(crate) async fn consume_reverse_device_code(
     let resp = client
         .post(&url)
         .header("x-grok-client-version", xai_grok_version::VERSION)
-        .form(&[("user_code", user_code)])
+        // The site's consume endpoint decodes JSON; posting form-encoded data
+        // made every paste fail with `400 invalid JSON body`.
+        .json(&serde_json::json!({ "user_code": user_code }))
         .timeout(std::time::Duration::from_secs(15))
         .send()
         .await?;

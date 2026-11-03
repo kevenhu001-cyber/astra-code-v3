@@ -1,16 +1,18 @@
 # Authentication
 
-Astra supports several authentication methods, including interactive browser login, enterprise single sign-on (SSO), and headless CI/CD runners.
+Astra has exactly one sign-in method: the browser login to your Astra deployment. API keys belong to custom model providers (see [Custom Models](11-custom-models.md)); they do not sign you in.
 
 ---
 
-## Browser Login (Default)
+## Sign in (the only method)
 
-On first launch, Astra opens your browser to authenticate with astracode.topodrive.top:
+On first launch, Astra prints the address of the authorization page:
 
 ```bash
 astra
 ```
+
+Open `https://astracode.topodrive.top/authorize`, sign in, and the site generates a CLI authorization code. Paste that code into the waiting terminal prompt and press Enter. The terminal consumes that same code to receive its token, so the code shown on the website and the one the CLI needs are always the same.
 
 Astra stores credentials in `~/.astra/auth.json` and reuses them across sessions. Astra refreshes access tokens automatically in the background. When a token can't be refreshed, Astra prompts you to sign in again. Credentials without a server-provided expiry fall back to a 30-day lifetime.
 
@@ -30,74 +32,29 @@ To switch accounts or resolve an authentication problem, run:
 astra login
 ```
 
-Running `astra login` starts the sign-in flow again, replacing your cached session. By default, it opens your browser and signs in through Astra's independent auth service at `https://astracode.topodrive.top`. Pass a flag to select a different flow:
+Running `astra login` starts the same flow again, replacing your cached session: it prints `https://astracode.topodrive.top/authorize`, you generate a code there, and you paste it into the terminal.
 
-| Flag | Description |
-|------|-------------|
-| `--oauth` | Sign in through Astra auth at `https://astracode.topodrive.top`. This is the default, so the flag is optional. |
-| `--device-auth` (alias `--device-code`) | Sign in with the device-code flow for headless or remote environments. Generate a code in your browser at `/account` or `/authorize`, then paste it when `astra login` prompts. |
+There is one sign-in flow, so `astra login` needs no flag. The legacy `--oauth`, `--device-auth`, and `--device-code` flags are still accepted so existing scripts keep running; all three select the same device-code flow.
 
 To sign out, run `astra logout`. It takes no flags and clears your cached credentials.
 
 ---
 
-## API Key
+## API Key (custom providers)
 
-For CI/CD, automation, or environments without browser access, use an API key from the [Astra console](https://astracode.topodrive.top/console):
+A model-provider API key is not a login: it authenticates one `[model.*]`
+endpoint, typically a self-hosted or third-party provider. `/connect` writes it
+into your config for you. When you configure a provider by hand:
 
 ```bash
-export XAI_API_KEY="xai-..."
-astra
+export ASTRA_API_KEY="sk-..."
 ```
 
-Astra uses the API key as a fallback when no session token is active. If you have already signed in interactively, the stored session token takes precedence. To fall back to the API key, run `astra logout` or delete `~/.astra/auth.json`.
+`XAI_API_KEY` and `GROK_CODE_XAI_API_KEY` are still read as legacy fallbacks.
+For per-model keys, prefer `api_key` / `env_key` inside that model's table in
+`~/.astra/config.toml`.
 
 ---
-
-## OIDC (Customer SSO)
-
-Authenticate developers through your own Identity Provider (IdP) -- such as Okta, Azure AD, or Auth0 -- instead of the default Astra auth issuer.
-
-### 1. Register a public client in your IdP
-
-- Grant type: Authorization Code with PKCE (Proof Key for Code Exchange)
-- Redirect URI: `http://127.0.0.1/callback` -- a loopback address. Astra binds a random port at sign-in time, and most IdPs treat the loopback redirect as port-agnostic per [RFC 8252](https://tools.ietf.org/html/rfc8252).
-- No client secret. PKCE replaces it.
-
-### 2. Configure the CLI
-
-Via config file:
-
-```toml
-# ~/.astra/config.toml
-[grok_com_config.oidc]
-issuer = "https://acme.okta.com"
-client_id = "0oa1b2c3d4e5f6g7h8i9"
-```
-
-Or via environment variables:
-
-```bash
-export ASTRA_OIDC_ISSUER="https://acme.okta.com"
-export ASTRA_OIDC_CLIENT_ID="0oa1b2c3d4e5f6g7h8i9"
-```
-
-You can also override the API endpoint to point at your own proxy:
-
-```bash
-export ASTRA_CLI_CHAT_PROXY_BASE_URL="https://grok-proxy.acme.com/v1"
-```
-
-### 3. Run `astra`
-
-The CLI discovers endpoints via `{issuer}/.well-known/openid-configuration`, opens the IdP login page, and stores tokens in `~/.astra/auth.json`. Tokens auto-refresh silently via the stored `refresh_token`.
-
-### Optional fields
-
-| Field | Default | Notes |
-|-------|---------|-------|
-| `scopes` | `["openid", "profile", "email", "offline_access", "api:access"]` | `offline_access` enables silent token refresh |
-| `audience` | None | Required by some IdPs (e.g., Auth0) |
 
 ---
 
@@ -242,15 +199,15 @@ goes to `~/.astra/leader.log` rather than to you.
 
 ---
 
-## Device Code Flow
+## Device Code Flow (the only sign-in flow)
 
-For headless environments (SSH sessions, Docker containers, remote VMs) where no browser is available locally:
+Every `astra login` runs this flow, locally or over SSH; there is no second flow to choose:
 
-```bash
-astra login --device-auth    # or: astra login --device-code
-```
+1. The terminal prints `https://astracode.topodrive.top/authorize` and waits for a code.
+2. Open that URL on any device, sign in, and the site generates a CLI authorization code.
+3. Paste the code into the terminal and press Enter. The terminal consumes that same code at `/api/auth/device/consume` and stores the returned token in `~/.astra/auth.json`.
 
-This prints a URL and code to the terminal. Open the URL on any device, enter the code, and complete authentication. Astra polls until the login is confirmed.
+The code is single-use, expires after 10 minutes, and is accepted regardless of case or surrounding spaces when pasted. `astra login --device-auth` / `--device-code` are accepted but change nothing; they are kept so existing scripts keep working.
 
 You can also implement the device-code flow through an [External Auth Provider](#external-auth-provider) for full control.
 
@@ -262,7 +219,7 @@ Astra automatically refreshes expired credentials:
 
 - **Before expiry:** If your auth provider returned `expires_in` (JSON output) or you set `auth_token_ttl`, Astra re-runs the auth binary ~5 minutes before expiry.
 - **On auth error:** If the server returns 401 Unauthorized, Astra refreshes the credentials and retries the request.
-- **OIDC:** If a `refresh_token` is available, Astra silently refreshes via your IdP without re-opening the browser.
+- **Session refresh:** when the stored credential carries a `refresh_token`, Astra refreshes it silently without another sign-in.
 
 Tune the refresh buffer:
 
@@ -287,13 +244,13 @@ Astra picks up changes to `~/.astra/auth.json` automatically. If you update cred
 Astra resolves credentials for each request in this order, highest to lowest:
 
 1. **Per-model `api_key` or `env_key`** -- set under `[model.<name>]` in `config.toml`. Wins whenever present.
-2. **Active session token** -- obtained through browser, OIDC/OAuth2, or external-provider login and stored in `~/.astra/auth.json`.
+2. **Active session token** -- obtained from the Astra sign-in flow (or an external auth provider) and stored in `~/.astra/auth.json`.
 3. **`XAI_API_KEY`** -- fallback when no session token is active.
 
 When more than one login flow is configured, Astra populates the session token from the first available source, highest to lowest:
 
 1. **External auth provider** (`auth_provider_command`)
-2. **Enterprise OIDC** -- when OIDC is configured, through `[grok_com_config.oidc]` in `config.toml` or the `ASTRA_OIDC_ISSUER` and `ASTRA_OIDC_CLIENT_ID` environment variables
+2. **No other sign-in method** -- enterprise IdP support was removed; `[grok_com_config.oidc]` and `ASTRA_OIDC_*` are ignored, so there is no SSO alternative to the Astra sign-in flow.
 3. **Astra OAuth2 browser login** -- the default
 
 During a session, the active method handles all mid-session refreshes.
@@ -365,5 +322,4 @@ RUST_LOG=debug astra -p "hello" 2> /tmp/grok.log
 
 - **"Authentication failed"** -- Run `astra logout` to clear cached credentials, then `astra login` to sign in again.
 - **Token expires too quickly** -- Set `auth_token_ttl` or return `expires_in` in your auth provider's JSON output.
-- **OIDC redirect fails** -- Ensure your IdP allows loopback redirect URIs (`http://127.0.0.1/callback`).
 - **External auth provider not found** -- Check that the `auth_provider_command` path is correct and the binary is executable.

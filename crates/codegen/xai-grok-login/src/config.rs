@@ -55,9 +55,6 @@ pub struct GrokComConfig {
     pub grok_ws_origin: String,
     pub grok_ws_url: String,
     pub token_header: String,
-    /// OIDC config for customer-provided IdPs. See [`OidcAuthConfig`].
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub oidc: Option<OidcAuthConfig>,
     /// OAuth2 provider config. When set, it is preferred over the legacy relay flow.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oauth2: Option<OAuth2ProviderConfig>,
@@ -92,7 +89,10 @@ pub enum ForceLoginTeam {
     /// Allowed teams; an empty list fails closed.
     AnyOf(Vec<String>),
 }
-/// Customer OIDC Identity Provider configuration (`[grok_com_config.oidc]`).
+/// Customer IdP settings used to live here. Enterprise SSO was removed: the
+/// CLI signs in only through the Astra device-code flow, and `[grok_com_config.oidc]`
+/// / `GROK_OIDC_*` are no longer read. The struct survives only as the token
+/// descriptor the OAuth2 provider path converts into.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OidcAuthConfig {
     pub issuer: String,
@@ -205,9 +205,7 @@ impl GrokComConfig {
     }
     /// The auth.json scope key for this config.
     pub fn auth_scope(&self) -> String {
-        if let Some(ref oidc) = self.oidc {
-            format!("{}::{}", oidc.issuer.trim_end_matches('/'), oidc.client_id)
-        } else if let Some(ref oauth2) = self.oauth2 {
+        if let Some(ref oauth2) = self.oauth2 {
             oauth2.auth_scope()
         } else {
             unreachable!("oauth2 config is always present (xAI default or env override)")
@@ -259,10 +257,7 @@ impl OAuth2ProviderConfig {
 }
 impl Default for GrokComConfig {
     fn default() -> Self {
-        let oidc = OidcAuthConfig::from_env();
-        let oauth2 = if oidc.is_some() {
-            None
-        } else {
+        let oauth2 =
             Some(
                 OAuth2ProviderConfig::from_env().unwrap_or_else(|| OAuth2ProviderConfig {
                     issuer: xai_oauth2_issuer().to_owned(),
@@ -272,15 +267,13 @@ impl Default for GrokComConfig {
                     principal_id: None,
                     referrer: Some(DEFAULT_OAUTH2_REFERRER.to_owned()),
                 }),
-            )
-        };
+            );
         Self {
             grok_ws_origin: std::env::var("GROK_WS_ORIGIN")
                 .unwrap_or_else(|_| PROD_WS_ORIGIN.to_owned()),
             grok_ws_url: std::env::var("GROK_WS_URL")
                 .unwrap_or_else(|_| PROD_RELAY_WS_URL.to_owned()),
             token_header: "xai-grok-cli".to_owned(),
-            oidc,
             oauth2,
             auth_provider_command: std::env::var("GROK_AUTH_PROVIDER_COMMAND").ok(),
             auth_provider_label: std::env::var("GROK_AUTH_PROVIDER_LABEL").ok(),
@@ -375,20 +368,6 @@ fn parse_force_login_team(raw: &str) -> Option<ForceLoginTeam> {
         }
     } else {
         Some(ForceLoginTeam::Single(trimmed.to_owned()))
-    }
-}
-impl OidcAuthConfig {
-    pub fn from_env() -> Option<Self> {
-        let issuer = std::env::var("GROK_OIDC_ISSUER").ok()?;
-        let client_id = std::env::var("GROK_OIDC_CLIENT_ID").ok()?;
-        Some(Self {
-            issuer,
-            client_id,
-            scopes: std::env::var("GROK_OIDC_SCOPES")
-                .map(|s| s.split(',').map(|s| s.trim().to_owned()).collect())
-                .unwrap_or_else(|_| default_oidc_scopes()),
-            audience: std::env::var("GROK_OIDC_AUDIENCE").ok(),
-        })
     }
 }
 #[cfg(test)]

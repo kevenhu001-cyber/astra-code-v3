@@ -94,11 +94,10 @@ pub async fn load_session_via_agent<C: acp::Client + 'static>(
     .expect("initialize failed");
 
     // Best-effort auth: the mock backend accepts anything and `load` does not require a prior success, so ignore any failure here
-    if let Some(method) = init
-        .auth_methods
-        .iter()
-        .find(|m| &*m.id().0 == "xai.api_key")
-    {
+    if let Some(method) = init.auth_methods.iter().find(|m| {
+        let id = &*m.id().0;
+        id == "astracode.api_key" || id == "xai.api_key"
+    }) {
         let _ = client_conn
             .authenticate(
                 acp::AuthenticateRequest::new(method.id().clone())

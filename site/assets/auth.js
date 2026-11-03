@@ -121,10 +121,17 @@
     el.classList.toggle('show', !!msg);
   }
 
+  // Same-origin, path-relative destinations only: `//host` is an absolute
+  // URL and backslashes get normalized into one by some browsers.
+  function safeNext(next) {
+    if (!next || next.charAt(0) !== '/' || next.charAt(1) === '/' || next.indexOf('\\') !== -1) return null;
+    return next;
+  }
+
+  // The OAuth consent hand-off is `/authorize?response_type=code&…`; keeping
+  // the full query is what returns the browser to the CLI's loopback callback.
   function loginDestination() {
-    var next = qs('next');
-    if (next === '/admin' || next === '/account#admin' || next === '/authorize') return next;
-    return '/account';
+    return safeNext(qs('next')) || '/account';
   }
 
   function setTheme(theme) {
@@ -150,8 +157,9 @@
 
   function redirectLogin(next) {
     if (window.location.pathname === '/login') return;
-    var destination = next || (window.location.pathname === '/authorize' ? '/authorize' : '/account');
-    if (destination !== '/admin' && destination !== '/account#admin' && destination !== '/authorize') destination = '/account';
+    var destination = safeNext(next) || (window.location.pathname === '/authorize'
+      ? window.location.pathname + window.location.search + window.location.hash
+      : '/account');
     window.location.replace('/login?next=' + encodeURIComponent(destination));
   }
 

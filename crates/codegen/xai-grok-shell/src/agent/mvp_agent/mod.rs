@@ -1053,7 +1053,7 @@ struct AuthRequestMeta {
     headless: bool,
     #[serde(default)]
     reauth: bool,
-    /// Legacy `--oauth` alias. First-party OAuth2 sign-in now always uses the shared code flow.
+    /// Legacy `--oauth` alias: explicitly asks for the browser sign-in flow.
     #[serde(default)]
     use_oauth: bool,
     /// When true, skip cached tokens and force the interactive browser login flow.
@@ -1067,7 +1067,9 @@ struct AuthRequestMeta {
     request_seq: Option<u64>,
 }
 impl AuthRequestMeta {
-    /// Legacy `--oauth` is accepted, but uses the shared code flow like the default.
+    /// `--oauth` pins the device-code flow, which is also the default: the
+    /// deployment's website generates the code and the terminal consumes it,
+    /// so there is exactly one sign-in method either way.
     fn login_override(&self) -> xai_grok_login::LoginTransportOverride {
         if self.use_oauth {
             xai_grok_login::LoginTransportOverride::ForceDevice

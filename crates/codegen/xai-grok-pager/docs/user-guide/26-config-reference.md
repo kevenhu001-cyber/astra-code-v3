@@ -55,23 +55,18 @@ User-level configuration lives in `$GROK_HOME/config.toml` (default `~/.grok/con
 | `auth.auth_provider_command` | `string` | `yes` | `user` | External auth binary; stdout is the token. Also GROK_AUTH_PROVIDER_COMMAND; also valid as `grok_com_config.auth_provider_command`. |
 | `auth.auth_provider_label` | `string` | `yes` | `user` | Login button label for an external auth provider. Also GROK_AUTH_PROVIDER_LABEL; also valid as `grok_com_config.auth_provider_label`. |
 | `auth.auth_token_ttl` | `number` | `yes` | `user` | Token TTL in seconds for providers that return a bare token. Also GROK_AUTH_TOKEN_TTL; also valid as `grok_com_config.auth_token_ttl`. |
-| `auth.disable_api_key_auth` | `boolean` | `pin` | `user` | Refuse API-key auth so only the deployment IdP can log in. Also GROK_DISABLE_API_KEY_AUTH; also valid as `grok_com_config.disable_api_key_auth`. |
+| `auth.disable_api_key_auth` | `boolean` | `pin` | `user` | Refuse API-key auth so only the Astra sign-in can log in. Also GROK_DISABLE_API_KEY_AUTH; also valid as `grok_com_config.disable_api_key_auth`. |
 | `auth.force_login_team_uuid` | `string / string[]` | `pin` | `user` | Require login to this team UUID, or any of an array; empty array fails closed. Also GROK_FORCE_LOGIN_TEAM_ID; also valid as `grok_com_config.force_login_team_uuid`. |
 | `auth.grok_ws_origin` | `string` | `yes` | `user` | Websocket origin for the Astra service. Also GROK_WS_ORIGIN; also valid as `grok_com_config.grok_ws_origin`. |
 | `auth.grok_ws_url` | `string` | `yes` | `user` | Relay websocket URL. Also GROK_WS_URL; also valid as `grok_com_config.grok_ws_url`. |
-| `auth.oauth2` | `table` | `yes` | `user` | OAuth2 provider used when enterprise OIDC is unset; also valid as `grok_com_config.oauth2`. |
+| `auth.oauth2` | `table` | `yes` | `user` | OAuth2 provider OAuth2 provider settings; also valid as `grok_com_config.oauth2`. |
 | `auth.oauth2.client_id` | `string` | `yes` | `user` | OAuth2 client id. Also GROK_OAUTH2_CLIENT_ID; also valid as `grok_com_config.oauth2.client_id`. |
 | `auth.oauth2.issuer` | `string` | `yes` | `user` | OAuth2 issuer URL. Also GROK_OAUTH2_ISSUER; also valid as `grok_com_config.oauth2.issuer`. |
 | `auth.oauth2.principal_id` | `string` | `yes` | `user` | Required principal id when `principal_type` is set. Also GROK_OAUTH2_PRINCIPAL_ID; also valid as `grok_com_config.oauth2.principal_id`. |
 | `auth.oauth2.principal_type` | `string` | `yes` | `user` | Token principal type, such as Team. Also GROK_OAUTH2_PRINCIPAL_TYPE; also valid as `grok_com_config.oauth2.principal_type`. |
 | `auth.oauth2.referrer` | `string` | `yes` | `user` | Referrer for OAuth usage attribution. Also GROK_OAUTH2_REFERRER; also valid as `grok_com_config.oauth2.referrer`. |
 | `auth.oauth2.scopes` | `string[]` | `yes` | `user` | OAuth2 scopes. Also GROK_OAUTH2_SCOPES; also valid as `grok_com_config.oauth2.scopes`. |
-| `auth.oidc` | `table` | `yes` | `user` | Customer OIDC identity-provider settings; also valid as `grok_com_config.oidc`. |
-| `auth.oidc.audience` | `string` | `yes` | `user` | Optional OIDC audience. Also GROK_OIDC_AUDIENCE; also valid as `grok_com_config.oidc.audience`. |
-| `auth.oidc.client_id` | `string` | `yes` | `user` | OIDC client id. Also GROK_OIDC_CLIENT_ID; also valid as `grok_com_config.oidc.client_id`. |
-| `auth.oidc.issuer` | `string` | `yes` | `user` | OIDC issuer URL. Also GROK_OIDC_ISSUER; also valid as `grok_com_config.oidc.issuer`. |
-| `auth.oidc.scopes` | `string[]` | `yes` | `user` | OIDC scopes. Also GROK_OIDC_SCOPES; also valid as `grok_com_config.oidc.scopes`. |
-| `auth.preferred_method` | `api_key / oidc` | `yes` | `user` | Pin automatic auth to one method with no fallthrough; also valid as `grok_com_config.preferred_method`. |
+| `auth.preferred_method` | `api_key / session` | `yes` | `user` | Pin automatic auth to one method with no fallthrough; also valid as `grok_com_config.preferred_method`. |
 | `auth.token_header` | `string` | `yes` | `user` | Header name that carries the CLI auth token; default `xai-grok-cli`; also valid as `grok_com_config.token_header`. |
 
 ### `auth_provider`
@@ -254,27 +249,22 @@ User-level configuration lives in `$GROK_HOME/config.toml` (default `~/.grok/con
 
 | Key | Type / Values | Requirements | Managed | Details |
 | --- | --- | --- | --- | --- |
-| `grok_com_config` | `table` | `yes` | `user` | Grok.com websocket and OAuth/OIDC settings. `[auth]` is an alias. |
+| `grok_com_config` | `table` | `yes` | `user` | OAuth and websocket settings. `[auth]` is an alias. |
 | `grok_com_config.auth_provider_command` | `string` | `yes` | `user` | External auth binary; stdout is the token. Also GROK_AUTH_PROVIDER_COMMAND. |
 | `grok_com_config.auth_provider_label` | `string` | `yes` | `user` | Login button label for an external auth provider. Also GROK_AUTH_PROVIDER_LABEL. |
 | `grok_com_config.auth_token_ttl` | `number` | `yes` | `user` | Token TTL in seconds for providers that return a bare token. Also GROK_AUTH_TOKEN_TTL. |
-| `grok_com_config.disable_api_key_auth` | `boolean` | `pin` | `user` | Refuse API-key auth so only the deployment IdP can log in. Also GROK_DISABLE_API_KEY_AUTH. |
+| `grok_com_config.disable_api_key_auth` | `boolean` | `pin` | `user` | Refuse API-key auth so only the Astra sign-in can log in. Also GROK_DISABLE_API_KEY_AUTH. |
 | `grok_com_config.force_login_team_uuid` | `string / string[]` | `pin` | `user` | Require login to this team UUID, or any of an array; empty array fails closed. Also GROK_FORCE_LOGIN_TEAM_ID. |
 | `grok_com_config.grok_ws_origin` | `string` | `yes` | `user` | Websocket origin for the Astra service. Also GROK_WS_ORIGIN. |
 | `grok_com_config.grok_ws_url` | `string` | `yes` | `user` | Relay websocket URL. Also GROK_WS_URL. |
-| `grok_com_config.oauth2` | `table` | `yes` | `user` | OAuth2 provider used when enterprise OIDC is unset. |
+| `grok_com_config.oauth2` | `table` | `yes` | `user` | OAuth2 provider OAuth2 provider settings. |
 | `grok_com_config.oauth2.client_id` | `string` | `yes` | `user` | OAuth2 client id. Also GROK_OAUTH2_CLIENT_ID. |
 | `grok_com_config.oauth2.issuer` | `string` | `yes` | `user` | OAuth2 issuer URL. Also GROK_OAUTH2_ISSUER. |
 | `grok_com_config.oauth2.principal_id` | `string` | `yes` | `user` | Required principal id when `principal_type` is set. Also GROK_OAUTH2_PRINCIPAL_ID. |
 | `grok_com_config.oauth2.principal_type` | `string` | `yes` | `user` | Token principal type, such as Team. Also GROK_OAUTH2_PRINCIPAL_TYPE. |
 | `grok_com_config.oauth2.referrer` | `string` | `yes` | `user` | Referrer for OAuth usage attribution. Also GROK_OAUTH2_REFERRER. |
 | `grok_com_config.oauth2.scopes` | `string[]` | `yes` | `user` | OAuth2 scopes. Also GROK_OAUTH2_SCOPES. |
-| `grok_com_config.oidc` | `table` | `yes` | `user` | Customer OIDC identity-provider settings. |
-| `grok_com_config.oidc.audience` | `string` | `yes` | `user` | Optional OIDC audience. Also GROK_OIDC_AUDIENCE. |
-| `grok_com_config.oidc.client_id` | `string` | `yes` | `user` | OIDC client id. Also GROK_OIDC_CLIENT_ID. |
-| `grok_com_config.oidc.issuer` | `string` | `yes` | `user` | OIDC issuer URL. Also GROK_OIDC_ISSUER. |
-| `grok_com_config.oidc.scopes` | `string[]` | `yes` | `user` | OIDC scopes. Also GROK_OIDC_SCOPES. |
-| `grok_com_config.preferred_method` | `api_key / oidc` | `yes` | `user` | Pin automatic auth to one method with no fallthrough. |
+| `grok_com_config.preferred_method` | `api_key / session` | `yes` | `user` | Pin automatic auth to one method with no fallthrough. |
 | `grok_com_config.token_header` | `string` | `yes` | `user` | Header name that carries the CLI auth token; default `xai-grok-cli`. |
 
 ### `harness`

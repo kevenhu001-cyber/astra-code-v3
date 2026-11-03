@@ -191,6 +191,11 @@ impl Server {
             .route("/api/admin/users/balance", post(handlers_admin_balance))
             .route("/v1/models", get(handlers_gateway_models))
             .route("/v1/chat/completions", post(handlers_gateway_chat))
+            // OAuth2 device authorization. The CLI/TUI client speaks RFC 8628
+            // at `{issuer}/oauth2/device/code` and `{issuer}/oauth2/token`;
+            // `/api/auth/device*` stays the site-facing pair.
+            .route("/oauth2/device/code", post(handlers_device_create))
+            .route("/oauth2/token", post(Self::handlers_token))
             .route(
                 "/.well-known/openid-configuration",
                 get(Self::handlers_oidc_discovery),
@@ -348,10 +353,7 @@ impl Server {
         } else if grant_type == "refresh_token" {
             return Self::handle_token_refresh(s, params).await;
         } else if grant_type == DEVICE_GRANT_TYPE {
-            return write_err(
-                StatusCode::BAD_REQUEST,
-                "use /api/auth/device/token for device flow",
-            );
+            return Self::handle_token_device(s, params).await;
         }
         write_err(StatusCode::BAD_REQUEST, "unsupported grant_type")
     }
@@ -528,6 +530,65 @@ impl Server {
         )
     }
 
+    /// RFC 8628 device-code grant (`POST /oauth2/token`).
+    ///
+    /// The body is OAuth2-shaped (`error` / `error_description`) rather than
+    /// the site's generic `{"error": "..."}` so the CLI can retry on
+    /// `authorization_pending` and give up on terminal codes.
+    async fn handle_token_device(s: Server, params: HashMap<String, String>) -> Response {
+        let device_code = params.get("device_code").cloned().unwrap_or_default();
+        if device_code.is_empty() {
+            return oauth2_error(
+                StatusCode::BAD_REQUEST,
+                "invalid_request",
+                "missing device_code",
+            );
+        }
+        let Some(grant) = s.store.find_device_by_code(&device_code) else {
+            return oauth2_error(
+                StatusCode::BAD_REQUEST,
+                "expired_token",
+                "unknown or expired device code",
+            );
+        };
+        if grant.expires_at < Utc::now() || grant.status == "expired" {
+            return oauth2_error(
+                StatusCode::BAD_REQUEST,
+                "expired_token",
+                "device code expired",
+            );
+        }
+        match grant.status.as_str() {
+            "pending" => oauth2_error(
+                StatusCode::BAD_REQUEST,
+                "authorization_pending",
+                "waiting for the user to approve the code",
+            ),
+            "approved" => {
+                let Some(token) = grant.token.clone() else {
+                    return oauth2_error(
+                        StatusCode::BAD_REQUEST,
+                        "expired_token",
+                        "device code expired",
+                    );
+                };
+                json_response(
+                    StatusCode::OK,
+                    json!({
+                        "access_token": token,
+                        "token_type": "Bearer",
+                        "expires_in": TOKEN_TTL_DAYS * 24 * 3600,
+                    }),
+                )
+            }
+            _ => oauth2_error(
+                StatusCode::BAD_REQUEST,
+                "access_denied",
+                "the authorization request was denied",
+            ),
+        }
+    }
+
     /// Serve the embedded static site pages. Unknown paths 404.
     async fn static_site(State(state): State<Server>, req: axum::extract::Request) -> Response {
         let path = req.uri().path().to_string();
@@ -582,7 +643,7 @@ impl Server {
             "/index.html" => redirect_permanent("/"),
             "/login" => {
                 if current_user(&state.store, req.headers()).is_some() {
-                    redirect_to(login_destination(req.uri().query()))
+                    redirect_to(&login_destination(req.uri().query()))
                 } else {
                     serve_page(crate::assets::LOGIN_HTML)
                 }
@@ -608,6 +669,17 @@ impl Server {
             _ => StatusCode::NOT_FOUND.into_response(),
         }
     }
+}
+
+/// Pull `user_code` out of a form-encoded request body.
+/// The reverse device flow's first clients posted
+/// `application/x-www-form-urlencoded`; keep accepting it so an older CLI can
+/// still finish a login.
+fn form_user_code(bytes: &[u8]) -> Option<String> {
+    url::form_urlencoded::parse(bytes)
+        .find(|(k, _)| k == "user_code")
+        .map(|(_, v)| v.into_owned())
+        .filter(|v| !v.trim().is_empty())
 }
 
 fn serve_page(content: &'static str) -> Response {
@@ -638,16 +710,26 @@ fn redirect_to(location: &str) -> Response {
 
 /// Only allow same-site destinations that are used by the account flow.
 /// This prevents `/login?next=` from becoming an open redirect.
-fn login_destination(query: Option<&str>) -> &'static str {
+///
+/// Paths are allowed with their query string intact: the OAuth consent
+/// hand-off is `/authorize?response_type=code&client_id=…`, and stripping
+/// the query strands the CLI waiting on its loopback callback.
+fn login_destination(query: Option<&str>) -> String {
     let next = query.and_then(|query| {
         url::form_urlencoded::parse(query.as_bytes())
             .find(|(key, _)| key == "next")
             .map(|(_, value)| value.into_owned())
     });
     match next.as_deref() {
-        Some("/admin") | Some("/account#admin") => "/admin",
-        Some("/authorize") => "/authorize",
-        _ => "/account",
+        Some(next)
+            if next.starts_with('/')
+                && !next.starts_with("//")
+                && !next.contains('\\')
+                && next != "/login" =>
+        {
+            next.to_string()
+        }
+        _ => "/account".to_string(),
     }
 }
 
@@ -659,6 +741,14 @@ fn json_response(code: StatusCode, v: Value) -> Response {
 
 fn write_err(code: StatusCode, msg: &str) -> Response {
     json_response(code, json!({ "error": msg }))
+}
+
+/// OAuth2-shaped error body (`error` + `error_description`).
+fn oauth2_error(code: StatusCode, error: &str, description: &str) -> Response {
+    json_response(
+        code,
+        json!({ "error": error, "error_description": description }),
+    )
 }
 
 /// Reject cross-site POSTs (CSRF defense in depth alongside SameSite=Lax).
@@ -1146,7 +1236,8 @@ async fn handlers_device_create(State(s): State<Server>, _req: axum::extract::Re
         json!({
             "device_code": g.device_code,
             "user_code": g.user_code,
-            "verification_uri": format!("{base}/authorize?code={}", g.user_code),
+            "verification_uri": format!("{base}/authorize"),
+            "verification_uri_complete": format!("{base}/authorize?code={}", g.user_code),
             "expires_in": DEVICE_EXPIRY_SECS,
             "interval": DEVICE_INTERVAL,
         }),
@@ -1293,7 +1384,8 @@ async fn handlers_device_generate(
         json!({
             "device_code": g.device_code,
             "user_code": g.user_code,
-            "verification_uri": format!("{base}/authorize?code={}", g.user_code),
+            "verification_uri": format!("{base}/authorize"),
+            "verification_uri_complete": format!("{base}/authorize?code={}", g.user_code),
             "expires_in": DEVICE_EXPIRY_SECS,
             "interval": DEVICE_INTERVAL,
         }),
@@ -1316,9 +1408,15 @@ async fn handlers_device_consume(State(s): State<Server>, req: axum::extract::Re
         #[serde(rename = "user_code")]
         user_code: String,
     }
+    // Accept JSON (the current CLI) and form encoding (older CLIs posting
+    // `user_code=…`, or a hand-run `curl -d`). A body-format mismatch used to
+    // fail every paste with `400 invalid JSON body`.
     let body: Body = match decode_body(&parts.method, &parts.headers, &host, &bytes[..]).await {
         Ok(b) => b,
-        Err(r) => return r,
+        Err(json_err) => match form_user_code(&bytes) {
+            Some(user_code) => Body { user_code },
+            None => return json_err,
+        },
     };
     let code = body.user_code.trim().to_uppercase();
     let Some(g) = s.store.find_device_by_user_code(&code) else {
@@ -1982,9 +2080,6 @@ async fn handlers_gateway_chat(State(s): State<Server>, req: axum::extract::Requ
     let Some(user) = bearer_user(&s.store, &parts.headers) else {
         return write_err(StatusCode::UNAUTHORIZED, "valid Astra CLI token required");
     };
-    if user.balance_microusd <= 0 {
-        return write_err(StatusCode::PAYMENT_REQUIRED, "account balance is empty");
-    }
     let bytes = match axum::body::to_bytes(body, 32 << 20).await {
         Ok(bytes) => bytes,
         Err(_) => return write_err(StatusCode::BAD_REQUEST, "request body is too large"),
@@ -2023,6 +2118,16 @@ async fn handlers_gateway_chat(State(s): State<Server>, req: axum::extract::Requ
             );
         }
     };
+    // Free routes stay usable at a zero balance; only priced routes gate on
+    // credit, and the check runs after routing so the message can name it.
+    if (route.input_price_microusd_per_million > 0 || route.output_price_microusd_per_million > 0)
+        && user.balance_microusd <= 0
+    {
+        return write_err(
+            StatusCode::PAYMENT_REQUIRED,
+            "account balance is empty — ask an administrator to add credit",
+        );
+    }
     let client_wants_stream = request.get("stream").and_then(Value::as_bool) == Some(true);
     match route.protocol.as_str() {
         "openai-compatible" => {

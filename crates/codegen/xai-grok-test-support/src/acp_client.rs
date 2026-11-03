@@ -195,7 +195,10 @@ impl GrokStdioClient {
         let api_key_method = init_resp
             .auth_methods
             .iter()
-            .find(|m| &*m.id().0 == "xai.api_key")
+            .find(|m| {
+                let id = &*m.id().0;
+                id == "astracode.api_key" || id == "xai.api_key"
+            })
             .unwrap_or_else(|| {
                 let ids: Vec<_> = init_resp.auth_methods.iter().map(|m| &m.id().0).collect();
                 panic!(

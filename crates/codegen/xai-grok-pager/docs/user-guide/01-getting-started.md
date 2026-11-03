@@ -78,7 +78,7 @@ export XAI_API_KEY="xai-..."
 astra
 ```
 
-See [Authentication](02-authentication.md) for the full set of auth options including OIDC, external auth providers, and device code flow.
+See [Authentication](02-authentication.md) for the Astra sign-in flow and external auth providers.
 
 ---
 
@@ -262,7 +262,7 @@ Deeper files take precedence. Astra also reads `CLAUDE.md` files for compatibili
 
 | Document | What You Will Learn |
 |----------|-------------------|
-| [Authentication](02-authentication.md) | Browser login, API keys, OIDC, external auth, device code flow |
+| [Authentication](02-authentication.md) | Astra sign-in, device code flow, external auth |
 | [Keyboard Shortcuts](03-keyboard-shortcuts.md) | Complete reference for all key bindings |
 | [Slash Commands](04-slash-commands.md) | All available `/` commands |
 | [Configuration](05-configuration.md) | config.toml, pager.toml, environment variables |

@@ -156,8 +156,17 @@ fn device_flow_end_to_end() {
     let (_, out) = post_json(&format!("{base}/api/auth/device"), serde_json::json!({}));
     let device_code = out["device_code"].as_str().unwrap().to_string();
     let user_code = out["user_code"].as_str().unwrap().to_string();
+    // `verification_uri` is the page the user visits; the pre-filled hand-off
+    // lives in `verification_uri_complete` so the CLI can show a confirm-only
+    // code without putting the code in the address bar twice.
     assert!(
         out["verification_uri"]
+            .as_str()
+            .unwrap()
+            .ends_with("/authorize")
+    );
+    assert!(
+        out["verification_uri_complete"]
             .as_str()
             .unwrap()
             .contains(&user_code)
@@ -196,6 +205,69 @@ fn device_flow_end_to_end() {
         .unwrap();
     assert_eq!(me.status(), StatusCode::OK);
     assert!(me.text().unwrap().contains("dev@b.co"));
+
+    // 6) The RFC 8628 endpoints the CLI/TUI actually calls
+    //    (`{issuer}/oauth2/device/code`, `{issuer}/oauth2/token`) answer the
+    //    same grants, with OAuth2-shaped bodies.
+    let cli = reqwest::blocking::Client::new();
+    let created = cli
+        .post(format!("{base}/oauth2/device/code"))
+        .form(&[("client_id", "astra-cli"), ("scope", "openid")])
+        .send()
+        .unwrap();
+    assert_eq!(created.status(), StatusCode::OK);
+    let grant: serde_json::Value = created.json().unwrap();
+    let cli_device_code = grant["device_code"].as_str().unwrap().to_string();
+    assert!(
+        grant["verification_uri_complete"]
+            .as_str()
+            .unwrap()
+            .contains(grant["user_code"].as_str().unwrap())
+    );
+
+    let pending = cli
+        .post(format!("{base}/oauth2/token"))
+        .form(&[
+            ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+            ("device_code", cli_device_code.as_str()),
+        ])
+        .send()
+        .unwrap();
+    assert_eq!(pending.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        pending.json::<serde_json::Value>().unwrap()["error"],
+        "authorization_pending"
+    );
+
+    let approved = client
+        .post(format!("{base}/api/auth/device/approve"))
+        .header("Origin", base.clone())
+        .json(&serde_json::json!({
+            "user_code": grant["user_code"].as_str().unwrap()
+        }))
+        .send()
+        .unwrap();
+    assert_eq!(approved.status(), StatusCode::OK);
+
+    let exchanged = cli
+        .post(format!("{base}/oauth2/token"))
+        .form(&[
+            ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+            ("device_code", cli_device_code.as_str()),
+        ])
+        .send()
+        .unwrap();
+    assert_eq!(exchanged.status(), StatusCode::OK);
+    let body: serde_json::Value = exchanged.json().unwrap();
+    assert_eq!(body["token_type"], "Bearer");
+    let cli_token = body["access_token"].as_str().unwrap().to_string();
+
+    let me = cli
+        .get(format!("{base}/api/auth/me"))
+        .bearer_auth(&cli_token)
+        .send()
+        .unwrap();
+    assert_eq!(me.status(), StatusCode::OK);
 }
 
 #[test]

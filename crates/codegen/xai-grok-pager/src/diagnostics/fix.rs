@@ -311,7 +311,7 @@ impl std::fmt::Display for FixError {
         match self {
             Self::UnknownId(id) => write!(
                 formatter,
-                "`{id}` is not an available Doctor fix. Run `grok doctor fix` to list available fixes."
+                "`{id}` is not an available Doctor fix. Run `astra doctor fix` to list available fixes."
             ),
             Self::PlatformUnsupported => write!(
                 formatter,

@@ -35,15 +35,16 @@ fn is_cached_credential_compatible(auth: &GrokAuth, grok_com_config: &GrokComCon
     true
 }
 /// CLI hint for the interactive login transport.
-/// Both `--oauth` (legacy) and `--device-auth` now use the shared reverse device-code flow.
+/// The default is the browser (loopback) flow; `--device-auth` opts into the
+/// reverse device-code flow where the user pastes a browser-generated code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LoginTransportOverride {
     /// No CLI hint.
     #[default]
     None,
-    /// Legacy `--oauth` flag. OAuth2 sign-in still uses the shared code flow.
+    /// Legacy `--oauth` spelling. Resolves to the same device-code flow.
     ForceLoopback,
-    /// `--device-auth`: use the shared code flow.
+    /// Device-code flow: the site generates the code, the terminal consumes it.
     ForceDevice,
     /// Transport already resolved (and logged) upstream; `true` means device, `false` means loopback.
     /// The inner flow honors the carried value without re-resolving, so it's never re-logged or mis-attributed to `cli`.
@@ -51,7 +52,8 @@ pub enum LoginTransportOverride {
 }
 impl LoginTransportOverride {
     /// Resolve from the `--oauth` / `--device-auth` flags.
-    /// Both now select the same code-based sign-in experience.
+    /// Both flags are legacy spellings of the one sign-in flow, so either one
+    /// pins the device-code transport; neither means "default".
     /// Both the CLI (`run_cli_login`) and ACP (`AuthRequestMeta`) entry points resolve through here.
     pub fn from_flags(force_loopback: bool, force_device: bool) -> Self {
         if force_loopback || force_device {
@@ -94,11 +96,17 @@ async fn cli_should_use_device(
     login_override: LoginTransportOverride,
     proxy_base_url: &str,
 ) -> bool {
-    !crate::oidc::is_configured(config)
-        && should_use_device_flow(login_override, config_device_flow, proxy_base_url).await
+    should_use_device_flow(login_override, config_device_flow, proxy_base_url).await
 }
-/// Whether interactive first-party OAuth2 login uses the reverse device-code flow.
-/// Enterprise OIDC is handled separately and continues to use its loopback callback.
+/// Interactive sign-in has exactly one transport: the device-code flow that
+/// the deployment's website implements.
+///
+/// `astra login` prints `{issuer}/authorize`; the user signs in there, the site
+/// generates a CLI authorization code, and the terminal consumes that same code
+/// at `/api/auth/device/consume`. Nothing else may select a different flow: the
+/// `--oauth` / `--device-auth` / `--device-code` flags and
+/// `[auth] login_device_flow` are still parsed so old scripts and configs keep
+/// loading, but they all resolve here.
 async fn should_use_device_flow(
     _login_override: LoginTransportOverride,
     _config_device_flow: Option<bool>,
@@ -107,7 +115,7 @@ async fn should_use_device_flow(
     tracing::info!(
         transport = "reverse_device",
         source = "unified",
-        "login: using the shared code-based sign-in flow",
+        "login: single transport (device code generated on the website)",
     );
     true
 }
@@ -438,7 +446,6 @@ pub(super) async fn run_auth_flow_steps(
     login_override: LoginTransportOverride,
 ) -> anyhow::Result<(GrokAuth, bool)> {
     tracing::info!(
-        has_oidc = grok_com_config.oidc.is_some(),
         has_oauth2 = grok_com_config.oauth2.is_some(),
         has_external_auth = grok_com_config.auth_provider_command.is_some(),
         reauth,
@@ -551,50 +558,28 @@ pub(super) async fn run_auth_flow_steps(
     }
     let url_tx = url_tx.and_then(|rc| rc.borrow_mut().take());
     let mut channels = code_rx.map(|code_rx| AuthChannels { url_tx, code_rx });
-    if crate::oidc::is_configured(grok_com_config) {
-        return crate::oidc::run_login_flow(grok_com_config, auth_manager, channels).await;
-    }
     if let Some(ref oauth2_cfg) = grok_com_config.oauth2 {
-        if should_use_device_flow(
-            login_override,
-            config_device_flow,
-            auth_manager.proxy_base_url(),
-        )
-        .await
-        {
-            // Reverse device flow (replaces the RFC 8628 forward flow that
-            // required `accounts.topodrive.top`'s `/oauth2/device/code` endpoint).
-            return match channels.take() {
-                Some(channels) => {
-                    crate::device_code::run_reverse_device_login_channels(
-                        &oauth2_cfg.issuer,
-                        auth_manager,
-                        channels,
-                    )
+        // The reverse device flow is the only interactive transport (see
+        // `should_use_device_flow`), so the loopback branch is gone.
+        return match channels.take() {
+            Some(channels) => {
+                crate::device_code::run_reverse_device_login_channels(
+                    &oauth2_cfg.issuer,
+                    auth_manager,
+                    channels,
+                )
+                .await
+            }
+            None => {
+                crate::device_code::run_reverse_device_login_cli(&oauth2_cfg.issuer, auth_manager)
                     .await
-                }
-                None => {
-                    crate::device_code::run_reverse_device_login_cli(
-                        &oauth2_cfg.issuer,
-                        auth_manager,
-                    )
-                    .await
-                }
-            };
-        }
-        return crate::oidc::run_login_flow_with_config(
-            &oauth2_cfg.as_oidc(),
-            auth_manager,
-            channels,
-        )
-        .await;
+            }
+        };
     }
     tracing::error!(
-        "auth: no OAuth2 configuration available (neither enterprise OIDC nor xAI OAuth2 configured)"
+        "auth: no OAuth2 configuration available (no Astra OAuth2 provider configured)"
     );
-    anyhow::bail!(
-        "No OAuth2 configuration available. Run `grok login` to authenticate, or contact your administrator if you use enterprise SSO."
-    )
+    anyhow::bail!("No OAuth2 configuration available. Run `astra login` to authenticate.")
 }
 /// Non-interactive auth refresh: returns valid credentials if available without ever triggering interactive login (browser, device code, etc.).
 /// Tries cached non-expired credentials, then OIDC silent refresh (needs a refresh_token), then the external auth provider command (if configured).
@@ -795,7 +780,7 @@ pub async fn ensure_authenticated_or_noninteractive(
         .map(Some)
     }
 }
-/// Unified `grok login` handler for CLI entry points (TUI, pager).
+/// Unified `astra login` handler for CLI entry points (TUI, pager).
 /// First-party OAuth2 always uses reverse device-code sign-in; enterprise OIDC keeps its loopback callback.
 /// Both paths run through `run_auth_flow_inner` so the external auth provider and devbox auto-migration are tried first.
 pub async fn run_cli_login(
@@ -860,11 +845,6 @@ async fn run_cli_login_steps(
         }
         auth
     } else {
-        if device_auth && crate::oidc::is_configured(grok_com_config) {
-            eprintln!(
-                "Code-based sign-in isn't available for your SSO provider; using browser sign-in."
-            );
-        }
         let (auth, did_auth) = run_auth_flow(
             auth_manager,
             grok_com_config,
@@ -1312,49 +1292,37 @@ mod tests {
             None
         );
     }
+    /// First-party sign-in must reach the deployment's auth service by default:
+    /// the loopback authorization-code flow does discovery + `/authorize` +
+    /// `/token`, while the reverse device flow waits for a pasted browser code.
+    /// One login method: nothing — flag, config knob, or pre-resolved value —
+    /// may select a second transport.
     #[tokio::test]
-    async fn oauth2_login_uses_shared_code_flow_regardless_of_legacy_overrides() {
-        {
-            let _guard = EnvVarGuard::set("GROK_LOGIN_DEVICE_FLOW", "false");
-            assert!(
-                should_use_device_flow(LoginTransportOverride::Preresolved(true), None, "").await,
-                "first-party OAuth2 uses the shared code flow"
-            );
+    async fn oauth2_login_has_a_single_transport() {
+        for override_value in [
+            LoginTransportOverride::None,
+            LoginTransportOverride::ForceLoopback,
+            LoginTransportOverride::ForceDevice,
+            LoginTransportOverride::Preresolved(true),
+            LoginTransportOverride::Preresolved(false),
+        ] {
+            for config in [None, Some(true), Some(false)] {
+                assert!(
+                    should_use_device_flow(override_value, config, "").await,
+                    "{override_value:?}/{config:?} must still use the device-code login flow"
+                );
+            }
         }
-        {
-            let _guard = EnvVarGuard::set("GROK_LOGIN_DEVICE_FLOW", "true");
-            assert!(
-                should_use_device_flow(LoginTransportOverride::Preresolved(false), None, "").await,
-                "legacy loopback selection cannot split the login experience"
-            );
-            assert!(
-                should_use_device_flow(LoginTransportOverride::None, None, "").await,
-                "unset legacy settings use the shared code flow"
-            );
-        }
-        with_device_flow_env(None, || {
-            assert_eq!(
-                resolve_device_flow(LoginTransportOverride::Preresolved(true), None, Some(true))
-                    .source,
-                xai_grok_config_types::ConfigSource::Remote,
-                "Preresolved must never resolve as the cli tier"
-            );
-        });
     }
     #[test]
-    fn legacy_oauth_and_device_flags_select_the_same_code_flow() {
-        assert_eq!(
-            LoginTransportOverride::from_flags(true, true),
-            LoginTransportOverride::ForceDevice
-        );
-        assert_eq!(
-            LoginTransportOverride::from_flags(true, false),
-            LoginTransportOverride::ForceDevice
-        );
-        assert_eq!(
-            LoginTransportOverride::from_flags(false, true),
-            LoginTransportOverride::ForceDevice
-        );
+    fn every_login_flag_selects_the_same_device_flow() {
+        for (oauth, device) in [(true, false), (false, true), (true, true)] {
+            assert_eq!(
+                LoginTransportOverride::from_flags(oauth, device),
+                LoginTransportOverride::ForceDevice,
+                "--oauth={oauth} --device-auth={device} must mean the same flow"
+            );
+        }
         assert_eq!(
             LoginTransportOverride::from_flags(false, false),
             LoginTransportOverride::None
@@ -1378,7 +1346,10 @@ mod tests {
         );
         let xai = GrokComConfig::default();
         assert!(xai.oauth2.is_some() && xai.oidc.is_none());
-        assert!(cli_should_use_device(&xai, None, LoginTransportOverride::ForceDevice, "").await);
+        assert!(
+            cli_should_use_device(&xai, None, LoginTransportOverride::ForceDevice, "").await,
+            "the CLI's single sign-in method is the device-code flow"
+        );
     }
     #[test]
     fn device_flow_precedence_cli_beats_env_config_remote() {
@@ -1803,7 +1774,7 @@ mod tests {
         );
         assert_eq!(extract("some opaque output"), "some opaque output");
     }
-    /// CLI `grok login` passes `on_stderr=None`; stderr must be inherited so sign-in URLs appear in real time.
+    /// CLI `astra login` passes `on_stderr=None`; stderr must be inherited so sign-in URLs appear in real time.
     /// Piped stderr with no reader deadlocks once the child writes past the pipe buffer (~64 KiB).
     #[tokio::test]
     async fn external_provider_cli_path_does_not_deadlock_on_large_stderr() {

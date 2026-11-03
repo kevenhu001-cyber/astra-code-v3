@@ -370,43 +370,18 @@ impl acp::Agent for MvpAgent {
                 SilentRefresh::Failed(remedy) => remedy.is_self_healing(),
             };
         }
-        let (
-            login_label,
-            has_auth_provider,
-            has_enterprise_oidc,
-            enterprise_oidc_issuer,
-        ) = {
+        let (login_label, has_auth_provider) = {
             let cfg = self.cfg.borrow();
-            let issuer = cfg.grok_com_config.oidc.as_ref().map(|o| o.issuer.clone());
             (
                 cfg.grok_com_config.auth_provider_label.clone(),
                 cfg.grok_com_config.auth_provider_command.is_some(),
-                cfg.grok_com_config.oidc.is_some(),
-                issuer,
             )
         };
-        if has_enterprise_oidc {
-            let issuer = enterprise_oidc_issuer
-                .as_deref()
-                .expect(
-                    "enterprise_oidc_issuer must be Some when has_enterprise_oidc is true",
-                );
-            tracing::info!(
-                issuer = %issuer,
-                "auth: advertising enterprise OIDC auth method",
-            );
-            xai_grok_telemetry::unified_log::info(
-                "auth: advertising enterprise OIDC auth method",
-                None,
-                Some(serde_json::json!({ "issuer": issuer })),
-            );
-        } else {
-            tracing::info!(
-                label = ?login_label,
-                has_auth_provider,
-                "auth: advertising grok.com auth method",
-            );
-        }
+        tracing::info!(
+            label = ?login_label,
+            has_auth_provider,
+            "auth: advertising the Astra sign-in method",
+        );
         let preferred_method = preferred_method_early;
         let has_external_api_key = match preferred_method {
             Some(xai_grok_login::PreferredAuthMethod::Oidc) => false,
@@ -423,8 +398,6 @@ impl acp::Agent for MvpAgent {
             auth_method::build_auth_methods(auth_method::AuthMethodsBuildInputs {
                 has_external_api_key,
                 has_cached_token,
-                has_enterprise_oidc,
-                enterprise_oidc_issuer: enterprise_oidc_issuer.as_deref(),
                 login_label: login_label.as_deref(),
                 has_auth_provider_command: has_auth_provider,
                 preferred_method,
@@ -442,7 +415,7 @@ impl acp::Agent for MvpAgent {
                 "first_party_env_api_key_ok": first_party_env_ok,
                 "disable_api_key_auth": disable_api_key_auth,
                 "has_cached_token": has_cached_token,
-                "has_enterprise_oidc": has_enterprise_oidc,
+                "sign_in_method": "astracode",
                 "init_has_current": init_has_current,
                 "init_is_expired": init_is_expired,
                 "auth_mode": self.auth_manager.current().map(|a| format!("{:?}", a.auth_mode)),

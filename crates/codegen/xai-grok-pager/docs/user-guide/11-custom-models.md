@@ -19,14 +19,37 @@ astra models
 ## Connecting a Custom Model with `/connect`
 
 The `/connect` slash command is a guided shortcut for writing the
-`[model.astra-custom]` block described below. It knows the preset vendors and
-pre-fills the protocol + base URL so you only supply a model id and key.
+`[model.astra-custom]` block described below. The wizard asks for three
+things — provider, API key, model — and derives the endpoint, protocol,
+display name, and reasoning mode from the provider preset.
 
 ```text
-/connect                              # open the guided preset picker
-/connect <preset> <model_id> <key>    # one-shot connect (URL omitted for presets)
+/connect                              # guided setup
+/connect <provider>                   # guided setup with a provider preselected
+/connect <provider> <model_id> <key>  # one-shot connect (URL omitted for presets)
 /connect custom <model_id> <key> <base_url>   # explicit endpoint
 ```
+
+Inside the wizard:
+
+The form reads as three steps — choose a provider, paste the key, choose a
+model — with the provider options listed inline instead of hidden behind a
+picker.
+
+| Key | Action |
+|-----|--------|
+| `Up` / `Down` | Choose a provider on the provider step |
+| `Enter` | Continue to the next step (on an empty Model row: list the provider's models) |
+| `Tab` / `Shift+Tab` | Move between provider, API key, model, and Connect |
+| `Ctrl+E` | Show or hide the advanced rows (base URL, protocol, names, think tags) |
+| `Ctrl+S` | Connect with what you have |
+| `Esc` | Go back one step; on the provider step it closes without saving |
+
+Leaving a filled API-key field also starts model discovery, so the usual path
+is: choose the provider, paste the key, pick a model from the list, press
+`Ctrl+S`. The advanced rows open automatically for the `custom` provider,
+which has no default endpoint. Loopback URLs (`http://localhost`, `http://127.0.0.1`)
+accept an empty API key, which is what local Ollama/vLLM servers expect.
 
 Supported presets:
 

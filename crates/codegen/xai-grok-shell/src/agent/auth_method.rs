@@ -57,12 +57,7 @@ pub struct AuthMethodsBuildInputs<'a> {
     pub has_external_api_key: bool,
     /// True if a cached session token is available (either present at startup or recovered via silent refresh).
     pub has_cached_token: bool,
-    /// True if enterprise OIDC is configured.
-    /// Mutually exclusive with the default `grok.com` method.
-    pub has_enterprise_oidc: bool,
-    /// Required when `has_enterprise_oidc` is true; ignored otherwise.
-    pub enterprise_oidc_issuer: Option<&'a str>,
-    /// Optional display label for the login method (`grok.com` or `oidc`).
+    /// Optional display label for the sign-in method.
     pub login_label: Option<&'a str>,
     /// True if `grok_com_config.auth_provider_command` is configured (sets `meta.external_provider = true` on the `grok.com` method).
     pub has_auth_provider_command: bool,
@@ -83,14 +78,13 @@ pub struct BuiltAuthMethods {
 }
 
 /// REGRESSION GUARD: when unpinned and `has_external_api_key` is true, the **first** entry MUST be `xai.api_key`.
-/// Unpinned ordering (when each method is enabled): `xai.api_key` (if `has_external_api_key`) `cached_token` (if `has_cached_token`) exactly one of: `oidc` (if `has_enterprise_oidc`) `grok.com` (otherwise)
+/// Unpinned ordering (when each method is enabled): `xai.api_key` (if `has_external_api_key`) `cached_token` (if `has_cached_token`) then the single Astra sign-in method.
+/// Enterprise IdP (customer SSO) was removed, so there is no `oidc` alternative to advertise.
 /// Unpinned `default_auth_method_id`: `cached_token` if `has_cached_token` `xai.api_key` else if `has_external_api_key` `None` otherwise Pinned (`preferred_method`): `ApiKey`: only `xai.api_key` if available; else an empty list and `None` (fail). `Oidc`: `cached_token` (if any) then interactive login; never `xai.api_key`.
 pub fn build_auth_methods(inputs: AuthMethodsBuildInputs<'_>) -> BuiltAuthMethods {
     let AuthMethodsBuildInputs {
         has_external_api_key,
         has_cached_token,
-        has_enterprise_oidc,
-        enterprise_oidc_issuer,
         login_label,
         has_auth_provider_command,
         preferred_method,
@@ -98,18 +92,12 @@ pub fn build_auth_methods(inputs: AuthMethodsBuildInputs<'_>) -> BuiltAuthMethod
 
     match preferred_method {
         Some(PreferredAuthMethod::ApiKey) => build_pinned_api_key(has_external_api_key),
-        Some(PreferredAuthMethod::Oidc) => build_pinned_oidc(
-            has_cached_token,
-            has_enterprise_oidc,
-            enterprise_oidc_issuer,
-            login_label,
-            has_auth_provider_command,
-        ),
+        Some(PreferredAuthMethod::Oidc) => {
+            build_pinned_session(has_cached_token, login_label, has_auth_provider_command)
+        }
         None => build_unpinned(
             has_external_api_key,
             has_cached_token,
-            has_enterprise_oidc,
-            enterprise_oidc_issuer,
             login_label,
             has_auth_provider_command,
         ),
@@ -134,10 +122,8 @@ fn build_pinned_api_key(has_external_api_key: bool) -> BuiltAuthMethods {
     }
 }
 
-fn build_pinned_oidc(
+fn build_pinned_session(
     has_cached_token: bool,
-    has_enterprise_oidc: bool,
-    enterprise_oidc_issuer: Option<&str>,
     login_label: Option<&str>,
     has_auth_provider_command: bool,
 ) -> BuiltAuthMethods {
@@ -149,13 +135,7 @@ fn build_pinned_oidc(
         default_auth_method_id = Some(acp::AuthMethodId::new(CACHED_TOKEN_AUTH_METHOD_ID));
     }
 
-    push_interactive_login(
-        &mut methods,
-        has_enterprise_oidc,
-        enterprise_oidc_issuer,
-        login_label,
-        has_auth_provider_command,
-    );
+    push_interactive_login(&mut methods, login_label, has_auth_provider_command);
 
     BuiltAuthMethods {
         methods,
@@ -166,8 +146,6 @@ fn build_pinned_oidc(
 fn build_unpinned(
     has_external_api_key: bool,
     has_cached_token: bool,
-    has_enterprise_oidc: bool,
-    enterprise_oidc_issuer: Option<&str>,
     login_label: Option<&str>,
     has_auth_provider_command: bool,
 ) -> BuiltAuthMethods {
@@ -196,13 +174,7 @@ fn build_unpinned(
         }
     }
 
-    push_interactive_login(
-        &mut methods,
-        has_enterprise_oidc,
-        enterprise_oidc_issuer,
-        login_label,
-        has_auth_provider_command,
-    );
+    push_interactive_login(&mut methods, login_label, has_auth_provider_command);
 
     BuiltAuthMethods {
         methods,
@@ -210,23 +182,14 @@ fn build_unpinned(
     }
 }
 
+/// Append the one interactive sign-in method: the Astra account login.
+/// Enterprise IdP (customer SSO) is gone, so there is no issuer branch here.
 fn push_interactive_login(
     methods: &mut Vec<acp::AuthMethod>,
-    has_enterprise_oidc: bool,
-    enterprise_oidc_issuer: Option<&str>,
     login_label: Option<&str>,
     has_auth_provider_command: bool,
 ) {
-    if has_enterprise_oidc {
-        // Caller invariant: `enterprise_oidc_issuer` MUST be `Some(...)` when `has_enterprise_oidc` is true
-        // Production callers derive both from the same `cfg.grok_com_config.oidc` Option
-        // The inconsistent `(true, None)` combination is a programmer error, so panic loudly
-        let issuer = enterprise_oidc_issuer
-            .expect("enterprise_oidc_issuer is required when has_enterprise_oidc is true");
-        methods.push(oidc_auth_method(issuer, login_label));
-    } else {
-        methods.push(grok_com_auth_method(login_label, has_auth_provider_command));
-    }
+    methods.push(grok_com_auth_method(login_label, has_auth_provider_command));
 }
 
 /// ACP session auth method. Use `is_session_based_method` for classification.
@@ -242,9 +205,9 @@ pub enum AuthMethodKind {
 impl AuthMethodKind {
     pub fn from_id(id: &acp::AuthMethodId) -> Self {
         match id.0.as_ref() {
-            XAI_API_KEY_METHOD_ID => Self::XaiApiKey,
+            XAI_API_KEY_METHOD_ID | LEGACY_XAI_API_KEY_METHOD_ID => Self::XaiApiKey,
             CACHED_TOKEN_AUTH_METHOD_ID => Self::CachedToken,
-            GROK_COM_METHOD_ID => Self::GrokCom,
+            GROK_COM_METHOD_ID | LEGACY_GROK_COM_METHOD_ID => Self::GrokCom,
             OIDC_METHOD_ID => Self::Oidc,
             _ => Self::Unknown,
         }
@@ -299,9 +262,9 @@ pub(crate) fn session_token_auth_gate(
 }
 
 pub const AUTH_ERROR_SESSION_EXPIRED: &str =
-    "Session expired. Run `grok login` to re-authenticate.";
+    "Session expired. Run `astra login` to re-authenticate.";
 
-pub const AUTH_ERROR_API_KEY: &str = "Authentication failed. Run `grok login`, set XAI_API_KEY, or add api_key to ~/.astra/config.toml.";
+pub const AUTH_ERROR_API_KEY: &str = "Authentication failed. Run `astra login`, or add api_key to ~/.astra/config.toml for a custom provider.";
 
 /// Next ACP method id when `cached_token` cannot proceed (missing / expired / legacy WebLogin), or `None` when fallthrough is forbidden.
 /// Unpinned: prefer non-interactive `xai.api_key` when advertiseable, else interactive `grok.com`. Pinned `oidc`: **no** fallthrough to api_key; return `None` so the caller fails auth.
@@ -321,18 +284,21 @@ pub(crate) fn method_id_after_cached_token_unavailable(
 }
 
 /// Error when `preferred_method=api_key` but no key/BYOK credentials exist.
-pub const PREFERRED_API_KEY_UNAVAILABLE: &str = "preferred_method=api_key but no API key is configured (set XAI_API_KEY or model api_key/env_key in config.toml).";
+pub const PREFERRED_API_KEY_UNAVAILABLE: &str = "preferred_method=api_key but no API key is configured (set ASTRA_API_KEY or model api_key/env_key in config.toml).";
 
 /// Error when `preferred_method=oidc` but the session path cannot proceed.
 pub const PREFERRED_OIDC_UNAVAILABLE: &str =
-    "preferred_method=oidc but no session is available. Run `grok login` to authenticate.";
+    "preferred_method=oidc but no session is available. Run `astra login` to authenticate.";
 
-pub const XAI_API_KEY_METHOD_ID: &str = "xai.api_key";
+pub const XAI_API_KEY_METHOD_ID: &str = "astracode.api_key";
+/// Pre-rebrand method id. Still classified so a cached selection keeps working;
+/// never advertised.
+pub const LEGACY_XAI_API_KEY_METHOD_ID: &str = "xai.api_key";
 pub(crate) fn xai_api_key_auth_method() -> acp::AuthMethod {
     acp::AuthMethod::Agent(
         acp::AuthMethodAgent::new(
             acp::AuthMethodId::new(XAI_API_KEY_METHOD_ID),
-            "xai.api_key".to_string(),
+            "astracode.api_key".to_string(),
         )
         .description(Some(format!(
             "{XAI_API_KEY_ENV_VAR} or api_key/env_key in config.toml"
@@ -351,9 +317,12 @@ pub(crate) fn cached_token_auth_method() -> acp::AuthMethod {
     )
 }
 
-pub const GROK_COM_METHOD_ID: &str = "grok.com";
+pub const GROK_COM_METHOD_ID: &str = "astracode";
+/// Pre-rebrand method id. Still classified so cached selections and older
+/// clients keep working; never advertised.
+pub const LEGACY_GROK_COM_METHOD_ID: &str = "grok.com";
 
-/// xAI OAuth2/OIDC auth. Method id `"grok.com"` kept for ACP wire compatibility.
+/// Astra account sign-in: the CLI's only interactive login method.
 pub(crate) fn grok_com_auth_method(
     label: Option<&str>,
     has_auth_provider_command: bool,
@@ -373,16 +342,9 @@ pub(crate) fn grok_com_auth_method(
     )
 }
 
+/// Legacy method id from the removed enterprise-IdP sign-in. Still classified so
+/// an old cached selection resolves, never advertised.
 pub const OIDC_METHOD_ID: &str = "oidc";
-pub(crate) fn oidc_auth_method(issuer: &str, label: Option<&str>) -> acp::AuthMethod {
-    let name = label
-        .map(|l| l.to_string())
-        .unwrap_or_else(|| format!("Single sign-on ({})", issuer));
-    acp::AuthMethod::Agent(
-        acp::AuthMethodAgent::new(acp::AuthMethodId::new(OIDC_METHOD_ID), name.clone())
-            .description(Some(format!("Sign in with {name}"))),
-    )
-}
 
 #[cfg(test)]
 mod tests {
@@ -464,8 +426,6 @@ mod tests {
         AuthMethodsBuildInputs {
             has_external_api_key: false,
             has_cached_token: false,
-            has_enterprise_oidc: false,
-            enterprise_oidc_issuer: None,
             login_label: None,
             has_auth_provider_command: false,
             preferred_method: None,
@@ -590,33 +550,31 @@ mod tests {
         assert_eq!(built.methods.len(), 1);
     }
 
-    /// Enterprise OIDC replaces `grok.com` (mutually exclusive).
+    /// Enterprise IdP was removed: no configuration may add an `oidc` method.
     /// xai.api_key, when present, still leads.
     #[test]
-    fn enterprise_oidc_replaces_grok_com_but_xai_api_key_still_first() {
+    fn enterprise_idp_is_never_advertised() {
         let inputs = AuthMethodsBuildInputs {
             has_external_api_key: true,
-            has_cached_token: false,
-            has_enterprise_oidc: true,
-            enterprise_oidc_issuer: Some("https://sso.example.com"),
+            has_cached_token: true,
             ..default_inputs()
         };
         let built = build_auth_methods(inputs);
 
         assert_eq!(first_kind(&built.methods), Some(AuthMethodKind::XaiApiKey));
         assert!(
-            built
-                .methods
-                .iter()
-                .any(|m| AuthMethodKind::from_id(m.id()) == AuthMethodKind::Oidc),
-            "oidc must be advertised when has_enterprise_oidc",
-        );
-        assert!(
             !built
                 .methods
                 .iter()
+                .any(|m| AuthMethodKind::from_id(m.id()) == AuthMethodKind::Oidc),
+            "the enterprise IdP method must never be advertised anymore",
+        );
+        assert!(
+            built
+                .methods
+                .iter()
                 .any(|m| AuthMethodKind::from_id(m.id()) == AuthMethodKind::GrokCom),
-            "grok.com and oidc are mutually exclusive",
+            "the Astra sign-in method must still be advertised",
         );
     }
 

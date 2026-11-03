@@ -67,10 +67,6 @@ const GROK_COM_CONFIG_LEAVES: &[&str] = &[
     "grok_com_config.oauth2.principal_type",
     "grok_com_config.oauth2.principal_id",
     "grok_com_config.oauth2.referrer",
-    "grok_com_config.oidc.issuer",
-    "grok_com_config.oidc.client_id",
-    "grok_com_config.oidc.scopes",
-    "grok_com_config.oidc.audience",
 ];
 
 #[derive(Clone, Debug)]

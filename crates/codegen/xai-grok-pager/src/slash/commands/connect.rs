@@ -75,11 +75,11 @@ impl SlashCommand for ConnectCommand {
     }
 
     fn description(&self) -> &str {
-        "Connect a custom model (URL, Model ID, API key)"
+        "Connect a model provider (guided: pick a provider, key, and model)"
     }
 
     fn usage(&self) -> &str {
-        "/connect [preset] [model_id] [api_key] [base_url]"
+        "/connect [provider] [model_id] [api_key] [base_url]"
     }
 
     fn takes_args(&self) -> bool {
@@ -87,7 +87,7 @@ impl SlashCommand for ConnectCommand {
     }
 
     fn arg_placeholder(&self) -> Option<&str> {
-        Some("<preset> [model_id] [api_key] [base_url]")
+        Some("[provider] [model_id] [api_key] [base_url]")
     }
 
     fn suggest_args(&self, _ctx: &AppCtx, _args_query: &str) -> Option<Vec<ArgItem>> {

@@ -214,14 +214,17 @@ pub enum Field {
 }
 
 impl Field {
+    /// Canonical field list. The live Tab order is
+    /// [`ConnectWizardState::tab_order`], which hides the advanced fields
+    /// until the user expands them.
     pub const ORDER: &'static [Field] = &[
         Field::Preset,
-        Field::ProviderName,
-        Field::Protocol,
-        Field::Url,
         Field::ApiKey,
         Field::ModelId,
         Field::FetchModels,
+        Field::Url,
+        Field::Protocol,
+        Field::ProviderName,
         Field::ModelName,
         Field::InjectThinkTags,
         Field::Submit,
@@ -280,11 +283,54 @@ pub enum ConnectWizardMode {
     },
 }
 
+/// Guided steps of the connect form: choose a provider, paste the key, pick a
+/// model. The form renders the active step so setup reads like a web form
+/// instead of one long list of technical fields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WizardStep {
+    Provider,
+    ApiKey,
+    Model,
+}
+
+impl WizardStep {
+    pub fn number(self) -> u8 {
+        match self {
+            Self::Provider => 1,
+            Self::ApiKey => 2,
+            Self::Model => 3,
+        }
+    }
+
+    pub fn title(self) -> &'static str {
+        match self {
+            Self::Provider => "Choose a provider",
+            Self::ApiKey => "Paste your API key",
+            Self::Model => "Choose a model",
+        }
+    }
+
+    pub fn hint(self) -> &'static str {
+        match self {
+            Self::Provider => {
+                "Up/Down picks a provider, Enter continues, Ctrl+E shows a custom endpoint"
+            }
+            Self::ApiKey => {
+                "Paste the key from the provider console, Enter continues (local endpoints can stay empty)"
+            }
+            Self::Model => {
+                "Enter lists the provider's models, or type a model ID to use one it does not list"
+            }
+        }
+    }
+}
+
 /// Hit target for mouse clicks.
 #[derive(Debug, Clone, Copy)]
 pub enum ConnectHitTarget {
     Field(Field),
     ToggleKeyMask,
+    ToggleAdvanced,
     FetchModelsBtn,
     SubmitBtn,
     PresetChoice(usize),
@@ -310,6 +356,14 @@ pub struct ConnectWizardState {
     pub model_id: String,
     pub model_name: String,
     pub inject_think_tags: bool,
+
+    /// Whether the endpoint/protocol/name/think-tag rows are expanded. The
+    /// default form only asks for provider, API key and model, and derives
+    /// everything else from the preset.
+    pub show_advanced: bool,
+
+    /// Active guided step (provider -> key -> model).
+    pub step: WizardStep,
 
     pub focused: Field,
     pub mode: ConnectWizardMode,
@@ -340,6 +394,8 @@ impl std::fmt::Debug for ConnectWizardState {
             .field("protocol", &self.protocol)
             .field("base_url", &self.base_url)
             .field("model_id", &self.model_id)
+            .field("show_advanced", &self.show_advanced)
+            .field("step", &self.step)
             .field("focused", &self.focused)
             .field("mode", &self.mode)
             .finish()
@@ -359,6 +415,8 @@ impl Clone for ConnectWizardState {
             model_id: self.model_id.clone(),
             model_name: self.model_name.clone(),
             inject_think_tags: self.inject_think_tags,
+            show_advanced: self.show_advanced,
+            step: self.step,
             focused: self.focused,
             mode: self.mode.clone(),
             cursor_preset: self.cursor_preset,
@@ -393,6 +451,8 @@ impl Default for ConnectWizardState {
             model_id: String::new(),
             model_name: String::new(),
             inject_think_tags: preset.injects_think_tags,
+            show_advanced: false,
+            step: WizardStep::Provider,
             focused: Field::Preset,
             mode: ConnectWizardMode::Form,
             cursor_preset: 0,
@@ -425,6 +485,12 @@ impl ConnectWizardState {
         self.provider_name = def.label.to_string();
         self.protocol = def.protocol;
         self.inject_think_tags = def.injects_think_tags;
+        // A custom provider has no endpoint to derive, so open the advanced
+        // section for it instead of silently validating on an empty URL.
+        self.show_advanced = def.id == "custom";
+        self.step = WizardStep::Provider;
+        self.fetched_models = None;
+        self.fetch_status = None;
 
         // If base_url was default or empty, prefill new default
         let prev_urls: Vec<&str> = PRESET_DEFS.iter().map(|p| p.base_url).collect();
@@ -436,14 +502,110 @@ impl ConnectWizardState {
         self.error.clear();
     }
 
-    pub fn focus_next(&mut self) {
-        self.focused = self.focused.next();
+    /// Fields the Tab key walks, in order. Advanced rows only appear once
+    /// they are expanded, so the common path stays three fields long.
+    pub fn tab_order(&self) -> Vec<Field> {
+        let mut order = vec![Field::Preset];
+        if self.show_advanced {
+            order.push(Field::Url);
+            order.push(Field::Protocol);
+        }
+        order.push(Field::ApiKey);
+        order.push(Field::ModelId);
+        order.push(Field::FetchModels);
+        if self.show_advanced {
+            order.push(Field::ProviderName);
+            order.push(Field::ModelName);
+            order.push(Field::InjectThinkTags);
+        }
+        order.push(Field::Submit);
+        order
+    }
+
+    pub fn toggle_advanced(&mut self) {
+        self.show_advanced = !self.show_advanced;
+        if !self.show_advanced
+            && matches!(
+                self.focused,
+                Field::Url
+                    | Field::Protocol
+                    | Field::ProviderName
+                    | Field::ModelName
+                    | Field::InjectThinkTags
+            )
+        {
+            self.focused = Field::Preset;
+        }
         self.error.clear();
     }
 
-    pub fn focus_prev(&mut self) {
-        self.focused = self.focused.prev();
+    pub fn focus_next(&mut self) {
+        let was_api_key = self.focused == Field::ApiKey;
+        let order = self.tab_order();
+        let idx = order.iter().position(|f| *f == self.focused).unwrap_or(0);
+        self.focused = order[(idx + 1) % order.len()];
+        self.sync_step_from_focus();
         self.error.clear();
+        // Leaving a filled API-key field is the natural "I'm ready for the
+        // model list" moment: kick off discovery so Tab lands on a picker
+        // instead of an empty text box.
+        if was_api_key && self.should_auto_discover() {
+            self.start_fetch_models();
+        }
+    }
+
+    pub fn focus_prev(&mut self) {
+        let order = self.tab_order();
+        let idx = order.iter().position(|f| *f == self.focused).unwrap_or(0);
+        self.focused = order[(idx + order.len() - 1) % order.len()];
+        self.sync_step_from_focus();
+        self.error.clear();
+    }
+
+    /// Move to the next guided step and focus its field.
+    pub fn advance_step(&mut self) {
+        self.step = match self.step {
+            WizardStep::Provider => WizardStep::ApiKey,
+            WizardStep::ApiKey | WizardStep::Model => WizardStep::Model,
+        };
+        self.focus_step_field();
+    }
+
+    /// Move back one guided step (Esc).
+    pub fn retreat_step(&mut self) {
+        self.step = match self.step {
+            WizardStep::Provider | WizardStep::ApiKey => WizardStep::Provider,
+            WizardStep::Model => WizardStep::ApiKey,
+        };
+        self.focus_step_field();
+    }
+
+    fn focus_step_field(&mut self) {
+        self.focused = match self.step {
+            WizardStep::Provider => Field::Preset,
+            WizardStep::ApiKey => Field::ApiKey,
+            WizardStep::Model => Field::ModelId,
+        };
+        self.error.clear();
+    }
+
+    /// Keep the rendered step in sync when the user Tabs to another field.
+    fn sync_step_from_focus(&mut self) {
+        self.step = match self.focused {
+            Field::Preset | Field::Url | Field::Protocol => WizardStep::Provider,
+            Field::ApiKey => WizardStep::ApiKey,
+            Field::ModelId | Field::FetchModels => WizardStep::Model,
+            _ => self.step,
+        };
+    }
+
+    /// True when the endpoint and key are known and no upstream model list has
+    /// been fetched yet for this form.
+    pub fn should_auto_discover(&self) -> bool {
+        !self.is_fetching
+            && self.fetched_models.is_none()
+            && !self.base_url.trim().is_empty()
+            && !self.api_key.trim().is_empty()
     }
 
     pub fn insert_char(&mut self, c: char) {
@@ -578,7 +740,12 @@ impl ConnectWizardState {
             self.cursor_url = self.base_url.len();
             return None;
         }
-        if api_key.is_empty() {
+        // Local/loopback endpoints usually run without auth, so an empty key
+        // is only an error for a remote provider.
+        let loopback = url.starts_with("http://localhost")
+            || url.starts_with("http://127.0.0.1")
+            || url.starts_with("http://[::1]");
+        if api_key.is_empty() && !loopback {
             self.error = "API key is required.".to_string();
             self.focused = Field::ApiKey;
             self.cursor_key = self.api_key.len();
@@ -644,10 +811,21 @@ impl ConnectWizardState {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.fetch_rx = Some(rx);
 
-        tokio::spawn(async move {
-            let res = fetch_upstream_models_async(&url, &key, proto).await;
-            let _ = tx.send(res);
-        });
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                handle.spawn(async move {
+                    let res = fetch_upstream_models_async(&url, &key, proto).await;
+                    let _ = tx.send(res);
+                });
+            }
+            Err(_) => {
+                self.is_fetching = false;
+                self.fetch_rx = None;
+                self.fetch_status = None;
+                self.error = "Model discovery needs an active session; type the model ID instead."
+                    .to_string();
+            }
+        }
     }
 }
 
@@ -832,6 +1010,12 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
         ConnectWizardMode::Form => {}
     }
 
+    // Ctrl+E reveals/hides the advanced rows from anywhere.
+    if key.code == KeyCode::Char('e') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        state.toggle_advanced();
+        return WizardOutcome::Changed;
+    }
+
     // Ctrl+S or Ctrl+Enter submits from anywhere
     if (key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL))
         || (key.code == KeyCode::Enter && key.modifiers.contains(KeyModifiers::CONTROL))
@@ -843,7 +1027,15 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
     }
 
     match key.code {
-        KeyCode::Esc => WizardOutcome::Closed,
+        KeyCode::Esc => {
+            // Esc backs out one step before it closes the whole form.
+            if state.step != WizardStep::Provider {
+                state.retreat_step();
+                WizardOutcome::Changed
+            } else {
+                WizardOutcome::Closed
+            }
+        }
         KeyCode::Tab => {
             state.focus_next();
             WizardOutcome::Changed
@@ -988,11 +1180,39 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
         }
         KeyCode::Enter => {
             match state.focused {
-                Field::Preset => {
-                    state.mode = ConnectWizardMode::PickingPreset {
-                        selected: state.preset_idx,
-                    };
+                // Enter on an empty model field means "show me what this
+                // provider offers" rather than a validation error.
+                Field::ModelId if state.model_id.trim().is_empty() => {
+                    if state.should_auto_discover() || !state.base_url.trim().is_empty() {
+                        state.start_fetch_models();
+                    } else {
+                        state.error =
+                            "Set a base URL first (Ctrl+E), then fetch the model list.".to_string();
+                        state.focused = Field::Url;
+                    }
                     WizardOutcome::Changed
+                }
+                Field::Preset => {
+                    // The provider list is rendered inline on the provider
+                    // step, so Enter simply continues to the key.
+                    state.advance_step();
+                    WizardOutcome::Changed
+                }
+                Field::ApiKey => {
+                    let url = state.base_url.trim();
+                    let loopback = url.starts_with("http://localhost")
+                        || url.starts_with("http://127.0.0.1")
+                        || url.starts_with("http://[::1]");
+                    if state.api_key.trim().is_empty() && !loopback {
+                        state.error = "Paste the API key for this provider.".to_string();
+                        WizardOutcome::Changed
+                    } else {
+                        state.advance_step();
+                        if state.should_auto_discover() {
+                            state.start_fetch_models();
+                        }
+                        WizardOutcome::Changed
+                    }
                 }
                 Field::Protocol => {
                     let idx = ProtocolBackend::ALL
@@ -1106,6 +1326,10 @@ pub fn handle_wizard_mouse(
                             state.mask_api_key = !state.mask_api_key;
                             return WizardOutcome::Changed;
                         }
+                        ConnectHitTarget::ToggleAdvanced => {
+                            state.toggle_advanced();
+                            return WizardOutcome::Changed;
+                        }
                         ConnectHitTarget::FetchModelsBtn => {
                             state.start_fetch_models();
                             return WizardOutcome::Changed;
@@ -1119,6 +1343,7 @@ pub fn handle_wizard_mouse(
                         ConnectHitTarget::PresetChoice(idx) => {
                             state.set_preset(idx);
                             state.mode = ConnectWizardMode::Form;
+                            state.advance_step();
                             return WizardOutcome::Changed;
                         }
                         ConnectHitTarget::ProtocolChoice(idx) => {
@@ -1179,12 +1404,12 @@ pub fn render_wizard(
 
     let shortcuts = [
         Shortcut {
-            label: "↑/↓ nav",
+            label: "↑/↓ choose",
             clickable: false,
             id: 0,
         },
         Shortcut {
-            label: "Enter select/edit",
+            label: "Enter continue",
             clickable: false,
             id: 0,
         },
@@ -1194,7 +1419,7 @@ pub fn render_wizard(
             id: 1,
         },
         Shortcut {
-            label: "Esc close",
+            label: "Esc back",
             clickable: false,
             id: 0,
         },
@@ -1258,7 +1483,8 @@ pub fn render_wizard(
     }
 }
 
-/// Render the main interactive connect form.
+/// Render the guided form: a step header, the provider options while the
+/// provider step is active, and one row per blank still to fill.
 fn render_connect_form(
     buf: &mut Buffer,
     area: Rect,
@@ -1267,103 +1493,236 @@ fn render_connect_form(
 ) {
     let mut cur_y = area.y;
     let max_y = area.y + area.height;
-    let label_width: u16 = 22;
+    // Indicator (2) + 20-column label + " \u{2502} " separator (3).
+    let row_prefix_width: u16 = 25;
 
-    // Section Header
     if cur_y < max_y {
-        let header = Line::from(vec![Span::styled(
-            "◆ Provider & Endpoint Configuration",
-            Style::default()
-                .fg(theme.fuzzy_accent)
-                .add_modifier(Modifier::BOLD),
-        )]);
+        let header = Line::from(vec![
+            Span::styled(
+                format!("Step {} of 3", state.step.number()),
+                Style::default().fg(theme.gray),
+            ),
+            Span::styled("  ", Style::default()),
+            Span::styled(
+                state.step.title(),
+                Style::default()
+                    .fg(theme.fuzzy_accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]);
         buf.set_line(area.x, cur_y, &header, area.width);
-        cur_y += 2;
+        cur_y += 1;
+    }
+    if cur_y < max_y {
+        buf.set_line(
+            area.x,
+            cur_y,
+            &Line::from(Span::styled(
+                state.step.hint(),
+                Style::default().fg(theme.gray),
+            )),
+            area.width,
+        );
+        cur_y += 1;
+    }
+    cur_y += 1;
+
+    let preset = PRESET_DEFS[state.preset_idx];
+    if state.step == WizardStep::Provider {
+        // Keep the panel usable on short terminals: reserve the key/model
+        // rows, the advanced disclosure, the status line and the Connect
+        // button, then window the provider list around the selection. The
+        // wheel offset is applied here so scrolling actually moves the list
+        // (it used to be written and never read).
+        const RESERVED_BELOW_LIST: u16 = 7;
+        let available = max_y
+            .saturating_sub(cur_y)
+            .saturating_sub(RESERVED_BELOW_LIST);
+        let capacity = available.max(3).min(PRESET_DEFS.len() as u16) as usize;
+        let max_start = PRESET_DEFS.len().saturating_sub(capacity);
+        let mut start = state.scroll_offset.min(max_start);
+        if state.preset_idx < start {
+            start = state.preset_idx;
+        } else if state.preset_idx >= start + capacity {
+            start = state.preset_idx + 1 - capacity;
+        }
+        state.scroll_offset = start;
+        let end = (start + capacity).min(PRESET_DEFS.len());
+
+        for (i, def) in PRESET_DEFS.iter().enumerate().skip(start).take(end - start) {
+            if cur_y >= max_y {
+                break;
+            }
+            let selected = i == state.preset_idx;
+            state.hit_areas.push(ConnectHitArea {
+                rect: Rect {
+                    x: area.x,
+                    y: cur_y,
+                    width: area.width,
+                    height: 1,
+                },
+                target: ConnectHitTarget::PresetChoice(i),
+            });
+            if selected {
+                let row_bg = Style::default().bg(theme.bg_highlight);
+                for x in area.x..area.x + area.width {
+                    if let Some(cell) = buf.cell_mut((x, cur_y)) {
+                        cell.reset();
+                        cell.set_style(row_bg);
+                    }
+                }
+            }
+            let endpoint = if def.base_url.is_empty() {
+                "custom endpoint"
+            } else {
+                def.base_url
+            };
+            let label_style = if selected {
+                Style::default()
+                    .fg(theme.fuzzy_accent)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(theme.text_primary)
+            };
+            // Show the wire protocol: `openai` and `openai_responses` share a
+            // base URL, so the endpoint alone cannot tell them apart.
+            let protocol_tag = match def.protocol {
+                ProtocolBackend::ChatCompletions => "chat",
+                ProtocolBackend::Responses => "responses",
+                ProtocolBackend::Messages => "messages",
+            };
+            let spans = vec![
+                Span::styled(
+                    if selected { " ● " } else { "   " },
+                    Style::default().fg(theme.fuzzy_accent),
+                ),
+                Span::styled(format!("{:<26}", def.label), label_style),
+                Span::styled(
+                    format!("{protocol_tag:<11}"),
+                    Style::default().fg(theme.gray_dim),
+                ),
+                Span::styled(format!("  {endpoint}"), Style::default().fg(theme.gray)),
+            ];
+            buf.set_line(area.x, cur_y, &Line::from(spans), area.width);
+            cur_y += 1;
+        }
+        // Say how many providers are off-screen instead of silently clipping.
+        if end < PRESET_DEFS.len() && cur_y < max_y {
+            let more = Line::from(Span::styled(
+                format!(
+                    "   \u{2193} {} more \u{00b7} \u{2191}/\u{2193} to scroll",
+                    PRESET_DEFS.len() - end
+                ),
+                Style::default().fg(theme.gray),
+            ));
+            buf.set_line(area.x, cur_y, &more, area.width);
+            cur_y += 1;
+        }
+        cur_y += 1;
     }
 
-    // List of form rows
-    let rows = [
-        (
-            Field::Preset,
-            "Provider Preset",
-            state.current_preset_id(),
-            format!("[ {} ▾ ]", PRESET_DEFS[state.preset_idx].label),
-        ),
-        (
-            Field::ProviderName,
-            "Provider Name",
-            &state.provider_name,
-            state.provider_name.clone(),
-        ),
-        (
-            Field::Protocol,
-            "Protocol Format",
-            state.protocol.as_str(),
-            format!("[ {} ▾ ]", state.protocol.display_label()),
-        ),
-        (
+    let endpoint_hint = if preset.base_url.is_empty() {
+        "custom endpoint".to_string()
+    } else {
+        preset.base_url.to_string()
+    };
+    let mut rows: Vec<(Field, &str, &str, String)> = Vec::new();
+    if state.show_advanced {
+        rows.push((
             Field::Url,
-            "Base URL",
+            "Endpoint",
             &state.base_url,
             if state.base_url.is_empty() {
-                "<None / Enter Base URL>".to_string()
+                "<Required for custom providers>".to_string()
             } else {
                 state.base_url.clone()
             },
-        ),
-        (
-            Field::ApiKey,
-            "API Key",
-            &state.api_key,
-            if state.api_key.is_empty() {
-                "<Enter API Key>".to_string()
-            } else if state.mask_api_key {
-                "•".repeat(state.api_key.len().min(24))
-            } else {
-                state.api_key.clone()
-            },
-        ),
-        (
-            Field::ModelId,
-            "Model ID",
-            &state.model_id,
-            if state.model_id.is_empty() {
-                "<Enter Model ID or Auto-Fetch below>".to_string()
-            } else {
-                state.model_id.clone()
-            },
-        ),
-        (
+        ));
+        rows.push((
+            Field::Protocol,
+            "Protocol",
+            state.protocol.as_str(),
+            format!("[ {} \u{25be} ]", state.protocol.short_label()),
+        ));
+    }
+    if state.step != WizardStep::Provider {
+        rows.push((
+            Field::Preset,
+            "Provider",
+            state.current_preset_id(),
+            format!("[ {} \u{25be} ]  {endpoint_hint}", preset.label),
+        ));
+    }
+    rows.push((
+        Field::ApiKey,
+        "API key",
+        &state.api_key,
+        if state.api_key.is_empty() {
+            "<Paste API key>".to_string()
+        } else if state.mask_api_key {
+            "\u{2022}".repeat(state.api_key.len().min(24))
+        } else {
+            state.api_key.clone()
+        },
+    ));
+    rows.push((
+        Field::ModelId,
+        "Model",
+        &state.model_id,
+        if state.model_id.is_empty() {
+            "<Enter to list models, or type an ID>".to_string()
+        } else {
+            state.model_id.clone()
+        },
+    ));
+    if state.step == WizardStep::Model {
+        rows.push((
             Field::FetchModels,
-            "Auto-Fetch Models",
+            "Find models",
             "",
             if state.is_fetching {
-                "⟳ Fetching models from upstream...".to_string()
+                "\u{27f3} Fetching from provider...".to_string()
             } else {
-                "[ ⟳ Fetch Upstream Models ]".to_string()
+                "[ \u{27f3} List provider models ]".to_string()
             },
-        ),
-        (
+        ));
+    }
+    if state.show_advanced {
+        rows.push((
+            Field::ProviderName,
+            "Provider name",
+            &state.provider_name,
+            state.provider_name.clone(),
+        ));
+        rows.push((
             Field::ModelName,
-            "Model Display Name",
+            "Display name",
             &state.model_name,
             if state.model_name.is_empty() {
-                "<Optional Display Name>".to_string()
+                format!(
+                    "{} \u{00b7} {}",
+                    state.provider_name.trim(),
+                    if state.model_id.is_empty() {
+                        "model"
+                    } else {
+                        state.model_id.as_str()
+                    }
+                )
             } else {
                 state.model_name.clone()
             },
-        ),
-        (
+        ));
+        rows.push((
             Field::InjectThinkTags,
-            "Think Tag Injection",
+            "Think tags",
             "",
             if state.inject_think_tags {
-                "[ ✓ Enabled (<think> tags) ]".to_string()
+                "[ \u{2713} Split  thinking tags ]".to_string()
             } else {
-                "[   Disabled ]".to_string()
+                "[   Native reasoning ]".to_string()
             },
-        ),
-    ];
+        ));
+    }
 
     for (field, label, raw_val, display_val) in rows {
         if cur_y >= max_y {
@@ -1393,7 +1752,7 @@ fn render_connect_form(
             }
         }
 
-        let indicator = if is_focused { "▶ " } else { "  " };
+        let indicator = if is_focused { "\u{25b6} " } else { "  " };
         let label_style = if is_focused {
             Style::default()
                 .fg(theme.fuzzy_accent)
@@ -1405,7 +1764,7 @@ fn render_connect_form(
         let mut spans = vec![
             Span::styled(indicator, Style::default().fg(theme.fuzzy_accent)),
             Span::styled(format!("{label:<20}"), label_style),
-            Span::styled(" │ ", Style::default().fg(theme.gray_dim)),
+            Span::styled(" \u{2502} ", Style::default().fg(theme.gray_dim)),
         ];
 
         if field == Field::FetchModels {
@@ -1439,7 +1798,7 @@ fn render_connect_form(
                 " [Hide]"
             };
             let mask_btn_style = Style::default().fg(theme.fuzzy_accent);
-            let mask_x = area.x + label_width + display_val.len() as u16 + 5;
+            let mask_x = area.x + row_prefix_width + display_val.len() as u16;
             if mask_x + 8 < area.x + area.width {
                 state.hit_areas.push(ConnectHitArea {
                     rect: Rect {
@@ -1489,7 +1848,7 @@ fn render_connect_form(
 
                 spans.push(Span::styled(&display_val[..cursor], val_style));
                 spans.push(Span::styled(
-                    "█",
+                    "\u{2588}",
                     Style::default()
                         .fg(theme.fuzzy_accent)
                         .add_modifier(Modifier::SLOW_BLINK),
@@ -1504,13 +1863,38 @@ fn render_connect_form(
         cur_y += 1;
     }
 
+    // Advanced disclosure (clickable, or Ctrl+E from anywhere).
+    if cur_y < max_y {
+        let text = if state.show_advanced {
+            "\u{25be} Advanced (Ctrl+E to hide): endpoint, protocol, names, think tags"
+        } else {
+            "\u{25b8} Advanced (Ctrl+E): endpoint, protocol, names, think tags"
+        };
+        state.hit_areas.push(ConnectHitArea {
+            rect: Rect {
+                x: area.x,
+                y: cur_y,
+                width: area.width,
+                height: 1,
+            },
+            target: ConnectHitTarget::ToggleAdvanced,
+        });
+        buf.set_line(
+            area.x,
+            cur_y,
+            &Line::from(Span::styled(text, Style::default().fg(theme.gray))),
+            area.width,
+        );
+        cur_y += 1;
+    }
+
     cur_y += 1;
 
     // Error or status bar
     if !state.error.is_empty() && cur_y < max_y {
         let err_line = Line::from(vec![
             Span::styled(
-                "✗ ",
+                "\u{2717} ",
                 Style::default()
                     .fg(theme.accent_error)
                     .add_modifier(Modifier::BOLD),
@@ -1519,20 +1903,20 @@ fn render_connect_form(
         ]);
         buf.set_line(area.x + 2, cur_y, &err_line, area.width.saturating_sub(4));
         cur_y += 1;
-    } else if let Some(ref st) = state.fetch_status
-        && cur_y < max_y
-    {
-        let status_line = Line::from(vec![
-            Span::styled("ℹ ", Style::default().fg(theme.fuzzy_accent)),
-            Span::styled(st, Style::default().fg(theme.fuzzy_accent)),
-        ]);
-        buf.set_line(
-            area.x + 2,
-            cur_y,
-            &status_line,
-            area.width.saturating_sub(4),
-        );
-        cur_y += 1;
+    } else if let Some(ref st) = state.fetch_status {
+        if cur_y < max_y {
+            let status_line = Line::from(vec![
+                Span::styled("\u{2139} ", Style::default().fg(theme.fuzzy_accent)),
+                Span::styled(st, Style::default().fg(theme.fuzzy_accent)),
+            ]);
+            buf.set_line(
+                area.x + 2,
+                cur_y,
+                &status_line,
+                area.width.saturating_sub(4),
+            );
+            cur_y += 1;
+        }
     }
 
     cur_y += 1;
@@ -1965,13 +2349,68 @@ mod tests {
     }
 
     #[test]
-    fn tab_cycles_through_fields() {
+    fn tab_walks_only_the_primary_fields() {
         let mut s = ConnectWizardState::default();
         assert_eq!(s.focused, Field::Preset);
         s.focus_next();
-        assert_eq!(s.focused, Field::ProviderName);
+        assert_eq!(s.focused, Field::ApiKey);
         s.focus_next();
-        assert_eq!(s.focused, Field::Protocol);
+        assert_eq!(s.focused, Field::ModelId);
+        s.focus_next();
+        assert_eq!(s.focused, Field::FetchModels);
+        s.focus_next();
+        assert_eq!(s.focused, Field::Submit);
+        s.focus_next();
+        assert_eq!(s.focused, Field::Preset);
+    }
+
+    #[test]
+    fn advanced_fields_are_hidden_until_expanded() {
+        let mut s = ConnectWizardState::default();
+        assert!(!s.show_advanced);
+        assert!(!s.tab_order().contains(&Field::Url));
+        s.toggle_advanced();
+        assert!(s.show_advanced);
+        assert!(s.tab_order().contains(&Field::Url));
+        assert!(s.tab_order().contains(&Field::Protocol));
+        s.toggle_advanced();
+        assert!(!s.show_advanced);
+        assert!(!s.tab_order().contains(&Field::Url));
+    }
+
+    #[test]
+    fn custom_preset_opens_advanced_and_endpoint_presets_do_not() {
+        let mut s = ConnectWizardState::default();
+        s.set_preset(9); // custom
+        assert!(s.show_advanced, "custom needs a visible base URL field");
+        s.set_preset(0); // openai
+        assert!(!s.show_advanced);
+    }
+
+    #[test]
+    fn enter_on_empty_model_field_starts_discovery() {
+        let mut s = ConnectWizardState {
+            focused: Field::ModelId,
+            api_key: "sk-test".into(),
+            ..ConnectWizardState::default()
+        };
+        let out = handle_wizard_key(&mut s, &k(KeyCode::Enter));
+        assert_eq!(out, WizardOutcome::Changed);
+        // No tokio runtime in unit tests; discovery reports that instead of
+        // panicking, and no submit was attempted.
+        assert!(!s.error.is_empty());
+    }
+
+    #[test]
+    fn loopback_endpoint_does_not_require_api_key() {
+        let mut s = ConnectWizardState {
+            model_id: "local-model".into(),
+            base_url: "http://localhost:11434/v1".into(),
+            ..ConnectWizardState::default()
+        };
+        let result = s.validate_and_build().expect("local endpoint needs no key");
+        assert_eq!(result.model_id, "local-model");
+        assert_eq!(result.base_url, "http://localhost:11434/v1");
     }
 
     #[test]
@@ -2027,21 +2466,49 @@ mod tests {
     }
 
     #[test]
-    fn enter_in_text_field_submits_when_valid() {
+    fn enter_on_api_key_advances_to_the_model_step() {
         let mut s = ConnectWizardState {
             focused: Field::ApiKey,
-            model_id: "m".into(),
+            step: WizardStep::ApiKey,
             api_key: "sk".into(),
             ..ConnectWizardState::default()
         };
         let out = handle_wizard_key(&mut s, &k(KeyCode::Enter));
-        match out {
-            WizardOutcome::Submitted(r) => {
-                assert_eq!(r.model_id, "m");
-                assert_eq!(r.api_key, "sk");
-            }
-            other => panic!("expected Submitted, got {other:?}"),
-        }
+        assert_eq!(out, WizardOutcome::Changed);
+        assert_eq!(s.step, WizardStep::Model);
+        assert_eq!(s.focused, Field::ModelId);
+    }
+
+    #[test]
+    fn enter_on_provider_advances_to_the_key_step() {
+        let mut s = ConnectWizardState::default();
+        let out = handle_wizard_key(&mut s, &k(KeyCode::Enter));
+        assert_eq!(out, WizardOutcome::Changed);
+        assert_eq!(s.step, WizardStep::ApiKey);
+        assert_eq!(s.focused, Field::ApiKey);
+    }
+
+    #[test]
+    fn esc_from_a_later_step_goes_back_before_closing() {
+        let mut s = ConnectWizardState {
+            focused: Field::ModelId,
+            step: WizardStep::Model,
+            ..ConnectWizardState::default()
+        };
+        assert_eq!(
+            handle_wizard_key(&mut s, &k(KeyCode::Esc)),
+            WizardOutcome::Changed
+        );
+        assert_eq!(s.step, WizardStep::ApiKey);
+        assert_eq!(
+            handle_wizard_key(&mut s, &k(KeyCode::Esc)),
+            WizardOutcome::Changed
+        );
+        assert_eq!(s.step, WizardStep::Provider);
+        assert_eq!(
+            handle_wizard_key(&mut s, &k(KeyCode::Esc)),
+            WizardOutcome::Closed
+        );
     }
 
     #[test]

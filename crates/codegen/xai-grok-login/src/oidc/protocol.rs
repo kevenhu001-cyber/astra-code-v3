@@ -89,9 +89,6 @@ pub fn with_alpha_test_key(builder: reqwest::RequestBuilder, url: &str) -> reqwe
     let _ = url;
     builder
 }
-pub fn is_configured(config: &GrokComConfig) -> bool {
-    config.oidc.is_some()
-}
 /// Peek at the unverified access token JWT to extract the `principal_type` and `principal_id` chosen during the consent screen.
 /// When the user picks "Team" on the consent screen, the server strips user-only scopes (`openid`, `email`). It then issues the token with `principal_type=Team`.
 /// The shell's config doesn't know which principal the user picked, so we peek at the token to find out. Returns `(principal_type, principal_id)` or `None` if the token is not a JWT or the claims can't be extracted.

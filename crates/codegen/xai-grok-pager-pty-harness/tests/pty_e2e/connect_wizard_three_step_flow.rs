@@ -1,9 +1,9 @@
 // Per-test-case module for the `pty_e2e` integration test crate.
 //
 // Drives the `/connect` slash command through the guided wizard: types
-// `/connect`, waits for the modal, cycles the preset Down to `custom`, then
-// Tabs Preset -> Provider Name -> Protocol -> Base URL and types into URL /
-// API key / Model ID, submits, and asserts the connect persisted the new
+// `/connect`, waits for the modal, cycles the preset Down to `custom` (which
+// expands the advanced rows), then Tabs Preset -> Base URL -> Protocol ->
+// API key -> Model ID, submits, and asserts the connect persisted the new
 // `[model.astra-custom]` block under `~/.astra/config.toml` and pinned it as
 // `[models].default`.
 //
@@ -59,21 +59,19 @@ async fn connect_wizard_three_step_flow_persists_config() {
         .expect("wizard modal opened");
 
     // The wizard lands on the Preset field, where Down cycles the preset
-    // in place (`custom` is the last entry). After the last Down the Base
-    // URL field clears; its empty-state placeholder proves the custom
-    // preset is selected and we can type our own URL.
+    // in place (`custom` is the last entry). The custom provider has no
+    // baked-in endpoint, so selecting it expands the advanced rows and the
+    // Base URL field starts empty — its placeholder proves both.
     for _ in 0..9 {
         harness.inject_keys(keys::DOWN).expect("preset down");
     }
     harness
-        .wait_for_text("<None / Enter Base URL>", WIZARD_TIMEOUT)
+        .wait_for_text("<Required for custom providers>", WIZARD_TIMEOUT)
         .expect("custom preset selected, URL field empty");
 
-    // Tab walks the form fields in order: Preset -> Provider Name ->
-    // Protocol Format -> Base URL. Three Tabs land focus on Base URL.
-    for _ in 0..3 {
-        harness.inject_keys(b"\t").expect("focus next field");
-    }
+    // Tab order with advanced expanded: Preset -> Base URL -> Protocol ->
+    // API key. One Tab lands focus on Base URL.
+    harness.inject_keys(b"\t").expect("focus next field");
 
     // Type the URL. Paced again so each character lands as its own key
     // event (the wizard only re-renders on Changed outcomes; a coalesced
@@ -81,7 +79,8 @@ async fn connect_wizard_three_step_flow_persists_config() {
     let url = "https://example.com/v1";
     inject_keys_paced(&mut harness, url.as_bytes());
 
-    // Tab -> API key.
+    // Tab -> Protocol, Tab -> API key.
+    harness.inject_keys(b"\t").expect("focus protocol");
     harness.inject_keys(b"\t").expect("focus api key");
     let api_key = "sk-wizard-test-0001";
     inject_keys_paced(&mut harness, api_key.as_bytes());

@@ -875,8 +875,6 @@ mod tests {
         let built = build_auth_methods(AuthMethodsBuildInputs {
             has_external_api_key: true,
             has_cached_token: false,
-            has_enterprise_oidc: false,
-            enterprise_oidc_issuer: None,
             login_label: None,
             has_auth_provider_command: false,
             preferred_method: None,

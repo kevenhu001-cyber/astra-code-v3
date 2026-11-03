@@ -23,7 +23,7 @@ grok agent stdio
 ## Contents
 
 - [Installation](#installation)
-- [Authentication](#authentication) — browser login, API key, OIDC, external auth providers
+- [Authentication](#authentication) — device-code sign-in, API key, external auth providers
 - **Using Astra**
   - [Interactive TUI](#interactive-tui) — shortcuts, slash commands, file references
   - [Headless Mode](#headless-mode) — scripting, CI/CD, output formats
@@ -96,7 +96,7 @@ Credentials are stored in `~/.astra/auth.json` and persist across sessions. Toke
 To switch accounts or fix authentication issues:
 
 ```bash
-grok login
+astra login
 ```
 
 ### API Key
@@ -109,44 +109,6 @@ grok
 ```
 
 The API key takes precedence over browser credentials.
-
-### OIDC (Customer SSO)
-
-Authenticate developers via your own Identity Provider (Okta, Azure AD, Auth0) instead of the default Astra auth issuer.
-
-**1. Register a public client in your IdP:**
-- Grant type: Authorization Code with PKCE
-- Redirect URI: `http://127.0.0.1/callback` (the CLI uses a random ephemeral port; most IdPs treat loopback redirects as port-agnostic per [RFC 8252 §7.3](https://tools.ietf.org/html/rfc8252#section-7.3))
-- No client secret (PKCE only, per [RFC 8252](https://tools.ietf.org/html/rfc8252))
-
-**2. Configure the CLI** (config file or env vars):
-
-```toml
-# ~/.astra/config.toml
-[grok_com_config.oidc]
-issuer = "https://acme.okta.com"
-client_id = "0oa1b2c3d4e5f6g7h8i9"
-```
-
-```bash
-# Or via environment variables
-export GROK_OIDC_ISSUER="https://acme.okta.com"
-export GROK_OIDC_CLIENT_ID="0oa1b2c3d4e5f6g7h8i9"
-```
-
-Customers typically also override the API endpoint to point at their own proxy:
-```bash
-export GROK_CLI_CHAT_PROXY_BASE_URL="https://grok-proxy.acme.com/v1"
-```
-
-**3. Run `grok`.** The CLI discovers endpoints via `{issuer}/.well-known/openid-configuration`, opens the IdP login page, and stores tokens in `~/.astra/auth.json`. The OIDC token is sent as `Authorization: Bearer` to the configured proxy. Tokens auto-refresh silently via the stored `refresh_token`.
-
-**Optional fields:**
-
-| Field | Default | Notes |
-|-------|---------|-------|
-| `scopes` | `["openid", "profile", "email", "offline_access"]` | `offline_access` enables silent token refresh; add custom scopes if needed |
-| `audience` | None | Required by some IdPs (e.g. Auth0) |
 
 ### External Auth Provider
 
@@ -244,7 +206,7 @@ When `auth_provider_label` is set, the TUI welcome screen shows **"Login with Ac
 
 ```bash
 #!/bin/sh
-# 1. Request device code from your IdP
+# 1. Request a device code from the Astra auth service
 RESP=$(curl -s -X POST https://auth.acme.com/device/code -d "client_id=grok-cli")
 CODE=$(echo "$RESP" | jq -r '.user_code')
 URL=$(echo "$RESP" | jq -r '.verification_uri')
@@ -272,7 +234,7 @@ Astra runs your binary on two different contracts, and `GROK_AUTH_EXPIRED` is ho
 
 | | `GROK_AUTH_EXPIRED=1` | unset |
 |---|---|---|
-| **What it is** | A headless refresh over a credential Astra already holds — near-expiry rotation, or a token the server rejected | A sign-in: `grok login`, the sign-in screen, or the escalation after a headless run couldn't mint |
+| **What it is** | A headless refresh over a credential Astra already holds — near-expiry rotation, or a token the server rejected | A sign-in: `astra login`, the sign-in screen, or the escalation after a headless run couldn't mint |
 | **Is anyone watching?** | No. stdin is closed and nothing renders your prompts | Yes. A user is waiting, and your stderr reaches them |
 | **Budget** | A few seconds (7s), then Astra kills the process | 300s — enough for a browser round trip or a device code |
 | **So your binary should** | Mint silently, or **exit non-zero**. Never block | Do the full SSO flow, and always mint fresh |
@@ -307,7 +269,7 @@ One case stays ambiguous, and only in **leader mode** (`--leader`, or `[cli] use
 
 ### Automatic Credential Refresh
 
-Astra supports automatic credential refresh for external auth providers and OIDC. When Astra detects that your token is expired (either locally based on `expires_in`, or when the server returns a 401), it automatically re-runs your `auth_provider_command` to obtain new credentials before retrying the request.
+Astra supports automatic credential refresh for external auth providers and session refresh. When Astra detects that your token is expired (either locally based on `expires_in`, or when the server returns a 401), it automatically re-runs your `auth_provider_command` to obtain new credentials before retrying the request.
 
 This is transparent — you don't need to do anything. Astra handles it in the background during your session.
 
@@ -316,7 +278,7 @@ This is transparent — you don't need to do anything. Astra handles it in the b
 - **Before expiry:** If your binary returned `expires_in` in its JSON output, or you set `auth_token_ttl` in config, Astra re-runs the binary ~5 minutes before the token expires, so you never see an auth error.
 - **On auth error:** If the server rejects a request with 401/403 (e.g. token was revoked or expired), Astra re-runs the binary and retries the request once.
 - **When the refresh run can't mint:** refreshes are headless (no stdin, short timeout), so a binary that needs you to complete an SSO flow cannot succeed there. Astra then stops treating the stored credential as usable and runs your binary in its interactive mode instead — at startup that is the same sign-in flow a machine with no credentials gets; mid-session the turn fails with a re-auth prompt and `/login` re-runs the binary.
-- **OIDC:** If you're using OIDC and have a `refresh_token`, Astra silently refreshes via your IdP without re-opening the browser.
+- **Session refresh:** if the stored credential has a `refresh_token`, Astra refreshes it silently without another sign-in.
 
 **Tuning the refresh buffer:**
 
@@ -327,8 +289,8 @@ export GROK_AUTH_EARLY_INVALIDATION_SECS=300
 ```
 
 **Keep in mind:**
-- When using `auth_provider_command`, you don't need to run `grok login` before starting — Astra runs your binary automatically on first launch. You _can_ run `grok login` to explicitly hydrate `auth.json` ahead of time if you prefer.
-- If both OIDC and `auth_provider_command` are configured: at **login** time, Astra tries OIDC silent refresh first (if a `refresh_token` exists), then the external binary, then browser-based login. During a **session**, whichever method is configured is used exclusively — if `auth_provider_command` is set it handles all mid-session refreshes; otherwise OIDC silent refresh is used.
+- When using `auth_provider_command`, you don't need to run `astra login` before starting — Astra runs your binary automatically on first launch. You _can_ run `astra login` to explicitly hydrate `auth.json` ahead of time if you prefer.
+- With `auth_provider_command` set, it handles sign-in and every mid-session refresh. Without it, Astra uses the sign-in flow and refreshes session tokens when a `refresh_token` is available.
 - Your binary's stderr output is displayed to the user but interactive stdin is not supported. This works well for browser-based SSO flows where the binary displays a URL and you complete authentication in the browser.
 
 #### Troubleshooting Auth
@@ -391,7 +353,7 @@ auth_provider = "litellm"
 
 ### Using auth.json for API Access
 
-If you've authenticated with `grok login`, you can use the stored credentials to call the CLI chat proxy directly via curl. The proxy requires specific headers that mirror what the grok CLI sends internally:
+If you've authenticated with `astra login`, you can use the stored credentials to call the CLI chat proxy directly via curl. The proxy requires specific headers that mirror what the grok CLI sends internally:
 
 ```bash
 curl -s -N -X POST "https://cli-chat-proxy.grok.com/v1/chat/completions" \
@@ -410,7 +372,7 @@ curl -s -N -X POST "https://cli-chat-proxy.grok.com/v1/chat/completions" \
 
 | Header                           | Required | Purpose                                                                                                                                                                                   |
 | -------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Authorization: Bearer <token>`  | Yes      | Session token from `~/.astra/auth.json` (set by `grok login`)                                                                                                                              |
+| `Authorization: Bearer <token>`  | Yes      | Session token from `~/.astra/auth.json` (set by `astra login`)                                                                                                                              |
 | `X-XAI-Token-Auth: xai-grok-cli` | Yes      | Tells the auth middleware to validate as a CLI session token                                                                                                                              |
 | `x-grok-model-override: <model>` | Yes\*    | The proxy uses this header (not the JSON body) to route to the correct backend. \*Can be omitted for `grok-build` which is on the default route, but always safe to include. |
 
@@ -422,7 +384,7 @@ Most models behind the proxy only support streaming. Always use `"stream": true`
 | --------------------- | -------------- | ------------ |
 | `grok-build`    | ✅ Supported   | ✅ Supported |
 
-> **Note:** `auth.json` tokens expire after 7 days. Run `grok login` to refresh.
+> **Note:** `auth.json` tokens expire after 7 days. Run `astra login` to refresh.
 
 ---
 
@@ -1967,7 +1929,7 @@ api_key = "my-api-key"
 
 When using `[endpoints]` with partial model overrides, the `base_url` is inherited from the endpoints config — you don't need to specify it in each `[model.*]` section.
 
-**Auth behavior:** When `models_base_url` is set, Astra uses API key auth (`Authorization: Bearer`) instead of session auth. `grok login` is not required — only the API key.
+**Auth behavior:** When `models_base_url` is set, Astra uses API key auth (`Authorization: Bearer`) instead of session auth. `astra login` is not required — only the API key.
 
 ---
 
@@ -2507,8 +2469,6 @@ The agent persists all session updates automatically. Clients can reconnect and 
 | `GROK_AUTH_PROVIDER_COMMAND`     | External auth binary (alternative to config file). See [External Auth Provider](#external-auth-provider) |
 | `GROK_AUTH_TOKEN_TTL`            | Token lifetime in seconds for external auth providers that output bare tokens. See [External Auth Provider](#external-auth-provider) |
 | `GROK_AUTH_EARLY_INVALIDATION_SECS` | Seconds before `expires_at` to consider a token expired (default: `300`). See [Automatic Credential Refresh](#automatic-credential-refresh) |
-| `GROK_OIDC_ISSUER`              | OIDC issuer URL (alternative to config file). See [OIDC](#oidc-customer-sso)                             |
-| `GROK_OIDC_CLIENT_ID`           | OIDC client ID (alternative to config file). See [OIDC](#oidc-customer-sso)                              |
 | `ASTRA_HOME`                     | Override config directory (default: `~/.astra`)                                                           |
 | `GROK_SUBAGENTS`                | Enable (`1`) or disable (`0`) subagent/task tool support                                                 |
 | `GROK_MEMORY`                   | Enable (`1`) or disable (`0`) cross-session memory                                                       |
@@ -2620,7 +2580,7 @@ GROK_LOG_FILE=/tmp/grok-debug.log RUST_LOG="info,xai_grok_login=debug" grok
 
 ```bash
 # Clear credentials and re-login
-grok login
+astra login
 
 # Debug auth issues — check the log for "auth:" entries
 grok --debug-file /tmp/grok-auth.log -p "hello"

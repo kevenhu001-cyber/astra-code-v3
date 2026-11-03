@@ -751,7 +751,10 @@ impl LeaderStdioClient {
         let api_key_method = init
             .auth_methods
             .iter()
-            .find(|method| &*method.id().0 == "xai.api_key")
+            .find(|method| {
+                let id = &*method.id().0;
+                id == "astracode.api_key" || id == "xai.api_key"
+            })
             .expect("xai.api_key auth method");
         self.conn
             .authenticate(
