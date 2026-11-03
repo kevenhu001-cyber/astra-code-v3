@@ -32,6 +32,7 @@ jsonwebtoken = "9"
 sha2 = "0.10"
 url = "2"
 urlencoding = "2"
+xai-grok-extra-ca = { workspace = true }
 tokio = { workspace = true, features = [
     "net",
     "rt",

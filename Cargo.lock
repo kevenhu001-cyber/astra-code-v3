@@ -395,6 +395,7 @@ dependencies = [
  "url",
  "urlencoding",
  "webpki-roots 0.26.11",
+ "xai-grok-extra-ca",
 ]
 
 [[package]]

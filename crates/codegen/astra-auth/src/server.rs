@@ -152,7 +152,8 @@ impl Server {
             oidc_codes: Arc::new(Mutex::new(HashMap::new())),
             oidc_jwt_secret: Arc::new(secret),
             admin_email,
-            http: reqwest::Client::new(),
+            http: xai_grok_extra_ca::build_reqwest_client(|builder| builder)
+                .expect("failed to build the Astra auth HTTP client"),
         }
     }
 
@@ -1469,7 +1470,7 @@ fn route_public(route: &ModelRoute) -> Value {
 }
 
 fn amount_usd_to_microusd(amount: f64) -> Option<i64> {
-    if !amount.is_finite() || amount < 0.0 || amount > 1_000_000_000.0 {
+    if !amount.is_finite() || !(0.0..=1_000_000_000.0).contains(&amount) {
         return None;
     }
     Some((amount * 1_000_000.0).round() as i64)
