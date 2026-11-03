@@ -138,27 +138,56 @@
    carries its glyph coverage in `data-k` and its place in the reveal order
    in `--d`; the CSS grows them in sequence on first paint. */
 .hero-mark {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
-  padding: var(--space-300);
+  padding: var(--space-200);
   position: relative;
   user-select: none;
   -webkit-user-select: none;
+  gap: var(--space-150);
+}
+.hero-mark-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: var(--type-button-xsm);
+  color: var(--muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.hero-mark-badge .hm-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff5500;
+  box-shadow: 0 0 8px rgba(255, 85, 0, 0.6);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.7); opacity: 0.5; }
 }
 .hero-mark-svg {
   width: 100%;
-  max-width: 420px;
+  max-width: 380px;
   height: auto;
   overflow: visible;
 }
 .hero-mark-canvas {
   display: block;
   width: 100%;
-  max-width: 420px;
+  max-width: 380px;
   height: auto;
-  aspect-ratio: 15 / 18;
-  touch-action: none;
+  aspect-ratio: 1 / 1;
+  touch-action: pan-y;
   cursor: grab;
 }
 .hero-mark-canvas:active {
@@ -166,6 +195,44 @@
 }
 .hero-mark.is-canvas-ready .hero-mark-svg {
   display: none;
+}
+.hero-mark-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+  z-index: 2;
+}
+.hm-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  font: var(--type-button-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 180ms var(--ease);
+}
+.hm-tab:hover {
+  color: var(--ink);
+  background: var(--subtle);
+}
+.hm-tab.is-active {
+  background: var(--ink);
+  color: var(--page);
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+[data-theme='dark'] .hm-tab.is-active {
+  background: var(--accent-fill);
+  color: var(--page);
 }
 .hero-mark-svg circle {
   fill: var(--ink);
@@ -482,29 +549,82 @@
 .cta-actions .btn-quiet { background: var(--raised); }
 .cta-actions .btn-quiet:hover { background: var(--subtle); }
 
-/* ── Responsive ────────────────────────────────────────────────────────── */
+/* ── Responsive & Mobile Browser Adaptation ────────────────────────── */
 
 @media (max-width: 1080px) {
-  .hero-inner { grid-template-columns: minmax(0, 1fr); gap: var(--space-600); }
-  .hero-copy { max-width: none; }
-  .hero-mark { padding: var(--space-200) 0; }
+  .hero {
+    padding-block: clamp(24px, 5vh, 48px) clamp(32px, 6vh, 56px);
+  }
+  .hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(24px, 4vh, 40px);
+  }
+  .hero-copy {
+    max-width: 100%;
+  }
+  .hero-mark {
+    padding: var(--space-100) 0;
+    max-width: 100%;
+  }
   .hero-mark-svg,
-  .hero-mark-canvas { max-width: 280px; margin: 0 auto; }
+  .hero-mark-canvas {
+    max-width: 280px;
+    margin: 0 auto;
+  }
   .feature-layout { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .feature-intro { column-gap: var(--space-500); }
   .faq-layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 760px) {
-  .hero { padding-block: var(--space-600) var(--space-600); }
-  .hero h1 { font-size: 2.25rem; }
-  .hero .lede { font: var(--type-body-6); }
-  .hero-mark { padding: var(--space-100) 0 var(--space-200); }
+  .shell-wide {
+    padding-inline: clamp(14px, 4vw, 20px);
+  }
+  .hero {
+    padding-block: clamp(20px, 4vh, 36px) clamp(28px, 5vh, 44px);
+  }
+  .hero h1 {
+    font-size: clamp(1.85rem, 6.5vw, 2.25rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .hero .lede {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .hero-mark {
+    padding: var(--space-75) 0 var(--space-150);
+  }
   .hero-mark-svg,
-  .hero-mark-canvas { max-width: 220px; }
-  .composer { padding: var(--space-200) var(--space-100) var(--space-100) var(--space-200); border-radius: var(--radius-2xl); }
-  .composer-input { height: 48px; }
-  .chip { height: 32px; padding-inline: 12px; font: var(--type-button-xsm); }
+  .hero-mark-canvas {
+    max-width: 230px;
+  }
+  .hero-mark-tabs {
+    gap: 3px;
+    padding: 2px;
+  }
+  .hm-tab {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+  }
+  .composer {
+    padding: var(--space-100) var(--space-100) var(--space-100) var(--space-150);
+    border-radius: var(--radius-xl);
+  }
+  .composer-input {
+    height: 44px;
+    font-size: 16px; /* 防止 iOS Safari 聚焦时页面放大 */
+  }
+  .chip {
+    height: 30px;
+    padding-inline: 10px;
+    font-size: 0.8125rem;
+  }
+  .composer-chips {
+    gap: 6px;
+  }
   .feature-layout { grid-template-columns: minmax(0, 1fr); }
   .feature-media { border-radius: var(--radius-2xl); padding: var(--space-75); }
   .hero-plate { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--space-200); }
@@ -525,6 +645,8 @@
 }
 
 @media (max-width: 380px) {
-  .hero h1 { font-size: 1.875rem; }
+  .hero h1 { font-size: 1.65rem; }
+  .hero-mark-svg,
+  .hero-mark-canvas { max-width: 185px; }
   .hero-plate { grid-template-columns: minmax(0, 1fr); }
 }
