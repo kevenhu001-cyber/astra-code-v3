@@ -86,7 +86,10 @@ async fn main() -> anyhow::Result<()> {
         env_or("ASTRA_AUTH_DATA_DIR", default_data_dir().to_string_lossy()),
     );
     let cookie_path = parse_flag(&args, "cookie-path", env_or("ASTRA_AUTH_COOKIE_PATH", "/"));
-    let cookie_secure = parse_flag(&args, "cookie-secure", false);
+    // The public site runs behind HTTPS in production. Default the session
+    // cookie to Secure whenever the configured public URL is HTTPS, while
+    // keeping local HTTP development convenient.
+    let cookie_secure = parse_flag(&args, "cookie-secure", base_url.starts_with("https://"));
 
     let store = Store::open(PathBuf::from(&data_dir).join("auth.json"))?;
 

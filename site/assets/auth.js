@@ -121,23 +121,10 @@
     el.classList.toggle('show', !!msg);
   }
 
-  // Sentinel used to break the login↔account bounce loop on browsers
-  // (Edge in particular) that replay bfcached pages and re-run their
-  // /me poll even when the user just landed here. Without this guard,
-  // a session whose cookie was dropped mid-flight can ping-pong between
-  // the two pages forever because each one immediately redirects to the
-  // other. Tracking the last page we redirected *to* in sessionStorage
-  // lets us short-circuit a redirect whose destination matches where we
-  // already are.
-  var BOUNCE_KEY = 'astra_bounce';
-  function markBounce(dest) {
-    try { sessionStorage.setItem(BOUNCE_KEY, dest); } catch (e) {}
-  }
-  function lastBounce() {
-    try { return sessionStorage.getItem(BOUNCE_KEY) || ''; } catch (e) { return ''; }
-  }
-  function clearBounce() {
-    try { sessionStorage.removeItem(BOUNCE_KEY); } catch (e) {}
+  function loginDestination() {
+    var next = qs('next');
+    if (next === '/account#admin' || next === '/authorize') return next;
+    return '/account';
   }
 
   function setTheme(theme) {
@@ -161,31 +148,15 @@
     });
   });
 
-  function redirectLogin() {
-    var here = window.location.pathname.replace(/\/+$/, '') || '/';
-    var dest = here === '/login' ? '' : 'login';
-    if (!dest) return;
-    if (lastBounce() === dest) {
-      // We just bounced here — don't redirect again, the cookie is
-      // genuinely missing. Leave the user on this page so they can sign
-      // in manually instead of being trapped in a reload loop.
-      clearBounce();
-      return;
-    }
-    markBounce(dest);
-    window.location.replace(dest);
+  function redirectLogin(next) {
+    if (window.location.pathname === '/login') return;
+    var destination = next || (window.location.pathname === '/authorize' ? '/authorize' : '/account');
+    if (destination !== '/account#admin' && destination !== '/authorize') destination = '/account';
+    window.location.replace('/login?next=' + encodeURIComponent(destination));
   }
 
   function redirectAccount() {
-    var here = window.location.pathname.replace(/\/+$/, '') || '/';
-    var dest = here === '/account' ? '' : 'account';
-    if (!dest) return;
-    if (lastBounce() === dest) {
-      clearBounce();
-      return;
-    }
-    markBounce(dest);
-    window.location.replace(dest);
+    window.location.replace('/account');
   }
 
   async function logout() {
@@ -201,6 +172,7 @@
     setOk: setOk,
     redirectLogin: redirectLogin,
     redirectAccount: redirectAccount,
+    loginDestination: loginDestination,
     getSid: getSid,
     setSid: setSid,
     clearSid: clearSid,

@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/assets/site.css?v=7">
+  <link rel="stylesheet" href="/assets/site.css?v=8">
 </head>
-<body>
+<body data-auth-pending="true">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -128,7 +128,7 @@
     </div>
   </footer>
 
-  <script src="/assets/auth.js?v=7"></script>
+  <script src="/assets/auth.js?v=8"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -166,7 +166,7 @@
           if (user) {
             // replace() — not href= — so Edge's bfcache cannot replay this
             // page after success and re-enter the login↔account loop.
-            window.location.replace('account');
+            window.location.replace(A.loginDestination());
           } else {
             A.setErr('Signed in, but your browser blocked the session cookie. Allow cookies for this site, then try again.');
           }
@@ -206,12 +206,11 @@
       });
 
       A.me().then(function (user) {
-        // Use replace() (not href=) so Edge's bfcache cannot replay this
-        // page after a successful login — that replay path is what used to
-        // bounce login.html ↔ account.html indefinitely when the `sid`
-        // cookie got dropped mid-flight.
-        if (user) window.location.replace('account');
-      });
+        // Replace the page directly so a signed-in session never exposes the
+        // login form while navigating to the requested account destination.
+        if (user) window.location.replace(A.loginDestination());
+        else document.body.removeAttribute('data-auth-pending');
+      }).catch(function () { document.body.removeAttribute('data-auth-pending'); });
     })();
   </script>
 </body>

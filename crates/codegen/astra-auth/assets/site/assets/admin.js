@@ -5,6 +5,7 @@
   var routes = [];
   var users = [];
   var currentSection = 'routes';
+  var initialized = false;
   var routePanel = document.getElementById('routePanel');
   var creditPanel = document.getElementById('creditPanel');
   var workspace = document.getElementById('adminWorkspace');
@@ -269,15 +270,14 @@
     }
   });
 
-  A.me().then(function (user) {
-    if (!user) { A.redirectLogin(); return; }
-    if (!user.is_admin) {
-      showMessage('Administrator access is not enabled for this account.', 'error');
-      return;
+  window.AstraAdmin = {
+    init: function (user) {
+      if (initialized || !user || !user.is_admin) return Promise.resolve();
+      initialized = true;
+      document.getElementById('adminEmail').textContent = user.email;
+      return Promise.all([loadRoutes(), loadUsers()]).catch(function (err) {
+        showMessage(err.message || 'Could not load administrator data.', 'error');
+      });
     }
-    document.getElementById('adminEmail').textContent = user.email;
-    return Promise.all([loadRoutes(), loadUsers()]);
-  }).catch(function (err) {
-    showMessage(err.message || 'Could not load administrator data.', 'error');
-  });
+  };
 })();

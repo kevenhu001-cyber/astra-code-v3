@@ -10,8 +10,10 @@ verify that email address on the site. The matching account is promoted when
 the service starts or when its verification completes. Only that configured
 email remains an administrator after a restart.
 
-Open `/admin` after signing in to configure model routes and add account
-credit. No administrator password is built into the service.
+After signing in with the configured email, open **Admin tools** from the
+account page to configure model routes and add account credit. The old `/admin`
+URL redirects into that account-page section. No administrator password is
+built into the service.
 
 ## Configure model routes
 
@@ -28,6 +30,6 @@ replace the file atomically. On Unix, new state files are written with mode
 `0600`.
 
 The account page shows the available USD balance and recent ledger entries.
-Administrators add credit manually from `/admin`; model requests are charged
-from provider usage using the configured route prices. A balance is not
-recharged automatically.
+Administrators add credit manually from the account-page admin section; model
+requests are charged from provider usage using the configured route prices. A
+balance is not recharged automatically.

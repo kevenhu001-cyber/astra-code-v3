@@ -527,7 +527,7 @@ impl Server {
     }
 
     /// Serve the embedded static site pages. Unknown paths 404.
-    async fn static_site(State(_state): State<Server>, req: axum::extract::Request) -> Response {
+    async fn static_site(State(state): State<Server>, req: axum::extract::Request) -> Response {
         let path = req.uri().path().to_string();
 
         // /assets/* served from the embedded assets directory.
@@ -553,10 +553,20 @@ impl Server {
         match path.as_str() {
             "/" => serve_page(crate::assets::INDEX_HTML),
             "/index.html" => redirect_permanent("/"),
-            "/login" => serve_page(crate::assets::LOGIN_HTML),
+            "/login" => {
+                if current_user(&state.store, req.headers()).is_some() {
+                    redirect_to(login_destination(req.uri().query()))
+                } else {
+                    serve_page(crate::assets::LOGIN_HTML)
+                }
+            }
             "/authorize" => serve_page(crate::assets::AUTHORIZE_HTML),
             "/account" => serve_page(crate::assets::ACCOUNT_HTML),
-            "/admin" => serve_page(crate::assets::ADMIN_HTML),
+            "/admin" | "/admin.html" => match current_user(&state.store, req.headers()) {
+                Some(user) if user.is_admin => redirect_to("/account#admin"),
+                Some(_) => redirect_to("/account"),
+                None => redirect_to("/login?next=%2Faccount%23admin"),
+            },
             "/favicon.svg" => (
                 [(
                     header::CONTENT_TYPE,
@@ -568,7 +578,6 @@ impl Server {
             "/login.html" => redirect_permanent("/login"),
             "/authorize.html" => redirect_permanent("/authorize"),
             "/account.html" => redirect_permanent("/account"),
-            "/admin.html" => redirect_permanent("/admin"),
             _ => StatusCode::NOT_FOUND.into_response(),
         }
     }
@@ -591,6 +600,28 @@ fn redirect_permanent(location: &'static str) -> Response {
         [(header::LOCATION, HeaderValue::from_static(location))],
     )
         .into_response()
+}
+
+fn redirect_to(location: &str) -> Response {
+    match HeaderValue::from_str(location) {
+        Ok(value) => (StatusCode::SEE_OTHER, [(header::LOCATION, value)]).into_response(),
+        Err(_) => StatusCode::BAD_REQUEST.into_response(),
+    }
+}
+
+/// Only allow same-site destinations that are used by the account flow.
+/// This prevents `/login?next=` from becoming an open redirect.
+fn login_destination(query: Option<&str>) -> &'static str {
+    let next = query.and_then(|query| {
+        url::form_urlencoded::parse(query.as_bytes())
+            .find(|(key, _)| key == "next")
+            .map(|(_, value)| value.into_owned())
+    });
+    match next.as_deref() {
+        Some("/account#admin") => "/account#admin",
+        Some("/authorize") => "/authorize",
+        _ => "/account",
+    }
 }
 
 // --- helpers ---
@@ -766,9 +797,10 @@ fn set_session_cookie(
 }
 
 fn clear_session_cookie(opts: &Options) -> HeaderValue {
+    let secure = if opts.cookie_secure { "; Secure" } else { "" };
     HeaderValue::from_str(&format!(
-        "sid=; Path={}; HttpOnly; SameSite=Lax; Max-Age=-1",
-        opts.cookie_path
+        "sid=; Path={}; HttpOnly; SameSite=Lax{secure}; Max-Age=-1",
+        opts.cookie_path,
     ))
     .unwrap()
 }
