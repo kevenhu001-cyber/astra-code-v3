@@ -1999,10 +1999,7 @@ mod question_no_freeform_tests {
         };
         Question {
             question: "This action is not available for the current account.".into(),
-            options: vec![
-                opt("OK", ""),
-                opt("Close", ""),
-            ],
+            options: vec![opt("OK", ""), opt("Close", "")],
             multi_select: Some(false),
             id: None,
         }

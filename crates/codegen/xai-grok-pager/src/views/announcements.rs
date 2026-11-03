@@ -160,9 +160,7 @@ fn is_live_promo(
     a: &xai_grok_announcements::RemoteAnnouncement,
     now: chrono::DateTime<chrono::Utc>,
 ) -> bool {
-    is_promo(a)
-        && !is_hidden_subscription_copy(a)
-        && !xai_grok_announcements::is_expired_at(a, now)
+    is_promo(a) && !is_hidden_subscription_copy(a) && !xai_grok_announcements::is_expired_at(a, now)
 }
 
 /// The session-surfaced severities (critical or promo).
@@ -1060,7 +1058,11 @@ mod tests {
             message: Some("Subscribe to continue".into()),
             ..Default::default()
         };
-        let unrelated = promo("release", "Astra release notes", Some(("Read", "https://example.com")));
+        let unrelated = promo(
+            "release",
+            "Astra release notes",
+            Some(("Read", "https://example.com")),
+        );
 
         assert!(
             first_session_announcement(
@@ -1482,7 +1484,10 @@ mod tests {
         let hits = render_banner(area, &mut buf, &anns, &no_hidden(), false, false, true);
 
         let row0 = buf_row(&buf, area, 0);
-        assert!(row0.starts_with("[See the latest preview]"), "row0={row0:?}");
+        assert!(
+            row0.starts_with("[See the latest preview]"),
+            "row0={row0:?}"
+        );
         assert!(
             !row0.contains("New promo"),
             "message must not paint on the banner; row0={row0:?}"
@@ -1537,10 +1542,7 @@ mod tests {
         let anns = [promo(
             "p",
             "msg",
-            Some((
-                "See the latest Astra preview",
-                "https://x.ai",
-            )),
+            Some(("See the latest Astra preview", "https://x.ai")),
         )];
         let area = Rect::new(0, 0, 50, 1);
         let mut buf = Buffer::empty(area);

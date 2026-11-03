@@ -1876,10 +1876,7 @@ fn render_welcome_done(
     let welcome_compact = show_picker;
 
     let in_vscode_family = welcome_in_vscode_family();
-    let (key_l, key_q) = (
-        "ctrl+l",
-        if in_vscode_family { "ctrl+d" } else { "ctrl+q" },
-    );
+    let (key_l, key_q) = ("ctrl+l", if in_vscode_family { "ctrl+d" } else { "ctrl+q" });
 
     // Heights that don't depend on the menu, computed first so the menu builder can probe the layout to decide whether to add a Changelog row
     // Startup-warning hint height (multi-line aware). It must pick the same entry `render_startup_warnings` draws; see `startup::banner_warning`.
@@ -2185,11 +2182,11 @@ fn render_welcome_done(
         let refresh_text = "[Refresh]";
         let total_width = refresh_text.len();
         let retry_line = Line::from(Span::styled(
-                refresh_text,
-                Style::default()
-                    .fg(theme.accent_user)
-                    .add_modifier(Modifier::UNDERLINED),
-            ))
+            refresh_text,
+            Style::default()
+                .fg(theme.accent_user)
+                .add_modifier(Modifier::UNDERLINED),
+        ))
         .alignment(Alignment::Center);
         let retry_area = Rect {
             height: 1,

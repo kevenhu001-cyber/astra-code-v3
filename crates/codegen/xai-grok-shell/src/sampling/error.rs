@@ -823,7 +823,10 @@ mod tests {
             let acp_err = map_sampling_err_to_acp(err);
             let data = acp_err.data.unwrap();
             let msg = data.as_str().unwrap();
-            assert!(msg.contains("not available for the current account"), "{msg}");
+            assert!(
+                msg.contains("not available for the current account"),
+                "{msg}"
+            );
             assert!(!msg.contains("subscription"), "{msg}");
             assert!(!msg.contains("grok logout"), "{msg}");
         });
@@ -844,7 +847,10 @@ mod tests {
             let acp_err = map_sampling_err_to_acp(err);
             let data = acp_err.data.unwrap();
             let msg = data.as_str().unwrap();
-            assert!(msg.contains("not available for the current account"), "{msg}");
+            assert!(
+                msg.contains("not available for the current account"),
+                "{msg}"
+            );
             assert!(!msg.contains("subscription"), "{msg}");
         });
     }
