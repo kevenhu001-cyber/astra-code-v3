@@ -678,53 +678,57 @@ async fn decode_body<T: for<'de> Deserialize<'de>>(
         .map_err(|_| write_err(StatusCode::BAD_REQUEST, "invalid JSON body"))
 }
 
-/// Extract a session token from Cookie, Authorization Bearer, or X-Session-Token.
-/// This makes login resilient to cookie-blockers (Brave Shields, Safari ITP,
-/// uBlock, `Block all cookies`): when the `sid` cookie is dropped, the
-/// browser can still authenticate via the `Authorization: Bearer <sid>` header
-/// that the front-end stores in localStorage as a fallback.
-fn session_token_from_headers(headers: &HeaderMap) -> Option<String> {
-    // 1) HttpOnly cookie `sid=...` (primary, most secure)
-    if let Some(cookie) = headers.get(header::COOKIE).and_then(|v| v.to_str().ok())
-        && let Some(sid) = cookie.split(';').find_map(|c| {
-            let c = c.trim();
-            c.strip_prefix("sid=").map(|v| v.trim().to_string())
-        })
-        && !sid.is_empty()
-    {
-        return Some(sid);
+/// Collect every session credential supplied by the browser. Some browsers
+/// send more than one same-name cookie when an older cookie was set on a
+/// narrower path. Keep checking the bearer and X-Session-Token fallbacks if
+/// an earlier cookie is stale or no longer exists in the session store.
+fn session_token_candidates(headers: &HeaderMap) -> Vec<String> {
+    let mut tokens: Vec<String> = Vec::new();
+    let mut push = |candidate: &str| {
+        let candidate = candidate.trim();
+        if !candidate.is_empty() && !tokens.iter().any(|existing| existing.as_str() == candidate) {
+            tokens.push(candidate.to_string());
+        }
+    };
+
+    for cookie_header in headers.get_all(header::COOKIE).iter() {
+        if let Ok(cookie_header) = cookie_header.to_str() {
+            for cookie in cookie_header.split(';') {
+                if let Some(value) = cookie.trim().strip_prefix("sid=") {
+                    push(value);
+                }
+            }
+        }
     }
-    // 2) Authorization: Bearer <session_token> (fallback when cookies blocked)
-    let bearer = headers
+    if let Some(value) = headers
         .get(header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok());
-    if let Some(h) = bearer
-        && let Some(tok) = h.strip_prefix("Bearer ")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
     {
-        let tok = tok.trim();
-        if !tok.is_empty() {
-            // Only treat as session token if it exists in the session store.
-            // API tokens are handled separately by bearer_user, but checking
-            // here first avoids an extra lookup.
-            return Some(tok.to_string());
-        }
+        push(value);
     }
-    // 3) X-Session-Token header (alternative fallback, avoids colliding with
-    // API Bearer tokens used by the CLI)
-    if let Some(h) = headers.get("x-session-token").and_then(|v| v.to_str().ok()) {
-        let tok = h.trim();
-        if !tok.is_empty() {
-            return Some(tok.to_string());
-        }
+    if let Some(value) = headers
+        .get("x-session-token")
+        .and_then(|value| value.to_str().ok())
+    {
+        push(value);
     }
-    None
+    tokens
 }
 
-/// Read the sid cookie (or fallback header) and return the matching user.
+/// Find a valid session among all cookies and fallback session headers.
+fn session_for_headers(store: &Store, headers: &HeaderMap) -> Option<(String, User)> {
+    session_token_candidates(headers)
+        .into_iter()
+        .find_map(|token| {
+            let session = store.find_session(&token)?;
+            let user = store.find_user_by_id(&session.user_id)?;
+            Some((token, user))
+        })
+}
+
 fn session_user(store: &Store, headers: &HeaderMap) -> Option<User> {
-    let sid = session_token_from_headers(headers)?;
-    let sess = store.find_session(&sid)?;
-    store.find_user_by_id(&sess.user_id)
+    session_for_headers(store, headers).map(|(_, user)| user)
 }
 
 /// Authenticate via Authorization: Bearer <api token>.
@@ -1046,7 +1050,7 @@ async fn handlers_login(State(s): State<Server>, req: axum::extract::Request) ->
 
 async fn handlers_logout(State(s): State<Server>, req: axum::extract::Request) -> Response {
     let headers = req.headers().clone();
-    if let Some(sid) = session_token_from_headers(&headers) {
+    if let Some((sid, _)) = session_for_headers(&s.store, &headers) {
         let _ = s.store.delete_session(&sid);
     }
     (
