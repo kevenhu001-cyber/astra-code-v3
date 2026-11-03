@@ -13,11 +13,7 @@ pub type StderrCallback = Box<dyn Fn(&str)>;
 /// Reject a cached credential that lacks `oidc_issuer`, has a mismatched issuer, or whose team principal violates the `force_login_team_uuid` pin.
 /// Interactive login then starts fresh instead of reusing a stale or wrong-team session.
 fn is_cached_credential_compatible(auth: &GrokAuth, grok_com_config: &GrokComConfig) -> bool {
-    let expected_issuer = grok_com_config
-        .oidc
-        .as_ref()
-        .map(|c| c.issuer.as_str())
-        .or_else(|| grok_com_config.oauth2.as_ref().map(|c| c.issuer.as_str()));
+    let expected_issuer = grok_com_config.oauth2.as_ref().map(|c| c.issuer.as_str());
     let issuer_compatible = match (auth.oidc_issuer.as_deref(), expected_issuer) {
         (Some(actual), Some(expected)) => actual == expected,
         (None, Some(_)) => false,
@@ -88,8 +84,9 @@ fn resolve_device_flow(
         .default(false)
         .resolve()
 }
-/// Whether `run_cli_login` should use the device flow for `config`: only the xAI OAuth2 provider supports it.
-/// Enterprise OIDC (`oidc=Some`) always uses the loopback flow, mirroring `run_auth_flow_inner`'s precedence.
+/// Whether `run_cli_login` should use the device flow for `config`.
+/// The device-code flow is the only sign-in transport, so this always resolves
+/// to `true`; the parameter list is kept for the call sites' symmetry.
 async fn cli_should_use_device(
     config: &GrokComConfig,
     config_device_flow: Option<bool>,
@@ -1329,25 +1326,15 @@ mod tests {
         );
     }
     #[tokio::test]
-    async fn enterprise_oidc_never_uses_device_flow() {
-        let cfg = GrokComConfig {
-            oidc: Some(crate::OidcAuthConfig {
-                issuer: "https://idp.example".into(),
-                client_id: "client".into(),
-                scopes: vec!["openid".into()],
-                audience: None,
-            }),
-            oauth2: None,
-            ..GrokComConfig::default()
-        };
+    async fn default_config_uses_the_device_flow() {
         assert!(
-            !cli_should_use_device(&cfg, None, LoginTransportOverride::ForceDevice, "").await,
-            "enterprise OIDC must stay on loopback"
-        );
-        let xai = GrokComConfig::default();
-        assert!(xai.oauth2.is_some() && xai.oidc.is_none());
-        assert!(
-            cli_should_use_device(&xai, None, LoginTransportOverride::ForceDevice, "").await,
+            cli_should_use_device(
+                &GrokComConfig::default(),
+                None,
+                LoginTransportOverride::ForceDevice,
+                ""
+            )
+            .await,
             "the CLI's single sign-in method is the device-code flow"
         );
     }
