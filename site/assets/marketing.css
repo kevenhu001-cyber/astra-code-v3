@@ -142,12 +142,30 @@
   place-items: center;
   min-width: 0;
   padding: var(--space-300);
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .hero-mark-svg {
   width: 100%;
   max-width: 420px;
   height: auto;
   overflow: visible;
+}
+.hero-mark-canvas {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  aspect-ratio: 15 / 18;
+  touch-action: none;
+  cursor: grab;
+}
+.hero-mark-canvas:active {
+  cursor: grabbing;
+}
+.hero-mark.is-canvas-ready .hero-mark-svg {
+  display: none;
 }
 .hero-mark-svg circle {
   fill: var(--ink);
@@ -469,8 +487,9 @@
 @media (max-width: 1080px) {
   .hero-inner { grid-template-columns: minmax(0, 1fr); gap: var(--space-600); }
   .hero-copy { max-width: none; }
-  .hero-mark { padding: 0; }
-  .hero-mark-svg { max-width: 300px; }
+  .hero-mark { padding: var(--space-200) 0; }
+  .hero-mark-svg,
+  .hero-mark-canvas { max-width: 280px; margin: 0 auto; }
   .feature-layout { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .feature-intro { column-gap: var(--space-500); }
   .faq-layout { grid-template-columns: minmax(0, 1fr); }
@@ -480,6 +499,9 @@
   .hero { padding-block: var(--space-600) var(--space-600); }
   .hero h1 { font-size: 2.25rem; }
   .hero .lede { font: var(--type-body-6); }
+  .hero-mark { padding: var(--space-100) 0 var(--space-200); }
+  .hero-mark-svg,
+  .hero-mark-canvas { max-width: 220px; }
   .composer { padding: var(--space-200) var(--space-100) var(--space-100) var(--space-200); border-radius: var(--radius-2xl); }
   .composer-input { height: 48px; }
   .chip { height: 32px; padding-inline: 12px; font: var(--type-button-xsm); }
