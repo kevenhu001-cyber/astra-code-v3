@@ -43,20 +43,9 @@
           <h1>Software engineering driven by <em>uncertainty</em>, not chat history.</h1>
           <p class="lede">Astra is an agentic coding runtime where durable intelligence lives in persistent state &mdash; goals, claims, evidence &mdash; instead of disposable conversation. Every conclusion must earn its way to <strong>Verified</strong>.</p>
 
-          <form class="composer" data-composer autocomplete="off">
-            <span class="composer-prompt" aria-hidden="true">$</span>
-            <input class="composer-input" type="text" name="task" placeholder="describe the task you want verified" aria-label="Describe the task you want verified" spellcheck="false">
-            <button class="composer-send" type="submit" aria-label="Copy the command">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-            </button>
-          </form>
-          <p class="composer-hint" data-composer-hint role="status" aria-live="polite"></p>
-
-          <div class="composer-chips">
-            <button class="chip" type="button" data-starter="plan the next release from the issue tracker">Plan a release</button>
-            <button class="chip" type="button" data-starter="audit the dependency tree for known CVEs">Audit dependencies</button>
-            <button class="chip" type="button" data-starter="write tests for the events store">Write tests</button>
-            <button class="chip" type="button" data-starter="explain how the auth server issues device codes">Explain a subsystem</button>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="/login">Get started</a>
+            <a class="btn btn-quiet" href="#install">Install CLI</a>
           </div>
 
           <p class="hero-note">Email verification required. Self-hosted? Verification links are printed to the server log.</p>

@@ -627,27 +627,9 @@
     height: 26px;
     font-size: 0.75rem;
   }
-  .composer {
-    width: 100%;
-    max-width: 100%;
-    padding: var(--space-75) var(--space-75) var(--space-75) var(--space-100);
-    border-radius: var(--radius-xl);
-    box-sizing: border-box;
-  }
-  .composer-input {
-    height: 42px;
-    font-size: 16px; /* 防止 iOS Safari 聚焦时页面放大 */
-  }
-  .chip {
-    height: 28px;
-    padding-inline: 10px;
-    font-size: 0.8125rem;
-    max-width: 100%;
-  }
-  .composer-chips {
-    gap: 6px;
-    width: 100%;
-    max-width: 100%;
+  .hero-actions {
+    gap: var(--space-75);
+    margin-top: var(--space-300);
   }
   .cli {
     width: 100%;

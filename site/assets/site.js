@@ -11,11 +11,6 @@
 (function () {
   'use strict';
 
-  /* ── Composer ────────────────────────────────────────────────────────── */
-
-  var form = document.querySelector('[data-composer]');
-  var hint = document.querySelector('[data-composer-hint]');
-
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
@@ -35,43 +30,6 @@
     }
     fallbackCopy(text);
     return Promise.resolve();
-  }
-
-  function say(message, ok) {
-    if (!hint) return;
-    hint.textContent = message;
-    hint.classList.toggle('is-ok', !!ok);
-  }
-
-  if (form) {
-    var input = form.querySelector('.composer-input');
-
-    // Starter chips fill the field instead of navigating away, so the reader
-    // can edit the sentence before copying the command.
-    document.querySelectorAll('[data-starter]').forEach(function (chip) {
-      chip.addEventListener('click', function () {
-        if (!input) return;
-        input.value = chip.getAttribute('data-starter') || '';
-        input.focus();
-        say('Command ready — copy it to run in your terminal.', true);
-      });
-    });
-
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
-      var task = (input && input.value || '').trim();
-      if (!task) {
-        if (input) input.focus();
-        say('Describe the task first.', false);
-        return;
-      }
-      var command = 'astra "' + task.replace(/"/g, '\\"') + '"';
-      copy(command).then(function () {
-        say('Copied — paste it into your terminal.', true);
-      }, function () {
-        say(command, true);
-      });
-    });
   }
 
   /* ── Install copy buttons ────────────────────────────────────────────── */
