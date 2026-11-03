@@ -220,6 +220,7 @@ fn site_pages_serve() {
         "/login",
         "/authorize",
         "/account",
+        "/admin",
         "/assets/fonts.css",
         "/assets/site.css",
         "/assets/marketing.css",
@@ -243,6 +244,7 @@ fn site_pages_serve() {
         "/login.html",
         "/authorize.html",
         "/account.html",
+        "/admin.html",
         "/index.html",
     ] {
         let resp = client.get(format!("{base}{p}")).send().unwrap();

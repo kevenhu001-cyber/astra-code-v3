@@ -15,7 +15,7 @@
   var protocolTrigger = document.getElementById('protocolSelectTrigger');
   var protocolValue = document.getElementById('protocolSelectValue');
   var protocolMenu = document.getElementById('protocolOptions');
-  var protocolOptions = Array.prototype.slice.call(protocolMenu.querySelectorAll('[role="option"]'));
+  var protocolOptions = protocolMenu ? Array.prototype.slice.call(protocolMenu.querySelectorAll('[role="option"]')) : [];
 
   function protocolLabel(protocol) {
     if (protocol === 'openai-responses') return 'OpenAI Responses';
@@ -24,6 +24,7 @@
   }
 
   function setProtocol(protocol) {
+    if (!protocolInput || !protocolValue) return;
     var exists = protocolOptions.some(function (option) { return option.dataset.value === protocol; });
     var selected = exists ? protocol : 'openai-compatible';
     protocolInput.value = selected;
@@ -36,6 +37,7 @@
   }
 
   function closeProtocolMenu(restoreFocus) {
+    if (!protocolMenu || !protocolSelect || !protocolTrigger) return;
     protocolMenu.hidden = true;
     protocolSelect.classList.remove('is-open');
     protocolTrigger.setAttribute('aria-expanded', 'false');
@@ -43,6 +45,7 @@
   }
 
   function openProtocolMenu(focusSelected) {
+    if (!protocolMenu || !protocolSelect || !protocolTrigger) return;
     protocolMenu.hidden = false;
     protocolSelect.classList.add('is-open');
     protocolTrigger.setAttribute('aria-expanded', 'true');
@@ -55,29 +58,32 @@
   }
 
   function focusProtocolOption(index) {
+    if (!protocolOptions.length) return;
     var wrappedIndex = (index + protocolOptions.length) % protocolOptions.length;
     protocolOptions[wrappedIndex].focus();
   }
 
-  protocolTrigger.addEventListener('click', function () {
-    if (protocolMenu.hidden) openProtocolMenu(true);
-    else closeProtocolMenu(false);
-  });
-  protocolTrigger.addEventListener('keydown', function (event) {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
+  if (protocolTrigger && protocolMenu) {
+    protocolTrigger.addEventListener('click', function () {
       if (protocolMenu.hidden) openProtocolMenu(true);
-      else {
-        var selectedIndex = protocolOptions.findIndex(function (option) {
-          return option.dataset.value === protocolInput.value;
-        });
-        focusProtocolOption(selectedIndex + (event.key === 'ArrowUp' ? -1 : 1));
+      else closeProtocolMenu(false);
+    });
+    protocolTrigger.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (protocolMenu.hidden) openProtocolMenu(true);
+        else {
+          var selectedIndex = protocolOptions.findIndex(function (option) {
+            return option.dataset.value === protocolInput.value;
+          });
+          focusProtocolOption(selectedIndex + (event.key === 'ArrowUp' ? -1 : 1));
+        }
+      } else if (event.key === 'Escape' && !protocolMenu.hidden) {
+        event.preventDefault();
+        closeProtocolMenu(false);
       }
-    } else if (event.key === 'Escape' && !protocolMenu.hidden) {
-      event.preventDefault();
-      closeProtocolMenu(false);
-    }
-  });
+    });
+  }
   protocolOptions.forEach(function (option, index) {
     option.addEventListener('click', function () {
       setProtocol(option.dataset.value);
@@ -105,14 +111,16 @@
       }
     });
   });
-  protocolSelect.addEventListener('focusout', function () {
-    window.setTimeout(function () {
-      if (!protocolSelect.contains(document.activeElement)) closeProtocolMenu(false);
-    }, 0);
-  });
-  document.addEventListener('click', function (event) {
-    if (!protocolSelect.contains(event.target)) closeProtocolMenu(false);
-  });
+  if (protocolSelect) {
+    protocolSelect.addEventListener('focusout', function () {
+      window.setTimeout(function () {
+        if (!protocolSelect.contains(document.activeElement)) closeProtocolMenu(false);
+      }, 0);
+    });
+    document.addEventListener('click', function (event) {
+      if (!protocolSelect.contains(event.target)) closeProtocolMenu(false);
+    });
+  }
 
   function showMessage(text, kind) {
     message.textContent = text || '';
@@ -180,6 +188,7 @@
       row.appendChild(makeCell(route.upstream_model, 'mono-cell'));
       row.appendChild(makeCell(shortEndpoint(route.base_url), 'endpoint-cell mono-cell'));
       var status = document.createElement('td');
+      status.className = 'route-status-cell';
       var statusBadge = document.createElement('span');
       statusBadge.className = 'route-status' + (route.enabled ? ' is-active' : ' is-disabled');
       statusBadge.textContent = route.enabled ? 'Active' : 'Disabled';
@@ -187,8 +196,11 @@
       row.appendChild(status);
       var action = document.createElement('td');
       action.className = 'table-action-cell';
-      action.appendChild(button('Edit', 'table-action', function () { editRoute(route); }));
-      action.appendChild(button('Delete', 'table-action is-danger', function () { deleteRoute(route); }));
+      var actions = document.createElement('div');
+      actions.className = 'table-actions';
+      actions.appendChild(button('Edit', 'table-action', function () { editRoute(route); }));
+      actions.appendChild(button('Delete', 'table-action is-danger', function () { deleteRoute(route); }));
+      action.appendChild(actions);
       row.appendChild(action);
       list.appendChild(row);
     });
@@ -196,12 +208,13 @@
 
   function renderUsers() {
     var list = document.getElementById('userRows');
-    var empty = document.getElementById('usersEmpty');
+    var empty = document.getElementById('routesEmpty');
     var table = document.querySelector('.user-table');
     var hint = document.querySelector('#usersView .table-scroll-hint');
     list.innerHTML = '';
     var hasUsers = users.length > 0;
-    empty.hidden = hasUsers;
+    var userEmpty = document.getElementById('usersEmpty');
+    if (userEmpty) userEmpty.hidden = hasUsers;
     if (table) table.hidden = !hasUsers;
     if (hint) hint.hidden = !hasUsers;
     users.forEach(function (user) {
@@ -222,7 +235,10 @@
       row.appendChild(makeCell(new Date(user.created_at).toLocaleDateString(), 'date-cell'));
       var action = document.createElement('td');
       action.className = 'table-action-cell';
-      action.appendChild(button('Add credit', 'table-action is-accent', function () { openCredit(user); }));
+      var actions = document.createElement('div');
+      actions.className = 'table-actions';
+      actions.appendChild(button('Add credit', 'table-action is-accent', function () { openCredit(user); }));
+      action.appendChild(actions);
       row.appendChild(action);
       list.appendChild(row);
     });
@@ -324,13 +340,18 @@
   function selectSection(section) {
     currentSection = section === 'users' ? 'users' : 'routes';
     closePanels();
-    document.getElementById('routesView').hidden = currentSection !== 'routes';
-    document.getElementById('usersView').hidden = currentSection !== 'users';
-    document.getElementById('adminTitle').textContent = currentSection === 'routes' ? 'Model routes' : 'Users & balance';
-    document.getElementById('adminDescription').textContent = currentSection === 'routes'
+    var routesView = document.getElementById('routesView');
+    var usersView = document.getElementById('usersView');
+    if (routesView) routesView.hidden = currentSection !== 'routes';
+    if (usersView) usersView.hidden = currentSection !== 'users';
+    var titleEl = document.getElementById('adminTitle');
+    var descEl = document.getElementById('adminDescription');
+    var addBtn = document.getElementById('addRouteBtn');
+    if (titleEl) titleEl.textContent = currentSection === 'routes' ? 'Model routes' : 'Users & balance';
+    if (descEl) descEl.textContent = currentSection === 'routes'
       ? 'Choose how Astra sends CLI requests to providers.'
       : 'Manage account credit for Astra CLI users.';
-    document.getElementById('addRouteBtn').hidden = currentSection !== 'routes';
+    if (addBtn) addBtn.hidden = currentSection !== 'routes';
     document.querySelectorAll('[data-admin-section]').forEach(function (item) {
       var active = item.dataset.adminSection === currentSection;
       item.classList.toggle('is-active', active);
@@ -340,7 +361,8 @@
     if (currentSection === 'users') loadUsers().catch(function (err) { showMessage(err.message, 'error'); });
   }
 
-  document.getElementById('addRouteBtn').addEventListener('click', openRoute);
+  var addRouteBtnEl = document.getElementById('addRouteBtn');
+  if (addRouteBtnEl) addRouteBtnEl.addEventListener('click', openRoute);
   document.querySelectorAll('[data-open-route]').forEach(function (item) { item.addEventListener('click', openRoute); });
   document.querySelectorAll('[data-close-panel]').forEach(function (item) { item.addEventListener('click', closePanels); });
   document.querySelectorAll('[data-admin-section]').forEach(function (item) {
@@ -423,7 +445,8 @@
     init: function (user) {
       if (initialized || !user || !user.is_admin) return Promise.resolve();
       initialized = true;
-      document.getElementById('adminEmail').textContent = user.email;
+      var emailEl = document.getElementById('adminEmail');
+      if (emailEl) emailEl.textContent = user.email;
       return Promise.all([loadRoutes(), loadUsers()]).catch(function (err) {
         showMessage(err.message || 'Could not load administrator data.', 'error');
       });

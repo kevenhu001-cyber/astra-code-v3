@@ -11,6 +11,7 @@ pub const INDEX_HTML: &str = include_str!("../assets/site/index.html");
 pub const LOGIN_HTML: &str = include_str!("../assets/site/login.html");
 pub const AUTHORIZE_HTML: &str = include_str!("../assets/site/authorize.html");
 pub const ACCOUNT_HTML: &str = include_str!("../assets/site/account.html");
+pub const ADMIN_HTML: &str = include_str!("../assets/site/admin.html");
 pub const FAVICON_SVG: &str = include_str!("../assets/site/favicon.svg");
 
 pub const FONTS_CSS: &str = include_str!("../assets/site/assets/fonts.css");

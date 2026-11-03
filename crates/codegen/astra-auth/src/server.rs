@@ -588,11 +588,11 @@ impl Server {
             }
             "/authorize" => serve_page(crate::assets::AUTHORIZE_HTML),
             "/account" => serve_page(crate::assets::ACCOUNT_HTML),
-            "/admin" | "/admin.html" => match current_user(&state.store, req.headers()) {
-                Some(user) if user.is_admin => redirect_to("/account#admin"),
-                Some(_) => redirect_to("/account"),
-                None => redirect_to("/login?next=%2Faccount%23admin"),
+            "/admin" => match current_user(&state.store, req.headers()) {
+                Some(user) if !user.is_admin => redirect_to("/account"),
+                _ => serve_page(crate::assets::ADMIN_HTML),
             },
+            "/admin.html" => redirect_permanent("/admin"),
             "/favicon.svg" => (
                 [(
                     header::CONTENT_TYPE,
