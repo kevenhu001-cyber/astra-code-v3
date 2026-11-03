@@ -7714,7 +7714,9 @@ fn custom_model_string_editor_commit_dispatches_typed_setter() {
         (
             "custom_model_api_key",
             "sk-e2e-key-0001",
-            Action::SetCustomModelApiKey,
+            // The setter takes a `SecretString`, so adapt the typed buffer
+            // rather than passing the constructor's own signature through.
+            |v: String| Action::SetCustomModelApiKey(v.into()),
         ),
     ];
     for (key, typed, expect) in cases {
