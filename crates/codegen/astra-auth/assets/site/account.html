@@ -28,8 +28,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
           <span data-theme-label>Dark</span>
         </button>
-        <a class="btn btn-quiet admin-entry" href="/account#admin" data-admin-link hidden>Admin tools <span aria-hidden="true">&rarr;</span></a>
-        <a class="btn btn-primary" href="/authorize">Authorize device</a>
+        <a class="btn btn-quiet admin-entry" href="/account#admin" data-admin-link hidden><span class="btn-full">Admin tools <span aria-hidden="true">&rarr;</span></span><span class="btn-short">Admin</span></a>
+        <a class="btn btn-primary" href="/authorize"><span class="btn-full">Authorize device</span><span class="btn-short">Authorize</span></a>
       </div>
     </div>
   </header>
@@ -142,6 +142,10 @@
       <div class="admin-workspace" id="adminWorkspace">
         <div class="admin-content">
           <section class="admin-view" id="routesView" aria-label="Model routes">
+            <div class="table-scroll-hint" aria-hidden="true" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8L22 12L18 16"/><path d="M6 8L2 12L6 16"/><path d="M2 12H22"/></svg>
+              <span>Swipe horizontally to view full table &rarr;</span>
+            </div>
             <div class="admin-table-wrap">
               <table class="admin-table route-table">
                 <thead><tr><th>Display name</th><th>Protocol</th><th>Upstream model</th><th>Endpoint</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
@@ -157,6 +161,10 @@
           </section>
 
           <section class="admin-view" id="usersView" aria-label="Users and balance" hidden>
+            <div class="table-scroll-hint" aria-hidden="true" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8L22 12L18 16"/><path d="M6 8L2 12L6 16"/><path d="M2 12H22"/></svg>
+              <span>Swipe horizontally to view full table &rarr;</span>
+            </div>
             <div class="admin-table-wrap">
               <table class="admin-table user-table">
                 <thead><tr><th>User</th><th>Role</th><th>Available balance</th><th>Joined</th><th><span class="sr-only">Actions</span></th></tr></thead>

@@ -155,8 +155,13 @@
   function renderRoutes() {
     var list = document.getElementById('routeRows');
     var empty = document.getElementById('routesEmpty');
+    var table = document.querySelector('.route-table');
+    var hint = document.querySelector('#routesView .table-scroll-hint');
     list.innerHTML = '';
-    empty.hidden = routes.length > 0;
+    var hasRoutes = routes.length > 0;
+    empty.hidden = hasRoutes;
+    if (table) table.hidden = !hasRoutes;
+    if (hint) hint.hidden = !hasRoutes;
     routes.forEach(function (route) {
       var row = document.createElement('tr');
       var name = document.createElement('td');
@@ -192,8 +197,13 @@
   function renderUsers() {
     var list = document.getElementById('userRows');
     var empty = document.getElementById('usersEmpty');
+    var table = document.querySelector('.user-table');
+    var hint = document.querySelector('#usersView .table-scroll-hint');
     list.innerHTML = '';
-    empty.hidden = users.length > 0;
+    var hasUsers = users.length > 0;
+    empty.hidden = hasUsers;
+    if (table) table.hidden = !hasUsers;
+    if (hint) hint.hidden = !hasUsers;
     users.forEach(function (user) {
       var row = document.createElement('tr');
       var identity = document.createElement('td');
