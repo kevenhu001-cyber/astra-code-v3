@@ -2154,10 +2154,10 @@ fn openai_responses_request(request: &Value, route: &ModelRoute) -> Value {
             body[key] = value.clone();
         }
     }
-    if let Some(effort) = request.get("reasoning_effort") {
-        if body.get("reasoning").is_none() {
-            body["reasoning"] = json!({ "effort": effort });
-        }
+    if let Some(effort) = request.get("reasoning_effort")
+        && body.get("reasoning").is_none()
+    {
+        body["reasoning"] = json!({ "effort": effort });
     }
     if let Some(max_tokens) = request
         .get("max_completion_tokens")
