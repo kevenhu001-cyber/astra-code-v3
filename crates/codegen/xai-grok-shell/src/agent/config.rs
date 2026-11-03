@@ -3357,6 +3357,17 @@ pub(crate) fn resolve_model_list(
     cfg: &Config,
     prefetched: Option<IndexMap<String, ModelEntry>>,
 ) -> IndexMap<String, ModelEntry> {
+    resolve_model_list_with_remote_authority(cfg, prefetched, false)
+}
+
+/// Like [`resolve_model_list`], but omit bundled defaults when the active remote
+/// catalog is authoritative. This keeps authenticated Astra sessions from
+/// showing stale hardcoded models when the website catalog is empty or offline.
+pub(crate) fn resolve_model_list_with_remote_authority(
+    cfg: &Config,
+    prefetched: Option<IndexMap<String, ModelEntry>>,
+    remote_catalog_is_authoritative: bool,
+) -> IndexMap<String, ModelEntry> {
     let mut resolved: IndexMap<String, ModelEntry> = IndexMap::new();
     if cfg.endpoints.has_custom_endpoint() {
         tracing::info!(
@@ -3364,6 +3375,8 @@ pub(crate) fn resolve_model_list(
             models_list_url = ?cfg.endpoints.models_list_url,
             "custom models endpoint active, skipping built-in defaults",
         );
+    } else if remote_catalog_is_authoritative {
+        tracing::info!("authoritative remote model catalog active, skipping bundled defaults");
     } else {
         let defaults = default_model_entries(&cfg.endpoints);
         tracing::debug!(count = defaults.len(), "loaded default models");

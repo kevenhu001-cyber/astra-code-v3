@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use astra_auth::mailer::ConsoleMailer;
 use astra_auth::server::{Options, Server};
-use astra_auth::store::Store;
+use astra_auth::store::{ApiToken, ModelRoute, Store};
 use axum::http::StatusCode;
 
 /// Start a test server on an ephemeral port. Returns (base_url, store); the
@@ -465,4 +465,98 @@ fn tokens_crud() {
             .iter()
             .any(|t| t["token"].as_str() == Some(tok.as_str()))
     );
+}
+
+#[test]
+fn account_and_cli_model_lists_reflect_enabled_routes_and_prices() {
+    let (base, store) = test_server();
+    seed_user(&store, "u1", "models@b.co", "password123");
+    let now = chrono::Utc::now();
+    let token = ApiToken {
+        token: "cli-model-token".into(),
+        user_id: "u1".into(),
+        label: Some("test".into()),
+        created_at: now,
+        expires_at: now + chrono::Duration::days(1),
+    };
+    store.create_token(&token).unwrap();
+
+    let enabled_route = ModelRoute {
+        id: "fast-model".into(),
+        display_name: "Fast Model".into(),
+        protocol: "openai-compatible".into(),
+        base_url: "https://private-upstream.example/v1".into(),
+        upstream_model: "private-provider-model".into(),
+        context_window: 128_000,
+        api_key: Some("private-upstream-key".into()),
+        input_price_microusd_per_million: 125_000,
+        output_price_microusd_per_million: 750_000,
+        enabled: true,
+        is_default: true,
+    };
+    store.upsert_model_route(enabled_route.clone()).unwrap();
+    store
+        .upsert_model_route(ModelRoute {
+            id: "disabled-model".into(),
+            display_name: "Disabled Model".into(),
+            enabled: false,
+            is_default: false,
+            ..enabled_route.clone()
+        })
+        .unwrap();
+
+    let client = reqwest::blocking::Client::new();
+    let unauthenticated = client
+        .get(format!("{base}/api/auth/models"))
+        .send()
+        .unwrap();
+    assert_eq!(unauthenticated.status(), StatusCode::UNAUTHORIZED);
+
+    let account_response = client
+        .get(format!("{base}/api/auth/models"))
+        .bearer_auth(&token.token)
+        .send()
+        .unwrap();
+    assert_eq!(account_response.status(), StatusCode::OK);
+    let account_models: serde_json::Value = account_response.json().unwrap();
+    let models = account_models["models"].as_array().unwrap();
+    assert_eq!(models.len(), 1);
+    assert_eq!(models[0]["id"], "fast-model");
+    assert_eq!(models[0]["display_name"], "Fast Model");
+    assert_eq!(models[0]["input_price_usd_per_million"], 0.125);
+    assert_eq!(models[0]["output_price_usd_per_million"], 0.75);
+    assert_eq!(models[0]["is_default"], true);
+    assert!(models[0].get("base_url").is_none());
+    assert!(models[0].get("upstream_model").is_none());
+    assert!(models[0].get("api_key").is_none());
+
+    let cli_response = client
+        .get(format!("{base}/v1/models"))
+        .bearer_auth(&token.token)
+        .send()
+        .unwrap();
+    assert_eq!(cli_response.status(), StatusCode::OK);
+    let cli_models: serde_json::Value = cli_response.json().unwrap();
+    let cli_models = cli_models["data"].as_array().unwrap();
+    assert_eq!(cli_models.len(), 1);
+    assert_eq!(cli_models[0]["id"], "fast-model");
+    assert_eq!(cli_models[0]["input_price_usd_per_million"], 0.125);
+    assert_eq!(cli_models[0]["output_price_usd_per_million"], 0.75);
+    assert!(cli_models[0].get("base_url").is_none());
+
+    let updated_route = ModelRoute {
+        input_price_microusd_per_million: 200_000,
+        output_price_microusd_per_million: 900_000,
+        ..enabled_route
+    };
+    store.upsert_model_route(updated_route).unwrap();
+    let refreshed: serde_json::Value = client
+        .get(format!("{base}/api/auth/models"))
+        .bearer_auth(&token.token)
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(refreshed["models"][0]["input_price_usd_per_million"], 0.2);
+    assert_eq!(refreshed["models"][0]["output_price_usd_per_million"], 0.9);
 }

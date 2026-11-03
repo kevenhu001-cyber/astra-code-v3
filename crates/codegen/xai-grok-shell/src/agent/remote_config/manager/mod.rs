@@ -11,8 +11,8 @@ use agent_client_protocol as acp;
 use super::{
     HttpModelsEndpoint, ModelFetchAuth, ModelsCacheManager, ModelsCacheScope, ModelsEndpoint,
     allowlist_matches_nothing, available_models, is_campaign_only_flip, resolve_catalog_key,
-    resolve_default_model, resolve_model_catalog, task_model_error_for_catalog,
-    validate_selectable,
+    resolve_default_model, resolve_model_catalog, resolve_model_catalog_with_remote_authority,
+    task_model_error_for_catalog, validate_selectable,
 };
 use crate::agent::config::{self, ModelEntry, resolve_credentials, sampling_config_for_model};
 use crate::sampling::SamplerConfig as SamplingConfig;
@@ -30,6 +30,16 @@ enum CatalogProgress {
     Pending,
     Failed,
     Ready,
+}
+
+fn uses_authoritative_session_catalog(
+    cfg: &config::Config,
+    auth: Option<&GrokAuth>,
+    fetch_auth: ModelFetchAuth,
+) -> bool {
+    auth.is_some_and(|auth| auth.is_session_auth())
+        && fetch_auth == ModelFetchAuth::Session
+        && !cfg.endpoints.has_custom_endpoint()
 }
 
 /// Catalog fields written together under one lock, so readers never see a torn mix.
@@ -247,16 +257,13 @@ impl ModelsManager {
         prefetched_models: Option<IndexMap<String, ModelEntry>>,
         auth_manager: Arc<AuthManager>,
     ) -> Result<Self, String> {
-        let has_session = auth_manager.current_or_expired().is_some();
-        let is_session_auth = auth_manager
-            .current_or_expired()
-            .is_some_and(|a| a.is_session_auth());
+        let current_auth = auth_manager.current_or_expired();
+        let has_session = current_auth.is_some();
+        let is_session_auth = current_auth.as_ref().is_some_and(|a| a.is_session_auth());
         let fetch_auth = ModelFetchAuth::resolve(&cfg.endpoints, has_session);
-        let scope = ModelsCacheScope::resolve(
-            &cfg.endpoints,
-            fetch_auth,
-            auth_manager.current_or_expired().as_ref(),
-        );
+        let remote_catalog_is_authoritative =
+            uses_authoritative_session_catalog(cfg, current_auth.as_ref(), fetch_auth);
+        let scope = ModelsCacheScope::resolve(&cfg.endpoints, fetch_auth, current_auth.as_ref());
         let mut cached_etag = None;
         let prefetched_models = prefetched_models.or_else(|| {
             let cache = ModelsCacheManager::new();
@@ -266,7 +273,11 @@ impl ModelsManager {
             })
         });
         let has_prefetched = prefetched_models.is_some();
-        let catalog = resolve_model_catalog(cfg, prefetched_models.clone());
+        let catalog = resolve_model_catalog_with_remote_authority(
+            cfg,
+            prefetched_models.clone(),
+            remote_catalog_is_authoritative,
+        );
 
         // Only against a real catalog. A fleet pin on built-ins-only (custom endpoint, cold cache) would reject a valid policy before the first fetch. The catalog still marks unselectable entries; this check runs after prefetch / cache.
         if has_prefetched {
@@ -313,8 +324,17 @@ impl ModelsManager {
             tracing::error!(error = %e, "ignoring config reload: invalid model filters");
             return;
         }
+        let current_auth = self.inner.auth_manager.current_or_expired();
+        let has_session = current_auth.is_some();
+        let fetch_auth = ModelFetchAuth::resolve(&new_config.endpoints, has_session);
+        let remote_catalog_is_authoritative =
+            uses_authoritative_session_catalog(&new_config, current_auth.as_ref(), fetch_auth);
         let prefetched = self.inner.catalog.read().prefetched.clone();
-        let new_catalog = resolve_model_catalog(&new_config, prefetched);
+        let new_catalog = resolve_model_catalog_with_remote_authority(
+            &new_config,
+            prefetched,
+            remote_catalog_is_authoritative,
+        );
         let has_real_catalog = self.inner.catalog.read().has_fetched_real_catalog;
         if has_real_catalog && let Err(e) = validate_selectable(&new_config, &new_catalog) {
             tracing::error!(error = %e, "ignoring config reload: allowed_models excludes all models");
@@ -329,9 +349,7 @@ impl ModelsManager {
             )
         };
         let new_preferred = new_config.models.default.clone();
-        let has_session = self.inner.auth_manager.current_or_expired().is_some();
-        *self.inner.fetch_auth.write() =
-            ModelFetchAuth::resolve(&new_config.endpoints, has_session);
+        *self.inner.fetch_auth.write() = fetch_auth;
         *self.inner.cfg.write() = new_config.clone();
         {
             let mut cat = self.inner.catalog.write();
@@ -1146,6 +1164,10 @@ impl ModelsManager {
         new_etag: Option<String>,
         generation: Option<u64>,
     ) -> bool {
+        let current_auth = self.inner.auth_manager.current_or_expired();
+        let fetch_auth = *self.inner.fetch_auth.read();
+        let remote_catalog_is_authoritative =
+            uses_authoritative_session_catalog(cfg, current_auth.as_ref(), fetch_auth);
         let (first_real_catalog, excludes_all) = {
             let mut cat = self.inner.catalog.write();
             if let Some(generation) = generation
@@ -1157,7 +1179,11 @@ impl ModelsManager {
             let first_real_catalog = !cat.has_fetched_real_catalog;
             cat.has_fetched_real_catalog = true;
             cat.prefetched = Some(models);
-            cat.models = resolve_model_catalog(cfg, cat.prefetched.clone());
+            cat.models = resolve_model_catalog_with_remote_authority(
+                cfg,
+                cat.prefetched.clone(),
+                remote_catalog_is_authoritative,
+            );
             cat.etag = new_etag;
             cat.allowlist_excludes_all = allowlist_matches_nothing(cfg, &cat.models);
             // In the lock: the flag and its mirror can't desync vs `clear()`.

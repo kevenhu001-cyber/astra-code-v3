@@ -109,6 +109,68 @@
 }
 .balance-note { max-width: 40ch; color: var(--muted); font: var(--type-caption-5); }
 
+/* Admin-managed model catalog and token prices. */
+.model-catalog { margin-top: var(--space-500); }
+.model-table-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+}
+.model-price-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  text-align: left;
+}
+.model-price-table th {
+  padding: var(--space-200) var(--space-300);
+  background: var(--subtle);
+  color: var(--muted);
+  font: var(--type-caption-5);
+  font-weight: 500;
+}
+.model-price-table th:nth-child(n+2),
+.model-price-table td:nth-child(n+2) { text-align: right; }
+.model-price-table td {
+  padding: var(--space-200) var(--space-300);
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+.model-price-table .model-price-name {
+  color: var(--ink);
+  font: var(--type-title-4);
+  font-weight: 500;
+}
+.model-price-table .model-price-id {
+  display: block;
+  color: var(--quiet);
+  font: var(--type-caption-5);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.model-price-table .model-price-value {
+  white-space: nowrap;
+  font: var(--type-body-6);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.model-price-table .model-price-empty {
+  color: var(--muted);
+  text-align: left;
+}
+.model-default-tag {
+  display: inline-flex;
+  margin-left: var(--space-100);
+  border-radius: var(--radius-full);
+  background: var(--fill);
+  padding: 2px var(--space-100);
+  color: var(--muted);
+  font: var(--type-caption-5);
+  vertical-align: middle;
+}
+
 /* Activity ledger. */
 .usage-section { margin-top: var(--space-500); }
 .ledger-list { display: grid; margin-top: var(--space-200); }

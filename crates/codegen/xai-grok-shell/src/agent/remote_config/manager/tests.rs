@@ -42,6 +42,32 @@ fn cold_manager(cfg: config::Config, endpoint: Arc<dyn ModelsEndpoint>) -> Model
     .build()
 }
 
+#[test]
+fn authoritative_remote_catalog_never_falls_back_to_bundled_models() {
+    let cfg = config::Config::default();
+    let mut remote = IndexMap::new();
+    remote.insert(
+        "website-model".to_string(),
+        make_model_entry("website-model"),
+    );
+
+    let fetched = resolve_model_catalog_with_remote_authority(&cfg, Some(remote), true);
+    assert_eq!(fetched.len(), 1);
+    assert!(fetched.contains_key("website-model"));
+    assert!(
+        config::default_model_entries(&cfg.endpoints)
+            .keys()
+            .all(|key| !fetched.contains_key(key)),
+        "the authenticated website catalog must not be augmented with bundled entries"
+    );
+
+    let unavailable = resolve_model_catalog_with_remote_authority(&cfg, None, true);
+    assert!(
+        unavailable.is_empty(),
+        "an authenticated Astra session must not surface bundled models when fetching fails"
+    );
+}
+
 struct HangingEndpoint;
 impl ModelsEndpoint for HangingEndpoint {
     fn fetch_models(

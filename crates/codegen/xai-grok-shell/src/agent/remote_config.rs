@@ -29,8 +29,8 @@ pub(crate) use prefetch::{
 pub(crate) use resolution::{
     ModelGlobSet, allowlist_denied_message, allowlist_excludes_all_message,
     allowlist_matches_nothing, available_models, is_campaign_only_flip, resolve_catalog_key,
-    resolve_default_model, resolve_model_catalog, selectable_catalog_key_for_persisted,
-    validate_selectable,
+    resolve_default_model, resolve_model_catalog, resolve_model_catalog_with_remote_authority,
+    selectable_catalog_key_for_persisted, validate_selectable,
 };
 pub(in crate::agent::remote_config) use scope::{
     Commit, evaluate_commit, evaluate_models_commit, resolve_disk_auth,

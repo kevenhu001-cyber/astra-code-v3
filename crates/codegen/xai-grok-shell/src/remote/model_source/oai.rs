@@ -6,20 +6,46 @@ use crate::remote::model_source::ModelSource;
 use serde::Deserialize;
 use xai_grok_login::GrokAuth;
 use xai_grok_login::backend::{ActiveAuthBackend, AuthBackend};
+
+fn astra_site_api_base_url() -> String {
+    format!(
+        "{}/v1",
+        xai_grok_login::xai_oauth2_issuer().trim_end_matches('/')
+    )
+}
+
 #[derive(Debug, Deserialize)]
 struct ModelsResponse {
     data: Vec<serde_json::Value>,
 }
-/// Reads `/v1/models` from whichever host the endpoint config resolved to.
+
+fn prioritize_default_model(data: &mut [serde_json::Value]) {
+    data.sort_by_key(|value| {
+        let is_default = value
+            .get("isDefault")
+            .or_else(|| value.get("is_default"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        !is_default
+    });
+}
+
+/// Reads `/v1/models` from a configured endpoint or the Astra website catalog.
 pub(crate) struct OaiModelSource {
     endpoint: ListModelsEndpoint,
     inference_base_url: String,
 }
 impl OaiModelSource {
     pub(crate) fn new(endpoints: &EndpointsConfig, fetch_auth: ModelFetchAuth) -> Self {
+        let use_astra_site =
+            fetch_auth == ModelFetchAuth::Session && !endpoints.has_custom_endpoint();
         Self {
             endpoint: ListModelsEndpoint::from_endpoints(endpoints, fetch_auth),
-            inference_base_url: endpoints.resolve_inference_base_url(),
+            inference_base_url: if use_astra_site {
+                astra_site_api_base_url()
+            } else {
+                endpoints.resolve_inference_base_url()
+            },
         }
     }
 }
@@ -78,13 +104,11 @@ impl ModelSource for OaiModelSource {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string());
         let models_response: ModelsResponse = response.json()?;
-        tracing::info!(
-            "Fetched {} models from {}",
-            models_response.data.len(),
-            self.endpoint.url
-        );
-        let mut models = Vec::with_capacity(models_response.data.len());
-        for (idx, value) in models_response.data.into_iter().enumerate() {
+        let mut data = models_response.data;
+        prioritize_default_model(&mut data);
+        tracing::info!("Fetched {} models from {}", data.len(), self.endpoint.url);
+        let mut models = Vec::with_capacity(data.len());
+        for (idx, value) in data.into_iter().enumerate() {
             match parse_remote_model_value(&value, &self.inference_base_url) {
                 Some(model) => models.push(model),
                 None => {
@@ -119,6 +143,11 @@ impl ListModelsEndpoint {
                 url: format!("{}/models", endpoints.xai_api_base_url),
                 auth: EndpointAuth::ApiKey,
             }
+        } else if fetch_auth == ModelFetchAuth::Session {
+            Self {
+                url: format!("{}/models", astra_site_api_base_url()),
+                auth: EndpointAuth::Session,
+            }
         } else {
             Self {
                 url: endpoints.resolve_models_list_url(),
@@ -130,6 +159,20 @@ impl ListModelsEndpoint {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn admin_default_model_is_prioritized_without_reordering_others() {
+        let mut data = vec![
+            serde_json::json!({"id": "first"}),
+            serde_json::json!({"id": "default", "isDefault": true}),
+            serde_json::json!({"id": "last", "is_default": false}),
+        ];
+        prioritize_default_model(&mut data);
+        assert_eq!(data[0]["id"], "default");
+        assert_eq!(data[1]["id"], "first");
+        assert_eq!(data[2]["id"], "last");
+    }
+
     #[test]
     #[serial_test::serial]
     fn models_fetch_endpoint_matches_auth_mode() {
@@ -137,6 +180,7 @@ mod tests {
         use crate::agent::remote_config::ModelFetchAuth;
         for k in [
             "GROK_CLI_CHAT_PROXY_BASE_URL",
+            "GROK_LOCAL_AUTH",
             "GROK_XAI_API_BASE_URL",
             "GROK_MODELS_LIST_URL",
             "ASTRA_CLI_CHAT_PROXY_BASE_URL",
@@ -153,11 +197,13 @@ mod tests {
             .unwrap(),
         );
         let session = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::Session);
-        assert_eq!(
-            session.url,
-            "https://cli-chat-proxy.astracode.topodrive.top/v1/models"
-        );
+        assert_eq!(session.url, "https://astracode.topodrive.top/v1/models");
         assert_eq!(session.auth, EndpointAuth::Session);
+        let session_source = OaiModelSource::new(&cfg, ModelFetchAuth::Session);
+        assert_eq!(
+            session_source.inference_base_url,
+            "https://astracode.topodrive.top/v1"
+        );
         let deployment = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::Deployment);
         assert_eq!(
             deployment.url,

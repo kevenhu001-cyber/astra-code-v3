@@ -331,7 +331,20 @@ pub(crate) fn resolve_model_catalog(
     cfg: &config::Config,
     prefetched: Option<IndexMap<String, ModelEntry>>,
 ) -> IndexMap<String, ModelEntry> {
-    let mut catalog: IndexMap<String, ModelEntry> = config::resolve_model_list(cfg, prefetched);
+    resolve_model_catalog_with_remote_authority(cfg, prefetched, false)
+}
+
+pub(crate) fn resolve_model_catalog_with_remote_authority(
+    cfg: &config::Config,
+    prefetched: Option<IndexMap<String, ModelEntry>>,
+    remote_catalog_is_authoritative: bool,
+) -> IndexMap<String, ModelEntry> {
+    let mut catalog: IndexMap<String, ModelEntry> =
+        config::resolve_model_list_with_remote_authority(
+            cfg,
+            prefetched,
+            remote_catalog_is_authoritative,
+        );
 
     if let Ok(Some(disabled)) = ModelGlobSet::compile(cfg.models.disabled_models.as_deref()) {
         let before = catalog.len();

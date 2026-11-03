@@ -180,6 +180,7 @@ impl Server {
             )
             .route("/api/auth/account", post(handlers_account))
             .route("/api/auth/balance", get(handlers_balance))
+            .route("/api/auth/models", get(handlers_account_models))
             .route(
                 "/api/admin/models",
                 get(handlers_admin_models_get)
@@ -1478,13 +1479,18 @@ fn admin_user(s: &Server, headers: &HeaderMap) -> Result<User, Response> {
     }
 }
 
+fn route_prices(route: &ModelRoute) -> (f64, f64) {
+    let input_usd = ((route.input_price_microusd_per_million as f64 / 1_000_000.0) * 10_000.0)
+        .round()
+        / 10_000.0;
+    let output_usd = ((route.output_price_microusd_per_million as f64 / 1_000_000.0) * 10_000.0)
+        .round()
+        / 10_000.0;
+    (input_usd, output_usd)
+}
+
 fn route_public(route: &ModelRoute) -> Value {
-    let input_usd =
-        ((route.input_price_microusd_per_million as f64 / 1_000_000.0) * 10_000.0).round()
-            / 10_000.0;
-    let output_usd =
-        ((route.output_price_microusd_per_million as f64 / 1_000_000.0) * 10_000.0).round()
-            / 10_000.0;
+    let (input_usd, output_usd) = route_prices(route);
     json!({
         "id": route.id,
         "display_name": route.display_name,
@@ -1496,6 +1502,17 @@ fn route_public(route: &ModelRoute) -> Value {
         "input_price_usd_per_million": input_usd,
         "output_price_usd_per_million": output_usd,
         "enabled": route.enabled,
+        "is_default": route.is_default,
+    })
+}
+
+fn route_catalog_public(route: &ModelRoute) -> Value {
+    let (input_usd, output_usd) = route_prices(route);
+    json!({
+        "id": route.id,
+        "display_name": route.display_name,
+        "input_price_usd_per_million": input_usd,
+        "output_price_usd_per_million": output_usd,
         "is_default": route.is_default,
     })
 }
@@ -1565,6 +1582,29 @@ async fn handlers_balance(State(s): State<Server>, req: axum::extract::Request) 
         StatusCode::OK,
         json!({ "balance_microusd": user.balance_microusd, "transactions": transactions }),
     )
+}
+
+async fn handlers_account_models(State(s): State<Server>, req: axum::extract::Request) -> Response {
+    if current_user(&s.store, req.headers()).is_none() {
+        return write_err(StatusCode::UNAUTHORIZED, "not authenticated");
+    }
+    let models: Vec<Value> = s
+        .store
+        .model_routes()
+        .into_iter()
+        .filter(|route| route.enabled)
+        .map(|route| route_catalog_public(&route))
+        .collect();
+    let mut response = json_response(StatusCode::OK, json!({ "models": models }));
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("private, no-store"),
+    );
+    response.headers_mut().insert(
+        header::VARY,
+        HeaderValue::from_static("Authorization, Cookie, X-Session-Token"),
+    );
+    response
 }
 
 async fn handlers_admin_models_get(
@@ -1882,6 +1922,7 @@ async fn handlers_gateway_models(State(s): State<Server>, req: axum::extract::Re
         .into_iter()
         .filter(|route| route.enabled)
         .map(|route| {
+            let (input_price, output_price) = route_prices(&route);
             json!({
                 "id": route.id,
                 "object": "model",
@@ -1892,6 +1933,9 @@ async fn handlers_gateway_models(State(s): State<Server>, req: axum::extract::Re
                 "display_name": route.display_name,
                 "apiBackend": "chat_completions",
                 "contextWindow": route.context_window,
+                "isDefault": route.is_default,
+                "input_price_usd_per_million": input_price,
+                "output_price_usd_per_million": output_price,
             })
         })
         .collect();

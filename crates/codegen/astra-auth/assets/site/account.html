@@ -9,7 +9,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/fonts.css?v=9">
   <link rel="stylesheet" href="/assets/site.css?v=9">
-  <link rel="stylesheet" href="/assets/account.css?v=9">
+  <link rel="stylesheet" href="/assets/account.css?v=10">
 </head>
 <body class="account-page" data-auth-pending="true">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -44,19 +44,6 @@
         <div class="msg ok" id="formOk"></div>
 
         <div id="profileBox">
-          <div class="admin-quick-card" id="adminQuickCard" hidden>
-            <div class="admin-quick-info">
-              <div class="admin-badge-wrap">
-                <span class="role-badge role-badge--admin">System Administrator</span>
-                <span class="admin-badge-tag">Model &amp; System Routing</span>
-              </div>
-              <strong class="admin-quick-title">Control center &amp; model routing</strong>
-              <p class="admin-quick-desc">Configure the AI models, protocols (OpenAI, Anthropic, Responses), upstream endpoints, and token billing for Astra users.</p>
-            </div>
-            <div class="admin-quick-actions">
-              <a class="btn btn-primary" href="/admin" id="jumpToAdminBtn">Open Admin Console &rarr;</a>
-            </div>
-          </div>
           <div class="acct-meta">
             <span class="avatar" id="avatar">&middot;</span>
             <div>
@@ -83,6 +70,26 @@
               <strong class="balance-value" id="balanceValue">&mdash;</strong>
             </div>
             <p class="balance-note">CLI requests are billed from this balance using the configured model rates.</p>
+          </section>
+
+          <section class="model-catalog" aria-labelledby="modelCatalogTitle">
+            <p class="section-title" id="modelCatalogTitle">Available models</p>
+            <p class="section-help" id="modelCatalogHelp">Models configured by Astra, with input and output prices per 1 million tokens.</p>
+            <p class="table-scroll-hint">Scroll horizontally to compare input and output prices.</p>
+            <div class="model-table-wrap">
+              <table class="model-price-table" aria-describedby="modelCatalogHelp">
+                <thead>
+                  <tr>
+                    <th scope="col">Model</th>
+                    <th scope="col">Input / 1M tokens</th>
+                    <th scope="col">Output / 1M tokens</th>
+                  </tr>
+                </thead>
+                <tbody id="modelPricingRows">
+                  <tr><td class="model-price-empty" colspan="3">Loading available models&hellip;</td></tr>
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <div class="usage-section">
@@ -217,6 +224,63 @@
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
       }
 
+      function formatModelPrice(price) {
+        var amount = Number(price);
+        if (!isFinite(amount) || amount < 0) amount = 0;
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 4
+        }).format(amount);
+      }
+
+      function renderModels(models, error) {
+        var rows = document.getElementById('modelPricingRows');
+        rows.textContent = '';
+        if (error || !models || !models.length) {
+          var row = document.createElement('tr');
+          var empty = document.createElement('td');
+          empty.className = 'model-price-empty';
+          empty.colSpan = 3;
+          empty.textContent = error || 'No models are currently available.';
+          row.appendChild(empty);
+          rows.appendChild(row);
+          return;
+        }
+
+        models.forEach(function (model) {
+          var row = document.createElement('tr');
+          var nameCell = document.createElement('td');
+          var name = document.createElement('strong');
+          name.className = 'model-price-name';
+          name.textContent = model.display_name || model.id || 'Model';
+          nameCell.appendChild(name);
+          if (model.is_default) {
+            var badge = document.createElement('span');
+            badge.className = 'model-default-tag';
+            badge.textContent = 'Default';
+            nameCell.appendChild(badge);
+          }
+          var id = document.createElement('span');
+          id.className = 'model-price-id';
+          id.textContent = model.id || '';
+          nameCell.appendChild(id);
+          row.appendChild(nameCell);
+
+          var inputPrice = document.createElement('td');
+          inputPrice.className = 'model-price-value';
+          inputPrice.textContent = formatModelPrice(model.input_price_usd_per_million);
+          row.appendChild(inputPrice);
+
+          var outputPrice = document.createElement('td');
+          outputPrice.className = 'model-price-value';
+          outputPrice.textContent = formatModelPrice(model.output_price_usd_per_million);
+          row.appendChild(outputPrice);
+          rows.appendChild(row);
+        });
+      }
+
       function renderLedger(entries) {
         var list = document.getElementById('ledgerList');
         list.innerHTML = '';
@@ -254,10 +318,8 @@
         if (u.is_admin) {
           var adminLink = document.querySelector('[data-admin-link]');
           var navAdmin = document.getElementById('navAdminLink');
-          var quickCard = document.getElementById('adminQuickCard');
           if (adminLink) adminLink.hidden = false;
           if (navAdmin) navAdmin.hidden = false;
-          if (quickCard) quickCard.hidden = false;
           if (window.location.hash === '#admin') {
             window.location.replace('/admin');
             return;
@@ -272,7 +334,10 @@
           A.api('/balance', { method: 'GET' }).then(function (d) {
             document.getElementById('balanceValue').textContent = formatUsd(d.balance_microusd);
             renderLedger(d.transactions);
-          })
+          }),
+          A.api('/models', { method: 'GET' })
+            .then(function (d) { renderModels(d.models); })
+            .catch(function () { renderModels(null, 'Could not load the model list. Please try again later.'); })
         ]).catch(function (err) { A.setErr('Could not load account details: ' + err.message); });
       }).catch(function () { A.redirectLogin('/account'); });
 
