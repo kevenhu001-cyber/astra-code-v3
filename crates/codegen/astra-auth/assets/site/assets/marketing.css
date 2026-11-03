@@ -578,27 +578,45 @@
 
 @media (max-width: 760px) {
   .shell-wide {
-    padding-inline: clamp(14px, 4vw, 20px);
+    padding-inline: clamp(12px, 3.5vw, 16px);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .hero {
-    padding-block: clamp(20px, 4vh, 36px) clamp(28px, 5vh, 44px);
+    padding-block: clamp(16px, 3vh, 28px) clamp(24px, 4vh, 36px);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+  .hero-inner {
+    width: 100%;
+    max-width: 100%;
+    gap: 20px;
+  }
+  .hero-copy {
+    width: 100%;
+    max-width: 100%;
   }
   .hero h1 {
-    font-size: clamp(1.85rem, 6.5vw, 2.25rem);
+    font-size: clamp(1.75rem, 6vw, 2.15rem);
     line-height: 1.15;
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
   .hero .lede {
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
     line-height: 1.5;
   }
   .hero-mark {
-    padding: var(--space-75) 0 var(--space-150);
+    padding: var(--space-50) 0 var(--space-100);
+    width: 100%;
+    max-width: 100%;
   }
   .hero-mark-svg,
   .hero-mark-canvas {
-    max-width: 230px;
+    width: clamp(170px, 48vw, 210px);
+    max-width: 210px;
   }
   .hero-mark-tabs {
     gap: 3px;
@@ -610,23 +628,48 @@
     font-size: 0.75rem;
   }
   .composer {
-    padding: var(--space-100) var(--space-100) var(--space-100) var(--space-150);
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-75) var(--space-75) var(--space-75) var(--space-100);
     border-radius: var(--radius-xl);
+    box-sizing: border-box;
   }
   .composer-input {
-    height: 44px;
+    height: 42px;
     font-size: 16px; /* 防止 iOS Safari 聚焦时页面放大 */
   }
   .chip {
-    height: 30px;
+    height: 28px;
     padding-inline: 10px;
     font-size: 0.8125rem;
+    max-width: 100%;
   }
   .composer-chips {
     gap: 6px;
+    width: 100%;
+    max-width: 100%;
   }
-  .feature-layout { grid-template-columns: minmax(0, 1fr); }
-  .feature-media { border-radius: var(--radius-2xl); padding: var(--space-75); }
+  .cli {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: clip;
+  }
+  .cli .cmd-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .cli .cmd-line .cmd {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    width: 100%;
+  }
+  .copy-btn {
+    align-self: flex-end;
+  }
+  .feature-layout { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; }
+  .feature-media { border-radius: var(--radius-2xl); padding: var(--space-75); width: 100%; max-width: 100%; box-sizing: border-box; }
   .hero-plate { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: var(--space-200); }
   .plate-media { border-radius: var(--radius-2xl); }
   .plate-caption { padding: 0; font: var(--type-heading-6); }
@@ -639,9 +682,9 @@
   .loop-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-400); }
   .protocol-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-200); }
   .install-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-200); }
-  .install-card { padding: var(--space-300); }
+  .install-card { padding: var(--space-300); width: 100%; max-width: 100%; box-sizing: border-box; }
   .faq-list { grid-template-columns: minmax(0, 1fr); gap: var(--space-300); }
-  .cta-inner { padding: var(--space-600) var(--space-300); border-radius: var(--radius-2xl); }
+  .cta-inner { padding: var(--space-600) var(--space-300); border-radius: var(--radius-2xl); width: 100%; max-width: 100%; box-sizing: border-box; }
 }
 
 @media (max-width: 380px) {
