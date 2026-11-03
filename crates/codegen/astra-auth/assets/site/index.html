@@ -48,7 +48,7 @@
             <a class="btn btn-quiet" href="#install">Install CLI</a>
           </div>
 
-          <p class="hero-note">Email verification required. Self-hosted? Verification links are printed to the server log.</p>
+          <p class="hero-note">Enterprise-ready security &middot; Works with cloud and local private models &middot; Zero code telemetry</p>
         </div>
 
         <div class="hero-mark" aria-label="Astra dot-matrix dynamic mark">
@@ -75,60 +75,60 @@
             <div class="feature-media">
               <div class="state-preview">
                 <div class="state-head">
-                  <span class="state-title">astra state</span>
-                  <span class="state-meta">2 goals &middot; 1 claim &middot; 1 unknown</span>
+                  <span class="state-title">astra agent</span>
+                  <span class="state-meta">Task: Implement idempotent billing webhooks</span>
                 </div>
                 <ul class="state-rows">
                   <li class="state-row">
-                    <span class="state-kind">Goal</span>
-                    <span class="state-text">Ship the device-code login flow</span>
-                    <span class="state-status state-status--verified">Verified</span>
+                    <span class="state-kind">Plan</span>
+                    <span class="state-text">Design replay-safe webhook consumer with Redis deduplication</span>
+                    <span class="state-status state-status--verified">Completed</span>
                   </li>
                   <li class="state-row">
-                    <span class="state-kind">Claim</span>
-                    <span class="state-text">Session cookies survive a CLI reconnect</span>
-                    <span class="state-status state-status--stale">Stale</span>
+                    <span class="state-kind">Code</span>
+                    <span class="state-text">Implement HMAC-SHA256 signature verification &amp; retry backoff</span>
+                    <span class="state-status state-status--verified">Generated</span>
                   </li>
                   <li class="state-row">
-                    <span class="state-kind">Evidence</span>
-                    <span class="state-text">cargo test &mdash; 214 passed, 0 failed</span>
-                    <span class="state-status state-status--verified">Verified</span>
+                    <span class="state-kind">Test</span>
+                    <span class="state-text">Run 36 integration tests against mock payment providers</span>
+                    <span class="state-status state-status--verified">36/36 Passed</span>
                   </li>
                   <li class="state-row">
-                    <span class="state-kind">Unknown</span>
-                    <span class="state-text">Which provider served the last request</span>
-                    <span class="state-status state-status--open">Open</span>
+                    <span class="state-kind">Audit</span>
+                    <span class="state-text">Static security scan &amp; zero vulnerability verification</span>
+                    <span class="state-status state-status--verified">0 Warnings</span>
                   </li>
                 </ul>
               </div>
             </div>
             <div class="feature-caption">
-              <span class="feature-meta"><span>State</span><span>Persisted across sessions, replayed from an event log</span></span>
+              <span class="feature-meta"><span>Autonomous Delivery</span><span>End-to-end task execution with strict test verification</span></span>
             </div>
           </a>
 
           <div class="hero-plate">
             <div class="plate-media">
               <div class="plate-loop">
-                <span class="plate-step">Understand</span>
-                <span class="plate-step">Build state</span>
-                <span class="plate-step">Name unknowns</span>
-                <span class="plate-step">Choose an action</span>
-                <span class="plate-step">Collect evidence</span>
-                <span class="plate-step">Verify the goal</span>
+                <span class="plate-step">Analyze Context</span>
+                <span class="plate-step">Synthesize Plan</span>
+                <span class="plate-step">Code Generation</span>
+                <span class="plate-step">Automated Testing</span>
+                <span class="plate-step">Security Audit</span>
+                <span class="plate-step">Deliver PR</span>
               </div>
             </div>
             <div class="plate-caption">
-              <span class="plate-index">The closed loop</span>
-              <span>Six steps, one loop, no step that ends in a guess.</span>
+              <span class="plate-index">The Autonomous Loop</span>
+              <span>Six steps, one closed loop &mdash; no step left to guessing.</span>
             </div>
           </div>
 
           <div class="feature-intro">
-            <h2>Six first-class citizens, one closed loop.</h2>
+            <h2>Engineering rigor built into every single step.</h2>
             <div class="feature-intro-copy">
-              <p class="feature-description feature-description--lead">Understand &rarr; build knowledge state &rarr; identify unknowns &rarr; choose the best action &rarr; execute &rarr; collect evidence &rarr; update state &rarr; verify the goal. Repeat.</p>
-              <p class="feature-description">Astra treats reasoning as state, not as a transcript. When the model disconnects, the work is still there: the goal, the claims, the evidence behind them, and the things nobody knows yet.</p>
+              <p class="feature-description feature-description--lead">From repository indexing to automated test execution, Astra closes the loop between thinking, coding, and proving correctness.</p>
+              <p class="feature-description">Unlike conversational AI tools that hallucinate untested code, Astra treats software engineering as an evidence-driven discipline &mdash; running builds, linters, and test suites until every solution is verified.</p>
             </div>
           </div>
         </div>
@@ -140,8 +140,8 @@
                 <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
               </svg>
             </div>
-            <h3>State over chat</h3>
-            <p>Goal, Claim, Evidence, Unknown are first-class citizens &mdash; persisted across sessions and replayed from an event log, never lost when the model disconnects.</p>
+            <h3>Full-Codebase Context</h3>
+            <p>Indexes entire repositories, cross-module dependencies, and git history. Never loses project context or architectural constraints.</p>
           </div>
           <div class="card">
             <div class="ico">
@@ -149,8 +149,8 @@
                 <path d="M12 3v18M5 7l7-4 7 4M5 17l7 4 7-4"/><path d="M3 12h18"/>
               </svg>
             </div>
-            <h3>Evidence-bound claims</h3>
-            <p>Conclusions require test, build, or runtime evidence. Stale evidence is automatically invalidated when the code changes &mdash; the claim is downgraded, the goal is re-scoped.</p>
+            <h3>Evidence-Bound Verification</h3>
+            <p>Every code modification must pass real compiler checks, unit tests, and linters before being proposed. Zero hallucinations.</p>
           </div>
           <div class="card">
             <div class="ico">
@@ -158,8 +158,8 @@
                 <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
               </svg>
             </div>
-            <h3>Uncertainty-driven</h3>
-            <p>Actions compete on expected information gain. The runtime prioritizes what it does not know &mdash; not what is easiest to claim.</p>
+            <h3>Uncertainty-Driven Exploration</h3>
+            <p>Identifies knowledge gaps and edge cases upfront. The agent systematically eliminates unknowns before writing production code.</p>
           </div>
           <div class="card">
             <div class="ico">
@@ -167,8 +167,8 @@
                 <path d="M12 2L4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/><path d="M9 12l2 2 4-4"/>
               </svg>
             </div>
-            <h3>Permissioned execution</h3>
-            <p>Every tool call runs through a permission model with Plan, Ask, Allow, and Deny modes &mdash; plus lifecycle hooks for org-specific gates.</p>
+            <h3>Enterprise Permission Gates</h3>
+            <p>Every tool execution and terminal command is protected by configurable approval policies (Plan, Ask, Allow, Deny) and sandbox security.</p>
           </div>
           <div class="card">
             <div class="ico">
@@ -176,8 +176,8 @@
                 <path d="M4 7h16M4 12h16M4 17h10"/>
               </svg>
             </div>
-            <h3>Open protocol</h3>
-            <p>OpenAI-compatible, OpenAI Responses, and Anthropic providers, MCP servers over stdio or streamable HTTP, Codex-style apply_patch. No lock-in, no proprietary wire format.</p>
+            <h3>Universal Model Support</h3>
+            <p>Plug-and-play with Claude 3.5 Sonnet, GPT-4o, DeepSeek, Qwen, OpenRouter, or run completely offline with local Ollama models.</p>
           </div>
           <div class="card">
             <div class="ico">
@@ -185,8 +185,8 @@
                 <circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0114 0"/><circle cx="17" cy="9" r="2.5"/><path d="M14 19a4 4 0 018 0"/>
               </svg>
             </div>
-            <h3>Account &amp; devices</h3>
-            <p>Sign in with your email, then authorize the Astra CLI from your browser with a one-time device code. Revoke tokens at any time from your account page.</p>
+            <h3>Fast CLI &amp; Team Collaboration</h3>
+            <p>One-command terminal installation, secure browser device authorization, central token routing, and team quota management.</p>
           </div>
         </div>
       </div>
@@ -196,33 +196,33 @@
       <div class="shell-wide loop-layout">
         <div class="loop-copy">
           <p class="kicker"><span class="dot" aria-hidden="true"></span>How it runs</p>
-          <h2 class="loop-title">The runtime keeps working after the model stops.</h2>
-          <p class="lede">Astra is not a chat window with tools bolted on. It is a scheduler over a knowledge state, and every step is written down before the next one starts.</p>
+          <h2 class="loop-title">The runtime keeps working until the goal is proven.</h2>
+          <p class="lede">Astra is not a conversational chatbot with plugins. It is an autonomous task runtime that formulates goals, explores solutions, and proves each conclusion with concrete evidence.</p>
 
           <div class="loop-steps">
             <div class="loop-step">
               <span>1</span>
-              <h3>Understand &mdash; read the goal, not the prompt</h3>
+              <h3>Analyze &mdash; parse requirements and map codebase contracts</h3>
               <span aria-hidden="true">&rsaquo;</span>
             </div>
             <div class="loop-step">
               <span>2</span>
-              <h3>Build state &mdash; claims and evidence, persisted</h3>
+              <h3>Explore &mdash; resolve dependencies and eliminate unknowns</h3>
               <span aria-hidden="true">&rsaquo;</span>
             </div>
             <div class="loop-step">
               <span>3</span>
-              <h3>Name the unknowns &mdash; what would change the plan</h3>
+              <h3>Execute &mdash; apply surgical, backwards-compatible code patches</h3>
               <span aria-hidden="true">&rsaquo;</span>
             </div>
             <div class="loop-step">
               <span>4</span>
-              <h3>Act &mdash; the tool call that buys the most information</h3>
+              <h3>Verify &mdash; run automated tests, benchmarks, and linters</h3>
               <span aria-hidden="true">&rsaquo;</span>
             </div>
             <div class="loop-step">
               <span>5</span>
-              <h3>Verify &mdash; the goal closes only on evidence</h3>
+              <h3>Deliver &mdash; output clean, documented, verified pull requests</h3>
               <span aria-hidden="true">&rsaquo;</span>
             </div>
           </div>
@@ -230,19 +230,14 @@
 
         <div class="cli" aria-label="terminal usage">
           <span class="label">terminal</span>
-          <div><span class="prompt">$</span> <span class="cmd">astra login</span></div>
-          <div class="out">  Open: http://localhost:8080/authorize</div>
-          <div class="out">  Code: K7Q2-XM9D</div>
+          <div><span class="prompt">$</span> <span class="cmd">astra "optimize search query latency and add redis caching"</span></div>
           <div class="out">&nbsp;</div>
-          <div class="out-ok">  logged in as you@example.com</div>
-          <div><span class="prompt">$</span> <span class="cmd">astra "design a query layer for the events store"</span></div>
+          <div class="out">  indexed  42 source files &middot; detected hot path in query_engine.rs</div>
+          <div class="out">  solution added composite index + distributed redis cache with fallback</div>
+          <div class="out">  verify   cargo test --release &mdash; 48 passed, 0 failed</div>
+          <div class="out">  perf     p99 query latency 145ms &rarr; 8ms (&times;18 faster)</div>
           <div class="out">&nbsp;</div>
-          <div class="out">  goal     design a query layer for the events store</div>
-          <div class="out">  unknown  read amplification of the new index</div>
-          <div class="out">  action   cargo test --release events_store::query</div>
-          <div class="out">&nbsp;</div>
-          <div class="out-ok">  evidence 214 passed, 0 failed</div>
-          <div class="out-ok">  goal     verified</div>
+          <div class="out-ok">  &check; all evidence verified &middot; pull request #124 created</div>
         </div>
       </div>
     </section>

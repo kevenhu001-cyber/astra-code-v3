@@ -371,7 +371,15 @@
   font: var(--type-caption-4);
   white-space: nowrap;
 }
-.state-status--verified { background: var(--fill); color: var(--copy); }
+.state-status--verified {
+  background: rgba(46, 160, 67, 0.12);
+  color: #1a7f37;
+  font-weight: 600;
+}
+[data-theme='dark'] .state-status--verified {
+  background: rgba(63, 185, 80, 0.16);
+  color: #3fb950;
+}
 .state-status--stale { background: var(--accent-soft); color: var(--accent); }
 .state-status--open { background: var(--fill); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
 
