@@ -811,10 +811,25 @@ body[data-auth-pending]::before {
 .admin-field { display: grid; gap: 6px; margin: 0 0 12px; }
 .admin-field > label:first-child { color: var(--text-80); font-size: 12px; font-weight: 600; }
 .admin-field > p { margin: -3px 0 1px; color: var(--text-40); font-size: 10.5px; line-height: 1.45; }
-.admin-field input, .admin-field select { width: 100%; min-width: 0; height: 36px; padding: 0 11px; border: 1px solid var(--line); border-radius: 6px; outline: 0; background: var(--bg); color: var(--text-90); font: 400 12px/1.3 var(--font-sans); transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }
-.admin-field input:focus, .admin-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.admin-field input { width: 100%; min-width: 0; height: 36px; padding: 0 11px; border: 1px solid var(--line); border-radius: 6px; outline: 0; background: var(--bg); color: var(--text-90); font: 400 12px/1.3 var(--font-sans); transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }
+.admin-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .admin-field input::placeholder { color: var(--text-30); }
-.admin-field select { appearance: auto; }
+.protocol-select { position: relative; width: 100%; }
+.protocol-select-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; min-width: 0; height: 36px; padding: 0 10px 0 11px; border: 1px solid var(--line); border-radius: 6px; outline: 0; background: var(--bg); color: var(--text-90); font: 400 12px/1.3 var(--font-sans); text-align: left; cursor: pointer; transition: border-color .15s var(--ease), box-shadow .15s var(--ease), background .15s var(--ease); }
+.protocol-select-trigger:hover { border-color: var(--text-30); }
+.protocol-select-trigger:focus-visible, .protocol-select.is-open .protocol-select-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.protocol-select-trigger svg { flex: 0 0 14px; width: 14px; height: 14px; color: var(--text-40); transition: transform .16s var(--ease); }
+.protocol-select.is-open .protocol-select-trigger svg { transform: rotate(180deg); }
+.protocol-select-menu { position: absolute; z-index: 30; top: calc(100% + 5px); left: 0; width: 100%; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 12px 30px rgba(0, 0, 0, .18); }
+.protocol-select-menu[hidden] { display: none; }
+.protocol-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 47px; padding: 8px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--text-70); text-align: left; cursor: pointer; }
+.protocol-option:hover, .protocol-option:focus-visible { outline: 0; background: var(--surface-2); color: var(--text-90); }
+.protocol-option.is-selected { background: var(--accent-soft); color: var(--text-90); }
+.protocol-option-copy { display: grid; gap: 3px; min-width: 0; }
+.protocol-option-name { color: var(--text-90); font: 500 11.5px/1.25 var(--font-sans); }
+.protocol-option-detail { color: var(--text-40); font: 400 9px/1.25 var(--font-mono); }
+.protocol-option-check { flex: 0 0 14px; width: 14px; height: 14px; color: var(--accent); opacity: 0; }
+.protocol-option.is-selected .protocol-option-check { opacity: 1; }
 .admin-field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .admin-field-group .admin-field label { font-size: 10.5px; }
 .price-input { display: flex; align-items: center; height: 36px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }

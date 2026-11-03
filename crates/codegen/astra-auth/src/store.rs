@@ -36,7 +36,7 @@ pub struct ModelRoute {
     /// Stable model id exposed to CLI clients.
     pub id: String,
     pub display_name: String,
-    /// `openai-compatible` or `anthropic-messages`.
+    /// `openai-compatible`, `openai-responses`, or `anthropic-messages`.
     pub protocol: String,
     pub base_url: String,
     pub upstream_model: String,

@@ -21,9 +21,10 @@ Each route has a CLI model id (generated from its display name when omitted),
 the display name shown to CLI users, an upstream protocol, API base URL, model
 id, context window, API key, and input/output prices per million tokens. The
 API key stays on the server and is never returned by the admin API. Supported
-upstream protocols are OpenAI-compatible Chat Completions and Anthropic
-Messages. The gateway exposes both through the CLI's `/v1/chat/completions`
-interface and preserves streaming responses.
+upstream protocols are OpenAI-compatible Chat Completions, OpenAI Responses,
+and Anthropic Messages. The gateway exposes all three through the CLI's
+`/v1/chat/completions` interface and adapts requests, responses, and streaming
+events to the CLI's chat-completion format.
 
 Routes and account balances are stored in the service's `auth.json`; writes
 replace the file atomically. On Unix, new state files are written with mode

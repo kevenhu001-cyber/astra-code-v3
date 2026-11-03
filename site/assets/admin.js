@@ -10,6 +10,109 @@
   var creditPanel = document.getElementById('creditPanel');
   var workspace = document.getElementById('adminWorkspace');
   var message = document.getElementById('adminMessage');
+  var protocolSelect = document.getElementById('protocolSelect');
+  var protocolInput = document.getElementById('routeProtocol');
+  var protocolTrigger = document.getElementById('protocolSelectTrigger');
+  var protocolValue = document.getElementById('protocolSelectValue');
+  var protocolMenu = document.getElementById('protocolOptions');
+  var protocolOptions = Array.prototype.slice.call(protocolMenu.querySelectorAll('[role="option"]'));
+
+  function protocolLabel(protocol) {
+    if (protocol === 'openai-responses') return 'OpenAI Responses';
+    if (protocol === 'anthropic-messages') return 'Anthropic Messages';
+    return 'OpenAI-compatible';
+  }
+
+  function setProtocol(protocol) {
+    var exists = protocolOptions.some(function (option) { return option.dataset.value === protocol; });
+    var selected = exists ? protocol : 'openai-compatible';
+    protocolInput.value = selected;
+    protocolValue.textContent = protocolLabel(selected);
+    protocolOptions.forEach(function (option) {
+      var active = option.dataset.value === selected;
+      option.classList.toggle('is-selected', active);
+      option.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+  }
+
+  function closeProtocolMenu(restoreFocus) {
+    protocolMenu.hidden = true;
+    protocolSelect.classList.remove('is-open');
+    protocolTrigger.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) protocolTrigger.focus();
+  }
+
+  function openProtocolMenu(focusSelected) {
+    protocolMenu.hidden = false;
+    protocolSelect.classList.add('is-open');
+    protocolTrigger.setAttribute('aria-expanded', 'true');
+    if (focusSelected) {
+      var selectedIndex = protocolOptions.findIndex(function (option) {
+        return option.dataset.value === protocolInput.value;
+      });
+      protocolOptions[Math.max(selectedIndex, 0)].focus();
+    }
+  }
+
+  function focusProtocolOption(index) {
+    var wrappedIndex = (index + protocolOptions.length) % protocolOptions.length;
+    protocolOptions[wrappedIndex].focus();
+  }
+
+  protocolTrigger.addEventListener('click', function () {
+    if (protocolMenu.hidden) openProtocolMenu(true);
+    else closeProtocolMenu(false);
+  });
+  protocolTrigger.addEventListener('keydown', function (event) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (protocolMenu.hidden) openProtocolMenu(true);
+      else {
+        var selectedIndex = protocolOptions.findIndex(function (option) {
+          return option.dataset.value === protocolInput.value;
+        });
+        focusProtocolOption(selectedIndex + (event.key === 'ArrowUp' ? -1 : 1));
+      }
+    } else if (event.key === 'Escape' && !protocolMenu.hidden) {
+      event.preventDefault();
+      closeProtocolMenu(false);
+    }
+  });
+  protocolOptions.forEach(function (option, index) {
+    option.addEventListener('click', function () {
+      setProtocol(option.dataset.value);
+      closeProtocolMenu(true);
+    });
+    option.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        focusProtocolOption(index + 1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusProtocolOption(index - 1);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        focusProtocolOption(0);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        focusProtocolOption(protocolOptions.length - 1);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        closeProtocolMenu(true);
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        option.click();
+      }
+    });
+  });
+  protocolSelect.addEventListener('focusout', function () {
+    window.setTimeout(function () {
+      if (!protocolSelect.contains(document.activeElement)) closeProtocolMenu(false);
+    }, 0);
+  });
+  document.addEventListener('click', function (event) {
+    if (!protocolSelect.contains(event.target)) closeProtocolMenu(false);
+  });
 
   function showMessage(text, kind) {
     message.textContent = text || '';
@@ -68,7 +171,7 @@
         name.appendChild(defaultTag);
       }
       row.appendChild(name);
-      row.appendChild(makeCell(route.protocol === 'anthropic-messages' ? 'Anthropic Messages' : 'OpenAI-compatible', 'protocol-cell'));
+      row.appendChild(makeCell(protocolLabel(route.protocol), 'protocol-cell'));
       row.appendChild(makeCell(route.upstream_model, 'mono-cell'));
       row.appendChild(makeCell(shortEndpoint(route.base_url), 'endpoint-cell mono-cell'));
       var status = document.createElement('td');
@@ -136,6 +239,7 @@
   function openRoute() {
     document.getElementById('routeForm').reset();
     document.getElementById('routeId').value = '';
+    setProtocol('openai-compatible');
     document.getElementById('routePanelTitle').textContent = 'New route';
     document.getElementById('saveRouteBtn').textContent = 'Save route';
     document.getElementById('routeEnabled').checked = true;
@@ -154,7 +258,7 @@
     form.reset();
     document.getElementById('routeId').value = route.id;
     document.getElementById('routeName').value = route.display_name;
-    document.getElementById('routeProtocol').value = route.protocol;
+    setProtocol(route.protocol);
     document.getElementById('routeBaseUrl').value = route.base_url;
     document.getElementById('routeUpstreamModel').value = route.upstream_model;
     document.getElementById('routeContextWindow').value = route.context_window || 128000;

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/assets/site.css?v=8">
+  <link rel="stylesheet" href="/assets/site.css?v=9">
 </head>
 <body class="account-page" data-auth-pending="true">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -167,12 +167,29 @@
               <input id="routeName" name="display_name" type="text" maxlength="80" placeholder="Astra Code" required>
             </div>
             <div class="admin-field">
-              <label for="routeProtocol">Protocol</label>
+              <label id="routeProtocolLabel" for="protocolSelectTrigger">Protocol</label>
               <p>How Astra talks to the upstream provider.</p>
-              <select id="routeProtocol" name="protocol">
-                <option value="openai-compatible">OpenAI-compatible</option>
-                <option value="anthropic-messages">Anthropic Messages</option>
-              </select>
+              <div class="protocol-select" id="protocolSelect">
+                <input id="routeProtocol" name="protocol" type="hidden" value="openai-compatible">
+                <button class="protocol-select-trigger" id="protocolSelectTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="protocolOptions">
+                  <span id="protocolSelectValue">OpenAI-compatible</span>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                </button>
+                <div class="protocol-select-menu" id="protocolOptions" role="listbox" aria-labelledby="routeProtocolLabel" hidden>
+                  <button class="protocol-option is-selected" type="button" role="option" data-value="openai-compatible" aria-selected="true" tabindex="-1">
+                    <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI-compatible</span><span class="protocol-option-detail">Chat Completions · /chat/completions</span></span>
+                    <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
+                  </button>
+                  <button class="protocol-option" type="button" role="option" data-value="openai-responses" aria-selected="false" tabindex="-1">
+                    <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI Responses</span><span class="protocol-option-detail">Responses API · /responses</span></span>
+                    <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
+                  </button>
+                  <button class="protocol-option" type="button" role="option" data-value="anthropic-messages" aria-selected="false" tabindex="-1">
+                    <span class="protocol-option-copy"><span class="protocol-option-name">Anthropic Messages</span><span class="protocol-option-detail">Anthropic protocol · /messages</span></span>
+                    <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="admin-field">
               <label for="routeBaseUrl">API base URL</label>
@@ -280,7 +297,7 @@
   </footer>
 
   <script src="/assets/auth.js?v=8"></script>
-  <script src="/assets/admin.js?v=2"></script>
+  <script src="/assets/admin.js?v=3"></script>
   <script>
     (function () {
       var A = window.Astra;
