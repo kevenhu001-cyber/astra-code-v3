@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  Astra Code — Windows Installer (MSI) source.
+
+  Hand-maintained variant of cargo-wix's bundled `main.wxs` template
+  (cargo-wix 0.3.x, `src/templates/main.wxs.mustache`). `cargo wix` compiles
+  this file with candle.exe and links it with light.exe; the `$(var.…)`
+  values are supplied by cargo-wix at build time:
+
+    TargetTriple      = the rustc target triple (x86_64-pc-windows-msvc)
+    TargetEnv         = the rustc target environment (msvc)
+    TargetVendor      = the rustc target vendor (pc)
+    CargoTargetBinDir = absolute path to the built binary directory
+                        (e.g. D:\a\astra-code-v3\astra-code-v3\target\release)
+    CargoTargetDir    = absolute path to the build artifact directory
+    CargoProfile      = the cargo profile used to build the binary (release)
+    Version           = the installer version, overridden by the install-version option
+
+  DO NOT regenerate this file with the cargo wix init force option. The
+  UpgradeCode and the PATH component GUID below are stable on purpose:
+
+    * a fixed UpgradeCode lets a newer MSI upgrade the previous
+      installation in place (MajorUpgrade) instead of installing a second
+      copy side by side;
+    * a fixed PATH component GUID lets the installer remove its own PATH
+      entry on uninstall, so no stale entry is left behind.
+
+  Everything else here (product name, manufacturer, shortcuts) is cosmetic.
+-->
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='Astra Code'
+        UpgradeCode='{3E06AEBB-3755-4895-BE62-D8F398BAD798}'
+        Manufacturer='Astra'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Description='Astra Code - AI coding CLI for the terminal'
+            Manufacturer='Astra'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            />
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='Astra Code Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='APPLICATIONFOLDER' Name='Astra Code'>
+                    <Directory Id='Bin' Name='bin'>
+                        <!--
+                          The PATH component GUID is stable across releases so the
+                          installer can remove its own PATH entry on uninstall.
+                        -->
+                        <Component Id='Path' Guid='{B0DD72FF-5B4F-48F1-AEC1-A4E3D783828B}' KeyPath='yes'>
+                            <Environment
+                                Id='PATH'
+                                Name='PATH'
+                                Value='[Bin]'
+                                Permanent='no'
+                                Part='last'
+                                Action='set'
+                                System='yes'/>
+                        </Component>
+                        <Component Id='binary0' Guid='*'>
+                            <File
+                                Id='exe0'
+                                Name='astra.exe'
+                                DiskId='1'
+                                Source='$(var.CargoTargetBinDir)\astra.exe'
+                                KeyPath='yes'/>
+                        </Component>
+                    </Directory>
+                </Directory>
+            </Directory>
+            <Directory Id='ProgramMenuFolder' Name='ProgramMenuFolder'>
+                <Directory Id='AstraCodeMenuFolder' Name='Astra Code'/>
+            </Directory>
+        </Directory>
+
+        <Feature
+            Id='Binaries'
+            Title='Application'
+            Description='Installs the Astra Code CLI and adds it to PATH.'
+            Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+            <ComponentRef Id='binary0'/>
+
+            <Feature
+                Id='Environment'
+                Title='PATH Environment Variable'
+                Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='Path'/>
+            </Feature>
+
+            <Feature
+                Id='Shortcuts'
+                Title='Start Menu Shortcut'
+                Description='Create a Start Menu shortcut for the [ProductName] executable.'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='StartMenuShortcut'/>
+            </Feature>
+        </Feature>
+
+        <!--
+          Start Menu shortcut. The component GUID is stable so the folder is
+          cleaned up on uninstall.
+        -->
+        <Component Id='StartMenuShortcut' Guid='{4D269684-0310-47AE-997F-1985FCF8C8AB}' Directory='AstraCodeMenuFolder'>
+            <Shortcut Id='AstraCodeShortcut'
+                Name='Astra Code'
+                Description='Astra Code - AI coding CLI for the terminal'
+                Target='[Bin]astra.exe'
+                WorkingDirectory='APPLICATIONFOLDER'/>
+            <RemoveFolder Id='RemoveAstraCodeMenuFolder' Directory='AstraCodeMenuFolder' On='uninstall'/>
+            <RegistryValue Root='HKCU' Key='Software\Astra Code' Name='installed' Type='integer' Value='1' KeyPath='yes'/>
+        </Component>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+
+        <Property Id='ARPHELPLINK' Value='https://astracode.topodrive.top'/>
+
+        <!-- Let the user pick the install directory from the Customize page. -->
+        <Property Id='WIXUI_INSTALLDIR' Value='APPLICATIONFOLDER'/>
+
+        <UI>
+            <UIRef Id='WixUI_FeatureTree'/>
+            <!--
+              There is no EULA in this installer, so the welcome page goes
+              straight to the feature (customize) page. These Publish rules
+              match what cargo-wix's own template emits for the no-EULA case.
+            -->
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99'>1</Publish>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99'>1</Publish>
+        </UI>
+
+    </Product>
+
+</Wix>

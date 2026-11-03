@@ -20,6 +20,25 @@ switch ($arch) {
   default { throw "Unsupported architecture: $arch" }
 }
 
+# Detect an existing MSI installation. The MSI installs the same binary under
+# Program Files and manages PATH itself, so a zip install on top of it leaves
+# two `astra` executables on PATH and the stale one can win.
+$msiInstalled = $false
+foreach ($uninstallRoot in @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)) {
+  Get-ItemProperty -Path $uninstallRoot -ErrorAction SilentlyContinue |
+    Where-Object { $_.DisplayName -eq "Astra Code" } |
+    ForEach-Object { $msiInstalled = $true }
+}
+if ($msiInstalled) {
+  Write-Warning "Astra Code is already installed via the MSI installer (Program Files)."
+  Write-Warning "Two copies on PATH can shadow each other. Prefer removing the MSI version"
+  Write-Warning "(Settings > Apps > Installed apps > Astra Code) before continuing."
+  Write-Host ""
+}
+
 # Fetch latest release version from GitHub API
 Write-Host "Fetching latest release info..."
 $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest"
@@ -136,6 +155,7 @@ try {
 
   & $astra version
   Write-Host "Astra installed: $InstallDir\astra.exe"
+  Write-Host "Prefer a graphical install? Download the .msi from https://github.com/$Repo/releases/latest/download/astra-x86_64-pc-windows-msvc.msi"
 } finally {
   Remove-Item -Recurse -Force $tmp
 }

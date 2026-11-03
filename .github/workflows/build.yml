@@ -237,12 +237,150 @@ jobs:
             target/${{ matrix.target }}/release/astra-auth-*.sha256
           if-no-files-found: error
 
+  # Windows MSI installer (double-click install for end users).
+  #
+  # Deliberately a separate job from the `build` matrix: a WiX or packaging
+  # failure must never block the release of the five existing platform
+  # archives. The `release` job below treats this job's result as optional.
+  msi:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      # The workflow-level `RUSTFLAGS` overrides the per-target flags in
+      # .cargo/config.toml entirely (cargo's rustflags are not additive), so
+      # the Windows target flags have to be repeated here. This mirrors
+      # `[target.x86_64-pc-windows-msvc]` in .cargo/config.toml: unwind
+      # tables for backtraces, and a statically linked CRT so the installed
+      # binary runs on clean Windows machines without the Visual C++
+      # redistributable. Drop the crt-static flag to fall back to the
+      # dynamic CRT if the static link ever fails to build.
+      RUSTFLAGS: "-D warnings -C force-unwind-tables=yes -C target-feature=+crt-static"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          toolchain: "1.94.0"
+          components: rustfmt, clippy
+          targets: x86_64-pc-windows-msvc
+
+      - name: Enable Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-directories: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Install dotslash (protoc provider)
+        run: |
+          cargo install dotslash --locked
+          dotslash --help
+
+      # On Windows the dotslash `bin/protoc` manifest cannot be executed
+      # directly (no shebang support), so provide the pinned protoc binary via
+      # $PROTOC instead. Same version (v29.3) as the dotslash manifest.
+      - name: Install protoc (Windows)
+        shell: pwsh
+        run: |
+          $protocDir = "$env:TEMP\protoc-29.3"
+          $zip = "$env:TEMP\protoc-29.3.zip"
+          curl.exe -sSL -o $zip "https://gh-proxy.com/https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-win64.zip"
+          Expand-Archive -Path $zip -DestinationPath $protocDir -Force
+          "PROTOC=$protocDir\bin\protoc.exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      # cargo-wix drives the WiX Toolset v3 toolchain (candle.exe + light.exe).
+      # `windows-latest` ships WiX v3.14.1 and points the WIX environment
+      # variable at it; install it explicitly only when the runner image drops
+      # it, so the job keeps working if the image changes.
+      - name: Ensure WiX Toolset v3
+        shell: pwsh
+        run: |
+          $candle = if ($env:WIX) { Join-Path $env:WIX "candle.exe" } else { $null }
+          if ($candle -and (Test-Path $candle)) {
+            Write-Host "WiX Toolset v3 found at $env:WIX"
+            exit 0
+          }
+          Write-Host "WiX Toolset v3 not found; installing wix3141rtm..."
+          $dir = Join-Path $env:RUNNER_TEMP "wix3"
+          $zip = Join-Path $env:RUNNER_TEMP "wix3.zip"
+          curl.exe -sSL -o $zip "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix3141rtm.zip"
+          Expand-Archive -Path $zip -DestinationPath $dir -Force
+          $bin = Join-Path $dir "bin"
+          if (-not (Test-Path (Join-Path $bin "candle.exe"))) {
+            $found = Get-ChildItem -Path $dir -Recurse -Filter "candle.exe" | Select-Object -First 1
+            if (-not $found) { throw "candle.exe not found in the WiX archive" }
+            $bin = $found.Directory.FullName
+          }
+          "WIX=$bin" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $bin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+      - name: Install cargo-wix
+        run: cargo install cargo-wix --locked
+
+      - name: Compute installer version
+        id: version
+        shell: bash
+        run: |
+          BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' crates/codegen/xai-grok-pager-bin/Cargo.toml | head -1)"
+          if [ -z "$BASE_VERSION" ]; then
+            BASE_VERSION="0.0.0"
+          fi
+          # A Windows Installer ProductVersion is "major.minor.build" only, so
+          # the release tag (which carries a fourth component) cannot be used
+          # verbatim. Derive a three-part version from the package version and
+          # the run number instead: MajorUpgrade only needs it to increase
+          # monotonically across releases.
+          echo "MSI_VERSION=${BASE_VERSION%.*}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          # The asset name is deliberately stable across releases so that
+          # /releases/latest/download/astra-x86_64-pc-windows-msvc.msi always
+          # resolves to the newest installer. The version itself lives inside
+          # the MSI (ProductVersion and the Add/Remove Programs entry).
+          echo "ARTIFACT=astra-x86_64-pc-windows-msvc.msi" >> "$GITHUB_ENV"
+
+      - name: Build the MSI
+        shell: bash
+        run: |
+          set -euo pipefail
+          # `cargo wix` builds the package itself (cargo build --profile=release)
+          # and then compiles wix/main.wxs with candle.exe and links it with
+          # light.exe. The wxs is read from the package root, so the working
+          # directory must be the workspace root and the package must be
+          # selected explicitly.
+          cargo wix \
+            --package xai-grok-pager-bin \
+            --install-version "${MSI_VERSION}" \
+            --output "${ARTIFACT}"
+          ls -l "${ARTIFACT}"
+
+      - name: Smoke test the built binary
+        working-directory: target/release
+        shell: bash
+        run: ./astra.exe --version
+
+      - name: Compute checksum
+        shell: bash
+        run: sha256sum "${ARTIFACT}" > "${ARTIFACT}.sha256"
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astra-msi-x86_64-pc-windows-msvc
+          path: |
+            astra-*.msi
+            astra-*.msi.sha256
+          if-no-files-found: error
+
   release:
-    needs: [build, astra-auth]
+    needs: [build, astra-auth, msi]
     runs-on: ubuntu-latest
     # Auto-publish a new release after every successful CI run on main, and
     # keep the manual tag-push flow (`v*`) working unchanged.
-    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && needs.build.result == 'success' && needs.astra-auth.result == 'success'
+    # The MSI job is optional: if packaging fails, the five platform archives
+    # still ship and the release is published without the .msi.
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && needs.build.result == 'success' && needs.astra-auth.result == 'success' && needs.msi.result != 'cancelled'
     permissions:
       contents: write
     steps:
@@ -276,4 +414,5 @@ jobs:
           files: |
             dist/**/*.tar.gz
             dist/**/*.zip
+            dist/**/*.msi
             dist/**/*.sha256

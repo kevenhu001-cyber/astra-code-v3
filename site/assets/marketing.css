@@ -492,6 +492,15 @@
 .install-card h3 { font: var(--type-title-2); letter-spacing: -.01em; }
 .install-card .cli { margin-top: var(--space-300); }
 
+/* Secondary action inside a card: an alternative way to get the same binary. */
+.install-alt {
+  margin-top: var(--space-200);
+  color: var(--muted);
+  font: var(--type-body-6);
+}
+.install-alt a { color: var(--accent); text-decoration: underline; text-decoration-color: var(--accent-line); text-underline-offset: 3px; }
+.install-alt a:hover { text-decoration-color: currentColor; }
+
 /* Copy button: an outline icon that turns into a check on success. */
 .copy-btn {
   display: inline-flex;

@@ -50,6 +50,12 @@ curl -fsSL https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main
 irm https://raw.githubusercontent.com/kevenhu001-cyber/astra-code-v3/main/site/install/install.ps1 | iex
 ```
 
+Or install graphically with the Windows Installer package
+([`astra-x86_64-pc-windows-msvc.msi`](https://github.com/kevenhu001-cyber/astra-code-v3/releases/latest/download/astra-x86_64-pc-windows-msvc.msi)):
+double-click it, and remove it later from Windows Settings. The MSI installs
+into `C:\Program Files\Astra Code`, adds a Start Menu shortcut, and registers
+itself for uninstall. Do not run both installers at once — pick one.
+
 After installation, open a new terminal and run `astra --version` to verify.
 
 See the [changelog](https://example.invalid/changelog) for the latest fixes,

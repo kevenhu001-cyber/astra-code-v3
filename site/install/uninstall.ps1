@@ -75,6 +75,25 @@ $script:FailureCount = 0
 # also drop a couple of common fallbacks.
 $installDir = if ($env:ASTRA_INSTALL_DIR) { $env:ASTRA_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'Programs\astra' }
 $homeBin     = Join-Path $env:USERPROFILE '.local\bin\astra.exe'
+# An MSI installation (the graphical installer) registers itself with Windows
+# and lives under Program Files, which this script does not touch. Say so
+# rather than letting the user conclude that nothing was found.
+$msiInstalled = $false
+foreach ($uninstallRoot in @(
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+)) {
+    Get-ItemProperty -Path $uninstallRoot -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -eq 'Astra Code' } |
+        ForEach-Object { $msiInstalled = $true }
+}
+if ($msiInstalled) {
+    Write-Host '==> An Astra Code MSI installation was detected'
+    Write-Host '  Remove it via Settings > Apps > Installed apps > Astra Code > Uninstall.'
+    Write-Host '  This script only removes the zip-based installation.'
+    Write-Host ''
+}
+
 Write-Step 'Removing the Astra binary'
 $exeCandidates = @(
     (Join-Path $installDir 'astra.exe'),
