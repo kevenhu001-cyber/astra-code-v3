@@ -40,12 +40,6 @@
         <h1>My account</h1>
         <p class="sub">Your profile and the CLI devices you have authorized.</p>
 
-        <nav class="account-view-tabs" id="accountViewTabs" hidden aria-label="Account navigation">
-          <button class="acct-view-tab is-active" type="button" data-view="all">My Profile</button>
-          <button class="acct-view-tab" type="button" data-view="routes">Model Routes &amp; Config</button>
-          <button class="acct-view-tab" type="button" data-view="users">Users &amp; Balances</button>
-        </nav>
-
         <div class="msg err" id="formErr" role="alert"></div>
         <div class="msg ok" id="formOk"></div>
 
@@ -112,181 +106,7 @@
             <button class="btn btn-quiet" id="logoutBtn" type="button">Sign out of this browser</button>
           </div>
         </div>
-        <section class="account-admin" id="admin" hidden aria-labelledby="adminHeading">
-          <div class="divider"></div>
-          <div class="account-admin-heading">
-            <div>
-              <p class="section-title">ADMIN / ROUTING</p>
-              <h2 id="adminHeading">Control center</h2>
-              <p class="account-admin-description">Configure the model names Astra users see and where their CLI requests are routed.</p>
-              <p class="account-admin-identity">Administrator · <span id="adminEmail">&mdash;</span></p>
-            </div>
-            <a class="btn-link" href="/account" data-close-admin>Back to account</a>
-          </div>
-          <nav class="admin-nav account-admin-nav" aria-label="Admin tools">
-            <button class="admin-nav-item is-active" type="button" data-admin-section="routes" aria-current="page">Model routes</button>
-            <button class="admin-nav-item" type="button" data-admin-section="users">Users &amp; balance</button>
-          </nav>
-      <div class="admin-page-head">
-        <div>
-          <h2 id="adminTitle">Model routes</h2>
-          <p id="adminDescription">Choose how Astra sends CLI requests to providers.</p>
-        </div>
-        <button class="admin-primary" id="addRouteBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          <span>Add route</span>
-        </button>
       </div>
-
-      <div class="admin-message" id="adminMessage" role="alert" hidden></div>
-      <div class="admin-workspace" id="adminWorkspace">
-        <div class="admin-content">
-          <section class="admin-view" id="routesView" aria-label="Model routes">
-            <div class="table-scroll-hint" aria-hidden="true" hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8L22 12L18 16"/><path d="M6 8L2 12L6 16"/><path d="M2 12H22"/></svg>
-              <span>Swipe horizontally to view full table &rarr;</span>
-            </div>
-            <div class="admin-table-wrap">
-              <table class="admin-table route-table">
-                <thead><tr><th>Display name</th><th>Protocol</th><th>Upstream model</th><th>Endpoint</th><th class="route-status-head">Status</th><th class="table-action-head">Actions</th></tr></thead>
-                <tbody id="routeRows"></tbody>
-              </table>
-              <div class="admin-empty" id="routesEmpty" hidden>
-                <span class="empty-mark" aria-hidden="true">/</span>
-                <h2>No model routes yet</h2>
-                <p>Add an upstream provider and choose the model name Astra users will see.</p>
-                <button class="admin-secondary" type="button" data-open-route>Add your first route</button>
-              </div>
-            </div>
-          </section>
-
-          <section class="admin-view" id="usersView" aria-label="Users and balance" hidden>
-            <div class="table-scroll-hint" aria-hidden="true" hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8L22 12L18 16"/><path d="M6 8L2 12L6 16"/><path d="M2 12H22"/></svg>
-              <span>Swipe horizontally to view full table &rarr;</span>
-            </div>
-            <div class="admin-table-wrap">
-              <table class="admin-table user-table">
-                <thead><tr><th>User</th><th>Role</th><th>Available balance</th><th>Joined</th><th class="table-action-head">Actions</th></tr></thead>
-                <tbody id="userRows"></tbody>
-              </table>
-              <div class="admin-empty" id="usersEmpty" hidden>
-                <span class="empty-mark" aria-hidden="true">/</span>
-                <h2>No accounts yet</h2>
-                <p>Verified Astra accounts will appear here.</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <aside class="admin-panel" id="routePanel" aria-labelledby="routePanelTitle" hidden>
-          <div class="admin-panel-head">
-            <h2 id="routePanelTitle">New route</h2>
-            <button class="icon-button" type="button" data-close-panel aria-label="Close route editor">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-            </button>
-          </div>
-          <form class="admin-form" id="routeForm">
-            <input id="routeId" type="hidden">
-            <div class="admin-field">
-              <label for="routeName">Display name</label>
-              <p>This is the model name shown to CLI users.</p>
-              <input id="routeName" name="display_name" type="text" maxlength="80" placeholder="Astra Code" required>
-            </div>
-            <div class="admin-field">
-              <label id="routeProtocolLabel" for="protocolSelectTrigger">Protocol</label>
-              <p>How Astra talks to the upstream provider.</p>
-              <div class="protocol-select" id="protocolSelect">
-                <input id="routeProtocol" name="protocol" type="hidden" value="openai-compatible">
-                <button class="protocol-select-trigger" id="protocolSelectTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="protocolOptions">
-                  <span id="protocolSelectValue">OpenAI-compatible</span>
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
-                </button>
-                <div class="protocol-select-menu" id="protocolOptions" role="listbox" aria-labelledby="routeProtocolLabel" hidden>
-                  <button class="protocol-option is-selected" type="button" role="option" data-value="openai-compatible" aria-selected="true" tabindex="-1">
-                    <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI-compatible</span><span class="protocol-option-detail">Chat Completions · /chat/completions</span></span>
-                    <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
-                  </button>
-                  <button class="protocol-option" type="button" role="option" data-value="openai-responses" aria-selected="false" tabindex="-1">
-                    <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI Responses</span><span class="protocol-option-detail">Responses API · /responses</span></span>
-                    <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
-                  </button>
-                  <button class="protocol-option" type="button" role="option" data-value="anthropic-messages" aria-selected="false" tabindex="-1">
-                    <span class="protocol-option-copy"><span class="protocol-option-name">Anthropic Messages</span><span class="protocol-option-detail">Anthropic protocol · /messages</span></span>
-                    <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="admin-field">
-              <label for="routeBaseUrl">API base URL</label>
-              <p>Provider API root. Astra appends the protocol endpoint.</p>
-              <input id="routeBaseUrl" name="base_url" type="url" placeholder="https://api.example.com/v1" required>
-            </div>
-            <div class="admin-field">
-              <label for="routeUpstreamModel">Upstream model ID</label>
-              <p>The model identifier used by the provider.</p>
-              <input id="routeUpstreamModel" name="upstream_model" type="text" placeholder="provider-model-id" required>
-            </div>
-            <div class="admin-field">
-              <label for="routeContextWindow">Context window</label>
-              <p>Maximum context tokens supported by this model.</p>
-              <input id="routeContextWindow" type="number" min="1024" max="2000000" step="1024" value="128000" required>
-            </div>
-            <div class="admin-field">
-              <label for="routeApiKey">API key</label>
-              <p id="apiKeyHint">Stored by Astra and never returned to the browser.</p>
-              <input id="routeApiKey" name="api_key" type="password" autocomplete="new-password" placeholder="Provider API key">
-              <label class="admin-check clear-key" id="clearKeyRow" hidden><input id="clearApiKey" type="checkbox"> Remove the saved key</label>
-            </div>
-            <div class="admin-field-group">
-              <div class="admin-field">
-                <label for="inputPrice">Input price / 1M tokens</label>
-                <div class="price-input"><span>$</span><input id="inputPrice" type="number" min="0" max="10000" step="0.0001" placeholder="0.00" value="0.00" required></div>
-              </div>
-              <div class="admin-field">
-                <label for="outputPrice">Output price / 1M tokens</label>
-                <div class="price-input"><span>$</span><input id="outputPrice" type="number" min="0" max="10000" step="0.0001" placeholder="0.00" value="0.00" required></div>
-              </div>
-            </div>
-            <div class="admin-options">
-              <label class="admin-check"><input id="routeEnabled" type="checkbox" checked> Enabled</label>
-              <label class="admin-check"><input id="routeDefault" type="checkbox"> Default route</label>
-            </div>
-            <div class="admin-panel-actions">
-              <button class="admin-primary" type="submit" id="saveRouteBtn">Save route</button>
-              <button class="admin-secondary" type="button" data-close-panel>Cancel</button>
-            </div>
-          </form>
-        </aside>
-
-        <aside class="admin-panel" id="creditPanel" aria-labelledby="creditPanelTitle" hidden>
-          <div class="admin-panel-head">
-            <h2 id="creditPanelTitle">Add credit</h2>
-            <button class="icon-button" type="button" data-close-panel aria-label="Close credit form">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-            </button>
-          </div>
-          <form class="admin-form credit-form" id="creditForm">
-            <input id="creditUserId" type="hidden">
-            <div class="credit-user" id="creditUserEmail">&mdash;</div>
-            <div class="admin-field">
-              <label for="creditAmount">Amount</label>
-              <p>Credit is added to the account balance immediately.</p>
-              <div class="price-input price-input-large"><span>$</span><input id="creditAmount" type="number" min="0.01" max="100000" step="0.01" placeholder="10.00" value="10.00" required></div>
-            </div>
-            <div class="admin-field">
-              <label for="creditNote">Note</label>
-              <input id="creditNote" type="text" maxlength="100" placeholder="Manual credit">
-            </div>
-            <div class="admin-panel-actions">
-              <button class="admin-primary" type="submit">Add credit</button>
-              <button class="admin-secondary" type="button" data-close-panel>Cancel</button>
-            </div>
-          </form>
-        </aside>
-      </div>
-        </section>
       </div>
     </div>
   </main>
@@ -324,7 +144,6 @@
   </footer>
 
   <script src="/assets/auth.js?v=9"></script>
-  <script src="/assets/admin.js?v=3"></script>
   <script>
     (function () {
       var A = window.Astra;
@@ -429,71 +248,20 @@
         });
       }
 
-      var adminLink = document.querySelector('[data-admin-link]');
-      var adminSection = document.getElementById('admin');
-
-      function openAdmin() {
-        if (!adminSection) return;
-        adminSection.hidden = false;
-        adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-
-      if (adminLink) adminLink.addEventListener('click', function (event) {
-        event.preventDefault();
-        history.replaceState(null, '', '/account#admin');
-        openAdmin();
-      });
-      var navAdmin = document.getElementById('navAdminLink');
-      if (navAdmin) navAdmin.addEventListener('click', function (event) {
-        event.preventDefault();
-        history.replaceState(null, '', '/account#admin');
-        openAdmin();
-      });
-      var jumpBtn = document.getElementById('jumpToAdminBtn');
-      if (jumpBtn) jumpBtn.addEventListener('click', function () {
-        history.replaceState(null, '', '/account#admin');
-        openAdmin();
-      });
-
-      document.querySelectorAll('[data-view]').forEach(function (tab) {
-        tab.addEventListener('click', function () {
-          var view = tab.getAttribute('data-view');
-          document.querySelectorAll('[data-view]').forEach(function (t) {
-            t.classList.toggle('is-active', t === tab);
-          });
-          if (view === 'all') {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          } else if (view === 'routes') {
-            openAdmin();
-            var routesTab = document.querySelector('[data-admin-section="routes"]');
-            if (routesTab) routesTab.click();
-          } else if (view === 'users') {
-            openAdmin();
-            var usersTab = document.querySelector('[data-admin-section="users"]');
-            if (usersTab) usersTab.click();
-          }
-        });
-      });
-
-      document.querySelector('[data-close-admin]').addEventListener('click', function (event) {
-        event.preventDefault();
-        history.replaceState(null, '', '/account');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
       A.me().then(function (u) {
         if (!u) { A.redirectLogin('/account'); return; }
         document.body.removeAttribute('data-auth-pending');
         if (u.is_admin) {
+          var adminLink = document.querySelector('[data-admin-link]');
+          var navAdmin = document.getElementById('navAdminLink');
+          var quickCard = document.getElementById('adminQuickCard');
           if (adminLink) adminLink.hidden = false;
           if (navAdmin) navAdmin.hidden = false;
-          var quickCard = document.getElementById('adminQuickCard');
           if (quickCard) quickCard.hidden = false;
-          var viewTabs = document.getElementById('accountViewTabs');
-          if (viewTabs) viewTabs.hidden = false;
-          adminSection.hidden = false;
-          window.AstraAdmin.init(u);
-          if (window.location.hash === '#admin') openAdmin();
+          if (window.location.hash === '#admin') {
+            window.location.replace('/admin');
+            return;
+          }
         }
         document.getElementById('email').textContent = u.email;
         document.getElementById('avatar').textContent = (u.email || '?').charAt(0).toUpperCase();

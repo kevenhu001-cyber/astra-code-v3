@@ -644,7 +644,7 @@ fn login_destination(query: Option<&str>) -> &'static str {
             .map(|(_, value)| value.into_owned())
     });
     match next.as_deref() {
-        Some("/account#admin") => "/account#admin",
+        Some("/admin") | Some("/account#admin") => "/admin",
         Some("/authorize") => "/authorize",
         _ => "/account",
     }
