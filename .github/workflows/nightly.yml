@@ -185,8 +185,11 @@ jobs:
         #
         # The scripted sweep and the leader suite have their own jobs in this
         # workflow, so they are skipped here rather than run twice.
+        #
+        # `--no-fail-fast` so one broken binary does not hide the rest of the
+        # sweep behind a single reported failure.
         run: |
-          cargo test -p xai-grok-pager-pty-harness --all-targets \
+          cargo test -p xai-grok-pager-pty-harness --all-targets --no-fail-fast \
             -- --ignored --test-threads=2 --nocapture \
             --skip scripted_ \
             --skip campaign_leader_ \

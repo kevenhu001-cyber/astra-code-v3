@@ -479,7 +479,7 @@ fn doctor_fix_yes_writes_only_actual_home_shell_rc() {
     assert!(stdout.contains("command ssh"));
     assert_eq!(
         std::fs::read_to_string(home.join(".bashrc")).unwrap(),
-        "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='grok wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<"
+        "# >>> grok doctor >>>\n# >>> terminal.ssh-wrap >>>\nalias ssh='astra wrap ssh'\n# <<< terminal.ssh-wrap <<<\n# <<< grok doctor <<<"
     );
     assert!(!grok_home.join(".bashrc").exists());
 }
