@@ -127,6 +127,15 @@ pub struct EnvironmentConfig {
     /// highlights survive long enough to assert on).
     #[serde(default)]
     pub config_toml: Option<String>,
+    /// Files to create in the run's isolated `$ASTRA_HOME`, keyed by path relative
+    /// to the home root. Parent directories are created as needed.
+    ///
+    /// Mirrors [`WorkspaceConfig::files`], but targets the home instead of the cwd.
+    /// Used to seed offline-only state the pager reads from `$ASTRA_HOME` — e.g.
+    /// `CHANGELOG.md`, so `/release-notes` opens a real document instead of the
+    /// "No release notes available (offline)." error.
+    #[serde(default)]
+    pub home_files: std::collections::BTreeMap<String, String>,
 }
 
 impl EnvironmentConfig {
@@ -511,12 +520,27 @@ impl ScriptedScenarioRunner {
             })
             .collect();
 
-        if let Some(config_toml) = &scenario.environment.config_toml {
-            let grok_home = content.home().join(".astra");
+        // The run's isolated `$ASTRA_HOME` (the pager's ASTRA_HOME / GROK_HOME).
+        // Seeded before spawn so the pager sees the config and offline state it
+        // would otherwise have to fetch.
+        let grok_home = content.home().join(".astra");
+        if scenario.environment.config_toml.is_some() || !scenario.environment.home_files.is_empty()
+        {
             fs::create_dir_all(&grok_home)
                 .with_context(|| format!("create scenario ASTRA_HOME {}", grok_home.display()))?;
-            fs::write(grok_home.join("config.toml"), config_toml)
-                .context("write scenario config.toml")?;
+            if let Some(config_toml) = &scenario.environment.config_toml {
+                fs::write(grok_home.join("config.toml"), config_toml)
+                    .context("write scenario config.toml")?;
+            }
+            for (rel_path, contents) in &scenario.environment.home_files {
+                let path = resolve_seeded_path(&grok_home, rel_path, "ASTRA_HOME")?;
+                if let Some(parent) = path.parent() {
+                    fs::create_dir_all(parent)
+                        .with_context(|| format!("create ASTRA_HOME dir {}", parent.display()))?;
+                }
+                fs::write(&path, contents)
+                    .with_context(|| format!("write ASTRA_HOME file {}", path.display()))?;
+            }
         }
 
         let env_refs: Vec<(&str, &str)> = scenario
@@ -647,6 +671,26 @@ impl ScriptedScenarioRunner {
     }
 }
 
+/// Resolve a declared seeded-file path against its root dir.
+///
+/// Fail closed: a key must be a relative path that stays inside the root. This is
+/// author-controlled test YAML (not a security boundary), but it is the shared
+/// materialization path for both the workspace and `$ASTRA_HOME`, so guard it.
+fn resolve_seeded_path(root: &Path, rel_path: &str, root_label: &str) -> Result<PathBuf> {
+    let rel = Path::new(rel_path);
+    if rel.is_absolute()
+        || rel.components().any(|c| {
+            matches!(
+                c,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
+    {
+        bail!("{root_label} file path must be relative and within the {root_label}: {rel_path}");
+    }
+    Ok(root.join(rel))
+}
+
 /// Create a temp dir for a scenario [`WorkspaceConfig`]: write its files (creating parent dirs) and optionally `git init` it.
 /// The returned `TempDir` must be held for the whole run so the directory outlives the pager process.
 fn materialize_workspace(
@@ -655,20 +699,7 @@ fn materialize_workspace(
 ) -> Result<tempfile::TempDir> {
     let dir = tempfile::tempdir().context("create scenario workspace temp dir")?;
     for (rel_path, contents) in &workspace.files {
-        // Fail closed: a `files` key must be a relative path that stays inside the workspace
-        // This is author-controlled test YAML (not a security boundary), but it's the shared materialization path, so guard it
-        let rel = Path::new(rel_path);
-        if rel.is_absolute()
-            || rel.components().any(|c| {
-                matches!(
-                    c,
-                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
-                )
-            })
-        {
-            bail!("workspace file path must be relative and within the workspace: {rel_path}");
-        }
-        let path = dir.path().join(rel);
+        let path = resolve_seeded_path(dir.path(), rel_path, "workspace")?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
                 .with_context(|| format!("create workspace dir {}", parent.display()))?;
@@ -2053,6 +2084,58 @@ mod tests {
                 "path {bad:?} must be rejected, got: {err}"
             );
         }
+    }
+
+    /// `home_files` seeds the run's isolated `$ASTRA_HOME` (e.g. `CHANGELOG.md` for an
+    /// offline `/release-notes`). The path guard is shared with the workspace seeding.
+    #[test]
+    fn home_files_reject_paths_outside_the_home() {
+        let root = std::path::Path::new("/tmp/fake-astra-home");
+
+        let ok = resolve_seeded_path(root, "CHANGELOG.md", "ASTRA_HOME")
+            .expect("a plain relative key is accepted");
+        assert_eq!(ok, root.join("CHANGELOG.md"));
+
+        // Absolute and `..`-traversing keys are rejected before any write.
+        for bad in ["/etc/evil", "../escape", "sub/../../escape"] {
+            let err = resolve_seeded_path(root, bad, "ASTRA_HOME")
+                .unwrap_err()
+                .to_string();
+            assert!(
+                err.contains("must be relative and within the ASTRA_HOME"),
+                "path {bad:?} must be rejected, got: {err}"
+            );
+        }
+    }
+
+    /// `home_files` is optional and round-trips through the scenario YAML.
+    #[test]
+    fn scenario_parses_home_files() {
+        let scenario: ScriptedScenario = serde_yaml::from_str(
+            r##"
+name: seed-home
+environment:
+  env:
+    - key: GROK_CHANGELOG_OFFLINE
+      value: "1"
+  home_files:
+    CHANGELOG.md: "# Release Notes\n"
+steps:
+  - action: assert_running
+"##,
+        )
+        .expect("parse scenario");
+
+        assert_eq!(scenario.environment.env.len(), 1);
+        assert_eq!(scenario.environment.env[0].key, "GROK_CHANGELOG_OFFLINE");
+        assert_eq!(
+            scenario
+                .environment
+                .home_files
+                .get("CHANGELOG.md")
+                .map(String::as_str),
+            Some("# Release Notes\n")
+        );
     }
 
     #[test]

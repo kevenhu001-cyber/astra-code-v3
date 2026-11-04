@@ -30,7 +30,10 @@ jobs:
   full-test:
     name: cargo test --workspace --all-targets
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # `--include-ignored` pulls in the whole PTY/e2e tier on top of a cold
+    # workspace build, so this job needs more than the default budget; it was
+    # being killed at 90 min before it could finish.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
@@ -229,7 +232,10 @@ jobs:
   bench:
     name: cargo bench (compile + smoke)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # `cargo bench --workspace --no-run` compiles every bench target in the
+    # workspace from a cold cache (the rust-cache action only keeps the cargo
+    # registry/git, not `target/`), which alone exceeded the old 60 min budget.
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
 

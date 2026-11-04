@@ -1,13 +1,79 @@
 name: release-notes-scroll
 description: >
   Open /release-notes (DocViewer modal) and verify keyboard + mouse-wheel scrolling
-  moves the changelog body. Seeds CHANGELOG cache offline via setup is not available
-  in YAML, so this scenario relies on CDN/cache if present and still asserts the
-  modal chrome + scroll affordances. Prefer the pty_e2e Rust tests for deterministic
-  offline seeding; this YAML exercises the scripted ptyctl runner path.
+  moves the changelog body. The changelog is seeded into the run's isolated
+  $ASTRA_HOME (CHANGELOG.md) and the CDN is skipped via GROK_CHANGELOG_OFFLINE=1,
+  so the modal always has a real document to scroll — no network, no cache race.
+  This YAML exercises the scripted ptyctl runner path.
 terminal:
   rows: 40
   cols: 110
+environment:
+  env:
+    # Read the seeded CHANGELOG.md only; never reach for the CDN.
+    - key: GROK_CHANGELOG_OFFLINE
+      value: "1"
+  home_files:
+    # Seeded into $ASTRA_HOME. Long enough that the modal body overflows its
+    # viewport, so the keyboard and wheel scrolls actually move the document.
+    CHANGELOG.md: |
+      # Release Notes
+
+      ## 1.0.24
+
+      - **features**: inline edit-and-resubmit of a previous user prompt.
+      - **features**: `/release-notes` renders the changelog in the DocViewer modal.
+      - **fixes**: the scrollback keeps the selected entry visible after a resize.
+      - **fixes**: the modal footer renders the `↑/↓ scroll` affordance.
+      - **performance**: the markdown body is parsed once per width change.
+
+      ## 1.0.23
+
+      - **features**: keyboard shortcuts modal with inline hint expansion.
+      - **features**: mouse-wheel scrolling inside the DocViewer modal.
+      - **fixes**: the welcome screen no longer leaks legacy x.ai references.
+      - **fixes**: session restore keeps the scroll offset.
+      - **breaking**: the `/changelog` alias now points at `/release-notes`.
+
+      ## 1.0.22
+
+      - **features**: `/agents` overlay closes with Esc without leaving the overlay.
+      - **fixes**: the composer keeps its draft across a modal open/close cycle.
+      - **fixes**: terminal detection falls back to plain text when the brand is unknown.
+      - **performance**: the transcript diff is computed off the render path.
+      - **fixes**: the link picker no longer steals focus from the prompt.
+
+      ## 1.0.21
+
+      - **features**: the dashboard model list accepts a mouse click.
+      - **features**: the undo tip banner appears on a substantial Ctrl+U wipe.
+      - **fixes**: the undo tip no longer shows for a draft under twenty characters.
+      - **fixes**: the auto-compact chrome engages below twenty-eight rows.
+      - **breaking**: `GROK_SCROLL_MODE` now accepts `wheel` and `trackpad`.
+
+      ## 1.0.20
+
+      - **features**: the small-screen tip band renders on a twenty-four row terminal.
+      - **fixes**: the tip band does not re-show after a terminal resize.
+      - **fixes**: the plan nudge banner honours the contextual-hints opt-out.
+      - **performance**: the transcript cursor no longer redraws on every keystroke.
+      - **fixes**: the mock response keeps its sentinel text intact.
+
+      ## 1.0.19
+
+      - **features**: paste chips expand in place on a double click.
+      - **features**: pasted images are normalised to PNG before upload.
+      - **fixes**: a corrupt PNG is rejected before it reaches the model.
+      - **fixes**: the image upload no longer leaves a `.tmp` file behind.
+      - **breaking**: image previews require a terminal with graphics support.
+
+      ## 1.0.18
+
+      - **features**: the command palette carries vim-mode type-to-find.
+      - **features**: a tool header copy yields only the operand, not the label.
+      - **fixes**: bracketed paste keeps the `[` character in the prompt.
+      - **fixes**: the path hyperlink survives a space in the file name.
+      - **performance**: the scrollback index rebuild is incremental.
 mock:
   response: "SCRIPTED_RELEASE_NOTES_SCROLL unused for this scenario."
 steps:

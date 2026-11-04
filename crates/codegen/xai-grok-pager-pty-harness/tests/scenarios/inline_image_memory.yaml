@@ -3,6 +3,14 @@ description: "Paste one PNG, hammer redraws, verify Kitty graphics use transmit-
 terminal:
   rows: 40
   cols: 120
+environment:
+  env:
+    # The PTY sandbox ships no TERM at all, so the pager detects no terminal
+    # brand and falls back to `GraphicsProtocol::None` — no inline images, so the
+    # Kitty assertions below can never hold. Claim a kitty terminal so the
+    # Kitty graphics path is actually exercised.
+    - key: TERM
+      value: xterm-kitty
 mock:
   response: "unused — scenario does not submit"
   fixture_images:
