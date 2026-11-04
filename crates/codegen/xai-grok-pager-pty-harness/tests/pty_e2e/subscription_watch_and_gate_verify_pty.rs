@@ -57,19 +57,19 @@ fn paid_tier_jwt() -> String {
     format!("{header}.{payload}.sig")
 }
 
-/// Bind the fixed local-dev OIDC issuer (`http://localhost:22255`) and return a paid-tier JWT on
+/// Bind the fixed local-dev OIDC issuer (`http://localhost:8080`) and return a paid-tier JWT on
 /// refresh. Only the post-upgrade refresh then succeeds with a paid token. Minimal raw HTTP (no
 /// axum dep in this crate): discovery and token endpoints only.
 async fn start_local_oidc_paid_refresh() -> tokio::task::JoinHandle<()> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:22255")
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await
-        .expect("bind local OIDC issuer on :22255 for hermetic paid refresh");
+        .expect("bind local OIDC issuer on :8080 for hermetic paid refresh");
     let paid_jwt = paid_tier_jwt();
     let discovery_body = serde_json::to_vec(&json!({
-        "authorization_endpoint": "http://localhost:22255/authorize",
-        "token_endpoint": "http://localhost:22255/token",
+        "authorization_endpoint": "http://localhost:8080/authorize",
+        "token_endpoint": "http://localhost:8080/token",
     }))
     .expect("discovery json");
     let token_body = serde_json::to_vec(&json!({
@@ -130,8 +130,13 @@ fn pump_until(
     }
 }
 
-/// The qualifying-tier JWT refresh then hits `localhost:22255`: instant connection-refused instead
+/// The qualifying-tier JWT refresh then hits `localhost:8080`: instant connection-refused instead
 /// of a real network call to auth.x.ai.
+///
+/// The issuer must be the shell's own local-dev issuer (`ASTRA_OAUTH2_LOCAL_ISSUER` in
+/// `xai-grok-login`, selected by `GROK_LOCAL_AUTH=1`): `lookup_auth` resolves credentials by
+/// the exact `<issuer>::<client_id>` scope key, so an entry under any other issuer reads as
+/// logged-out and the pager boots to the device-login screen.
 fn seed_fake_oauth_local_issuer(content: &ContentController, user: &str) {
     let grok_home = content.home().join(".astra");
     std::fs::create_dir_all(&grok_home).expect("create temp .astra");
@@ -139,7 +144,7 @@ fn seed_fake_oauth_local_issuer(content: &ContentController, user: &str) {
         grok_home.join("auth.json"),
         format!(
             r#"{{
-  "http://localhost:22255::b1a00492-073a-47ea-816f-4c329264a828": {{
+  "http://localhost:8080::b1a00492-073a-47ea-816f-4c329264a828": {{
     "key": "pty-test-oauth-token",
     "auth_mode": "oidc",
     "create_time": "2026-01-01T00:00:00Z",
@@ -147,7 +152,7 @@ fn seed_fake_oauth_local_issuer(content: &ContentController, user: &str) {
     "email": "{user}@test.invalid",
     "expires_at": "2030-01-01T00:00:00Z",
     "refresh_token": "pty-test-refresh-token",
-    "oidc_issuer": "http://localhost:22255",
+    "oidc_issuer": "http://localhost:8080",
     "oidc_client_id": "b1a00492-073a-47ea-816f-4c329264a828"
   }}
 }}"#
@@ -201,7 +206,7 @@ fn spawn_subscription_session(
 }
 
 /// Watch cadence while free, upgrade detection, then dormancy once paid. After the free-to-paid
-/// unblock the shell must refresh the model catalog with a paid JWT (mock IdP on `:22255`). The
+/// unblock the shell must refresh the model catalog with a paid JWT (mock IdP on `:8080`). The
 /// paid-only model id must appear in the `/model` picker, not merely `/v1/models` being called.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "PTY e2e; run the owning pty_e2e_* Cargo test with --ignored (see Cargo.toml)"]

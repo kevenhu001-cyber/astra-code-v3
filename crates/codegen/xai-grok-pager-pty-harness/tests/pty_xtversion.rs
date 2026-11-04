@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use xai_grok_pager_pty_harness::{PtyHarness, pager_binary};
+use xai_grok_pager_pty_harness::{ContentController, EnvOp, PtyHarness, pager_binary};
 
 const ROWS: u16 = 50;
 const COLS: u16 = 120;
@@ -61,14 +61,39 @@ fn wait_for_raw_bytes(harness: &mut PtyHarness, needle: &[u8], timeout: Duration
     false
 }
 
+/// Spawn the pager against the mock backend with the given brand environment.
+///
+/// The pager has to reach the welcome screen for every case here: the probe reply is read
+/// back through `/doctor`, and the welcome screen is the only surface that offers it. A
+/// pager without credentials boots to the device-login box instead, so the fixture uses the
+/// harness sandbox (API-key auth plus a mock model catalog) instead of the bare host
+/// environment. Brand detection is unaffected by that switch: the harness strips the host's
+/// brand markers in both modes and applies the caller's overrides last, so the brand under
+/// test is exactly the one passed in.
+fn spawn_pager(content: &ContentController, env: &[(&str, &str)]) -> PtyHarness {
+    let binary = pager_binary().expect("resolve pager binary");
+    let operations: Vec<EnvOp<'_>> = env
+        .iter()
+        .map(|(key, value)| EnvOp::set(key, value))
+        .collect();
+    PtyHarness::spawn_with_content_env_ops_in_dir(
+        &binary,
+        ROWS,
+        COLS,
+        content,
+        &[],
+        &operations,
+        Some(content.home()),
+    )
+    .expect("spawn pager")
+}
+
 /// With an unknown brand the probe fires; the harness's scripted reply shows up in `/doctor`, never as screen garbage.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn unknown_brand_probe_round_trip() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], UNKNOWN_BRAND_ENV, None)
-            .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, UNKNOWN_BRAND_ENV);
 
     assert!(
         wait_for_raw_bytes(&mut harness, XTVERSION_QUERY, WELCOME_TIMEOUT),
@@ -100,11 +125,10 @@ async fn unknown_brand_probe_round_trip() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn allowlisted_brand_probe_fires() {
-    let binary = pager_binary().expect("resolve pager binary");
+    let content = ContentController::start().await.expect("start content");
     let mut env = UNKNOWN_BRAND_ENV.to_vec();
     env.push(("TERM_PROGRAM", "WezTerm"));
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], &env, None).expect("spawn pager");
+    let mut harness = spawn_pager(&content, &env);
 
     assert!(
         wait_for_raw_bytes(&mut harness, XTVERSION_QUERY, WELCOME_TIMEOUT),
@@ -128,20 +152,12 @@ async fn allowlisted_brand_probe_fires() {
     harness.quit().expect("clean quit");
 }
 
-/// A non-allowlisted brand (`TERM_PROGRAM=vscode`) writes no query, regardless of whatever else is in the runner's env (deliberately no scrub).
+/// A non-allowlisted brand (`TERM_PROGRAM=vscode`) writes no query, regardless of whatever else is in the environment (deliberately no scrub).
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn non_allowlisted_brand_skips_probe() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness = PtyHarness::new_inherited_env(
-        &binary,
-        ROWS,
-        COLS,
-        &[],
-        &[("TERM_PROGRAM", "vscode")],
-        None,
-    )
-    .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, &[("TERM_PROGRAM", "vscode")]);
 
     harness
         .wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT)
@@ -161,12 +177,11 @@ async fn non_allowlisted_brand_skips_probe() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn multiplexer_skips_probe() {
-    let binary = pager_binary().expect("resolve pager binary");
+    let content = ContentController::start().await.expect("start content");
     let mut env = UNKNOWN_BRAND_ENV.to_vec();
     env.push(("TMUX", "/tmp/tmux-1000/default,12345,0"));
     env.push(("TMUX_PANE", "%0"));
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], &env, None).expect("spawn pager");
+    let mut harness = spawn_pager(&content, &env);
 
     harness
         .wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT)
@@ -184,10 +199,8 @@ async fn multiplexer_skips_probe() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn unknown_brand_no_reply_starts_cleanly() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], UNKNOWN_BRAND_ENV, None)
-            .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, UNKNOWN_BRAND_ENV);
 
     harness
         .wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT)
@@ -213,10 +226,8 @@ async fn unknown_brand_no_reply_starts_cleanly() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn unknown_brand_malformed_reply_is_discarded() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], UNKNOWN_BRAND_ENV, None)
-            .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, UNKNOWN_BRAND_ENV);
 
     assert!(
         wait_for_raw_bytes(&mut harness, XTVERSION_QUERY, WELCOME_TIMEOUT),
@@ -250,10 +261,8 @@ async fn unknown_brand_malformed_reply_is_discarded() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn unknown_brand_late_reply_swallowed_and_recorded() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], UNKNOWN_BRAND_ENV, None)
-            .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, UNKNOWN_BRAND_ENV);
 
     assert!(
         wait_for_raw_bytes(&mut harness, XTVERSION_QUERY, WELCOME_TIMEOUT),
@@ -285,10 +294,8 @@ async fn unknown_brand_late_reply_swallowed_and_recorded() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn unknown_brand_keystrokes_interleaved_with_reply() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], UNKNOWN_BRAND_ENV, None)
-            .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, UNKNOWN_BRAND_ENV);
 
     assert!(
         wait_for_raw_bytes(&mut harness, XTVERSION_QUERY, WELCOME_TIMEOUT),
@@ -318,10 +325,8 @@ async fn unknown_brand_keystrokes_interleaved_with_reply() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn unknown_brand_split_reply_round_trip() {
-    let binary = pager_binary().expect("resolve pager binary");
-    let mut harness =
-        PtyHarness::new_inherited_env(&binary, ROWS, COLS, &[], UNKNOWN_BRAND_ENV, None)
-            .expect("spawn pager");
+    let content = ContentController::start().await.expect("start content");
+    let mut harness = spawn_pager(&content, UNKNOWN_BRAND_ENV);
 
     assert!(
         wait_for_raw_bytes(&mut harness, XTVERSION_QUERY, WELCOME_TIMEOUT),

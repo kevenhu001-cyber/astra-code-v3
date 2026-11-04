@@ -7,7 +7,7 @@ use super::common::*;
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn agent_type_mismatch_no_keeps_current_session() {
-    let content = start_dual_agent_type_content().await;
+    let content = start_strict_agent_type_content().await;
     content.set_response(format!(
         "{MOCK_RESPONSE_SENTINEL} hello from the default harness."
     ));
@@ -30,7 +30,7 @@ async fn agent_type_mismatch_no_keeps_current_session() {
         .expect("response rendered");
 
     harness
-        .inject_keys(b"/model cursor-model\r")
+        .inject_keys(b"/model codex-model\r")
         .expect("type model switch");
 
     harness
