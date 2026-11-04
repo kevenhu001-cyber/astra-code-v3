@@ -2,7 +2,7 @@
 //! Runs the REAL shipped `install.sh` against a fake `curl` that can serve the good artifact, truncate it, or serve a right-length garbage body.
 //! Asserts the same invariant as the Rust blitz:
 //!
-//! > After any install attempt, `$BIN_DIR/grok` resolves to a binary that runs, OR is still the previous-good binary, never a partial/garbage binary.
+//! > After any install attempt, `$BIN_DIR/astra` resolves to a binary that runs, OR is still the previous-good binary, never a partial/garbage binary.
 //!
 //! Also covers shell-rc rewrite: stowed/symlinked `~/.bashrc` etc. must survive reinstall without being replaced by a plain file.
 //!
@@ -116,13 +116,13 @@ fn seed_previous_good(home: &Path, platform: &str) -> PathBuf {
     dunce::canonicalize(&prev).unwrap()
 }
 
-/// Re-resolve `$BIN_DIR/grok` from disk and re-run it: the active astra must
+/// Re-resolve `$BIN_DIR/astra` from disk and re-run it: the active astra must
 /// always execute, and never be a `.tmp`/partial file.
-fn assert_active_grok_runs(home: &Path) {
+fn assert_active_astra_runs(home: &Path) {
     let link = home.join(".astra").join("bin").join("astra");
-    assert!(link.is_symlink(), "grok must remain a symlink");
+    assert!(link.is_symlink(), "astra must remain a symlink");
     let resolved =
-        dunce::canonicalize(&link).unwrap_or_else(|e| panic!("grok symlink dangles: {e}"));
+        dunce::canonicalize(&link).unwrap_or_else(|e| panic!("astra symlink dangles: {e}"));
     let name = resolved.file_name().unwrap().to_string_lossy().to_string();
     assert!(
         !name.contains(".tmp"),
@@ -307,11 +307,11 @@ fn run_shell_rc_case(case: &ShellRcCase) {
         }
     }
 
-    assert_active_grok_runs(&home_path);
+    assert_active_astra_runs(&home_path);
 }
 
 #[test]
-fn install_sh_blitz_keeps_grok_runnable_under_corruption() {
+fn install_sh_blitz_keeps_astra_runnable_under_corruption() {
     let Some(install_sh) = install_sh_path() else {
         eprintln!("skipping: install.sh not found relative to crate; run under cargo");
         return;
@@ -342,8 +342,8 @@ fn install_sh_blitz_keeps_grok_runnable_under_corruption() {
             "install.sh mode={mode} exit success mismatch"
         );
 
-        // The invariant holds on every path: the active grok always runs (new good binary on success, previous-good on rejection)
-        assert_active_grok_runs(home.path());
+        // The invariant holds on every path: the active astra always runs (new good binary on success, previous-good on rejection)
+        assert_active_astra_runs(home.path());
     }
 }
 
@@ -436,16 +436,16 @@ fn run_with_proxy_url(script: &Path, proxy_url: &str) -> (bool, String, bool) {
         .env("HOME", home.path())
         .env("PATH", &path_env)
         .env("SHELL", "/bin/bash")
-        .env("GROK_BIN_DIR", home.path().join(".grok").join("bin"))
-        .env("GROK_CHANNEL", "stable")
-        .env("GROK_DEPLOYMENT_KEY", "test-deployment-key-must-not-leak")
+        .env("ASTRA_BIN_DIR", home.path().join(".astra").join("bin"))
+        .env("ASTRA_CHANNEL", "stable")
+        .env("ASTRA_DEPLOYMENT_KEY", "test-deployment-key-must-not-leak")
         .env("GROK_PROXY_URL", proxy_url)
         .env("FAKE_MODE", "full")
         .env("FAKE_URL_LOG", &url_log)
         .status()
         .expect("spawn bash install script");
     let urls = std::fs::read_to_string(&url_log).unwrap_or_default();
-    let managed = home.path().join(".grok/managed_config.toml").exists();
+    let managed = home.path().join(".astra/managed_config.toml").exists();
     (status.success(), urls, managed)
 }
 
@@ -465,15 +465,15 @@ fn install_scripts_refuse_bad_proxy_url_for_deployment_key() {
         eprintln!("skipping: install.sh not found relative to crate; run under cargo");
         return;
     };
-    let desktop = desktop_install_sh_path()
-        .expect("desktop install.sh must resolve when pager install.sh is present");
 
-    let mut scripts: Vec<(&str, PathBuf)> = vec![
-        ("install.sh", pager_install),
-        ("desktop install.sh", desktop),
-    ];
+    let mut scripts: Vec<(&str, PathBuf)> = vec![("install.sh", pager_install)];
     if let Some(enterprise) = script_path("install-enterprise.sh") {
         scripts.insert(1, ("install-enterprise.sh", enterprise));
+    }
+    // The desktop app is not vendored in this repository, so its installer is
+    // covered only when the tree is present.
+    if let Some(desktop) = desktop_install_sh_path() {
+        scripts.push(("desktop install.sh", desktop));
     }
 
     for (label, script_file) in &scripts {
@@ -493,7 +493,7 @@ fn install_scripts_refuse_bad_proxy_url_for_deployment_key() {
 }
 
 #[test]
-fn install_sh_rejects_hostile_grok_channel() {
+fn install_sh_rejects_hostile_astra_channel() {
     let Some(install_sh) = install_sh_path() else {
         eprintln!("skipping: install.sh not found relative to crate; run under cargo");
         return;
@@ -511,22 +511,22 @@ fn install_sh_rejects_hostile_grok_channel() {
         .env("HOME", home.path())
         .env("PATH", path_env)
         .env("SHELL", "/bin/bash")
-        .env("GROK_BIN_DIR", home.path().join(".grok").join("bin"))
-        .env("GROK_CHANNEL", hostile)
+        .env("ASTRA_BIN_DIR", home.path().join(".astra").join("bin"))
+        .env("ASTRA_CHANNEL", hostile)
         .env("FAKE_MODE", "full")
         .env("FAKE_URL_LOG", &url_log)
         .output()
         .expect("spawn bash install.sh");
     assert!(
         !output.status.success(),
-        "unlisted GROK_CHANNEL must fail closed"
+        "unlisted ASTRA_CHANNEL must fail closed"
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("GROK_CHANNEL"),
-        "must name GROK_CHANNEL in the error, stderr:\n{stderr}"
+        stderr.contains("ASTRA_CHANNEL"),
+        "must name ASTRA_CHANNEL in the error, stderr:\n{stderr}"
     );
-    let config = home.path().join(".grok/config.toml");
+    let config = home.path().join(".astra/config.toml");
     if config.exists() {
         let body = std::fs::read_to_string(&config).unwrap();
         assert!(
@@ -547,15 +547,14 @@ fn install_scripts_allow_custom_https_proxy_url() {
         eprintln!("skipping: install.sh not found relative to crate; run under cargo");
         return;
     };
-    let desktop = desktop_install_sh_path()
-        .expect("desktop install.sh must resolve when pager install.sh is present");
-
-    let mut scripts: Vec<(&str, PathBuf)> = vec![
-        ("install.sh", pager_install),
-        ("desktop install.sh", desktop),
-    ];
+    let mut scripts: Vec<(&str, PathBuf)> = vec![("install.sh", pager_install)];
     if let Some(enterprise) = script_path("install-enterprise.sh") {
         scripts.insert(1, ("install-enterprise.sh", enterprise));
+    }
+    // The desktop app is not vendored in this repository, so its installer is
+    // covered only when the tree is present.
+    if let Some(desktop) = desktop_install_sh_path() {
+        scripts.push(("desktop install.sh", desktop));
     }
     for (label, script_file) in &scripts {
         for proxy_url in GOOD_PROXY_URLS {
