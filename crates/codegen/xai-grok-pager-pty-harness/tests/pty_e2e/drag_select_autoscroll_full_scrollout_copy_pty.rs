@@ -28,9 +28,9 @@ async fn drag_select_autoscroll_full_scrollout_copy_pty() {
     // renders its first viewportful of markers. Use Markdown hard breaks so
     // the rows contribute to the OUTER transcript being drag-selected.
     let filler = format!(
-        "{MOCK_RESPONSE_SENTINEL}  \\n{}",
+        "{MOCK_RESPONSE_SENTINEL}  \n{}",
         (0..FILLER_ROWS)
-            .map(|row| format!("{}  \\n", marker_line(row)))
+            .map(|row| format!("{}  \n", marker_line(row)))
             .collect::<String>()
     );
     let _filler_turn = content.expect_agent_turn("selection autoscroll filler turn", filler);
