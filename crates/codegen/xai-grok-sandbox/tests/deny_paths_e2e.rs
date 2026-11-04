@@ -876,7 +876,7 @@ fn run_deny_case(
         .map(|p| format!("\"{p}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    fs::create_dir_all(tmp.join(".astra")).expect("mkdir .grok");
+    fs::create_dir_all(tmp.join(".astra")).expect("mkdir .astra");
     fs::write(
         tmp.join(".astra").join("sandbox.toml"),
         format!("[profiles.{profile}]\nextends = \"workspace\"\ndeny = [{deny_list}]\n"),
@@ -994,9 +994,9 @@ fn deny_globs_block_read_write_rename() {
 #[cfg(target_os = "linux")]
 fn read_deny_marker_spoof_refused() {
     let (home, grok, workspace, _ch, _cg, _cw) = fixture_homes("read-deny-spoof");
-    fs::create_dir_all(workspace.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(workspace.join(".astra")).expect("mkdir .astra");
     fs::write(
-            workspace.join(".grok").join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
+            workspace.join(".astra").join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
             "[profiles.netspoof]\nextends = \"devbox\"\nrestrict_network = true\ndeny = [\"secret.pem\"]\n",
         )
         .expect("write sandbox.toml");
@@ -1028,10 +1028,10 @@ fn read_deny_forged_mounts_are_refused() {
     }
     use std::os::unix::fs::PermissionsExt;
     let (home, grok, workspace, _ch, _cg, _cw) = fixture_homes("read-deny-forged");
-    fs::create_dir_all(workspace.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(workspace.join(".astra")).expect("mkdir .astra");
     fs::write(
         workspace
-            .join(".grok")
+            .join(".astra")
             .join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
         "[profiles.forged]\nextends = \"devbox\"\ndeny = [\"secret.pem\"]\n",
     )
@@ -1074,10 +1074,10 @@ fn read_deny_empty_set_verifies_inside_bwrap() {
         return;
     }
     let (home, grok, workspace, _ch, _cg, _cw) = fixture_homes("read-deny-empty");
-    fs::create_dir_all(workspace.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(workspace.join(".astra")).expect("mkdir .astra");
     fs::write(
         workspace
-            .join(".grok")
+            .join(".astra")
             .join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
         "[profiles.netempty]\nextends = \"devbox\"\nrestrict_network = true\n",
     )

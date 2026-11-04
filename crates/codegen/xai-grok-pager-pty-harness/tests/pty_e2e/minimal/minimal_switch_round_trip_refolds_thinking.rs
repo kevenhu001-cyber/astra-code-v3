@@ -32,9 +32,9 @@ async fn minimal_switch_round_trip_refolds_thinking() {
     content.set_response(answer.clone());
 
     // Thinking blocks explicitly ON (ingestion is gated on this toggle; the sandbox `$HOME` starts with no config at all)
-    std::fs::create_dir_all(content.home().join(".grok")).expect("mk .grok");
+    std::fs::create_dir_all(content.home().join(".astra")).expect("mk .astra");
     std::fs::write(
-        content.home().join(".grok/config.toml"),
+        content.home().join(".astra/config.toml"),
         "[ui]\nshow_thinking_blocks = true\n",
     )
     .expect("write config");

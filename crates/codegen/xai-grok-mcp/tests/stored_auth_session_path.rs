@@ -13,6 +13,18 @@ use xai_grok_mcp::servers::{McpOauthDiscovery, McpSpawnCtx, OauthInteractivity, 
 
 const TOKEN: &str = "at-123";
 
+/// Pre-main, so `$ASTRA_HOME` is set before `xai_grok_config`'s cached resolver can run.
+///
+/// The library ships the same ctor, but it is `#[cfg(test)]` — it only exists in the
+/// lib-test binary. An integration test links the library as a plain rlib, so the
+/// isolation has to be installed here instead.
+#[ctor::ctor]
+fn initialize_test_astra_home() {
+    let dir = std::env::temp_dir().join(format!("astra-mcp-tests-{}", std::process::id()));
+    // SAFETY: `#[ctor]` runs before the test harness starts any test thread.
+    unsafe { std::env::set_var("ASTRA_HOME", dir) };
+}
+
 async fn spawn_counting_gated_server() -> (String, Arc<AtomicUsize>, Arc<AtomicUsize>) {
     let requests = Arc::new(AtomicUsize::new(0));
     let token_grants = Arc::new(AtomicUsize::new(0));
