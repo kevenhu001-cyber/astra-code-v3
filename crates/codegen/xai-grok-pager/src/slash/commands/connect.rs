@@ -292,11 +292,13 @@ mod tests {
     #[test]
     fn advertised_presets_match_shell_configuration() {
         let command_ids: Vec<_> = CONNECT_PRESETS.iter().map(|(id, _)| *id).collect();
-        let configured_ids: Vec<_> = xai_grok_shell::util::config::CUSTOM_MODEL_PROVIDER_PRESETS
-            .iter()
-            .map(|preset| preset.id)
-            .collect();
-        assert_eq!(command_ids, configured_ids);
+        let mut expected_ids = vec!["topodrive_cloud"];
+        expected_ids.extend(
+            xai_grok_shell::util::config::CUSTOM_MODEL_PROVIDER_PRESETS
+                .iter()
+                .map(|preset| preset.id),
+        );
+        assert_eq!(command_ids, expected_ids);
     }
 
     #[test]
