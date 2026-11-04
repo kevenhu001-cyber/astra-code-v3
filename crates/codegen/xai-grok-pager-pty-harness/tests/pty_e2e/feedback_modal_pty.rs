@@ -354,6 +354,10 @@ async fn feedback_modal_trace_step_and_upload_ordering_pty() {
     // TestSandbox pins DISABLE_TELEMETRY=1; this test needs product telemetry on.
     overrides.push(EnvOp::remove("DISABLE_TELEMETRY"));
     overrides.push(EnvOp::set("GROK_TELEMETRY_ENABLED", "true"));
+    // Trace consent is only offered while automatic trace upload is OFF.
+    // With telemetry on, the default trace-upload flag resolves to true;
+    // explicitly opt out so the one-shot consent path is exercised.
+    overrides.push(EnvOp::set("GROK_TELEMETRY_TRACE_UPLOAD", "false"));
     // Telemetry is on for the trace offer gate; the events sink must be this endpoint, never the baked production one.
     let events_url = format!("{}/events", endpoint.url);
     overrides.push(EnvOp::set("GROK_TELEMETRY_EVENTS_URL", events_url.as_str()));
