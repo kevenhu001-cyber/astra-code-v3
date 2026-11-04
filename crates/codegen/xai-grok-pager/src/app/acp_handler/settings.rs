@@ -17,8 +17,8 @@ pub(super) fn handle_models_update(notif: &acp::ExtNotification, app: &mut AppVi
             .current
             .as_ref()
             .is_none_or(|id| !app.models.available.contains_key(id));
-        if stale && let Some(id) = new_models.current {
-            app.models.set_current(id, None);
+        if stale && let Some(ref id) = new_models.current {
+            app.models.set_current(id.clone(), None);
         }
 
         for agent in app.agents.values_mut() {
@@ -43,8 +43,8 @@ pub(super) fn handle_models_update(notif: &acp::ExtNotification, app: &mut AppVi
                 .session
                 .models
                 .update_catalog(new_models.available.clone());
-            if selection_pending && let Some(id) = new_models.current.clone() {
-                agent.session.models.set_current(id, None);
+            if selection_pending && let Some(ref id) = new_models.current {
+                agent.session.models.set_current(id.clone(), None);
             }
         }
         crate::app::dispatch::refresh_open_settings_modals(app);
