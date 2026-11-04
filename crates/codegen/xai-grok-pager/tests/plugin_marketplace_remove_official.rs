@@ -1,6 +1,19 @@
 //! Regression: CLI `marketplace remove` of the official source must set
 //! `official_marketplace_auto_installed` even for a JSON-store-only source with the flag unset.
 
+use xai_grok_plugin_marketplace::OFFICIAL_SOURCE_GIT_URL;
+
+/// The `owner/repo` form a JSON store entry uses for a GitHub source. Derived
+/// from the product's official URL so a rebrand cannot silently turn this
+/// fixture into a non-official source (which would skip the sticky flag).
+fn official_repo() -> String {
+    OFFICIAL_SOURCE_GIT_URL
+        .strip_prefix("https://github.com/")
+        .and_then(|rest| rest.strip_suffix(".git"))
+        .expect("the official marketplace source is a plain GitHub HTTPS URL")
+        .to_string()
+}
+
 #[test]
 fn cli_remove_of_json_store_official_source_sets_sticky_flag() {
     // One #[test] per binary: the env is process-global.
@@ -14,7 +27,10 @@ fn cli_remove_of_json_store_official_source_sets_sticky_flag() {
     let known_path = plugins_dir.join("known_marketplaces.json");
     std::fs::write(
         &known_path,
-        r#"{"xai": {"source": {"source": "github", "repo": "xai-org/plugin-marketplace"}}}"#,
+        format!(
+            r#"{{"topodrive": {{"source": {{"source": "github", "repo": "{}"}}}}}}"#,
+            official_repo()
+        ),
     )
     .unwrap();
 
@@ -27,7 +43,7 @@ fn cli_remove_of_json_store_official_source_sets_sticky_flag() {
                 command: xai_grok_pager::plugin_cmd::PluginCommand::Marketplace(
                     xai_grok_pager::plugin_cmd::MarketplaceArgs {
                         command: xai_grok_pager::plugin_cmd::MarketplaceCommand::Remove {
-                            source: "https://github.com/xai-org/plugin-marketplace.git".into(),
+                            source: OFFICIAL_SOURCE_GIT_URL.into(),
                         },
                     },
                 ),
@@ -38,7 +54,7 @@ fn cli_remove_of_json_store_official_source_sets_sticky_flag() {
     let known: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&known_path).unwrap()).unwrap();
     assert!(
-        known.get("xai").is_none(),
+        known.get("topodrive").is_none(),
         "source must be removed from the JSON store: {known}"
     );
 
