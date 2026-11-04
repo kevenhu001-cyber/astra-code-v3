@@ -257,11 +257,11 @@ During a session, the active method handles all mid-session refreshes.
 
 ---
 
-## Grove Git credentials (not this page's `grok login`)
+## Grove Git credentials (not this page's `astra login`)
 
-Everything on this page authenticates Grok to the model API. Git remotes behind a Grove mount -- what [`grok clone`](27-grok-clone.md) fetches from -- are a separate world, owned by the Grove daemon.
+Everything on this page authenticates Grok to the model API. Git remotes behind a Grove mount -- what [`astra clone`](27-grok-clone.md) fetches from -- are a separate world, owned by the Grove daemon.
 
-**`~/.grok/auth.json` is never read for Git.** `grok login` does not create a Git credential and `grok logout` does not revoke one; the daemon builds its own credential cell from `auth_mode` in Grove config. Those credentials are managed with `grove status` and `grove reload-credentials` -- see [grok clone](27-grok-clone.md#authentication) for the failure classes and their next steps.
+**`~/.astra/auth.json` is never read for Git.** `astra login` does not create a Git credential and `astra logout` does not revoke one; the daemon builds its own credential cell from `auth_mode` in Grove config. Those credentials are managed with `grove status` and `grove reload-credentials` -- see [astra clone](27-grok-clone.md#authentication) for the failure classes and their next steps.
 
 ---
 

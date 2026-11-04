@@ -36,7 +36,7 @@ Astra stores each session in its own directory, grouped by working directory. It
   subagents/              # per-subagent metadata (meta.json); the child sessions live in the normal sessions tree
 ```
 
-`summary.json` is the index entry. It records the session summary and generated title, the model ID, the creation and update timestamps, the message counts, and a parent session reference for forked or restored sessions. It also records the latest last-turn summary and session recap so listing surfaces can show them. `updates.jsonl` is the authoritative conversation log that drives `/resume` and session restore. Per-turn token and cost totals are available through `grok usage`.
+`summary.json` is the index entry. It records the session summary and generated title, the model ID, the creation and update timestamps, the message counts, and a parent session reference for forked or restored sessions. It also records the latest last-turn summary and session recap so listing surfaces can show them. `updates.jsonl` is the authoritative conversation log that drives `/resume` and session restore. Per-turn token and cost totals are available through `astra usage`.
 
 ### Session titles
 
@@ -273,16 +273,16 @@ astra sessions search "rate limit"
 
 ---
 
-## The grok usage Subcommand
+## The astra usage Subcommand
 
 Print persisted token and cost usage for a session. Use this instead of reading session files:
 
 ```bash
 # Session totals plus every recorded turn
-grok usage <session-id>
+astra usage <session-id>
 
 # One turn
-grok usage <session-id> 3
+astra usage <session-id> 3
 ```
 
 Output is JSON with `sessionId`, `updatedAt`, `session`, and `turns`. A specific turn uses the same envelope with one element in `turns`. Session totals cover the whole conversation, including history inherited by resume or fork. `costUsdTicks` is 10¹⁰ ticks per USD (divide by `1e10` for dollars). A missing turn number is an error. Interactive credit and billing stay on `/usage` in the TUI.
