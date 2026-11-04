@@ -1,5 +1,56 @@
 //! Tests for settings setters, toggles, resets, and rollback.
 use super::*;
+
+#[test]
+fn connect_defaults_to_account_provider_without_custom_model_write() {
+    let mut app = test_app_with_agent();
+    app.active_view = ActiveView::Agent(AgentId(0));
+    let effects = dispatch(Action::OpenConnectWizard, &mut app);
+    assert!(effects.is_empty());
+    let Some(crate::views::modal::ActiveModal::ConnectWizard { state }) =
+        &app.agents[&AgentId(0)].active_modal
+    else {
+        panic!("connect wizard should be open");
+    };
+    assert!(state.is_cloud());
+    assert!(state.api_key.is_empty());
+}
+
+#[test]
+fn connect_account_provider_opens_live_model_picker() {
+    let mut app = test_app_with_agent();
+    app.active_view = ActiveView::Agent(AgentId(0));
+    app.auth_state = AuthState::Done;
+    app.is_api_key_auth = false;
+    let id = acp::ModelId::new("admin-model");
+    app.agents
+        .get_mut(&AgentId(0))
+        .unwrap()
+        .session
+        .models
+        .available
+        .insert(
+            id.clone(),
+            acp::ModelInfo::new(id, "Admin Model")
+                .description("$1 input / $2 output per 1M tokens"),
+        );
+    let effects = dispatch(
+        Action::OpenConnectWizardForPreset("topodrive_cloud".into()),
+        &mut app,
+    );
+    assert!(
+        effects.is_empty(),
+        "opening account models must not persist a BYOK config"
+    );
+    let Some(crate::views::modal::ActiveModal::Settings { state }) =
+        &app.agents[&AgentId(0)].active_modal
+    else {
+        panic!("account provider should open the live settings picker");
+    };
+    assert_eq!(state.pager_snapshot.available_models.len(), 1);
+    assert!(state.model_descriptions["Admin Model"].contains("$1"));
+}
+
 /// `Action::ToggleVimMode` flips the active agent's `vim_mode` field and the in-process pager cache (`load_vim_mode`) that seeds future agents.
 /// It emits `Effect::PersistSetting` so the new value lands in `[ui].vim_mode` in config.toml, and a second toggle restores the original.
 #[test]

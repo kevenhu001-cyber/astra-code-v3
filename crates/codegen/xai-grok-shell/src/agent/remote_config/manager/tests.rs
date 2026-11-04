@@ -43,6 +43,30 @@ fn cold_manager(cfg: config::Config, endpoint: Arc<dyn ModelsEndpoint>) -> Model
 }
 
 #[test]
+fn signed_in_fallback_never_advertises_unconfigured_cloud_models() {
+    let mgr = test_manager();
+    mgr.inner.auth_manager.hot_swap(GrokAuth {
+        auth_mode: xai_grok_login::AuthMode::WebLogin,
+        ..GrokAuth::test_default()
+    });
+    *mgr.inner.fetch_auth.write() = ModelFetchAuth::Session;
+    mgr.rebuild_bundled(&config::Config::default());
+    assert!(
+        mgr.models().is_empty(),
+        "a failed website fetch must not expose bundled IDs that the cloud gateway cannot route"
+    );
+    assert!(mgr.cloud_catalog_unavailable());
+
+    let cfg = config_from_toml(
+        "[model.local]\nmodel = \"local-model\"\nbase_url = \"http://localhost:1234/v1\"",
+    );
+    mgr.rebuild_bundled(&cfg);
+    assert_eq!(mgr.models().len(), 1);
+    assert!(mgr.models().contains_key("local"));
+    assert!(!mgr.cloud_catalog_unavailable());
+}
+
+#[test]
 fn authoritative_remote_catalog_never_falls_back_to_bundled_models() {
     let cfg = config::Config::default();
     let mut remote = IndexMap::new();
@@ -69,6 +93,44 @@ fn authoritative_remote_catalog_never_falls_back_to_bundled_models() {
 }
 
 struct HangingEndpoint;
+
+#[test]
+fn cloud_catalog_preserves_native_protocol_without_changing_local_provider() {
+    use xai_grok_sampler::{ApiBackend, AuthScheme};
+
+    let cfg = config_from_toml(
+        "[model.local]\nmodel = \"cloud-route\"\nbase_url = \"https://local.example/v1\"\napi_backend = \"messages\"",
+    );
+    for backend in [
+        ApiBackend::ChatCompletions,
+        ApiBackend::Responses,
+        ApiBackend::Messages,
+    ] {
+        let mut cached = make_model_entry("private-upstream-id");
+        cached.info.base_url = "https://legacy-proxy.example/v1".into();
+        cached.info.api_backend = backend.clone();
+        cached.api_base_url = Some("https://legacy-api.example/v1".into());
+        let prefetched = IndexMap::from([("cloud-route".into(), cached)]);
+        let catalog = resolve_model_catalog_with_remote_authority(&cfg, Some(prefetched), true);
+        let cloud = &catalog["cloud-route"];
+        let sampling = sampling_config_for_model(
+            cloud,
+            resolve_credentials(cloud, None),
+            None,
+            None,
+            None,
+            None,
+        );
+        assert_eq!(sampling.model, "cloud-route");
+        assert_eq!(sampling.base_url, config::astra_gateway_base_url());
+        assert_eq!(sampling.api_backend, backend);
+        assert_eq!(sampling.auth_scheme, AuthScheme::Bearer);
+        assert!(cloud.api_base_url.is_none());
+        assert_eq!(catalog["local"].base_url, "https://local.example/v1");
+        assert_eq!(catalog["local"].api_backend, ApiBackend::Messages);
+    }
+}
+
 impl ModelsEndpoint for HangingEndpoint {
     fn fetch_models(
         &self,
@@ -1084,11 +1146,24 @@ fn make_prefetched(ids: &[&str]) -> IndexMap<String, ModelEntry> {
         .collect()
 }
 
-#[test]
-fn spawn_background_refresh_is_noop_when_real_catalog_present() {
-    let mgr = test_manager();
+#[tokio::test]
+async fn spawn_background_refresh_revalidates_real_catalog() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mgr = cold_manager(
+        config::Config::default(),
+        Arc::new(CountingEndpoint {
+            calls: calls.clone(),
+        }),
+    );
     mgr.inner.catalog.write().has_fetched_real_catalog = true;
-    mgr.spawn_background_refresh_inner(/*remote_fetch_enabled*/ true); // must not panic (no tokio::spawn taken)
+    mgr.spawn_background_refresh_inner(/*remote_fetch_enabled*/ true);
+    tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        while calls.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("a cached catalog must be revalidated");
     assert!(mgr.has_fetched_real_catalog());
 }
 
@@ -1191,8 +1266,8 @@ async fn sign_out_clears_catalog_rebuilds_bundled_without_fetching() {
         "sign-out must reset the user-pick latch",
     );
     assert!(
-        !mgr.models().is_empty(),
-        "sign-out must rebuild the bundled default catalog",
+        mgr.models().is_empty(),
+        "sign-out must not advertise built-in IDs as cloud models",
     );
     assert_eq!(
         *mgr.inner.catalog_progress.borrow(),
@@ -1202,7 +1277,7 @@ async fn sign_out_clears_catalog_rebuilds_bundled_without_fetching() {
 }
 
 #[test]
-fn from_config_without_prefetch_produces_usable_catalog() {
+fn from_config_without_prefetch_does_not_invent_cloud_models() {
     let tmp = tempfile::TempDir::new().unwrap();
     let auth_manager = Arc::new(AuthManager::new(tmp.path(), GrokComConfig::default()));
     let cfg = config::Config::default();
@@ -1212,21 +1287,36 @@ fn from_config_without_prefetch_produces_usable_catalog() {
     let cat = mgr.inner.catalog.read();
     let catalog = &cat.models;
     assert!(
-        !catalog.is_empty(),
-        "zero-network boot must produce at least one model in the internal catalog"
-    );
-    let default = mgr.current_model_id();
-    assert!(
-        catalog.contains_key(default.0.as_ref()),
-        "default model {:?} not in internal catalog: {:?}",
-        default,
-        catalog.keys().collect::<Vec<_>>()
+        catalog.is_empty(),
+        "a cloud boot without a catalog must not invent configured models"
     );
     drop(cat);
+    assert!(mgr.current_model_id().0.is_empty());
+    let (_, pending, _) = resolve_default_model(&cfg, &IndexMap::new(), false);
+    assert!(pending.model.is_empty());
+    assert!(!pending.user_selectable);
+    assert!(pending.hidden);
     assert!(
         !mgr.has_fetched_real_catalog(),
         "cold-cache boot must not claim a real catalog"
     );
+}
+
+#[test]
+fn empty_catalog_sampling_does_not_use_a_bundled_model() {
+    let mgr = test_manager();
+    assert!(mgr.sampling_config().model.is_empty());
+}
+
+#[test]
+fn empty_cloud_catalog_clears_a_previously_selected_default() {
+    let mgr = test_manager();
+    let cfg = config::Config::default();
+    mgr.apply_refresh_result(&cfg, Some(make_prefetched(&["admin-default"])), None);
+    assert_eq!(mgr.current_model_id().0.as_ref(), "admin-default");
+    mgr.apply_refresh_result(&cfg, Some(IndexMap::new()), None);
+    assert!(mgr.current_model_id().0.is_empty());
+    assert!(mgr.sampling_config().model.is_empty());
 }
 
 #[test]
@@ -1541,6 +1631,7 @@ fn reload_from_disk_cache_ignores_stale_cache() {
     let cache = test_cache_manager(tmp.path());
     let scope = mgr.cache_scope();
     let stale = ModelsCache {
+        protocol_revision: super::super::cache::MODELS_PROTOCOL_REVISION,
         fetched_at: Utc::now() - ChronoDuration::seconds(3600),
         renewed_at: None,
         grok_version: Some(xai_grok_version::VERSION.to_string()),
@@ -1885,6 +1976,7 @@ fn reload_from_disk_cache_ignores_legacy_cache_without_origin() {
     let cache = test_cache_manager(tmp.path());
     let scope = mgr.cache_scope();
     let legacy = ModelsCache {
+        protocol_revision: super::super::cache::MODELS_PROTOCOL_REVISION,
         fetched_at: Utc::now(),
         renewed_at: None,
         grok_version: Some(xai_grok_version::VERSION.to_string()),
@@ -1899,6 +1991,21 @@ fn reload_from_disk_cache_ignores_legacy_cache_without_origin() {
     mgr.reload_from_cache_manager(&cache);
 
     assert!(!mgr.models().contains_key("grok-legacy"));
+}
+
+#[test]
+fn model_cache_rejects_catalogs_from_protocol_conversion_gateway() {
+    let mgr = test_manager();
+    let tmp = tempfile::TempDir::new().unwrap();
+    let cache = test_cache_manager(tmp.path());
+    let scope = mgr.cache_scope();
+    cache.persist(&make_prefetched(&["cloud-route"]), None, &scope, Utc::now());
+    assert!(cache.load_fresh(&scope).is_some());
+    let mut legacy: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&cache.path).unwrap()).unwrap();
+    legacy.as_object_mut().unwrap().remove("protocol_revision");
+    std::fs::write(&cache.path, serde_json::to_vec(&legacy).unwrap()).unwrap();
+    assert!(cache.load_fresh(&scope).is_none());
 }
 
 #[test]

@@ -124,24 +124,24 @@
               </div>
               <div class="admin-field">
                 <label id="routeProtocolLabel" for="protocolSelectTrigger">Protocol</label>
-                <p>How Astra talks to the upstream provider.</p>
+                <p>The CLI automatically uses this protocol end to end. Astra does not convert protocols. Default: Chat Completions.</p>
                 <div class="protocol-select" id="protocolSelect">
                   <input id="routeProtocol" name="protocol" type="hidden" value="openai-compatible">
                   <button class="protocol-select-trigger" id="protocolSelectTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="protocolOptions">
-                    <span id="protocolSelectValue">OpenAI-compatible</span>
+                    <span id="protocolSelectValue">OpenAI Chat Completions</span>
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
                   </button>
                   <div class="protocol-select-menu" id="protocolOptions" role="listbox" aria-labelledby="routeProtocolLabel" hidden>
                     <button class="protocol-option is-selected" type="button" role="option" data-value="openai-compatible" aria-selected="true" tabindex="-1">
-                      <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI-compatible</span><span class="protocol-option-detail">Chat Completions · /chat/completions</span></span>
+                      <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI Chat Completions</span><span class="protocol-option-detail">Native · /v1/chat/completions</span></span>
                       <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
                     </button>
                     <button class="protocol-option" type="button" role="option" data-value="openai-responses" aria-selected="false" tabindex="-1">
-                      <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI Responses</span><span class="protocol-option-detail">Responses API · /responses</span></span>
+                      <span class="protocol-option-copy"><span class="protocol-option-name">OpenAI Responses</span><span class="protocol-option-detail">Native · /v1/responses</span></span>
                       <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
                     </button>
                     <button class="protocol-option" type="button" role="option" data-value="anthropic-messages" aria-selected="false" tabindex="-1">
-                      <span class="protocol-option-copy"><span class="protocol-option-name">Anthropic Messages</span><span class="protocol-option-detail">Anthropic protocol · /messages</span></span>
+                      <span class="protocol-option-copy"><span class="protocol-option-name">Anthropic Messages</span><span class="protocol-option-detail">Native · /v1/messages</span></span>
                       <svg class="protocol-option-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>
                     </button>
                   </div>
@@ -252,7 +252,7 @@
   </footer>
 
   <script src="/assets/auth.js?v=10"></script>
-  <script src="/assets/admin.js?v=9"></script>
+  <script src="/assets/admin.js?v=10"></script>
   <script>
     (function () {
       var A = window.Astra;

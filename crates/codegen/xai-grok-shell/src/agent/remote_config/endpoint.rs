@@ -5,7 +5,8 @@ use std::pin::Pin;
 
 use indexmap::IndexMap;
 
-use super::{ModelFetchAuth, prefetch_models_blocking};
+use super::ModelFetchAuth;
+use super::fetch::refresh_models_blocking;
 use crate::agent::config::{self, ModelEntry};
 use xai_grok_login::GrokAuth;
 
@@ -43,7 +44,7 @@ pub(crate) async fn fetch_models_async(
     fetch_auth: ModelFetchAuth,
 ) -> Option<IndexMap<String, ModelEntry>> {
     tokio::task::spawn_blocking(move || {
-        prefetch_models_blocking(&endpoints, auth.as_ref(), fetch_auth)
+        refresh_models_blocking(&endpoints, auth.as_ref(), fetch_auth)
     })
     .await
     .unwrap_or(None)

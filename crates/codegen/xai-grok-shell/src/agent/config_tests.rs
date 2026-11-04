@@ -1,6 +1,34 @@
 use super::*;
 use serial_test::serial;
 use xai_grok_test_support::EnvGuard;
+
+#[test]
+fn bundled_models_keep_declared_protocol_when_using_gateway() {
+    let endpoints = EndpointsConfig {
+        cli_chat_proxy_base_url: Some(ASTRA_GATEWAY_BASE_URL_DEFAULT.into()),
+        ..Default::default()
+    };
+    let models = default_models(&endpoints);
+    let source: serde_json::Value =
+        serde_json::from_str(crate::models::DEFAULT_MODELS_JSON).unwrap();
+    for value in source["models"].as_array().unwrap() {
+        let declared: DefaultModelJson = serde_json::from_value(value.clone()).unwrap();
+        let id = declared.id.unwrap_or(declared.model);
+        assert_eq!(models.get(&id).unwrap().api_backend, declared.api_backend);
+    }
+}
+
+#[test]
+fn fallback_model_uses_gateway_chat_protocol_not_responses() {
+    let endpoints = EndpointsConfig {
+        cli_chat_proxy_base_url: Some(ASTRA_GATEWAY_BASE_URL_DEFAULT.into()),
+        ..Default::default()
+    };
+    let entry = ModelEntry::fallback("admin-model", &endpoints);
+    assert_eq!(entry.info.api_backend, ApiBackend::ChatCompletions);
+    assert_eq!(entry.info.base_url, ASTRA_GATEWAY_BASE_URL_DEFAULT);
+}
+
 #[test]
 fn main_cli_tools_override_preserves_profile_injection_policy() {
     let overrides = CliAgentOverrides {

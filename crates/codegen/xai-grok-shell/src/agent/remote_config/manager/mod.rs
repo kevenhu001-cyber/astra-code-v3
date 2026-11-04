@@ -34,12 +34,10 @@ enum CatalogProgress {
 
 fn uses_authoritative_session_catalog(
     cfg: &config::Config,
-    auth: Option<&GrokAuth>,
+    _auth: Option<&GrokAuth>,
     fetch_auth: ModelFetchAuth,
 ) -> bool {
-    auth.is_some_and(|auth| auth.is_session_auth())
-        && fetch_auth == ModelFetchAuth::Session
-        && !cfg.endpoints.has_custom_endpoint()
+    fetch_auth == ModelFetchAuth::Session && !cfg.endpoints.has_custom_endpoint()
 }
 
 /// Catalog fields written together under one lock, so readers never see a torn mix.
@@ -251,7 +249,7 @@ impl ModelsManager {
         *self.inner.model_switch_watch.borrow()
     }
 
-    /// Falls back to bundled default if no models available.
+    /// Leaves the selection pending until a configured or remote model is available.
     pub(crate) fn from_config(
         cfg: &config::Config,
         prefetched_models: Option<IndexMap<String, ModelEntry>>,
@@ -645,10 +643,17 @@ impl ModelsManager {
     }
 
     fn rebuild(&self, cfg: &config::Config, prefetched: Option<IndexMap<String, ModelEntry>>) {
-        self.inner.catalog.write().models = resolve_model_catalog(cfg, prefetched);
+        let auth = self.inner.auth_manager.current_or_expired();
+        let authoritative =
+            uses_authoritative_session_catalog(cfg, auth.as_ref(), *self.inner.fetch_auth.read());
+        self.inner.catalog.write().models = if authoritative {
+            resolve_model_catalog_with_remote_authority(cfg, prefetched, true)
+        } else {
+            resolve_model_catalog(cfg, prefetched)
+        };
     }
 
-    /// Reset to this identity's bundled catalog and reselect a valid default.
+    /// Reset to this identity's fallback catalog, without bundled models for Astra sessions.
     fn rebuild_bundled(&self, cfg: &config::Config) {
         self.rebuild(cfg, None);
         self.reselect_current_model_if_missing(cfg);
@@ -876,16 +881,14 @@ impl ModelsManager {
         });
     }
 
-    /// One-shot background catalog refresh after readiness; no-op when a fresh disk cache already loaded a real catalog.
+    /// Revalidate a cached catalog after readiness without delaying startup.
     pub fn spawn_background_refresh(&self) {
         self.spawn_background_refresh_inner(crate::util::config::resolve_remote_fetch_enabled());
     }
 
     fn spawn_background_refresh_inner(&self, remote_fetch_enabled: bool) {
         if self.inner.catalog.read().has_fetched_real_catalog {
-            tracing::debug!(
-                "skipping startup background model refresh: fresh cache already loaded"
-            );
+            self.spawn_fetch_inner(None, remote_fetch_enabled);
             return;
         }
         self.spawn_catalog_retry(remote_fetch_enabled);
@@ -904,8 +907,16 @@ impl ModelsManager {
             })),
         );
         tokio::spawn(async move {
+            let mut refresh = tokio::time::interval_at(
+                tokio::time::Instant::now() + super::cache::CACHE_TTL,
+                super::cache::CACHE_TTL,
+            );
+            refresh.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
-                notify.notified().await;
+                tokio::select! {
+                    _ = notify.notified() => {},
+                    _ = refresh.tick() => {},
+                }
                 if !crate::util::config::resolve_remote_fetch_enabled() {
                     tracing::debug!(
                         "model catalog: auth refresh watcher skipped (remote_fetch disabled)"
@@ -981,9 +992,8 @@ impl ModelsManager {
         {
             Some(m) => m,
             None => {
-                tracing::warn!("no models available in catalog; defaulting to bundled model");
-                let default_id = crate::models::default_model().to_string();
-                fallback = ModelEntry::fallback(&default_id, &config.endpoints);
+                tracing::warn!("no models available in catalog; sampling model remains unset");
+                fallback = ModelEntry::pending(&config.endpoints);
                 &fallback
             }
         };
@@ -1254,6 +1264,12 @@ impl ModelsManager {
 
     pub fn allowlist_excludes_all(&self) -> bool {
         self.inner.catalog.read().allowlist_excludes_all
+    }
+
+    pub(crate) fn cloud_catalog_unavailable(&self) -> bool {
+        let cfg = self.inner.cfg.read();
+        uses_authoritative_session_catalog(&cfg, None, *self.inner.fetch_auth.read())
+            && self.inner.catalog.read().models.is_empty()
     }
 
     /// Re-pick the default when the current model is gone or unselectable; auth visibility never evicts an explicit user pick.

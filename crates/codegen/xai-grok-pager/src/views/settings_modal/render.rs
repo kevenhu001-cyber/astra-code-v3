@@ -940,7 +940,7 @@ pub(super) fn render_picking_enum(
         return;
     };
 
-    let choices: Vec<OwnedEnumChoice> = match &meta.kind {
+    let mut choices: Vec<OwnedEnumChoice> = match &meta.kind {
         SettingKind::Enum { choices, .. } => {
             effective_enum_choices(setting_key, choices, &state.pager_snapshot)
                 .into_iter()
@@ -956,6 +956,13 @@ pub(super) fn render_picking_enum(
         }
         _ => return,
     };
+    if matches!(meta.kind, SettingKind::DynamicEnum { .. }) {
+        for choice in &mut choices {
+            if let Some(description) = state.model_descriptions.get(&choice.canonical) {
+                choice.description.clone_from(description);
+            }
+        }
+    }
 
     if area.width == 0 || area.height == 0 {
         return;

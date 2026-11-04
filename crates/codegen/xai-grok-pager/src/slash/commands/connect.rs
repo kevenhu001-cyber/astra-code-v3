@@ -9,10 +9,8 @@
 //!   /connect <preset> <model_id> <key>    one-shot connect (URL omitted for presets)
 //!   /connect <preset> <model_id> <key> <base_url>   with explicit endpoint
 //!
-//! The guided help advertises example model IDs per preset
-//! ([`PRESET_EXAMPLE_MODELS`]) — suggestions only. The model ID is free-form:
-//! any ID the provider serves is accepted, so preset vendors always allow
-//! custom model IDs (e.g. `/connect openai gpt-5.6-luna sk-…`).
+//! Account models come from the cloud catalog. BYOK model IDs are discovered
+//! from the provider, or entered explicitly; no model names are suggested locally.
 //!
 //! The command writes the `[model.astra-custom]` block via the shell's config
 //! persist path and pins it as `[models].default`. A restart is required for
@@ -23,12 +21,13 @@ use crate::app::actions::Action;
 use crate::slash::command::{AppCtx, ArgItem, CommandExecCtx, CommandResult, SlashCommand};
 
 /// Canonical preset ids advertised by `/connect`. Mirrors the shell's
-/// `CUSTOM_MODEL_PROVIDER_PRESETS`; model examples are local suggestions only.
+/// `CUSTOM_MODEL_PROVIDER_PRESETS`, plus the account-authenticated cloud entry.
 const CONNECT_PRESETS: &[(&str, &str)] = &[
+    ("topodrive_cloud", "Topodrive (account / cloud)"),
     ("openai", "OpenAI (Chat Completions)"),
     ("openai_responses", "OpenAI (Responses)"),
     ("anthropic", "Anthropic (Messages)"),
-    ("topodrive", "topodrive"),
+    ("topodrive", "Topodrive (API key)"),
     ("deepseek", "DeepSeek"),
     ("zhipu", "智谱 Zhipu AI"),
     ("xiaomi", "小米 Xiaomi"),
@@ -36,30 +35,6 @@ const CONNECT_PRESETS: &[(&str, &str)] = &[
     ("zai", "zAI"),
     ("custom", "Other (custom URL)"),
 ];
-
-/// Example model IDs advertised by `/connect` for preset vendors. Suggestions
-/// only — the model ID field stays free-form, so any ID the provider serves
-/// is accepted (including IDs not listed here).
-const PRESET_EXAMPLE_MODELS: &[(&str, &[&str])] = &[
-    ("openai", &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"]),
-    (
-        "openai_responses",
-        &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"],
-    ),
-    (
-        "anthropic",
-        &["claude-fable-5", "claude-opus-5", "claude-sonnet-5"],
-    ),
-];
-
-/// Example model IDs for a preset vendor, if any.
-fn preset_example_models(provider: &str) -> &'static [&'static str] {
-    PRESET_EXAMPLE_MODELS
-        .iter()
-        .find(|(id, _)| *id == provider)
-        .map(|(_, models)| *models)
-        .unwrap_or(&[])
-}
 
 fn preset_injects_think_tags(provider: &str) -> bool {
     xai_grok_shell::util::config::custom_model_provider_backend(provider)
@@ -95,11 +70,10 @@ impl SlashCommand for ConnectCommand {
             CONNECT_PRESETS
                 .iter()
                 .map(|(id, label)| {
-                    let examples = preset_example_models(id);
-                    let description = if examples.is_empty() {
-                        "Preset vendor — select to configure".to_string()
+                    let description = if *id == "topodrive_cloud" {
+                        "Account sign-in; models and prices from the cloud catalog".to_string()
                     } else {
-                        format!("Preset vendor — e.g. {}", examples.join(", "))
+                        "API key; discover models from the provider".to_string()
                     };
                     ArgItem {
                         display: label.to_string(),
@@ -112,8 +86,15 @@ impl SlashCommand for ConnectCommand {
         )
     }
 
-    fn run(&self, _ctx: &mut CommandExecCtx, args: &str) -> CommandResult {
+    fn run(&self, ctx: &mut CommandExecCtx, args: &str) -> CommandResult {
         let trimmed = args.trim();
+        if trimmed.eq_ignore_ascii_case("topodrive")
+            || trimmed.eq_ignore_ascii_case("topodrive_cloud")
+        {
+            return CommandResult::Action(Action::OpenConnectWizardForPreset(
+                "topodrive_cloud".into(),
+            ));
+        }
         if trimmed.is_empty() {
             // No args -> open the guided wizard instead of dumping help
             // text. The wizard walks URL -> model id -> API key, and
@@ -128,6 +109,15 @@ impl SlashCommand for ConnectCommand {
         // itself contain no spaces (http(s)://…), so simple splitting is safe.
         let parts: Vec<&str> = trimmed.split_whitespace().collect();
         let (provider, rest) = parts.split_first().expect("non-empty");
+        if provider.eq_ignore_ascii_case("topodrive_cloud") {
+            return if rest.len() != 1 {
+                CommandResult::Error("Use /connect topodrive_cloud [model]. Account models do not need a provider API key.".into())
+            } else if let Some(id) = ctx.models.resolve_by_name_or_id(rest[0]) {
+                CommandResult::Action(Action::SetDefaultModel(id))
+            } else {
+                CommandResult::Error("Model not found in your account catalog. Run /connect topodrive to load the cloud models.".into())
+            };
+        }
 
         let provider_lc = provider.to_ascii_lowercase();
         let preset = CONNECT_PRESETS
@@ -229,19 +219,19 @@ fn display_name_for(provider: &str, model_id: &str) -> String {
 
 /// Help text shown when `/connect` is run with no arguments.
 fn guided_help() -> String {
-    let mut s =
-        String::from("Connect a custom model. Pick a preset, then supply model id + key:\n\n");
+    let mut s = String::from(
+        "Run /connect topodrive for account models (no API key).\n\nBYOK providers:\n\n",
+    );
     for (id, label) in CONNECT_PRESETS {
+        if *id == "topodrive_cloud" {
+            continue;
+        }
         s.push_str(&format!(
             "  /connect {id} <model_id> <api_key>\n    {label}\n"
         ));
-        let examples = preset_example_models(id);
-        if !examples.is_empty() {
-            s.push_str(&format!("    e.g. {}\n", examples.join(", ")));
-        }
     }
     s.push_str(
-        "\nExamples are suggestions only — any model ID the provider serves works.\n\
+        "\nModels are discovered from the provider; any model ID the provider serves works.\n\
          For 'custom', append the base URL:\n  /connect custom <model_id> <api_key> <base_url>\n",
     );
     s
@@ -463,22 +453,10 @@ mod tests {
     }
 
     #[test]
-    fn guided_help_advertises_example_model_ids() {
-        // Help text now lives behind an internal-only call (no slash command
-        // path triggers it). The wizard surfaces the same info via preset
-        // labels instead. This test stays as a regression check for the
-        // underlying `guided_help()` formatter so the strings it composes
-        // stay in sync if anyone wires a non-wizard help path back in.
+    fn guided_help_distinguishes_account_models_from_byok() {
         let msg = guided_help();
-        // OpenAI preset examples.
-        assert!(msg.contains("gpt-5.6-luna"), "{msg}");
-        assert!(msg.contains("gpt-5.6-terra"), "{msg}");
-        assert!(msg.contains("gpt-5.6-sol"), "{msg}");
-        // Anthropic preset examples.
-        assert!(msg.contains("claude-fable-5"), "{msg}");
-        assert!(msg.contains("claude-opus-5"), "{msg}");
-        assert!(msg.contains("claude-sonnet-5"), "{msg}");
-        // Examples are suggestions; custom IDs remain accepted.
+        assert!(msg.contains("account models (no API key)"), "{msg}");
+        assert!(!msg.contains("gpt-5.6"), "{msg}");
         assert!(
             msg.contains("any model ID the provider serves works"),
             "{msg}"
@@ -520,24 +498,37 @@ mod tests {
         assert!(items.iter().any(|i| i.match_text == "openai"));
         assert!(items.iter().any(|i| i.match_text == "anthropic"));
         assert!(items.iter().any(|i| i.match_text == "topodrive"));
+        assert!(items.iter().any(|i| i.match_text == "topodrive_cloud"));
         assert!(items.iter().any(|i| i.match_text == "deepseek"));
         assert!(items.iter().any(|i| i.match_text == "zhipu"));
         assert!(items.iter().any(|i| i.match_text == "xiaomi"));
         assert!(items.iter().any(|i| i.match_text == "minimax_cn"));
         assert!(items.iter().any(|i| i.match_text == "zai"));
         assert!(items.iter().any(|i| i.match_text == "custom"));
-        // Presets with example model IDs advertise them in the description.
+        // Provider suggestions do not invent model IDs.
         let openai = items.iter().find(|i| i.match_text == "openai").unwrap();
         assert!(
-            openai.description.contains("gpt-5.6-luna"),
+            openai.description.contains("discover models"),
             "{}",
             openai.description
         );
         let anthropic = items.iter().find(|i| i.match_text == "anthropic").unwrap();
         assert!(
-            anthropic.description.contains("claude-sonnet-5"),
+            anthropic.description.contains("discover models"),
             "{}",
             anthropic.description
         );
+    }
+
+    #[test]
+    fn topodrive_without_key_opens_account_catalog() {
+        assert!(matches!(
+            run("topodrive"),
+            CommandResult::Action(Action::OpenConnectWizardForPreset(provider)) if provider == "topodrive_cloud"
+        ));
+        assert!(matches!(
+            run("topodrive_cloud unknown-model"),
+            CommandResult::Error(_)
+        ));
     }
 }

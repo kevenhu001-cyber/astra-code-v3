@@ -1,6 +1,11 @@
 use super::*;
 use crate::session::storage::jsonl::AppendDurability;
 
+#[test]
+fn missing_model_id_does_not_invent_a_bundled_default() {
+    assert!(default_model_id().0.is_empty());
+}
+
 struct ActorGuard {
     handle: PersistenceHandle,
     task: tokio::task::JoinHandle<()>,

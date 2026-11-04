@@ -403,6 +403,14 @@ impl AgentView {
         if let ActiveModal::ConnectWizard { state } = modal {
             use crate::views::connect_wizard::{WizardOutcome, handle_wizard_key};
             match handle_wizard_key(state, key) {
+                WizardOutcome::UseCloudCatalog => {
+                    self.active_modal = None;
+                    return InputOutcome::Action(
+                        crate::app::actions::Action::OpenConnectWizardForPreset(
+                            "topodrive_cloud".into(),
+                        ),
+                    );
+                }
                 WizardOutcome::Closed => {
                     self.active_modal = None;
                     return InputOutcome::Changed;
@@ -1398,6 +1406,14 @@ impl AgentView {
         if let Some(ActiveModal::ConnectWizard { state }) = self.active_modal.as_mut() {
             use crate::views::connect_wizard::{WizardOutcome, handle_wizard_mouse};
             match handle_wizard_mouse(state, mouse.kind, mouse.column, mouse.row) {
+                WizardOutcome::UseCloudCatalog => {
+                    self.active_modal = None;
+                    return InputOutcome::Action(
+                        crate::app::actions::Action::OpenConnectWizardForPreset(
+                            "topodrive_cloud".into(),
+                        ),
+                    );
+                }
                 WizardOutcome::Closed => {
                     self.active_modal = None;
                     return InputOutcome::Changed;

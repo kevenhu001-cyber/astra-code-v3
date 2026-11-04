@@ -26,6 +26,20 @@ fn make_state() -> SettingsModalState {
     )
 }
 
+#[test]
+fn live_model_prices_reach_settings_picker() {
+    let mut state = make_state();
+    let id = agent_client_protocol::ModelId::new("cloud-model");
+    let info = agent_client_protocol::ModelInfo::new(id.clone(), "Cloud Model")
+        .description("$0.125 input / $0.75 output per 1M tokens");
+    state.set_model_catalog(&indexmap::IndexMap::from([(id, info)]));
+    assert_eq!(state.pager_snapshot.available_models[0].0, "Cloud Model");
+    assert!(state.model_descriptions["Cloud Model"].contains("$0.125"));
+    state.set_model_catalog(&indexmap::IndexMap::new());
+    assert!(state.pager_snapshot.available_models.is_empty());
+    assert!(state.model_descriptions.is_empty());
+}
+
 /// The contextual-hints group renders as a single top-level row (children hidden).
 /// Enter opens the sub-sheet, Space there toggles the focused child via the typed action, and Esc returns to Browse.
 #[test]

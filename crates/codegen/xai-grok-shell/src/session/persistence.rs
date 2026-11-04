@@ -1177,7 +1177,9 @@ pub(crate) fn grok_home_string() -> Option<String> {
 }
 
 pub fn default_model_id() -> acp::ModelId {
-    acp::ModelId::new(crate::models::default_model())
+    // Imported sessions without a saved model must resolve against the live
+    // catalog, not silently acquire a bundled provider ID.
+    acp::ModelId::new("")
 }
 
 impl Summary {

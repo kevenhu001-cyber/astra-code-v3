@@ -20,7 +20,7 @@
   function protocolLabel(protocol) {
     if (protocol === 'openai-responses') return 'OpenAI Responses';
     if (protocol === 'anthropic-messages') return 'Anthropic Messages';
-    return 'OpenAI-compatible';
+    return 'OpenAI Chat Completions';
   }
 
   function setProtocol(protocol) {

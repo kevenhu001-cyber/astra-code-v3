@@ -57,7 +57,7 @@ pub const PRESET_DEFS: &[ProviderPresetDef] = &[
     },
     ProviderPresetDef {
         id: "topodrive",
-        label: "topodrive",
+        label: "Topodrive (API key)",
         protocol: ProtocolBackend::ChatCompletions,
         base_url: "https://api.topodrive.top/v1",
         injects_think_tags: false,
@@ -102,6 +102,13 @@ pub const PRESET_DEFS: &[ProviderPresetDef] = &[
         label: "Custom / Other Provider",
         protocol: ProtocolBackend::ChatCompletions,
         base_url: "",
+        injects_think_tags: false,
+    },
+    ProviderPresetDef {
+        id: "topodrive_cloud",
+        label: "Topodrive (account / cloud)",
+        protocol: ProtocolBackend::ChatCompletions,
+        base_url: xai_grok_shell::agent::config::ASTRA_GATEWAY_BASE_URL_DEFAULT,
         injects_think_tags: false,
     },
 ];
@@ -263,6 +270,7 @@ pub enum WizardOutcome {
     Unhandled,
     Changed,
     Closed,
+    UseCloudCatalog,
     Submitted(ConnectWizardResult),
 }
 
@@ -474,6 +482,10 @@ impl Default for ConnectWizardState {
 }
 
 impl ConnectWizardState {
+    pub fn is_cloud(&self) -> bool {
+        self.current_preset_id() == "topodrive_cloud"
+    }
+
     pub fn current_preset_id(&self) -> &'static str {
         PRESET_DEFS[self.preset_idx.min(PRESET_DEFS.len() - 1)].id
     }
@@ -505,6 +517,9 @@ impl ConnectWizardState {
     /// Fields the Tab key walks, in order. Advanced rows only appear once
     /// they are expanded, so the common path stays three fields long.
     pub fn tab_order(&self) -> Vec<Field> {
+        if self.is_cloud() {
+            return vec![Field::Preset, Field::Submit];
+        }
         let mut order = vec![Field::Preset];
         if self.show_advanced {
             order.push(Field::Url);
@@ -523,6 +538,9 @@ impl ConnectWizardState {
     }
 
     pub fn toggle_advanced(&mut self) {
+        if self.is_cloud() {
+            return;
+        }
         self.show_advanced = !self.show_advanced;
         if !self.show_advanced
             && matches!(
@@ -712,6 +730,11 @@ impl ConnectWizardState {
     }
 
     pub fn validate_and_build(&mut self) -> Option<ConnectWizardResult> {
+        if self.is_cloud() {
+            self.error =
+                "Choose a model from your account catalog; no custom provider is saved.".into();
+            return None;
+        }
         let provider = self.current_preset_id().to_string();
         let url = self.base_url.trim().to_string();
         let model_id = self.model_id.trim().to_string();
@@ -795,6 +818,10 @@ impl ConnectWizardState {
 
     /// Trigger asynchronous upstream model fetch.
     pub fn start_fetch_models(&mut self) {
+        if self.is_cloud() {
+            self.error = "Open Account Models to use the authenticated cloud catalog.".into();
+            return;
+        }
         if self.base_url.trim().is_empty() {
             self.error = "Please provide Base URL first to fetch models.".to_string();
             self.focused = Field::Url;
@@ -920,6 +947,9 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
                 let sel = *selected;
                 state.set_preset(sel);
                 state.mode = ConnectWizardMode::Form;
+                if state.is_cloud() {
+                    return WizardOutcome::UseCloudCatalog;
+                }
                 return WizardOutcome::Changed;
             }
             _ => return WizardOutcome::Unhandled,
@@ -1017,6 +1047,12 @@ pub fn handle_wizard_key(state: &mut ConnectWizardState, key: &KeyEvent) -> Wiza
     }
 
     // Ctrl+S or Ctrl+Enter submits from anywhere
+    if state.is_cloud()
+        && (key.code == KeyCode::Enter
+            || (key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL)))
+    {
+        return WizardOutcome::UseCloudCatalog;
+    }
     if (key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL))
         || (key.code == KeyCode::Enter && key.modifiers.contains(KeyModifiers::CONTROL))
     {
@@ -1335,6 +1371,9 @@ pub fn handle_wizard_mouse(
                             return WizardOutcome::Changed;
                         }
                         ConnectHitTarget::SubmitBtn => {
+                            if state.is_cloud() {
+                                return WizardOutcome::UseCloudCatalog;
+                            }
                             if let Some(res) = state.validate_and_build() {
                                 return WizardOutcome::Submitted(res);
                             }
@@ -1343,6 +1382,9 @@ pub fn handle_wizard_mouse(
                         ConnectHitTarget::PresetChoice(idx) => {
                             state.set_preset(idx);
                             state.mode = ConnectWizardMode::Form;
+                            if state.is_cloud() {
+                                return WizardOutcome::UseCloudCatalog;
+                            }
                             state.advance_step();
                             return WizardOutcome::Changed;
                         }
@@ -1499,7 +1541,11 @@ fn render_connect_form(
     if cur_y < max_y {
         let header = Line::from(vec![
             Span::styled(
-                format!("Step {} of 3", state.step.number()),
+                if state.is_cloud() {
+                    "Account catalog".to_string()
+                } else {
+                    format!("Step {} of 3", state.step.number())
+                },
                 Style::default().fg(theme.gray),
             ),
             Span::styled("  ", Style::default()),
@@ -1518,7 +1564,11 @@ fn render_connect_form(
             area.x,
             cur_y,
             &Line::from(Span::styled(
-                state.step.hint(),
+                if state.is_cloud() {
+                    "Enter opens your account's live model catalog; no provider API key needed"
+                } else {
+                    state.step.hint()
+                },
                 Style::default().fg(theme.gray),
             )),
             area.width,
@@ -1586,10 +1636,14 @@ fn render_connect_form(
             };
             // Show the wire protocol: `openai` and `openai_responses` share a
             // base URL, so the endpoint alone cannot tell them apart.
-            let protocol_tag = match def.protocol {
-                ProtocolBackend::ChatCompletions => "chat",
-                ProtocolBackend::Responses => "responses",
-                ProtocolBackend::Messages => "messages",
+            let protocol_tag = if def.id == "topodrive_cloud" {
+                "per model"
+            } else {
+                match def.protocol {
+                    ProtocolBackend::ChatCompletions => "chat",
+                    ProtocolBackend::Responses => "responses",
+                    ProtocolBackend::Messages => "messages",
+                }
             };
             let spans = vec![
                 Span::styled(
@@ -1619,6 +1673,35 @@ fn render_connect_form(
             cur_y += 1;
         }
         cur_y += 1;
+    }
+
+    if state.is_cloud() {
+        for text in [
+            "Models and prices come from the administrator's cloud catalog.",
+            "Each model uses its configured native protocol, without conversion.",
+            "[ Open Account Models ]",
+        ] {
+            if cur_y >= max_y {
+                break;
+            }
+            buf.set_line(
+                area.x,
+                cur_y,
+                &Line::from(Span::styled(text, Style::default().fg(theme.fuzzy_accent))),
+                area.width,
+            );
+            state.hit_areas.push(ConnectHitArea {
+                rect: Rect {
+                    x: area.x,
+                    y: cur_y,
+                    width: area.width,
+                    height: 1,
+                },
+                target: ConnectHitTarget::SubmitBtn,
+            });
+            cur_y += 1;
+        }
+        return;
     }
 
     let endpoint_hint = if preset.base_url.is_empty() {
@@ -2016,7 +2099,15 @@ fn render_preset_picker(
             Span::styled(pfx, pfx_style),
             Span::styled(format!("{:<28}", def.label), name_style),
             Span::styled(
-                format!(" ({})  {}", def.protocol.short_label(), def.base_url),
+                format!(
+                    " ({})  {}",
+                    if def.id == "topodrive_cloud" {
+                        "per model"
+                    } else {
+                        def.protocol.short_label()
+                    },
+                    def.base_url
+                ),
                 url_style,
             ),
         ];
@@ -2248,13 +2339,36 @@ mod tests {
     #[test]
     fn wizard_presets_match_shell_configuration() {
         let configured = xai_grok_shell::util::config::CUSTOM_MODEL_PROVIDER_PRESETS;
-        assert_eq!(PRESET_DEFS.len(), configured.len());
-        for (wizard, configured) in PRESET_DEFS.iter().zip(configured) {
+        let byok: Vec<_> = PRESET_DEFS
+            .iter()
+            .filter(|preset| preset.id != "topodrive_cloud")
+            .collect();
+        assert_eq!(byok.len(), configured.len());
+        for (wizard, configured) in byok.into_iter().zip(configured) {
             assert_eq!(wizard.id, configured.id);
             assert_eq!(wizard.base_url, configured.base_url);
             assert_eq!(wizard.protocol.as_str(), configured.api_backend);
             assert_eq!(wizard.injects_think_tags, configured.injects_think_tags);
         }
+    }
+
+    #[test]
+    fn cloud_provider_uses_account_catalog_not_api_key_form() {
+        let mut state = ConnectWizardState::default();
+        let idx = PRESET_DEFS
+            .iter()
+            .position(|preset| preset.id == "topodrive_cloud")
+            .unwrap();
+        state.set_preset(idx);
+        assert_eq!(state.tab_order(), vec![Field::Preset, Field::Submit]);
+        assert_eq!(
+            handle_wizard_key(&mut state, &k(KeyCode::Enter)),
+            WizardOutcome::UseCloudCatalog
+        );
+        assert!(state.validate_and_build().is_none());
+        state.start_fetch_models();
+        assert!(!state.is_fetching);
+        assert!(state.fetch_rx.is_none());
     }
 
     #[test]

@@ -74,7 +74,7 @@
 
           <section class="model-catalog" aria-labelledby="modelCatalogTitle">
             <p class="section-title" id="modelCatalogTitle">Available models</p>
-            <p class="section-help" id="modelCatalogHelp">Models configured by Astra, with input and output prices per 1 million tokens.</p>
+            <p class="section-help" id="modelCatalogHelp">Models, native protocols, and prices per 1 million tokens. The CLI follows each model's protocol without conversion.</p>
             <p class="table-scroll-hint">Scroll horizontally to compare input and output prices.</p>
             <div class="model-table-wrap">
               <table class="model-price-table" aria-describedby="modelCatalogHelp">
@@ -265,6 +265,18 @@
           id.className = 'model-price-id';
           id.textContent = model.id || '';
           nameCell.appendChild(id);
+          var protocol = document.createElement('span');
+          protocol.className = 'model-price-id';
+          var protocolNames = {
+            'openai-compatible': 'OpenAI Chat Completions',
+            'chat_completions': 'OpenAI Chat Completions',
+            'openai-responses': 'OpenAI Responses',
+            'responses': 'OpenAI Responses',
+            'anthropic-messages': 'Anthropic Messages',
+            'messages': 'Anthropic Messages'
+          };
+          protocol.textContent = protocolNames[model.protocol] || protocolNames[model.api_backend] || 'OpenAI Chat Completions';
+          nameCell.appendChild(protocol);
           row.appendChild(nameCell);
 
           var inputPrice = document.createElement('td');

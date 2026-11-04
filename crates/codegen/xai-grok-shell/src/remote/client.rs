@@ -629,7 +629,7 @@ pub struct FetchModelsResult {
     pub models: Vec<crate::agent::config::ModelEntryConfig>,
     pub etag: Option<String>,
 }
-/// Parse a single model entry from the /models-v2 response.
+/// Parse a model entry from an OpenAI-compatible model catalog.
 /// Used by both initial model fetch and session-resume metadata refresh.
 pub(crate) fn parse_remote_model_value(
     value: &serde_json::Value,
@@ -666,20 +666,25 @@ pub(crate) fn parse_remote_model_value(
         .unwrap_or_else(crate::agent::config::default_agent_type);
     let api_backend = get_string(obj, "apiBackend")
         .or_else(|| get_string(obj, "api_backend"))
+        .or_else(|| get_string(obj, "protocol"))
         .and_then(|s| match s.as_str() {
-            "responses" => Some(crate::sampling::ApiBackend::Responses),
-            "chat_completions" => Some(crate::sampling::ApiBackend::ChatCompletions),
-            "messages" => Some(crate::sampling::ApiBackend::Messages),
+            "responses" | "openai-responses" => Some(crate::sampling::ApiBackend::Responses),
+            "chat_completions" | "openai-compatible" => {
+                Some(crate::sampling::ApiBackend::ChatCompletions)
+            }
+            "messages" | "anthropic-messages" => Some(crate::sampling::ApiBackend::Messages),
             _ => None,
         })
-        .unwrap_or_default();
+        // Standard /models responses do not advertise a protocol. Responses is
+        // opt-in: assuming it here sends chat-only gateways to a missing route.
+        .unwrap_or(crate::sampling::ApiBackend::ChatCompletions);
     Some(crate::agent::config::ModelEntryConfig {
         id,
         model,
         model_family,
         base_url,
         name,
-        description: get_string(obj, "description"),
+        description: model_description(obj),
         max_completion_tokens: get_u64(obj, "maxCompletionTokens")
             .or_else(|| get_u64(obj, "max_completion_tokens"))
             .and_then(|v| u32::try_from(v).ok()),
@@ -822,6 +827,34 @@ pub(crate) fn parse_remote_model_value(
             .and_then(|v| u32::try_from(v).ok()),
     })
 }
+fn model_description(obj: &serde_json::Map<String, serde_json::Value>) -> Option<String> {
+    let description = get_string(obj, "description");
+    let price = |key| {
+        get_f64(obj, key)
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .map(|value| {
+                let formatted = format!("{value:.6}");
+                formatted
+                    .trim_end_matches('0')
+                    .trim_end_matches('.')
+                    .to_string()
+            })
+    };
+    match (
+        price("input_price_usd_per_million"),
+        price("output_price_usd_per_million"),
+    ) {
+        (Some(input), Some(output)) => {
+            let prices = format!("${input} input / ${output} output per 1M tokens");
+            Some(match description.filter(|text| !text.trim().is_empty()) {
+                Some(description) => format!("{description} · {prices}"),
+                None => prices,
+            })
+        }
+        _ => description,
+    }
+}
+
 fn get_string(obj: &serde_json::Map<String, serde_json::Value>, key: &str) -> Option<String> {
     obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
 }

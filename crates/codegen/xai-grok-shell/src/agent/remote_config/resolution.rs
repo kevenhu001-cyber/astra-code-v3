@@ -59,7 +59,8 @@ pub(crate) fn is_campaign_only_flip(
             .is_some_and(|p| campaign_defaults.contains(p))
 }
 
-/// Pick the default model: CLI > env > config > remote-settings hint, falling back to the first visible model, then the bundled default.
+/// Pick the default model: CLI > env > config > remote-settings hint, then the
+/// first visible catalog model. An empty catalog leaves selection pending.
 pub(crate) fn resolve_default_model(
     cfg: &config::Config,
     catalog: &IndexMap<String, ModelEntry>,
@@ -88,11 +89,8 @@ pub(crate) fn resolve_default_model(
             tracing::warn!("no auth-visible selectable model; using first selectable entry");
             return (key.clone(), entry.clone());
         }
-        tracing::warn!("no selectable models; falling back to bundled default (pre-catalog)");
-        let default_id = crate::models::default_model().to_string();
-        let mut entry = ModelEntry::fallback(&default_id, &cfg.endpoints);
-        entry.info.user_selectable = model_is_allowlisted(cfg, &default_id, &default_id);
-        (default_id, entry)
+        tracing::warn!("no selectable models; waiting for the model catalog");
+        (String::new(), ModelEntry::pending(&cfg.endpoints))
     };
 
     match &model_pref {
@@ -233,26 +231,6 @@ impl EffectiveAllowlist<'_> {
         matches!(self, Self::Fleet(_) | Self::Invalid)
     }
 
-    fn is_selected(&self, key: &str, model: &str) -> bool {
-        match self {
-            Self::Unrestricted => true,
-            Self::Invalid => false,
-            Self::Fleet(patterns) | Self::User(patterns) => {
-                match ModelGlobSet::compile(Some(patterns)) {
-                    Ok(None) => true,
-                    Ok(Some(set)) => {
-                        if matches!(self, Self::Fleet(_)) {
-                            set.matches_model(model)
-                        } else {
-                            set.matches(key, model)
-                        }
-                    }
-                    Err(_) => false,
-                }
-            }
-        }
-    }
-
     fn apply_selectability(&self, catalog: &mut IndexMap<String, ModelEntry>) {
         match self {
             Self::Unrestricted => {
@@ -297,12 +275,6 @@ impl EffectiveAllowlist<'_> {
     }
 }
 
-/// Catalog-key match is user-config only. A fleet pin matches the routing
-/// slug so a user `[model.grok-4-anything]` cannot satisfy `grok-4*`.
-fn model_is_allowlisted(cfg: &config::Config, key: &str, model: &str) -> bool {
-    effective_allowlist(cfg).is_selected(key, model)
-}
-
 pub(crate) fn allowlist_denied_message(cfg: &config::Config) -> &'static str {
     if effective_allowlist(cfg).is_fleet() {
         "This model isn't allowed by your organization's policy. Contact your administrator."
@@ -336,9 +308,19 @@ pub(crate) fn resolve_model_catalog(
 
 pub(crate) fn resolve_model_catalog_with_remote_authority(
     cfg: &config::Config,
-    prefetched: Option<IndexMap<String, ModelEntry>>,
+    mut prefetched: Option<IndexMap<String, ModelEntry>>,
     remote_catalog_is_authoritative: bool,
 ) -> IndexMap<String, ModelEntry> {
+    if remote_catalog_is_authoritative && let Some(models) = prefetched.as_mut() {
+        let gateway = config::astra_gateway_base_url();
+        for (id, entry) in models {
+            // Use the account gateway and public route ID, but keep the model's
+            // advertised native protocol. Local overrides merge afterwards.
+            entry.info.model.clone_from(id);
+            entry.info.base_url.clone_from(&gateway);
+            entry.api_base_url = None;
+        }
+    }
     let mut catalog: IndexMap<String, ModelEntry> =
         config::resolve_model_list_with_remote_authority(
             cfg,

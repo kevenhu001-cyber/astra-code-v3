@@ -540,6 +540,317 @@ fn tokens_crud() {
 }
 
 #[test]
+fn cloud_gateway_routes_origin_base_and_full_endpoint_without_404() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let listener = rt
+        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .unwrap();
+    let upstream = format!("http://{}", listener.local_addr().unwrap());
+    let app = axum::Router::new().route(
+        "/v1/chat/completions",
+        axum::routing::post(|headers: axum::http::HeaderMap, axum::Json(body): axum::Json<serde_json::Value>| async move {
+            assert_eq!(headers["authorization"], "Bearer upstream-test-key");
+            assert_eq!(body["model"], "provider-model");
+            axum::Json(serde_json::json!({
+                "id": "test-completion",
+                "object": "chat.completion",
+                "model": "provider-model",
+                "choices": [{"index": 0, "message": {"role": "assistant", "content": "Hello"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1}
+            }))
+        }),
+    );
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server = std::thread::spawn(move || {
+        rt.block_on(async {
+            axum::serve(listener, app)
+                .with_graceful_shutdown(async {
+                    let _ = stopped.await;
+                })
+                .await
+                .unwrap();
+        });
+    });
+    let (base, store) = test_server();
+    seed_user(&store, "cloud-user", "cloud@example.com", "password123");
+    let now = chrono::Utc::now();
+    store
+        .create_token(&ApiToken {
+            token: "cloud-test-token".into(),
+            user_id: "cloud-user".into(),
+            label: None,
+            created_at: now,
+            expires_at: now + chrono::Duration::days(1),
+        })
+        .unwrap();
+    let client = reqwest::blocking::Client::new();
+    for api_base in [
+        upstream.clone(),
+        format!("{upstream}/v1"),
+        format!("{upstream}/v1/chat/completions/"),
+    ] {
+        store
+            .upsert_model_route(ModelRoute {
+                id: "cloud-model".into(),
+                display_name: "Cloud Model".into(),
+                protocol: "openai-compatible".into(),
+                base_url: api_base.clone(),
+                upstream_model: "provider-model".into(),
+                context_window: 128_000,
+                api_key: Some("upstream-test-key".into()),
+                input_price_microusd_per_million: 0,
+                output_price_microusd_per_million: 0,
+                enabled: true,
+                is_default: true,
+            })
+            .unwrap();
+        let response = client
+            .post(format!("{base}/v1/chat/completions"))
+            .bearer_auth("cloud-test-token")
+            .json(&serde_json::json!({
+                "model": "cloud-model", "messages": [{"role": "user", "content": "Hi"}]
+            }))
+            .send()
+            .unwrap();
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "configured base: {api_base}"
+        );
+        let body: serde_json::Value = response.json().unwrap();
+        assert_eq!(body["model"], "provider-model");
+        assert_eq!(body["choices"][0]["message"]["content"], "Hello");
+    }
+    let _ = stop.send(());
+    server.join().unwrap();
+}
+
+#[test]
+fn gateway_preserves_three_native_protocols_json_streams_and_billing() {
+    use axum::{Json, Router, http::HeaderMap, routing::post};
+    use serde_json::{Value, json};
+
+    const NATIVE_ERROR: &str =
+        " {\"error\":{\"type\":\"native_error\",\"message\":\"upstream model missing\"}} ";
+    let cases = [
+        (
+            "openai-compatible",
+            "/chat/completions",
+            "chat_completions",
+            json!({"model": "public", "messages": [{"role": "user", "content": "Hello"}], "stream_options": {"include_usage": true}, "native_extension": {"keep": true}}),
+            " {\"id\":\"chat_1\",\"model\":\"provider-model\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Hello\"}}],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":2},\"native_extension\":true} ",
+            ": keep-alive\r\n\r\ndata: {\"model\":\"provider-model\",\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"echo\",\"arguments\":\"{}\"}}]}}],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":2}}\n\ndata: [DONE]\n\n",
+        ),
+        (
+            "openai-responses",
+            "/responses",
+            "responses",
+            json!({"model": "public", "instructions": "Stay native", "input": [{"role": "user", "content": [{"type": "input_text", "text": "Hello"}]}], "tools": [{"type": "function", "name": "echo", "parameters": {"type": "object"}}], "native_extension": {"keep": true}}),
+            " {\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"provider-model\",\"status\":\"completed\",\"output\":[{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"echo\",\"arguments\":\"{}\"}],\"usage\":{\"input_tokens\":3,\"output_tokens\":2}} ",
+            "event: response.output_item.added\ndata: {\"type\":\"response.output_item.added\",\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"echo\",\"arguments\":\"{}\"}}\n\nevent: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_1\",\"model\":\"provider-model\",\"usage\":{\"input_tokens\":3,\"output_tokens\":2}}}\n\n",
+        ),
+        (
+            "anthropic-messages",
+            "/messages",
+            "messages",
+            json!({"model": "public", "max_tokens": 100, "system": [{"type": "text", "text": "Stay native"}], "messages": [{"role": "user", "content": [{"type": "text", "text": "Hello"}]}], "tools": [{"name": "echo", "input_schema": {"type": "object"}}], "native_extension": {"keep": true}}),
+            " {\"id\":\"msg_1\",\"type\":\"message\",\"model\":\"provider-model\",\"content\":[{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"echo\",\"input\":{}}],\"stop_reason\":\"tool_use\",\"usage\":{\"input_tokens\":3,\"output_tokens\":2}} ",
+            "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"model\":\"provider-model\",\"usage\":{\"input_tokens\":3,\"output_tokens\":0}}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{}\"}}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+        ),
+    ];
+    let mut app = Router::new();
+    for (protocol, suffix, _, payload, native_json, native_sse) in &cases {
+        let protocol = *protocol;
+        let payload = payload.clone();
+        let native_json = *native_json;
+        let native_sse = *native_sse;
+        app = app.route(
+            &format!("/v1{suffix}"),
+            post(move |headers: HeaderMap, Json(body): Json<Value>| {
+                let mut expected = payload.clone();
+                async move {
+                    if protocol == "anthropic-messages" {
+                        assert_eq!(headers["x-api-key"], "provider-test-key");
+                        assert_eq!(headers["anthropic-version"], "2023-06-01");
+                        assert_eq!(headers["anthropic-beta"], "test-beta");
+                        assert!(headers.get("authorization").is_none());
+                    } else {
+                        assert_eq!(headers["authorization"], "Bearer provider-test-key");
+                        assert_eq!(headers["openai-beta"], "test-beta");
+                    }
+                    let stream = body["stream"] == true;
+                    let error = body["native_error"] == true;
+                    expected["model"] = json!("provider-model");
+                    expected["stream"] = json!(stream);
+                    if error {
+                        expected["native_error"] = json!(true);
+                    }
+                    assert_eq!(body, expected, "native request was changed");
+                    (
+                        if error {
+                            StatusCode::NOT_FOUND
+                        } else {
+                            StatusCode::OK
+                        },
+                        [(
+                            axum::http::header::CONTENT_TYPE,
+                            if stream {
+                                "text/event-stream"
+                            } else {
+                                "application/json"
+                            },
+                        )],
+                        if error {
+                            NATIVE_ERROR
+                        } else if stream {
+                            native_sse
+                        } else {
+                            native_json
+                        },
+                    )
+                }
+            }),
+        );
+    }
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let listener = rt
+        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .unwrap();
+    let upstream = format!("http://{}", listener.local_addr().unwrap());
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server = std::thread::spawn(move || {
+        rt.block_on(async {
+            axum::serve(listener, app)
+                .with_graceful_shutdown(async {
+                    let _ = stopped.await;
+                })
+                .await
+                .unwrap();
+        });
+    });
+    let (base, store) = test_server();
+    seed_user(&store, "native-user", "native@example.com", "password123");
+    store
+        .adjust_balance("native-user", 1_000, "test credit".into(), None, 0, 0)
+        .unwrap();
+    let now = chrono::Utc::now();
+    store
+        .create_token(&ApiToken {
+            token: "native-test-token".into(),
+            user_id: "native-user".into(),
+            label: None,
+            created_at: now,
+            expires_at: now + chrono::Duration::days(1),
+        })
+        .unwrap();
+    let client = reqwest::blocking::Client::new();
+    for (index, (protocol, suffix, backend, payload, native_json, native_sse)) in
+        cases.iter().enumerate()
+    {
+        let id = format!("native-{index}");
+        store
+            .upsert_model_route(ModelRoute {
+                id: id.clone(),
+                display_name: id.clone(),
+                protocol: (*protocol).into(),
+                base_url: upstream.clone(),
+                upstream_model: "provider-model".into(),
+                context_window: 128_000,
+                api_key: Some("provider-test-key".into()),
+                input_price_microusd_per_million: 1_000_000,
+                output_price_microusd_per_million: 1_000_000,
+                enabled: true,
+                is_default: index == 0,
+            })
+            .unwrap();
+        for stream in [false, true] {
+            let mut request = payload.clone();
+            request["model"] = json!(id);
+            request["stream"] = json!(stream);
+            let response = client
+                .post(format!("{base}/v1{suffix}"))
+                .bearer_auth("native-test-token")
+                .header("anthropic-version", "2023-06-01")
+                .header("anthropic-beta", "test-beta")
+                .header("openai-beta", "test-beta")
+                .json(&request)
+                .send()
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{protocol}");
+            assert_eq!(
+                response.bytes().unwrap().as_ref(),
+                if stream {
+                    native_sse.as_bytes()
+                } else {
+                    native_json.as_bytes()
+                },
+                "{protocol} response was converted"
+            );
+        }
+        let mut request = payload.clone();
+        request["model"] = json!(id);
+        request["stream"] = json!(false);
+        request["native_error"] = json!(true);
+        let response = client
+            .post(format!("{base}/v1{suffix}"))
+            .bearer_auth("native-test-token")
+            .header("anthropic-beta", "test-beta")
+            .header("openai-beta", "test-beta")
+            .json(&request)
+            .send()
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(response.text().unwrap(), NATIVE_ERROR);
+        let wrong_suffix = cases[(index + 1) % cases.len()].1;
+        let mismatch = client
+            .post(format!("{base}/v1{wrong_suffix}"))
+            .bearer_auth("native-test-token")
+            .json(&request)
+            .send()
+            .unwrap();
+        assert_eq!(mismatch.status(), StatusCode::BAD_REQUEST);
+        let catalog: Value = client
+            .get(format!("{base}/v1/models"))
+            .bearer_auth("native-test-token")
+            .send()
+            .unwrap()
+            .json()
+            .unwrap();
+        let entry = catalog["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| entry["id"] == id)
+            .unwrap();
+        assert_eq!(entry["apiBackend"], *backend);
+        assert_eq!(entry["protocol"], *protocol);
+        let account: Value = client
+            .get(format!("{base}/api/auth/models"))
+            .bearer_auth("native-test-token")
+            .send()
+            .unwrap()
+            .json()
+            .unwrap();
+        let entry = account["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| entry["id"] == id)
+            .unwrap();
+        assert_eq!(entry["api_backend"], *backend);
+    }
+    assert_eq!(
+        store
+            .find_user_by_id("native-user")
+            .unwrap()
+            .balance_microusd,
+        970
+    );
+    let _ = stop.send(());
+    server.join().unwrap();
+}
+
+#[test]
 fn account_and_cli_model_lists_reflect_enabled_routes_and_prices() {
     let (base, store) = test_server();
     seed_user(&store, "u1", "models@b.co", "password123");

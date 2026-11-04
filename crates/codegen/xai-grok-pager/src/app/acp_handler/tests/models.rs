@@ -1,6 +1,49 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
     use super::*;
 
+    #[test]
+    fn models_update_selects_cloud_default_for_pending_session() {
+        let mut app = make_app_with_agent("sess-1");
+        app.agents.get_mut(&AgentId(0)).unwrap().session.models = ModelState::default();
+        let notif = make_models_update_notif("admin-default", &["admin-default"]);
+        assert!(handle_models_update(&notif, &mut app));
+        assert_eq!(
+            app.agents[&AgentId(0)].session.models.current_model_name().as_deref(),
+            Some("admin-default"),
+        );
+    }
+
+    #[test]
+    fn models_update_preserves_pending_explicit_switch() {
+        let mut app = make_app_with_agent("sess-1");
+        let agent = app.agents.get_mut(&AgentId(0)).unwrap();
+        agent.session.models = ModelState::default();
+        agent.session.model_switch_pending = true;
+        let notif = make_models_update_notif("admin-default", &["admin-default"]);
+        assert!(handle_models_update(&notif, &mut app));
+        assert!(app.agents[&AgentId(0)].session.models.current.is_none());
+    }
+
+    #[test]
+    fn models_update_refreshes_open_settings_catalog() {
+        let mut app = make_app_with_agent("sess-1");
+        let state = crate::views::settings_modal::SettingsModalState::new(
+            app.settings_registry.clone(),
+            app.current_ui.clone(),
+            crate::settings::PagerLocalSnapshot::default(),
+        );
+        app.agents.get_mut(&AgentId(0)).unwrap().active_modal =
+            Some(crate::views::modal::ActiveModal::Settings { state: Box::new(state) });
+        let notif = make_models_update_notif("cloud-model", &["cloud-model"]);
+        assert!(handle_models_update(&notif, &mut app));
+        let Some(crate::views::modal::ActiveModal::Settings { state }) =
+            &app.agents[&AgentId(0)].active_modal else {
+                panic!("settings should remain open");
+            };
+        assert_eq!(state.pager_snapshot.available_models.len(), 1);
+        assert_eq!(state.pager_snapshot.available_models[0].1.0.as_ref(), "cloud-model");
+    }
+
     /// Regression: a machine-wide `x.ai/models/update` broadcast carries each model's static catalog-default effort (`high`).
     /// It does not carry the session's chosen `xhigh` and must not clobber that per-session choice.
     #[test]

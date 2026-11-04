@@ -6,6 +6,62 @@ use axum::{
     routing::get,
 };
 use std::sync::{Arc, Mutex};
+
+#[test]
+fn website_model_prices_survive_into_cli_catalog() {
+    let model = parse_remote_model_value(
+        &serde_json::json!({
+            "id": "cloud-model",
+            "name": "Cloud Model",
+            "apiBackend": "chat_completions",
+            "description": "Cloud",
+            "input_price_usd_per_million": 0.125,
+            "output_price_usd_per_million": 0.75
+        }),
+        "https://astracode.topodrive.top/v1",
+    )
+    .unwrap();
+    assert_eq!(model.model, "cloud-model");
+    assert_eq!(
+        model.api_backend,
+        crate::sampling::ApiBackend::ChatCompletions
+    );
+    assert_eq!(
+        model.description.as_deref(),
+        Some("Cloud · $0.125 input / $0.75 output per 1M tokens")
+    );
+    let entry = crate::agent::config::ModelEntry::from_config_entry(&model);
+    let models = indexmap::IndexMap::from([("cloud-model".into(), entry)]);
+    let acp_models = crate::agent::config::to_acp_model_info(&models);
+    assert_eq!(
+        acp_models.values().next().unwrap().description,
+        model.description
+    );
+}
+
+#[test]
+fn model_prices_preserve_zero_and_ignore_invalid_or_missing_values() {
+    for (prices, expected) in [
+        (
+            serde_json::json!({"input_price_usd_per_million": 0, "output_price_usd_per_million": 0}),
+            "Cloud · $0 input / $0 output per 1M tokens",
+        ),
+        (
+            serde_json::json!({"input_price_usd_per_million": -1, "output_price_usd_per_million": 1}),
+            "Cloud",
+        ),
+        (serde_json::json!({}), "Cloud"),
+    ] {
+        let mut value = serde_json::json!({"id": "cloud-model", "description": "Cloud"});
+        value
+            .as_object_mut()
+            .unwrap()
+            .extend(prices.as_object().unwrap().clone());
+        let model = parse_remote_model_value(&value, "https://example.com/v1").unwrap();
+        assert_eq!(model.description.as_deref(), Some(expected));
+    }
+}
+
 #[test]
 fn get_env_keys_parses_strings_and_rejects_non_strings() {
     use crate::agent::config::EnvKeys;
@@ -307,6 +363,46 @@ fn parse_openai_format_uses_id_field() {
     assert_eq!(result.model, "grok-3");
     assert_eq!(result.base_url, "https://api.topodrive.top/v1");
     assert_eq!(result.name.as_deref(), Some("grok-3"));
+    assert_eq!(
+        result.api_backend,
+        crate::sampling::ApiBackend::ChatCompletions
+    );
+}
+
+#[test]
+fn model_catalog_preserves_explicit_provider_protocols() {
+    for (field, protocol, expected) in [
+        (
+            "protocol",
+            "openai-compatible",
+            crate::sampling::ApiBackend::ChatCompletions,
+        ),
+        (
+            "protocol",
+            "openai-responses",
+            crate::sampling::ApiBackend::Responses,
+        ),
+        (
+            "protocol",
+            "anthropic-messages",
+            crate::sampling::ApiBackend::Messages,
+        ),
+        (
+            "apiBackend",
+            "responses",
+            crate::sampling::ApiBackend::Responses,
+        ),
+        (
+            "api_backend",
+            "messages",
+            crate::sampling::ApiBackend::Messages,
+        ),
+    ] {
+        let mut value = serde_json::json!({"id": "configured-model"});
+        value[field] = serde_json::json!(protocol);
+        let model = parse_remote_model_value(&value, "https://provider.example/v1").unwrap();
+        assert_eq!(model.api_backend, expected);
+    }
 }
 #[test]
 fn parse_model_field_takes_priority_over_id() {

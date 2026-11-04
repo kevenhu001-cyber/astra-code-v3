@@ -92,6 +92,7 @@ pub(crate) fn refresh_open_settings_modals(app: &mut AppView) {
                 ask_user_question_timeout_enabled: ask_user_question_timeout_enabled_from_app,
                 voice_stt_language: voice_stt_language_from_app.clone(),
             };
+            state.set_model_catalog(&agent.session.models.available);
         }
     }
 }
@@ -237,6 +238,7 @@ pub(in crate::app::dispatch) fn dispatch_open_settings(
         ui_snapshot,
         pager_snapshot,
     ));
+    state.set_model_catalog(&agent.session.models.available);
     if let Some(key) = focus_key
         && state.focus_key(key)
     {

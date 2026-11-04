@@ -12,6 +12,7 @@ pub(crate) const CACHE_TTL: std::time::Duration = std::time::Duration::from_secs
 /// Cap on the unsigned models cache read, mirroring the settings cache: a
 /// corrupt or oversized file is a miss, not an unbounded read into memory.
 const MODELS_CACHE_MAX_BYTES: u64 = 4 << 20;
+pub(crate) const MODELS_PROTOCOL_REVISION: u8 = 1;
 
 /// Serializes every read-check-write of the cache file so a concurrent startup
 /// commit and TTL renewal cannot both pass the monotonic check and let the
@@ -20,6 +21,9 @@ static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct ModelsCache {
+    /// Reject catalogs written when the gateway advertised every model as Chat.
+    #[serde(default)]
+    pub(crate) protocol_revision: u8,
     /// Fetch-initiation time. The monotonic content key: an older fetch never
     /// replaces a newer stored catalog.
     pub(crate) fetched_at: DateTime<Utc>,
@@ -79,7 +83,9 @@ impl ModelsCacheManager {
             read_capped(&self.path, MODELS_CACHE_MAX_BYTES).ok_or(CacheLoadError::NotFound)?;
         let cache: ModelsCache =
             serde_json::from_slice(&data).map_err(|_| CacheLoadError::ParseFailed)?;
-        if cache.grok_version.as_deref() != Some(xai_grok_version::VERSION) {
+        if cache.protocol_revision != MODELS_PROTOCOL_REVISION
+            || cache.grok_version.as_deref() != Some(xai_grok_version::VERSION)
+        {
             return Err(CacheLoadError::VersionMismatch);
         }
         if cache.auth_method.as_ref() != Some(&scope.auth_method) {
@@ -120,6 +126,7 @@ impl ModelsCacheManager {
             return;
         }
         let cache = ModelsCache {
+            protocol_revision: MODELS_PROTOCOL_REVISION,
             fetched_at,
             renewed_at: None,
             grok_version: Some(xai_grok_version::VERSION.to_string()),
@@ -138,7 +145,8 @@ impl ModelsCacheManager {
     fn disk_fetched_at(&self, scope: &ModelsCacheScope) -> Option<DateTime<Utc>> {
         let data = read_capped(&self.path, MODELS_CACHE_MAX_BYTES)?;
         let cache: ModelsCache = serde_json::from_slice(&data).ok()?;
-        if cache.auth_method.as_ref() != Some(&scope.auth_method)
+        if cache.protocol_revision != MODELS_PROTOCOL_REVISION
+            || cache.auth_method.as_ref() != Some(&scope.auth_method)
             || cache.origin.as_deref() != Some(scope.origin.as_str())
             || cache.identity.as_deref() != Some(scope.identity.as_str())
         {
@@ -164,7 +172,8 @@ impl ModelsCacheManager {
             let Ok(mut cache) = serde_json::from_slice::<ModelsCache>(&data) else {
                 return;
             };
-            if cache.auth_method.as_ref() != Some(&scope.auth_method)
+            if cache.protocol_revision != MODELS_PROTOCOL_REVISION
+                || cache.auth_method.as_ref() != Some(&scope.auth_method)
                 || cache.origin.as_deref() != Some(scope.origin.as_str())
                 || cache.identity.as_deref() != Some(scope.identity.as_str())
             {

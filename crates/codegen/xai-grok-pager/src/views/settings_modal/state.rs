@@ -167,6 +167,8 @@ pub struct SettingsModalState {
     /// `UiConfig` snapshot, refreshed by the dispatcher on mutations.
     pub ui_snapshot: UiConfig,
     pub pager_snapshot: PagerLocalSnapshot,
+    /// Descriptions (including cloud prices) from the same live catalog as the picker.
+    pub model_descriptions: std::collections::HashMap<String, String>,
     /// Computed row layout (headers and settings, in render order).
     pub rows: Vec<RowEntry>,
     /// Index into `rows` of the focused row.
@@ -228,6 +230,7 @@ impl SettingsModalState {
             registry,
             ui_snapshot,
             pager_snapshot,
+            model_descriptions: std::collections::HashMap::new(),
             rows,
             selected,
             scroll_offset: 0,
@@ -248,6 +251,27 @@ impl SettingsModalState {
             close_on_picker_exit: false,
             picker_last_click: None,
         }
+    }
+
+    pub fn set_model_catalog(
+        &mut self,
+        models: &indexmap::IndexMap<
+            agent_client_protocol::ModelId,
+            agent_client_protocol::ModelInfo,
+        >,
+    ) {
+        self.pager_snapshot.available_models = models
+            .iter()
+            .map(|(id, info)| (info.name.clone(), id.clone()))
+            .collect();
+        self.model_descriptions = models
+            .values()
+            .filter_map(|info| {
+                info.description
+                    .as_ref()
+                    .map(|description| (info.name.clone(), description.clone()))
+            })
+            .collect();
     }
 
     /// Why a Browse row cannot be edited (`None` means editable).

@@ -100,11 +100,45 @@ pub(in crate::agent::remote_config) fn fetch_models_uncommitted(
     fetch_auth: ModelFetchAuth,
     remote_fetch_enabled: bool,
 ) -> ModelsPrefetch {
+    fetch_models_uncommitted_inner(
+        endpoints,
+        auth,
+        fetch_auth,
+        remote_fetch_enabled,
+        true,
+        &ModelsCacheManager::new(),
+    )
+}
+
+/// Explicit refreshes must reach the server even while the startup cache is fresh.
+pub(in crate::agent::remote_config) fn refresh_models_blocking(
+    endpoints: &config::EndpointsConfig,
+    auth: Option<&GrokAuth>,
+    fetch_auth: ModelFetchAuth,
+) -> Option<IndexMap<String, ModelEntry>> {
+    fetch_models_uncommitted_inner(
+        endpoints,
+        auth,
+        fetch_auth,
+        crate::util::config::resolve_remote_fetch_enabled(),
+        false,
+        &ModelsCacheManager::new(),
+    )
+    .commit()
+}
+
+fn fetch_models_uncommitted_inner(
+    endpoints: &config::EndpointsConfig,
+    auth: Option<&GrokAuth>,
+    fetch_auth: ModelFetchAuth,
+    remote_fetch_enabled: bool,
+    use_cache: bool,
+    cache: &ModelsCacheManager,
+) -> ModelsPrefetch {
     let source = active_model_source(endpoints, fetch_auth);
     let scope = ModelsCacheScope::resolve(endpoints, fetch_auth, auth);
 
-    let cache = ModelsCacheManager::new();
-    if let Some(cached) = cache.load_fresh(&scope) {
+    if use_cache && let Some(cached) = cache.load_fresh(&scope) {
         return ModelsPrefetch::Cached(cached.models);
     }
 
@@ -116,7 +150,7 @@ pub(in crate::agent::remote_config) fn fetch_models_uncommitted(
     let _timer = crate::instrumentation_timer!("startup.fetch_models_blocking");
     let fetched_at = Utc::now();
     match source.fetch(auth) {
-        Ok(FetchModelsResult { models, etag }) if !models.is_empty() => {
+        Ok(FetchModelsResult { models, etag }) => {
             let api_base_url_override = match fetch_auth {
                 ModelFetchAuth::ApiKey => Some(endpoints.xai_api_base_url.clone()),
                 _ => None,
@@ -131,13 +165,72 @@ pub(in crate::agent::remote_config) fn fetch_models_uncommitted(
                 fetched_at,
             })
         }
-        Ok(FetchModelsResult { .. }) => {
-            tracing::warn!("Models endpoint returned empty list");
-            ModelsPrefetch::Unavailable
-        }
         Err(e) => {
             tracing::warn!(error = ?e, "Failed to fetch models");
             ModelsPrefetch::Unavailable
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn refresh_bypasses_fresh_cache_and_accepts_empty_catalog() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let app = axum::Router::new().route(
+            "/v1/models",
+            axum::routing::get(|| async { axum::Json(serde_json::json!({"data": []})) }),
+        );
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        tokio::task::spawn_blocking(move || {
+            let tmp = tempfile::tempdir().unwrap();
+            let cache = ModelsCacheManager {
+                path: tmp.path().join("models_cache.json"),
+                ttl: std::time::Duration::from_secs(300),
+            };
+            let endpoints = config::EndpointsConfig {
+                models_base_url: Some(base),
+                ..Default::default()
+            };
+            let auth = GrokAuth::test_default();
+            let scope = ModelsCacheScope::resolve(&endpoints, ModelFetchAuth::ApiKey, Some(&auth));
+            let stale = IndexMap::from([(
+                "removed-model".into(),
+                ModelEntry::fallback("removed-model", &endpoints),
+            )]);
+            cache.persist(&stale, None, &scope, Utc::now());
+            assert!(matches!(
+                fetch_models_uncommitted_inner(
+                    &endpoints,
+                    Some(&auth),
+                    ModelFetchAuth::ApiKey,
+                    true,
+                    true,
+                    &cache
+                ),
+                ModelsPrefetch::Cached(_)
+            ));
+            let refreshed = fetch_models_uncommitted_inner(
+                &endpoints,
+                Some(&auth),
+                ModelFetchAuth::ApiKey,
+                true,
+                false,
+                &cache,
+            );
+            let ModelsPrefetch::Fetched(write) = refreshed else {
+                panic!("refresh must fetch rather than reuse a fresh cache");
+            };
+            assert!(
+                write.into_models().is_empty(),
+                "disabled routes must disappear from the catalog"
+            );
+        })
+        .await
+        .unwrap();
+        server.abort();
     }
 }

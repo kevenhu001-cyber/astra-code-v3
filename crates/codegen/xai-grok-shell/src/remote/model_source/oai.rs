@@ -1,18 +1,11 @@
 //! Reads the model list from an OpenAI-compatible `/v1/models`.
-use crate::agent::config::EndpointsConfig;
+use crate::agent::config::{EndpointsConfig, astra_gateway_base_url as astra_site_api_base_url};
 use crate::agent::remote_config::ModelFetchAuth;
 use crate::remote::client::{BackendError, FetchModelsResult, parse_remote_model_value};
 use crate::remote::model_source::ModelSource;
 use serde::Deserialize;
 use xai_grok_login::GrokAuth;
 use xai_grok_login::backend::{ActiveAuthBackend, AuthBackend};
-
-fn astra_site_api_base_url() -> String {
-    format!(
-        "{}/v1",
-        xai_grok_login::xai_oauth2_issuer().trim_end_matches('/')
-    )
-}
 
 #[derive(Debug, Deserialize)]
 struct ModelsResponse {

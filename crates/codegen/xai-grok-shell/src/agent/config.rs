@@ -50,6 +50,14 @@ pub const CLI_CHAT_PROXY_BASE_URL_DEFAULT: &str =
 /// Default model-inference gateway for session-authenticated CLI requests.
 /// Keep this separate from the cli-chat-proxy, which serves login and auxiliary APIs.
 pub const ASTRA_GATEWAY_BASE_URL_DEFAULT: &str = "https://astracode.topodrive.top/v1";
+/// The account catalog and inference API must use the same deployment.
+pub(crate) fn astra_gateway_base_url() -> String {
+    format!(
+        "{}/v1",
+        xai_grok_login::xai_oauth2_issuer().trim_end_matches('/')
+    )
+}
+
 /// Default base URL for the public Astra API.
 pub const XAI_API_BASE_URL_DEFAULT: &str = "https://api.astracode.topodrive.top/v1";
 const NO_INLINE_CITATIONS_RESPONSE_INCLUDE: &str = "no_inline_citations";
@@ -3432,7 +3440,14 @@ pub(crate) fn resolve_model_list_with_remote_authority(
         }
         resolved = prefetched;
     }
-    let mut explicit_api_backend_keys = std::collections::HashSet::new();
+    // The cloud catalog declares native protocols, including Chat (the enum
+    // default). Do not mistake those for missing metadata during slug inheritance.
+    let mut explicit_api_backend_keys: std::collections::HashSet<String> =
+        if remote_catalog_is_authoritative {
+            resolved.keys().cloned().collect()
+        } else {
+            std::collections::HashSet::new()
+        };
     for (key, model_override) in &cfg.config_models {
         let had_base = resolved.contains_key(key);
         let base = resolved.shift_remove(key);
@@ -3455,7 +3470,7 @@ pub(crate) fn resolve_model_list_with_remote_authority(
         });
         let effective = with_provider.as_ref().unwrap_or(model_override);
         if effective.api_backend.is_some() {
-            explicit_api_backend_keys.insert(key.as_str());
+            explicit_api_backend_keys.insert(key.clone());
         }
         let mut entry = effective.apply(key, base, &cfg.endpoints);
         let session_bearer_unsafe = !crate::util::is_topodrive_api_bearer_url(&entry.info.base_url)
@@ -3725,11 +3740,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 temperature: m.temperature,
                 top_p: m.top_p,
                 max_completion_tokens: m.max_completion_tokens,
-                api_backend: if endpoints.uses_astra_gateway() {
-                    ApiBackend::ChatCompletions
-                } else {
-                    m.api_backend
-                },
+                api_backend: m.api_backend,
                 auth_scheme: None,
                 agent_type: m.agent_type,
                 inference_idle_timeout_secs: m.inference_idle_timeout_secs,
@@ -4341,10 +4352,20 @@ pub struct ModelEntry {
     pub api_base_url: Option<String>,
 }
 impl ModelEntry {
+    /// Internal bootstrap metadata, not a routable or selectable model.
+    /// An empty catalog must not invent a provider model ID.
+    pub(crate) fn pending(endpoints: &EndpointsConfig) -> Self {
+        let mut entry = Self::fallback("", endpoints);
+        entry.info.user_selectable = false;
+        entry.info.hidden = true;
+        entry
+    }
+
     /// Minimal fallback entry for an unknown model slug.
     pub fn fallback(slug: &str, endpoints: &EndpointsConfig) -> Self {
         let mut info = ModelInfo::fallback(slug);
         info.base_url = endpoints.resolve_inference_base_url();
+        info.api_backend = endpoints.resolve_inference_api_backend();
         Self {
             info,
             mtls_cert_dir: None,

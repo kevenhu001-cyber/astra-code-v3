@@ -22,6 +22,14 @@ pub(super) fn handle_models_update(notif: &acp::ExtNotification, app: &mut AppVi
         }
 
         for agent in app.agents.values_mut() {
+            let selection_pending = agent
+                .session
+                .models
+                .current
+                .as_ref()
+                .is_none_or(|id| id.0.is_empty())
+                && !agent.session.model_switch_pending
+                && agent.session.deferred_model_switch.is_none();
             if let Some(ref current) = agent.session.models.current
                 && !new_models.available.contains_key(current)
             {
@@ -35,7 +43,11 @@ pub(super) fn handle_models_update(notif: &acp::ExtNotification, app: &mut AppVi
                 .session
                 .models
                 .update_catalog(new_models.available.clone());
+            if selection_pending && let Some(id) = new_models.current.clone() {
+                agent.session.models.set_current(id, None);
+            }
         }
+        crate::app::dispatch::refresh_open_settings_modals(app);
         true
     } else {
         tracing::warn!("Failed to parse x.ai/models/update");

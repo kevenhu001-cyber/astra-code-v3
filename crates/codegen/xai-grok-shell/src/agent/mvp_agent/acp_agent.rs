@@ -980,6 +980,14 @@ impl acp::Agent for MvpAgent {
             .session_handle_waiting_for_load(&arguments.session_id)
             .await
             .ok_or_else(|| acp::Error::invalid_params().data("unknown session id"))?;
+        if self.models_manager.cloud_catalog_unavailable() {
+            self.models_manager.wait_for_first_catalog().await;
+            if self.models_manager.cloud_catalog_unavailable() {
+                return Err(acp::Error::invalid_params().data(
+                    "No cloud models are available. Sign in with /login and check that an administrator has enabled a model. The CLI will not send a built-in model ID.",
+                ));
+            }
+        }
         if self.models_manager.allowlist_excludes_all() {
             let deny = crate::agent::remote_config::allowlist_excludes_all_message(
                 &self.cfg.borrow(),
