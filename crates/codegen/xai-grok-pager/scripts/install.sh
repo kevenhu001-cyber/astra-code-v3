@@ -242,8 +242,8 @@ else
     echo "Installing Astra $version ($platform)..." >&2
 fi
 
-binary_path="$DOWNLOAD_DIR/astra-"
-artifact_base="${BASE_URL}/astra--${platform}"
+binary_path="$DOWNLOAD_DIR/astra-$platform"
+artifact_base="${BASE_URL}/astra-${version}-${platform}"
 
 if [ "$os" = "windows" ]; then
     binary_path="${binary_path}.exe"

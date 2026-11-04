@@ -188,8 +188,8 @@ if ($AuthSource) {
 
 # --- Download binary ---
 
-$binaryPath = Join-Path $DownloadDir "astra-.exe"
-$artifactBase = "$BaseUrl/astra--$platform"
+$binaryPath = Join-Path $DownloadDir "astra-$platform.exe"
+$artifactBase = "$BaseUrl/astra-$resolvedVersion-$platform"
 
 $downloaded = $false
 foreach ($url in @("$artifactBase.exe", $artifactBase)) {
