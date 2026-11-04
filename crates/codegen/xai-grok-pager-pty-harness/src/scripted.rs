@@ -134,6 +134,11 @@ pub struct EnvironmentConfig {
     /// Used to seed offline-only state the pager reads from `$ASTRA_HOME` — e.g.
     /// `CHANGELOG.md`, so `/release-notes` opens a real document instead of the
     /// "No release notes available (offline)." error.
+    ///
+    /// The pager's startup bootstrap deletes a stale `CHANGELOG.md` / `CHANGELOG.json`
+    /// from `$ASTRA_HOME` (they are per-version CDN caches), so seeding a home also
+    /// writes the `.metadata_version` marker: the bootstrap then treats the home as
+    /// current and leaves the seeded files alone.
     #[serde(default)]
     pub home_files: std::collections::BTreeMap<String, String>,
 }
@@ -532,15 +537,7 @@ impl ScriptedScenarioRunner {
                 fs::write(grok_home.join("config.toml"), config_toml)
                     .context("write scenario config.toml")?;
             }
-            for (rel_path, contents) in &scenario.environment.home_files {
-                let path = resolve_seeded_path(&grok_home, rel_path, "ASTRA_HOME")?;
-                if let Some(parent) = path.parent() {
-                    fs::create_dir_all(parent)
-                        .with_context(|| format!("create ASTRA_HOME dir {}", parent.display()))?;
-                }
-                fs::write(&path, contents)
-                    .with_context(|| format!("write ASTRA_HOME file {}", path.display()))?;
-            }
+            seed_home_files(&grok_home, &scenario.environment.home_files)?;
         }
 
         let env_refs: Vec<(&str, &str)> = scenario
@@ -669,6 +666,31 @@ impl ScriptedScenarioRunner {
         write_bug_markdown(&run_dir, &report)?;
         Ok(report)
     }
+}
+
+/// Write a scenario's declared `$ASTRA_HOME` files, then stamp `.metadata_version`.
+///
+/// The startup bootstrap (`extract_builtin_files`) deletes a stale per-version
+/// changelog cache from `$ASTRA_HOME` — which would wipe a seeded `CHANGELOG.md`.
+/// Marking the home as already bootstrapped at the current version makes that
+/// bootstrap return early, so the seeded files survive it.
+fn seed_home_files(
+    grok_home: &Path,
+    home_files: &std::collections::BTreeMap<String, String>,
+) -> Result<()> {
+    for (rel_path, contents) in home_files {
+        let path = resolve_seeded_path(grok_home, rel_path, "ASTRA_HOME")?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("create ASTRA_HOME dir {}", parent.display()))?;
+        }
+        fs::write(&path, contents)
+            .with_context(|| format!("write ASTRA_HOME file {}", path.display()))?;
+    }
+    let marker = grok_home.join(".metadata_version");
+    fs::write(&marker, xai_grok_version::VERSION)
+        .with_context(|| format!("write ASTRA_HOME version marker {}", marker.display()))?;
+    Ok(())
 }
 
 /// Resolve a declared seeded-file path against its root dir.
@@ -2106,6 +2128,33 @@ mod tests {
                 "path {bad:?} must be rejected, got: {err}"
             );
         }
+    }
+
+    /// Seeding a home also stamps `.metadata_version`, so the pager's startup
+    /// bootstrap treats the home as current and does not delete the seeded
+    /// per-version changelog cache.
+    #[test]
+    fn seeding_home_writes_the_version_marker() {
+        use std::collections::BTreeMap;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path().join(".astra");
+        std::fs::create_dir_all(&home).unwrap();
+
+        seed_home_files(
+            &home,
+            &BTreeMap::from([("CHANGELOG.md".to_string(), "# seeded notes\n".to_string())]),
+        )
+        .expect("seed home files");
+
+        assert_eq!(
+            std::fs::read_to_string(home.join("CHANGELOG.md")).unwrap(),
+            "# seeded notes\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(home.join(".metadata_version")).unwrap(),
+            xai_grok_version::VERSION
+        );
     }
 
     /// `home_files` is optional and round-trips through the scenario YAML.

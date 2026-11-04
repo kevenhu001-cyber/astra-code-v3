@@ -14513,6 +14513,7 @@ dependencies = [
  "tracing-subscriber",
  "unicode-width 0.2.0",
  "xai-grok-test-support",
+ "xai-grok-version",
  "xai-tty-utils",
 ]
 
