@@ -2191,6 +2191,7 @@ async fn refresh_mcp_search_index_broadcasts_to_sessions() {
 }
 fn build_minimal_agent_for_tests() -> MvpAgent {
     use crate::agent::config::Config as AgentConfig;
+    use indexmap::IndexMap;
     use xai_grok_login::{AuthManager, GrokComConfig};
     let temp_dir = tempfile::tempdir().unwrap();
     let auth_manager =
@@ -2198,7 +2199,12 @@ fn build_minimal_agent_for_tests() -> MvpAgent {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
     let gateway = GatewaySender::new(tx);
     let cfg = AgentConfig::default();
-    MvpAgent::new(gateway, &cfg, auth_manager, None, None).expect("valid test config")
+    let mut prefetched = IndexMap::new();
+    prefetched.insert(
+        "test-model".to_string(),
+        crate::agent::config::ModelEntry::fallback("test-model", &cfg.endpoints),
+    );
+    MvpAgent::new(gateway, &cfg, auth_manager, Some(prefetched), None).expect("valid test config")
 }
 fn session_usage_request(session_id: &str) -> acp::ExtRequest {
     acp::ExtRequest::new(
@@ -2251,6 +2257,7 @@ async fn session_meta_publishes_the_sessions_spawn_pins() {
 }
 fn build_agent_with_auth(auth: xai_grok_login::GrokAuth) -> MvpAgent {
     use crate::agent::config::Config as AgentConfig;
+    use indexmap::IndexMap;
     use xai_grok_login::{AuthManager, GrokComConfig};
     let temp_dir = tempfile::tempdir().unwrap();
     let auth_manager =
@@ -2259,7 +2266,12 @@ fn build_agent_with_auth(auth: xai_grok_login::GrokAuth) -> MvpAgent {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
     let gateway = GatewaySender::new(tx);
     let cfg = AgentConfig::default();
-    MvpAgent::new(gateway, &cfg, auth_manager, None, None).expect("valid test config")
+    let mut prefetched = IndexMap::new();
+    prefetched.insert(
+        "test-model".to_string(),
+        crate::agent::config::ModelEntry::fallback("test-model", &cfg.endpoints),
+    );
+    MvpAgent::new(gateway, &cfg, auth_manager, Some(prefetched), None).expect("valid test config")
 }
 fn make_trace_card_eligible(agent: &MvpAgent) {
     let mut cfg = agent.cfg.borrow_mut();
