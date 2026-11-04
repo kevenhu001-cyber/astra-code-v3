@@ -24,10 +24,16 @@ async fn drag_select_autoscroll_full_scrollout_copy_pty() {
         "selection anchor turn",
         format!("{ANCHOR_FIRST} anchor first line  \nmiddle filler line  \n{ANCHOR_LAST} anchor last line"),
     );
-    let _filler_turn = content.expect_agent_turn(
-        "selection autoscroll filler turn",
-        marker_response(MOCK_RESPONSE_SENTINEL, FILLER_ROWS),
+    // A single 120-line fenced code block is internally scrollable and only
+    // renders its first viewportful of markers. Use Markdown hard breaks so
+    // the rows contribute to the OUTER transcript being drag-selected.
+    let filler = format!(
+        "{MOCK_RESPONSE_SENTINEL}  \\n{}",
+        (0..FILLER_ROWS)
+            .map(|row| format!("{}  \\n", marker_line(row)))
+            .collect::<String>()
     );
+    let _filler_turn = content.expect_agent_turn("selection autoscroll filler turn", filler);
 
     let binary = pager_binary().expect("resolve pager binary");
     let overrides: Vec<(String, String)> = vec![(
