@@ -2397,7 +2397,7 @@ pub enum CloneHistoryMode {
     Full,
 }
 
-/// Whether `grok clone` finished the mount.
+/// Whether `astra clone` finished the mount.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CloneOutcome {
@@ -2406,7 +2406,7 @@ pub enum CloneOutcome {
     Cancelled,
 }
 
-/// Where a failed `grok clone` stopped.
+/// Where a failed `astra clone` stopped.
 /// Closed set: no freeform strings.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
