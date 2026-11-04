@@ -327,10 +327,15 @@ pub async fn start_seeded_mock(
         }
     });
     std::fs::write(home.join("auth.json"), auth.to_string()).expect("write auth.json");
+    // `cli_chat_proxy_base_url` serves the auxiliary APIs (settings); the model
+    // list is a separate endpoint. A session-authenticated catalog is loaded from
+    // the Astra website, not the proxy, so a test that must observe `/v1/models`
+    // has to configure an explicit models endpoint pointing at the mock.
     std::fs::write(
         home.join("config.toml"),
         format!(
-            "[endpoints]\ncli_chat_proxy_base_url = \"{}\"\n",
+            "[endpoints]\ncli_chat_proxy_base_url = \"{}\"\nmodels_base_url = \"{}\"\n",
+            server.url(),
             server.url()
         ),
     )

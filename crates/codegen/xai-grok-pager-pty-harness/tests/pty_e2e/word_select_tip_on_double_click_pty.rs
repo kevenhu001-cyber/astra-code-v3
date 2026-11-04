@@ -204,7 +204,7 @@ async fn word_select_tip_skipped_when_contextual_hint_disabled() {
     // flash mode + tip explicitly disabled. GROK_CONTEXTUAL_HINTS is NOT set —
     // that env master would force all tips on and defeat the config opt-out.
     let grok_home = content.home().join(".astra");
-    std::fs::create_dir_all(&grok_home).expect("create .grok");
+    std::fs::create_dir_all(&grok_home).expect("create .astra");
     std::fs::write(
         grok_home.join("config.toml"),
         "[ui]\n\

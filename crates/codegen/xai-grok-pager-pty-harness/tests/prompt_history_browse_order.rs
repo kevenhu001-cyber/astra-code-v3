@@ -48,8 +48,8 @@ async fn run() -> Result<()> {
     content.set_response(format!("{FIRST_ACK} acknowledged."));
 
     // `#` notes are gated off by default, so the sixth entry needs the flag before the pager boots.
-    let grok_home = content.home().join(".grok");
-    std::fs::create_dir_all(&grok_home).context("create sandbox .grok")?;
+    let grok_home = content.home().join(".astra");
+    std::fs::create_dir_all(&grok_home).context("create sandbox .astra")?;
     std::fs::write(
         grok_home.join("config.toml"),
         "[features]\nremember_mode = true\n",

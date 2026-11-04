@@ -8,7 +8,7 @@ use super::common::*;
 const SEEDED_WORKFLOW: &str = "demo-workflow";
 
 fn seed_user_workflow(content: &ContentController) {
-    let workflows_dir = content.home().join(".grok").join("workflows");
+    let workflows_dir = content.home().join(".astra").join("workflows");
     std::fs::create_dir_all(&workflows_dir).expect("create workflows dir");
     std::fs::write(
         workflows_dir.join(format!("{SEEDED_WORKFLOW}.rhai")),

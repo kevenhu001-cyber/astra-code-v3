@@ -156,7 +156,13 @@ $BinDir = if ($env:ASTRA_BIN_DIR) { $env:ASTRA_BIN_DIR } else { Join-Path $Astra
 New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
 
-$Channel = if ($env:ASTRA_CHANNEL) { $env:ASTRA_CHANNEL } else { 'stable' }
+$Channel = if ($env:ASTRA_CHANNEL) { $env:ASTRA_CHANNEL } elseif ($env:GROK_CHANNEL) { $env:GROK_CHANNEL } else { 'stable' }
+# The channel is interpolated into a URL and into the `[cli]` config block, so an
+# unlisted value must fail closed instead of silently downgrading to `stable`.
+if ($Channel -notin @('stable', 'alpha', 'enterprise')) {
+    Write-Error "ASTRA_CHANNEL/GROK_CHANNEL must be one of stable|alpha|enterprise (got: $Channel)"
+    exit 1
+}
 
 # Pick a working BaseUrl: try Cloudflare-fronted x.ai first, fall back to
 # direct GCS if it's unreachable. The probe doubles as the channel-pointer
@@ -188,8 +194,8 @@ if ($AuthSource) {
 
 # --- Download binary ---
 
-$binaryPath = Join-Path $DownloadDir "astra-.exe"
-$artifactBase = "$BaseUrl/astra--$platform"
+$binaryPath = Join-Path $DownloadDir "astra-$platform.exe"
+$artifactBase = "$BaseUrl/astra-$resolvedVersion-$platform"
 
 $downloaded = $false
 foreach ($url in @("$artifactBase.exe", $artifactBase)) {
@@ -285,10 +291,21 @@ if (-not (Test-Path $ConfigFile)) {
 
 if ($deployKey) {
     $ProxyUrl = if ($env:ASTRA_PROXY_URL) { $env:ASTRA_PROXY_URL } elseif ($env:GROK_PROXY_URL) { $env:GROK_PROXY_URL } else { 'https://cli-chat-proxy.grok.com/v1' }
+    # Refuse cleartext / userinfo / empty-host proxies before attaching the key.
+    try {
+        $proxyUri = [Uri]$ProxyUrl
+    } catch {
+        Write-Error "ASTRA_PROXY_URL/GROK_PROXY_URL must be an https:// URL."
+        exit 1
+    }
+    if (-not $proxyUri.IsAbsoluteUri -or $proxyUri.Scheme -ne 'https' -or -not $proxyUri.Host -or $proxyUri.UserInfo) {
+        Write-Error "ASTRA_PROXY_URL/GROK_PROXY_URL must be an https:// URL."
+        exit 1
+    }
     Write-Host '  Fetching deployment config...' -ForegroundColor DarkGray
     try {
         $headers = @{ 'Authorization' = "Bearer $deployKey" }
-        $deployResponse = Invoke-RestMethod -Uri "$ProxyUrl/deployment/config" -Headers $headers -UseBasicParsing
+        $deployResponse = Invoke-RestMethod -Uri "$ProxyUrl/deployment/config" -Headers $headers -UseBasicParsing -MaximumRedirection 0
     } catch {
         Write-Host "  Warning: failed to fetch deployment config from $ProxyUrl/deployment/config" -ForegroundColor Yellow
         $deployResponse = $null

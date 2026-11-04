@@ -205,7 +205,18 @@ BIN_DIR="${ASTRA_BIN_DIR:-$HOME/.astra/bin}"
 mkdir -p "$DOWNLOAD_DIR" "$BIN_DIR"
 
 platform="${os}-${arch}"
-CHANNEL="${ASTRA_CHANNEL:-stable}"
+# `GROK_CHANNEL` stays as a legacy alias, like `GROK_PROXY_URL` and
+# `GROK_DEPLOYMENT_KEY`. The value is an allowlist, not free text: it is
+# interpolated into a URL and into the `[cli]` config block, so an unlisted
+# channel must fail closed instead of silently downgrading to `stable`.
+CHANNEL="${ASTRA_CHANNEL:-${GROK_CHANNEL:-stable}}"
+case "$CHANNEL" in
+    stable|alpha|enterprise) ;;
+    *)
+        echo "Error: ASTRA_CHANNEL/GROK_CHANNEL must be one of stable|alpha|enterprise (got: $CHANNEL)" >&2
+        exit 1
+        ;;
+esac
 
 # Pick a working BASE_URL: try Cloudflare-fronted x.ai first, fall back to
 # direct GCS if it's unreachable. The probe doubles as the channel-pointer
@@ -242,8 +253,8 @@ else
     echo "Installing Astra $version ($platform)..." >&2
 fi
 
-binary_path="$DOWNLOAD_DIR/astra-"
-artifact_base="${BASE_URL}/astra--${platform}"
+binary_path="$DOWNLOAD_DIR/astra-$platform"
+artifact_base="${BASE_URL}/astra-${version}-${platform}"
 
 if [ "$os" = "windows" ]; then
     binary_path="${binary_path}.exe"
@@ -346,13 +357,29 @@ fi
 # Fetch managed_config.toml + requirements.toml from server (deployment key only).
 if [ -n "$DEPLOYMENT_KEY" ]; then
     PROXY_URL="${ASTRA_PROXY_URL:-${GROK_PROXY_URL:-https://cli-chat-proxy.grok.com/v1}}"
+    # Refuse cleartext / userinfo / empty-host proxies before attaching the key.
+    proxy_authority="${PROXY_URL#*://}"
+    proxy_authority="${proxy_authority%%[/?#]*}"
+    proxy_ok=
+    case "$PROXY_URL" in
+        [hH][tT][tT][pP][sS]://*)
+            case "$proxy_authority" in
+                ""|*@*) ;;
+                *) proxy_ok=1 ;;
+            esac
+            ;;
+    esac
+    if [ -z "$proxy_ok" ]; then
+        echo "Error: ASTRA_PROXY_URL/GROK_PROXY_URL must be an https:// URL." >&2
+        exit 1
+    fi
     echo "  Fetching deployment config..." >&2
     DEPLOY_RESPONSE=""
     AUTH_HEADER_FILE=$(mktemp 2>/dev/null) || AUTH_HEADER_FILE=""
     if [ -n "$AUTH_HEADER_FILE" ]; then
         chmod 600 "$AUTH_HEADER_FILE" 2>/dev/null || true
         printf 'Authorization: Bearer %s\n' "$DEPLOYMENT_KEY" > "$AUTH_HEADER_FILE"
-        DEPLOY_RESPONSE=$(curl -sS -f \
+        DEPLOY_RESPONSE=$(curl -sS -f --proto '=https' \
             -H "@${AUTH_HEADER_FILE}" \
             "${PROXY_URL}/deployment/config" 2>/dev/null) || DEPLOY_RESPONSE=""
         : > "$AUTH_HEADER_FILE" 2>/dev/null || true

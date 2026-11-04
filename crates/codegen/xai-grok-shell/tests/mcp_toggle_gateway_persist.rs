@@ -13,7 +13,7 @@ use serde_json::json;
 fn gateway_toggle_propagates_failed_enable_persist() {
     acp_harness::run_agent_test(|cwd, _server| async move {
         let grok_home =
-            std::path::PathBuf::from(std::env::var("GROK_HOME").expect("harness sets GROK_HOME"));
+            std::path::PathBuf::from(std::env::var("ASTRA_HOME").expect("harness sets ASTRA_HOME"));
 
         let (conn, _init) = connect_and_auth(AutoApproveClient, "gateway-persist-test").await;
         let session_id = new_session(&conn, &cwd).await;

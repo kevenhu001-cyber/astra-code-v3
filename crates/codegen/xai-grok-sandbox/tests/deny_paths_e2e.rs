@@ -615,7 +615,15 @@ fn subprocess_devbox_marker_spoof(workspace: &Path) {
 /// Genuine devbox re-exec: with the marker fast path removed, Landlock must now also apply inside the real bwrap without breaking startup.
 fn subprocess_devbox_genuine(workspace: &Path) {
     let profile = xai_grok_sandbox::ProfileName::Devbox;
-    subprocess_profile_and_bwrap_reexec(&profile, workspace);
+    // The devbox bwrap re-exec exists to compose the `/data` write-deny plan.
+    // A host without `/data` has nothing to re-exec for, so the scenario runs in
+    // place there and Landlock must still apply.
+    let reexec = Path::new("/data").exists();
+    if reexec {
+        subprocess_profile_and_bwrap_reexec(&profile, workspace);
+    } else {
+        eprintln!("note: no /data on this host; devbox composes no bwrap re-exec");
+    }
     let mut sandbox = xai_grok_sandbox::SandboxManager::new(profile, workspace);
     if let Err(e) = sandbox.apply(workspace) {
         eprintln!("sandbox apply failed: {e}");
@@ -639,7 +647,14 @@ fn subprocess_devbox_genuine(workspace: &Path) {
         eprintln!("FAIL: genuine devbox /data must remain readable: {e}");
         std::process::exit(5);
     }
-    eprintln!("OK: devbox enforcement applied inside genuine bwrap");
+    eprintln!(
+        "OK: devbox enforcement applied{}",
+        if reexec {
+            " inside genuine bwrap"
+        } else {
+            " in place"
+        }
+    );
     std::process::exit(0);
 }
 
@@ -876,7 +891,7 @@ fn run_deny_case(
         .map(|p| format!("\"{p}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    fs::create_dir_all(tmp.join(".astra")).expect("mkdir .grok");
+    fs::create_dir_all(tmp.join(".astra")).expect("mkdir .astra");
     fs::write(
         tmp.join(".astra").join("sandbox.toml"),
         format!("[profiles.{profile}]\nextends = \"workspace\"\ndeny = [{deny_list}]\n"),
@@ -994,9 +1009,9 @@ fn deny_globs_block_read_write_rename() {
 #[cfg(target_os = "linux")]
 fn read_deny_marker_spoof_refused() {
     let (home, grok, workspace, _ch, _cg, _cw) = fixture_homes("read-deny-spoof");
-    fs::create_dir_all(workspace.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(workspace.join(".astra")).expect("mkdir .astra");
     fs::write(
-            workspace.join(".grok").join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
+            workspace.join(".astra").join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
             "[profiles.netspoof]\nextends = \"devbox\"\nrestrict_network = true\ndeny = [\"secret.pem\"]\n",
         )
         .expect("write sandbox.toml");
@@ -1028,10 +1043,10 @@ fn read_deny_forged_mounts_are_refused() {
     }
     use std::os::unix::fs::PermissionsExt;
     let (home, grok, workspace, _ch, _cg, _cw) = fixture_homes("read-deny-forged");
-    fs::create_dir_all(workspace.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(workspace.join(".astra")).expect("mkdir .astra");
     fs::write(
         workspace
-            .join(".grok")
+            .join(".astra")
             .join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
         "[profiles.forged]\nextends = \"devbox\"\ndeny = [\"secret.pem\"]\n",
     )
@@ -1074,10 +1089,10 @@ fn read_deny_empty_set_verifies_inside_bwrap() {
         return;
     }
     let (home, grok, workspace, _ch, _cg, _cw) = fixture_homes("read-deny-empty");
-    fs::create_dir_all(workspace.join(".grok")).expect("mkdir .grok");
+    fs::create_dir_all(workspace.join(".astra")).expect("mkdir .astra");
     fs::write(
         workspace
-            .join(".grok")
+            .join(".astra")
             .join(xai_grok_config::SANDBOX_CONFIG_FILENAME),
         "[profiles.netempty]\nextends = \"devbox\"\nrestrict_network = true\n",
     )
@@ -1167,8 +1182,7 @@ fn devbox_genuine_reexec_applies_enforcement() {
         .expect("failed to spawn subprocess");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        output.status.success()
-            && stderr.contains("OK: devbox enforcement applied inside genuine bwrap"),
+        output.status.success() && stderr.contains("OK: devbox enforcement applied"),
         "genuine devbox re-exec must keep applying enforcement\nstderr: {stderr}"
     );
 }

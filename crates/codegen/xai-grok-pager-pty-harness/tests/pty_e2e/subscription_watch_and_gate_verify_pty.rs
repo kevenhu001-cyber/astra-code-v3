@@ -134,7 +134,7 @@ fn pump_until(
 /// of a real network call to auth.x.ai.
 fn seed_fake_oauth_local_issuer(content: &ContentController, user: &str) {
     let grok_home = content.home().join(".astra");
-    std::fs::create_dir_all(&grok_home).expect("create temp .grok");
+    std::fs::create_dir_all(&grok_home).expect("create temp .astra");
     std::fs::write(
         grok_home.join("auth.json"),
         format!(
