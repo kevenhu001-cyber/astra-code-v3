@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn share_rejects_non_xai_auth_with_actionable_grok_login_message() {
+    fn share_rejects_non_xai_auth_with_actionable_astra_login_message() {
         let dir = tempdir().expect("tempdir");
         let mgr = Arc::new(xai_grok_login::AuthManager::new(
             dir.path(),
