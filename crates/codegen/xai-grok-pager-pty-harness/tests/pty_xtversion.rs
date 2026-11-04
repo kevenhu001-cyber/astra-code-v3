@@ -80,8 +80,8 @@ fn spawn_pager(content: &ContentController, env: &[(&str, &str)]) -> PtyHarness 
         &binary,
         ROWS,
         COLS,
-        &[],
         content,
+        &[],
         &operations,
         Some(content.home()),
     )
