@@ -105,9 +105,9 @@ impl Default for ClientId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientMode {
-    /// Headless mode (grok agent, grok agent headless): the leader connects to the websocket relay once and forwards messages.
+    /// Headless mode (astra agent, astra agent headless): the leader connects to the websocket relay once and forwards messages.
     Headless,
-    /// Stdio mode (grok agent stdio, grok -p): the client sends and receives ACP messages directly via local IPC.
+    /// Stdio mode (astra agent stdio, astra -p): the client sends and receives ACP messages directly via local IPC.
     Stdio,
 }
 
@@ -162,7 +162,7 @@ pub struct ClientCapabilities {
 
     /// Whether this client wants live `user_message_chunk` during a prompt (`x.ai/userMessageEcho`).
     /// When true, the leader injects `clientUserMessageEcho: true`. False is omitted so a client
-    /// that advertised at initialize is not overridden (`grok agent` is persist-only).
+    /// that advertised at initialize is not overridden (`astra agent` is persist-only).
     /// The flag it sets is per session, so other subscribers of a shared session receive the echo too.
     #[serde(default)]
     pub user_message_echo: bool,
@@ -179,7 +179,7 @@ pub struct LeaderCapabilities {
     pub profile_formats: Vec<ProfileArtifactFormat>,
     #[serde(default)]
     pub workspace_exposure: bool,
-    /// Whether the leader supports [`ControlCommand::RelaunchForUpdate`], a disruptive relaunch onto a freshly-installed binary driven by `grok update`.
+    /// Whether the leader supports [`ControlCommand::RelaunchForUpdate`], a disruptive relaunch onto a freshly-installed binary driven by `astra update`.
     /// Old leaders default to `false`, so a new client falls back to advising a manual restart.
     #[serde(default)]
     pub relaunch_v1: bool,
@@ -206,9 +206,9 @@ pub enum ControlCommand {
     WorkspaceResume,
     WorkspaceStop,
     WorkspaceStatus,
-    /// Ask the leader to relaunch onto a freshly-installed binary (driven by `grok update`). The leader stops admitting new turns, waits a bounded grace period for in-flight turns, and flushes session state.
+    /// Ask the leader to relaunch onto a freshly-installed binary (driven by `astra update`). The leader stops admitting new turns, waits a bounded grace period for in-flight turns, and flushes session state.
     /// It then exits with [`ShutdownReason::AutoUpdate`] so connected clients reconnect onto the new binary and restore sessions via `session/load`.
-    /// `to_version` is the version `grok update` just installed; the leader declines if it already runs that version or newer.
+    /// `to_version` is the version `astra update` just installed; the leader declines if it already runs that version or newer.
     RelaunchForUpdate {
         to_version: String,
     },

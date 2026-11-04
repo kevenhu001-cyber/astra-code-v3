@@ -87,7 +87,7 @@ fn required_range_message(decision: &RequiredRangeDecision) -> Option<String> {
             "This version of Astra ({current}) is newer than the maximum allowed \
              by your organization ({maximum}).\n\n\
              Install an approved version through your organization's approved \
-             method (for example, run `grok update --version {maximum}`)."
+             method (for example, run `astra update --version {maximum}`)."
         )),
     }
 }

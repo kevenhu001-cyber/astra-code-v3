@@ -1242,7 +1242,7 @@ impl MvpAgent {
         );
         Ok(response)
     }
-    /// Refuses a cwd that is neither a grok worktree nor the session's own, so it cannot detach a real checkout.
+    /// Refuses a cwd that is neither a astra worktree nor the session's own, so it cannot detach a real checkout.
     async fn restore_session_code(
         &self,
         session_id: &acp::SessionId,
@@ -1269,7 +1269,7 @@ impl MvpAgent {
                 supplied_cwd = %cwd.as_str(),
                 persisted_cwd = %summary.info.cwd,
                 target_sha = %target_sha,
-                "restore_code: skipping session HEAD checkout — supplied cwd is neither a grok worktree nor the session's persisted cwd (refusing to detach the source repo)"
+                "restore_code: skipping session HEAD checkout — supplied cwd is neither a astra worktree nor the session's persisted cwd (refusing to detach the source repo)"
             );
             xai_grok_telemetry::unified_log::warn(
                 "restore_code: skipped session HEAD checkout (unsafe cwd)",

@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 use super::common::*;
 
-/// Direct-route e2e: `grok wrap` with a resolvable explicit path runs the command inside the wrap PTY with output passing through.
+/// Direct-route e2e: `astra wrap` with a resolvable explicit path runs the command inside the wrap PTY with output passing through.
 /// It propagates the child's exit code, both for success and for a nonzero exit.
 #[test]
 #[ignore = "PTY e2e; run the owning pty_e2e_* Cargo test with --ignored (see Cargo.toml)"]
@@ -23,6 +23,6 @@ fn wrap_echo_passthrough_and_exit_code() {
     assert_eq!(
         code,
         Some(7),
-        "a nonzero child exit must propagate as grok wrap's own exit\nraw:\n{raw}"
+        "a nonzero child exit must propagate as astra wrap's own exit\nraw:\n{raw}"
     );
 }

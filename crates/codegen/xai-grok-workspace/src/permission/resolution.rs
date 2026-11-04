@@ -70,7 +70,7 @@ fn synthetic_rules_for_default_mode(
     (rules, skipped, bypass_blocked)
 }
 
-/// Parse a defaultMode string; an unknown value fails safe to [`DefaultPermissionMode::Default`] with a warn and a skip record for `grok inspect`.
+/// Parse a defaultMode string; an unknown value fails safe to [`DefaultPermissionMode::Default`] with a warn and a skip record for `astra inspect`.
 fn parse_default_mode_claiming_scope(
     raw: &str,
     path: &Path,
@@ -429,7 +429,7 @@ fn is_admin_source(source: &RequirementSource) -> bool {
 }
 
 /// Under the pin, drop untrusted catch-all Allow rules (they substitute for the blocked `--yolo`); keep admin-tier ones.
-/// Records each drop for `grok inspect`.
+/// Records each drop for `astra inspect`.
 fn drop_untrusted_catchall_allows(
     rules: Vec<Sourced<PermissionRule>>,
     policy_block: Option<&'static str>,
@@ -606,7 +606,7 @@ async fn resolve_permissions_with_provenance_inner(
     // CLI `--allow '*'` is filtered at its own merge site (acp_session)
     let all_rules = drop_untrusted_catchall_allows(all_rules, policy_block, &mut skipped);
 
-    // Keep skip-only resolutions alive so the drop reaches `grok inspect`
+    // Keep skip-only resolutions alive so the drop reaches `astra inspect`
     // A rule-less explicit defaultMode must survive: dropping it to `None` erases `default_mode_configured` and lets the alwaysAllow hint upgrade it
     if all_rules.is_empty()
         && prompt_policy == PromptPolicy::Ask
@@ -683,7 +683,7 @@ fn resolve_claude_settings_inner(
             for w in &warnings {
                 warn!(path = %path.display(), "{}", w);
             }
-            // Rules *or* skip-only parse failures still own provenance for `grok inspect`
+            // Rules *or* skip-only parse failures still own provenance for `astra inspect`
             // All-invalid allow/deny/ask must not leave primary_source_path unset and panic below
             if (!cfg.rules.is_empty() || !warnings.is_empty()) && primary_source_path.is_none() {
                 primary_source_path = Some(path.clone());
@@ -720,7 +720,7 @@ fn resolve_claude_settings_inner(
     }
 
     // A blocked bypass, a claimed defaultMode (incl. a typo treated as default), or skip records still resolve (possibly zero rules).
-    // Provenance then reaches `grok inspect` via the outer resolver
+    // Provenance then reaches `astra inspect` via the outer resolver
     if all_rules.is_empty()
         && prompt_policy == PromptPolicy::Ask
         && !bypass_blocked

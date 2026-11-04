@@ -48,7 +48,7 @@ async fn unknown_ssh_clipboard_delivery_is_unverified() {
         &[],
         &[
             EnvOp::set("SSH_CONNECTION", "scripted-test 1 127.0.0.1 2"),
-            // Drop the sink vars a parent `grok wrap` would have set, so the test takes the path with no OSC 52 sink
+            // Drop the sink vars a parent `astra wrap` would have set, so the test takes the path with no OSC 52 sink
             EnvOp::remove("GROK_OSC52_SINK"),
             EnvOp::remove("LC_GROK_OSC52_SINK"),
         ],
@@ -101,7 +101,7 @@ async fn unknown_ssh_clipboard_delivery_is_unverified() {
         .expect("named clipboard finding");
     // The one-off SSH command wraps at 80 columns; this remediation stays contiguous.
     harness
-        .wait_for_text("grok doctor fix ssh-wrap", Duration::from_secs(10))
+        .wait_for_text("astra doctor fix ssh-wrap", Duration::from_secs(10))
         .expect("doctor-owned SSH-wrap remediation");
     assert!(!harness.contains_text("Copy failed"));
     assert!(!harness.contains_text("panicked"));

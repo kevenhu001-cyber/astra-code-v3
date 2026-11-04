@@ -458,7 +458,7 @@ pub(crate) enum DirectInstallError {
     Install(InstallError),
 }
 
-/// Direct install (git URL / local path) — the CLI `grok plugin install` path; registry mutated
+/// Direct install (git URL / local path) — the CLI `astra plugin install` path; registry mutated
 /// but NOT saved: the caller owns the save, holding the registry lock across load→install→save.
 pub(crate) fn direct_install(
     source: &git_install::InstallSource,
@@ -522,7 +522,7 @@ impl std::fmt::Display for ProvenanceUpdateError {
             Self::NotConfigured { source } => write!(
                 f,
                 "marketplace source is no longer configured: {source}; \
-                 re-add it with `grok plugin marketplace add` or reinstall the plugin"
+                 re-add it with `astra plugin marketplace add` or reinstall the plugin"
             ),
         }
     }

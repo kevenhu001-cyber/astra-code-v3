@@ -365,7 +365,7 @@ fn compute_from_inputs(
 /// merged server list when the workspace is untrusted.
 ///
 /// SINGLE SOURCE OF TRUTH for "project-scoped MCP names" across ALL gate sites
-/// (session merge, the session-less agent pool, `grok mcp doctor`). It MUST
+/// (session merge, the session-less agent pool, `astra mcp doctor`). It MUST
 /// enumerate every project MCP source the loaders read; adding a new repo-local
 /// MCP source without extending this fn silently re-opens the gate (guarded by
 /// `project_scoped_mcp_names_cover_every_source`).

@@ -1,4 +1,4 @@
-//! `grok mcp doctor`: runtime health check for MCP servers.
+//! `astra mcp doctor`: runtime health check for MCP servers.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -530,7 +530,7 @@ fn policy_blocked_reasons(
     )
 }
 
-/// Definitions `grok mcp list`/`enable` judge, with subjects: the TOML walk blind to `enabled` and
+/// Definitions `astra mcp list`/`enable` judge, with subjects: the TOML walk blind to `enabled` and
 /// folder trust (so disabled or untrusted-repo definitions keep a verdict), then non-TOML tiers.
 fn policy_subjects(
     cwd: &Path,
@@ -594,7 +594,7 @@ fn policy_subjects(
     subjects
 }
 
-/// The verdict map for `grok mcp list`, keyed by server name.
+/// The verdict map for `astra mcp list`, keyed by server name.
 pub fn policy_blocked_servers(
     cwd: &Path,
 ) -> HashMap<String, xai_grok_workspace::permission::resolution::McpBlockReason> {
@@ -606,7 +606,7 @@ pub fn policy_blocked_servers(
     )
 }
 
-/// The `grok mcp enable` gate: the org-policy refusal the TUI and `grok mcp add` emit, or `None`.
+/// The `astra mcp enable` gate: the org-policy refusal the TUI and `astra mcp add` emit, or `None`.
 pub fn policy_enable_refusal(cwd: &Path, name: &str) -> Option<String> {
     let ms = xai_grok_workspace::permission::resolution::managed_settings();
     policy_subjects(cwd)
@@ -626,7 +626,7 @@ pub enum McpWriteScope {
     Project,
 }
 
-/// Add-time policy gate for a NEW server definition (`grok mcp add`; the TUI upsert applies the
+/// Add-time policy gate for a NEW server definition (`astra mcp add`; the TUI upsert applies the
 /// same rule): grok-native unless a project source is the write target or claims the name.
 pub fn policy_add_refusal(
     cwd: &Path,
@@ -716,9 +716,9 @@ pub async fn run_doctor(cwd: &Path, name_filter: Option<&str>) -> DoctorReport {
 
     let disabled_names = crate::util::config::disabled_mcp_server_names(cwd);
 
-    // Folder-trust gate: `grok mcp doctor` actually STARTS each server (`check_server_start`) In an untrusted clone that would spawn the repo's project-scoped servers
+    // Folder-trust gate: `astra mcp doctor` actually STARTS each server (`check_server_start`) In an untrusted clone that would spawn the repo's project-scoped servers
     // Resolve the doctor cwd once (no prompt), then skip (do not start) any project-scoped server when untrusted
-    // Uses the same name lookup (`project_scoped_mcp_names`) as the session/agent-pool gates `remote = None` is intentional: standalone `grok mcp doctor` has no loaded `RemoteSettings` A remote-only org opt-out (`folder_trust_enabled = false`) isn't seen here Gating conservatively (treating the feature as enabled) is the deliberate fail-secure choice
+    // Uses the same name lookup (`project_scoped_mcp_names`) as the session/agent-pool gates `remote = None` is intentional: standalone `astra mcp doctor` has no loaded `RemoteSettings` A remote-only org opt-out (`folder_trust_enabled = false`) isn't seen here Gating conservatively (treating the feature as enabled) is the deliberate fail-secure choice
     crate::agent::folder_trust::resolve_and_record(cwd, None, false);
     // One project-config walk serves both the folder-trust skip set and the
     // policy subject classification below.
@@ -803,7 +803,7 @@ pub fn print_report(report: &DoctorReport) {
 
     if report.servers.is_empty() {
         println!("  No MCP servers configured.");
-        println!("  Run `grok mcp add --help` to get started.");
+        println!("  Run `astra mcp add --help` to get started.");
         println!();
         return;
     }
@@ -833,7 +833,7 @@ pub fn print_report(report: &DoctorReport) {
         report.healthy_count,
         report.failing_count,
         if report.failing_count > 0 {
-            " Run `grok mcp doctor --json` for full diagnostics."
+            " Run `astra mcp doctor --json` for full diagnostics."
         } else {
             ""
         }
@@ -977,7 +977,7 @@ mod tests {
         assert!(names.iter().any(|n| n == "repo-tool"), "got: {names:?}");
     }
 
-    /// `grok mcp add --scope project` writes a project source, so a fresh name is judged
+    /// `astra mcp add --scope project` writes a project source, so a fresh name is judged
     /// project-scoped: the project-MCP pin refuses it while the same user-scope add passes.
     #[test]
     fn add_refusal_applies_project_pin_to_project_scope_writes() {

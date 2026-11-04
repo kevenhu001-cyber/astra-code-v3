@@ -149,7 +149,7 @@ pub(crate) fn apply_child_env<S: EnvSink>(cmd: &mut S, env: &[EnvOp<'_>]) {
     for ssh_var in ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "SSH_AUTH_SOCK"] {
         cmd.remove_var(OsStr::new(ssh_var));
     }
-    // A harness launched under `grok wrap` must not silently confirm clipboard
+    // A harness launched under `astra wrap` must not silently confirm clipboard
     // delivery for no-sink scenarios. Explicit sink tests re-inject a marker
     // through `env` after this hygiene pass.
     for sink_var in CLIPBOARD_SINK_ENV_VARS {

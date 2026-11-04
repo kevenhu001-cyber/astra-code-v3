@@ -1272,7 +1272,7 @@ impl Summary {
         self.num_messages == 0 && self.display_title().trim().is_empty()
     }
 
-    /// Whether this is a one-shot `grok -p` session.
+    /// Whether this is a one-shot `astra -p` session.
     /// Deliberately not part of [`Self::is_hidden`]: headless sessions stay listable (the picker's Headless page, the search index).
     /// Unstamped summaries (`session_kind` absent) are interactive, including pre-stamp one-shots and remote twins the registry has not classified.
     pub fn is_headless(&self) -> bool {
@@ -2567,7 +2567,7 @@ fn init_remote_sync(
             let auth_manager = auth_manager.ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Writeback storage mode requires authentication. Run 'grok login' first.",
+                    "Writeback storage mode requires authentication. Run 'astra login' first.",
                 )
             })?;
             if let Some(auth) = auth_manager.current_or_expired() {
@@ -2669,7 +2669,7 @@ pub(crate) fn io_error_to_acp(e: &io::Error) -> acp::Error {
 mod io_error_to_acp_tests;
 
 /// Best-effort worktree liveness touch: stamp `last_accessed_at` on the worktree containing this session's cwd.
-/// `grok worktree gc` then expires by last use, not creation time.
+/// `astra worktree gc` then expires by last use, not creation time.
 /// Lives here (not in a `StorageAdapter`) so every session create/load path shares it regardless of backend.
 fn spawn_worktree_touch(info: &Info) -> tokio::task::JoinHandle<()> {
     let cwd = info.cwd.clone();

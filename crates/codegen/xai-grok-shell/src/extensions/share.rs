@@ -164,7 +164,7 @@ fn require_xai_auth_for_share(
     super::auth_gate::require_xai_auth(
         auth_manager,
         "Authentication required to share session",
-        "Share session is disabled. Run `grok login` to authenticate.",
+        "Share session is disabled. Run `astra login` to authenticate.",
     )
 }
 
@@ -270,7 +270,7 @@ mod tests {
 
         assert_eq!(
             data,
-            "Share session is disabled. Run `grok login` to authenticate."
+            "Share session is disabled. Run `astra login` to authenticate."
         );
     }
 }

@@ -822,7 +822,7 @@ pub enum Action {
     DoctorFixCancelled(DoctorFixTarget),
     /// Persist the memory modal fullscreen preference to config.toml.
     PersistMemoryFullscreen(bool),
-    /// Open the Agent Dashboard view (`/dashboard`, `Ctrl+\`, `grok dashboard`).
+    /// Open the Agent Dashboard view (`/dashboard`, `Ctrl+\`, `astra dashboard`).
     OpenDashboard,
     /// Close the dashboard, returning to the previous `ActiveView`.
     ExitDashboard,

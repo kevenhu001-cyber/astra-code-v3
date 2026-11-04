@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 use super::common::*;
 
-/// Signal-death e2e: SIGTERM delivered to `grok wrap` itself (an external kill, or the HUP a
+/// Signal-death e2e: SIGTERM delivered to `astra wrap` itself (an external kill, or the HUP a
 /// closing terminal sends) must not skip cleanup. Drop handlers never run on signal death, so wrap
 /// needs an explicit signal path.
 #[test]

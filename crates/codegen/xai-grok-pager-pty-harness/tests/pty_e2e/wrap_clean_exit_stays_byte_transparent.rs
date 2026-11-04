@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 use super::common::*;
 
-/// Transparency e2e: when the wrapped child balances every mode it enables and exits cleanly, `grok wrap` must add zero reset bytes of its own.
+/// Transparency e2e: when the wrapped child balances every mode it enables and exits cleanly, `astra wrap` must add zero reset bytes of its own.
 /// Blindly blasting resets on exit would be visible here (duplicate disables, and a kitty pop corrupting an enclosing context's keyboard stack).
 /// The mode tracker keeps clean exits byte-for-byte transparent.
 #[test]

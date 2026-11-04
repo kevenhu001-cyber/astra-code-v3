@@ -194,14 +194,14 @@ fn doctor_planning_opens_refuses_remote_and_rejects_stale_identity() {
         TaskResult::DoctorFixPlanned {
             target: target.clone(),
             result: Ok(crate::app::actions::DoctorPlanningOutcome::RunLocally(
-                "grok doctor fix ssh-wrap".to_owned(),
+                "astra doctor fix ssh-wrap".to_owned(),
             )),
         },
         &mut app,
     );
     assert!(
         last_system_text(&app, id)
-            .contains("On your local computer, run: grok doctor fix ssh-wrap")
+            .contains("On your local computer, run: astra doctor fix ssh-wrap")
     );
 
     app.agents
@@ -589,7 +589,7 @@ fn wrap_host_image_request_eligible_covers_full_miss_and_attachment_error_only()
     use crate::app::actions::{ClipboardPasteCompletion, ClipboardPasteFailure};
 
     // A clean empty miss and a remote read *error* both fall through to the wrap host-image request
-    // That request is how `grok wrap` pastes images over headless SSH
+    // That request is how `astra wrap` pastes images over headless SSH
     assert!(wrap_host_image_request_eligible(
         ClipboardPasteCompletion::FullMiss
     ));

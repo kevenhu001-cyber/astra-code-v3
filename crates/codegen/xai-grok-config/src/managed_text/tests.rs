@@ -54,25 +54,25 @@ fn missing_empty_normal_no_final_newline_and_crlf_are_preserved() {
     let missing = temp.path().join("missing.rc");
     let plan = ManagedConfig::plan(request(
         &missing,
-        &[("terminal.ssh-wrap", "alias ssh='grok wrap ssh'")],
+        &[("terminal.ssh-wrap", "alias ssh='astra wrap ssh'")],
     ))
     .unwrap();
     assert_eq!(
         plan.updated_bytes(),
-        expected("alias ssh='grok wrap ssh'", "\n").as_bytes()
+        expected("alias ssh='astra wrap ssh'", "\n").as_bytes()
     );
     assert!(plan.backup_path_hint().is_none());
     ManagedConfig::apply(plan).unwrap();
     assert_eq!(
         fs::read_to_string(&missing).unwrap(),
-        expected("alias ssh='grok wrap ssh'", "\n")
+        expected("alias ssh='astra wrap ssh'", "\n")
     );
 
     let empty = temp.path().join("empty.rc");
     fs::write(&empty, "").unwrap();
     let plan = ManagedConfig::plan(request(
         &empty,
-        &[("terminal.ssh-wrap", "alias ssh='grok wrap ssh'")],
+        &[("terminal.ssh-wrap", "alias ssh='astra wrap ssh'")],
     ))
     .unwrap();
     assert!(plan.backup_path_hint().is_some());
@@ -82,14 +82,14 @@ fn missing_empty_normal_no_final_newline_and_crlf_are_preserved() {
     fs::write(&normal, "export KEEP=1\n").unwrap();
     let plan = ManagedConfig::plan(request(
         &normal,
-        &[("terminal.ssh-wrap", "alias ssh='grok wrap ssh'")],
+        &[("terminal.ssh-wrap", "alias ssh='astra wrap ssh'")],
     ))
     .unwrap();
     assert_eq!(
         String::from_utf8(plan.updated_bytes().to_vec()).unwrap(),
         format!(
             "export KEEP=1\n{}\n",
-            expected("alias ssh='grok wrap ssh'", "\n")
+            expected("alias ssh='astra wrap ssh'", "\n")
         )
     );
 
@@ -140,7 +140,7 @@ fn prose_and_exports_with_owned_words_and_chevrons_are_inert() {
     let path = temp.path().join("inert");
     let content = [
         "# Terminal.app note: terminal. support >>> may vary <<< by host",
-        "# grok doctor docs say >>> run this later <<<",
+        "# astra doctor docs say >>> run this later <<<",
         "export NOTE='terminal.ssh-wrap >>> not a marker'",
         "printf '%s\\n' 'grok doctor <<< prose >>>'",
         "#terminal.future prose >>> lacks marker grammar",
