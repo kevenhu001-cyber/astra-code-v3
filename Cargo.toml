@@ -278,7 +278,9 @@ tikv-jemalloc-sys = "0.6"
 tikv-jemallocator = { version = "0.6", features = ["profiling", "unprefixed_malloc_on_supported_platforms"] }
 time = "0.3"
 tiny-skia = "0.12"
-tokio = { version = "1", features = ["full"] }
+# 1.53 is the floor: `AsyncFd::with_interest` was deprecated there (RUSTSEC-2026-0386)
+# in favour of the I/O-safety-checked `AsyncFd::register_with_interest`.
+tokio = { version = "1.53", features = ["full"] }
 tokio-retry = "0.3"
 tokio-stream = { version = "0.1", features = ["net"] }
 tokio-tungstenite = "0.28"
