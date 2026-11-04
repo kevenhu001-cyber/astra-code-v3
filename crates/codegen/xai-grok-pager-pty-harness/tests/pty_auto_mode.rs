@@ -3,19 +3,17 @@
 //! Uses `xai-grok-pager-pty-harness` (`PtyHarness`) and Shift+Tab (CSI Z, compatible with `ptyctl` key injection) to cycle Normal to Plan to Auto.
 //! The mode banner or status line must show Auto as its own mode, distinct from Always-Approve.
 //!
-//! Auth: seeds `HOME/.astra/auth.json` from `GROK_AUTH_JSON` (path) or the
-//! developer's `~/.astra/auth.json` so the pager skips device-login when
-//! credentials exist. Without auth the test records an environmental
-//! failure (login screen) and still asserts the harness API surface.
+//! Auth: the fixture runs the pager against the harness mock backend, whose
+//! API-key credential and `/v1/settings` reply (`allow_access`) take it to the
+//! welcome screen the mode ring runs on. A pager without a credential boots to
+//! the device-login box instead, where there is no mode ring to exercise.
 //!
 //! Run with:
 //! `cargo test -p xai-grok-pager-pty-harness --test pty_auto_mode -- --ignored --nocapture`
 
-use std::path::PathBuf;
 use std::time::Duration;
 
-use xai_grok_pager_pty_harness::{PtyHarness, pager_binary};
-use xai_grok_test_support::TestSandbox;
+use xai_grok_pager_pty_harness::{ContentController, PtyHarness, pager_binary};
 
 const ROWS: u16 = 40;
 const COLS: u16 = 120;
@@ -25,50 +23,10 @@ const WELCOME_SCREEN_SENTINEL: &str = "Quit";
 /// Back-tab (Shift+Tab, CSI Z); the pager binds it to CycleMode.
 const SHIFT_TAB: &[u8] = b"\x1b[Z";
 
-/// Prefer explicit path, else the user's real `~/.astra/auth.json`.
-fn auth_json_source() -> Option<PathBuf> {
-    if let Ok(p) = std::env::var("GROK_AUTH_JSON") {
-        let pb = PathBuf::from(p);
-        if pb.is_file() {
-            return Some(pb);
-        }
-    }
-    dirs_next_home()
-        .map(|h| h.join(".astra/auth.json"))
-        .filter(|p| p.is_file())
-}
-
-fn dirs_next_home() -> Option<PathBuf> {
-    std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from)
-}
-
-/// Build the sandbox env: HOME plus an optional auth.json seed (no secrets logged).
+/// Build the pager environment.
 /// `gate_on` pins the auto-permission-mode feature gate so each test is deterministic regardless of the runner's shell.
-fn prepare_sandbox(sandbox: &mut TestSandbox, gate_on: bool) -> Vec<(String, String)> {
-    // Remove rather than empty the fake API key so seeded OIDC remains authoritative.
-    sandbox.remove_env("XAI_API_KEY");
-
-    let home = sandbox.home();
-    let grok = sandbox.grok_home();
-    let _ = std::fs::create_dir_all(grok);
-    if let Some(src) = auth_json_source() {
-        let dest = grok.join("auth.json");
-        if let Err(e) = std::fs::copy(&src, &dest) {
-            eprintln!("pty_auto_mode: could not copy auth.json ({e}); login may block mode cycle");
-        } else {
-            eprintln!(
-                "pty_auto_mode: seeded auth from {} ({} bytes)",
-                src.display(),
-                std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0)
-            );
-        }
-    } else {
-        eprintln!("pty_auto_mode: no ~/.astra/auth.json — may hit device login");
-    }
-
-    let home_s = home.display().to_string();
+fn prepare_env(content: &ContentController, gate_on: bool) -> Vec<(String, String)> {
+    let home_s = content.home().display().to_string();
     let mut env = vec![
         ("XDG_CONFIG_HOME".into(), format!("{home_s}/.config")),
         ("XDG_DATA_HOME".into(), format!("{home_s}/.local/share")),
@@ -89,35 +47,43 @@ fn prepare_sandbox(sandbox: &mut TestSandbox, gate_on: bool) -> Vec<(String, Str
     env
 }
 
+/// Whether the screen is a login/device-auth prompt rather than the welcome screen.
+///
+/// The device-code box renders inside the welcome view (`views/welcome/mod.rs`), so the
+/// welcome chrome is on screen either way and only the box text tells them apart.
 fn is_login_screen(screen: &str) -> bool {
     screen.contains("Waiting for approval")
         || screen.contains("Approve in your browser")
         || screen.contains("finish signing in")
+        // Device-code login: "Open this URL, sign in, and paste the code below." with a
+        // "Paste your token here..." input.
+        || screen.contains("paste the code below")
+        || screen.contains("Paste your token here")
 }
 
-/// Whether the caller expects seeded auth (CI, or a deliberate e2e run).
-/// When set, hitting the login screen means auth seeding broke, so the test fails instead of passing vacuously.
+/// Whether the caller expects a credential (CI, or a deliberate e2e run).
+/// When set, hitting the login screen means the fixture lost its credential, so the test fails instead of passing vacuously.
 fn require_auth() -> bool {
     std::env::var("GROK_PTY_REQUIRE_AUTH").is_ok_and(|v| v == "1" || v == "true")
 }
 
 /// Cycle into Auto on the welcome (pre-session) screen and assert the screen shows Auto (mode banner), not Always-Approve alone.
-#[test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "spawns real pager PTY; run with cargo test -- --ignored"]
-fn pty_shift_tab_cycles_to_auto_mode_banner() {
+async fn pty_shift_tab_cycles_to_auto_mode_banner() {
     let binary = match pager_binary() {
         Ok(b) => b,
         Err(e) => panic!("resolve pager binary via harness env: {e:#}"),
     };
-    let mut sandbox = TestSandbox::new();
-    let env_owned = prepare_sandbox(&mut sandbox, true);
+    let content = ContentController::start().await.expect("start content");
+    let env_owned = prepare_env(&content, true);
     let env_refs: Vec<(&str, &str)> = env_owned
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
 
     let mut harness =
-        PtyHarness::new_in_sandbox(&binary, ROWS, COLS, &[], &sandbox, &env_refs, None)
+        PtyHarness::spawn_with_content_env(&binary, ROWS, COLS, &content, &[], &env_refs)
             .expect("spawn pager in PTY (xai-grok-pager-pty-harness)");
 
     // Drain startup output; either the welcome or the agent chrome may be on screen
@@ -126,16 +92,16 @@ fn pty_shift_tab_cycles_to_auto_mode_banner() {
     if is_login_screen(&early) {
         assert!(
             !require_auth(),
-            "GROK_PTY_REQUIRE_AUTH set but pager hit the login screen — auth seeding broke"
+            "GROK_PTY_REQUIRE_AUTH set but pager hit the login screen — the fixture lost its credential"
         );
-        // Auth is still blocking (expired token or no network), an environmental failure
+        // Auth is still blocking (no network, an unreachable backend), an environmental failure
         // The UI-ring guarantee is covered by the dispatch-level unit tests; save the screen for debugging
         if let Ok(dump) = std::env::var("PTY_AUTO_MODE_SCREEN_DUMP") {
             let _ = std::fs::write(&dump, &early);
         }
         eprintln!(
             "pty_auto_mode: login/device-auth screen blocked Shift+Tab cycle \
-             (seeded auth may be expired). Screen saved; treating as env limit — \
+             (the backend did not answer). Screen saved; treating as env limit — \
              see the permission_auto_mode SessionActor wire tests for coverage."
         );
         // Still prove we exercised PtyHarness spawn (not a no-op).
@@ -186,22 +152,22 @@ fn pty_shift_tab_cycles_to_auto_mode_banner() {
 /// Gate off (the shipped default): the Shift+Tab ring must skip Auto entirely, so the feature is inert and the classifier never launches.
 /// The ring cycles Normal, Plan, Always-Approve, back to Normal.
 /// The negative companion to the gate-on cycle test; it proves the gate governs the UI ring, not just the engine.
-#[test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "spawns real pager PTY; run with cargo test -- --ignored"]
-fn pty_shift_tab_skips_auto_when_gate_off() {
+async fn pty_shift_tab_skips_auto_when_gate_off() {
     let binary = match pager_binary() {
         Ok(b) => b,
         Err(e) => panic!("resolve pager binary via harness env: {e:#}"),
     };
-    let mut sandbox = TestSandbox::new();
-    let env_owned = prepare_sandbox(&mut sandbox, false);
+    let content = ContentController::start().await.expect("start content");
+    let env_owned = prepare_env(&content, false);
     let env_refs: Vec<(&str, &str)> = env_owned
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
 
     let mut harness =
-        PtyHarness::new_in_sandbox(&binary, ROWS, COLS, &[], &sandbox, &env_refs, None)
+        PtyHarness::spawn_with_content_env(&binary, ROWS, COLS, &content, &[], &env_refs)
             .expect("spawn pager in PTY (xai-grok-pager-pty-harness)");
 
     let _ = harness.wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT);
@@ -209,7 +175,7 @@ fn pty_shift_tab_skips_auto_when_gate_off() {
     if is_login_screen(&early) {
         assert!(
             !require_auth(),
-            "GROK_PTY_REQUIRE_AUTH set but pager hit the login screen — auth seeding broke"
+            "GROK_PTY_REQUIRE_AUTH set but pager hit the login screen — the fixture lost its credential"
         );
         eprintln!(
             "pty_auto_mode(gate off): login/device-auth screen blocked cycle; env auth limit"
