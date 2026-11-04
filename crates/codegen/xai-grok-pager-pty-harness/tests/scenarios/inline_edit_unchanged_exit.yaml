@@ -9,6 +9,13 @@ description: >-
 terminal:
   rows: 40
   cols: 110
+# The inline-edit entry points are dark for users (see app/inline_edit.rs); the
+# nightly sweep opts in so these scenarios drive the real editor instead of
+# typing into the composer.
+environment:
+  env:
+    - key: GROK_INLINE_EDIT
+      value: "1"
 mock:
   response: "UNCHANGED_MOCK_ANSWER from the scripted server."
 steps:

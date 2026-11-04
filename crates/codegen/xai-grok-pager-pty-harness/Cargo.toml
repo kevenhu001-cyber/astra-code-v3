@@ -31,6 +31,10 @@ alacritty_terminal = { workspace = true }
 # during scenarios (content.rs wraps it).
 xai-grok-test-support = { workspace = true }
 
+# The pager's version, used to stamp `$ASTRA_HOME/.metadata_version` so the
+# startup bootstrap treats a seeded home as current (see `home_files`).
+xai-grok-version = { workspace = true }
+
 # Async runtime + common helpers shared with the pager.
 tokio = { workspace = true, features = [
     "sync",

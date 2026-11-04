@@ -127,6 +127,20 @@ pub struct EnvironmentConfig {
     /// highlights survive long enough to assert on).
     #[serde(default)]
     pub config_toml: Option<String>,
+    /// Files to create in the run's isolated `$ASTRA_HOME`, keyed by path relative
+    /// to the home root. Parent directories are created as needed.
+    ///
+    /// Mirrors [`WorkspaceConfig::files`], but targets the home instead of the cwd.
+    /// Used to seed offline-only state the pager reads from `$ASTRA_HOME` — e.g.
+    /// `CHANGELOG.md`, so `/release-notes` opens a real document instead of the
+    /// "No release notes available (offline)." error.
+    ///
+    /// The pager's startup bootstrap deletes a stale `CHANGELOG.md` / `CHANGELOG.json`
+    /// from `$ASTRA_HOME` (they are per-version CDN caches), so seeding a home also
+    /// writes the `.metadata_version` marker: the bootstrap then treats the home as
+    /// current and leaves the seeded files alone.
+    #[serde(default)]
+    pub home_files: std::collections::BTreeMap<String, String>,
 }
 
 impl EnvironmentConfig {
@@ -206,6 +220,18 @@ impl Default for MockConfig {
 pub enum ScenarioStep {
     /// Wait until the screen contains text.
     WaitForText {
+        text: String,
+        #[serde(default = "default_wait_timeout_ms")]
+        timeout_ms: u64,
+    },
+    /// Wait until the screen no longer contains text.
+    ///
+    /// Preferred over a fixed `wait` before an `assert_not_contains`: it returns as soon as the
+    /// text is gone and keeps polling (instead of failing) while the app is slow to redraw. Use it
+    /// for anything that expires on a *tick* budget rather than on the wall clock — a TTL of
+    /// "90 animation ticks" is only ~3 s at the nominal frame rate, and a loaded CI runner drops
+    /// the frame rate, so a fixed sleep races the expiry.
+    WaitForTextAbsent {
         text: String,
         #[serde(default = "default_wait_timeout_ms")]
         timeout_ms: u64,
@@ -511,12 +537,19 @@ impl ScriptedScenarioRunner {
             })
             .collect();
 
-        if let Some(config_toml) = &scenario.environment.config_toml {
-            let grok_home = content.home().join(".astra");
+        // The run's isolated `$ASTRA_HOME` (the pager's ASTRA_HOME / GROK_HOME).
+        // Seeded before spawn so the pager sees the config and offline state it
+        // would otherwise have to fetch.
+        let grok_home = content.home().join(".astra");
+        if scenario.environment.config_toml.is_some() || !scenario.environment.home_files.is_empty()
+        {
             fs::create_dir_all(&grok_home)
                 .with_context(|| format!("create scenario ASTRA_HOME {}", grok_home.display()))?;
-            fs::write(grok_home.join("config.toml"), config_toml)
-                .context("write scenario config.toml")?;
+            if let Some(config_toml) = &scenario.environment.config_toml {
+                fs::write(grok_home.join("config.toml"), config_toml)
+                    .context("write scenario config.toml")?;
+            }
+            seed_home_files(&grok_home, &scenario.environment.home_files)?;
         }
 
         let env_refs: Vec<(&str, &str)> = scenario
@@ -647,6 +680,51 @@ impl ScriptedScenarioRunner {
     }
 }
 
+/// Write a scenario's declared `$ASTRA_HOME` files, then stamp `.metadata_version`.
+///
+/// The startup bootstrap (`extract_builtin_files`) deletes a stale per-version
+/// changelog cache from `$ASTRA_HOME` — which would wipe a seeded `CHANGELOG.md`.
+/// Marking the home as already bootstrapped at the current version makes that
+/// bootstrap return early, so the seeded files survive it.
+fn seed_home_files(
+    grok_home: &Path,
+    home_files: &std::collections::BTreeMap<String, String>,
+) -> Result<()> {
+    for (rel_path, contents) in home_files {
+        let path = resolve_seeded_path(grok_home, rel_path, "ASTRA_HOME")?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("create ASTRA_HOME dir {}", parent.display()))?;
+        }
+        fs::write(&path, contents)
+            .with_context(|| format!("write ASTRA_HOME file {}", path.display()))?;
+    }
+    let marker = grok_home.join(".metadata_version");
+    fs::write(&marker, xai_grok_version::VERSION)
+        .with_context(|| format!("write ASTRA_HOME version marker {}", marker.display()))?;
+    Ok(())
+}
+
+/// Resolve a declared seeded-file path against its root dir.
+///
+/// Fail closed: a key must be a relative path that stays inside the root. This is
+/// author-controlled test YAML (not a security boundary), but it is the shared
+/// materialization path for both the workspace and `$ASTRA_HOME`, so guard it.
+fn resolve_seeded_path(root: &Path, rel_path: &str, root_label: &str) -> Result<PathBuf> {
+    let rel = Path::new(rel_path);
+    if rel.is_absolute()
+        || rel.components().any(|c| {
+            matches!(
+                c,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
+    {
+        bail!("{root_label} file path must be relative and within the {root_label}: {rel_path}");
+    }
+    Ok(root.join(rel))
+}
+
 /// Create a temp dir for a scenario [`WorkspaceConfig`]: write its files (creating parent dirs) and optionally `git init` it.
 /// The returned `TempDir` must be held for the whole run so the directory outlives the pager process.
 fn materialize_workspace(
@@ -655,20 +733,7 @@ fn materialize_workspace(
 ) -> Result<tempfile::TempDir> {
     let dir = tempfile::tempdir().context("create scenario workspace temp dir")?;
     for (rel_path, contents) in &workspace.files {
-        // Fail closed: a `files` key must be a relative path that stays inside the workspace
-        // This is author-controlled test YAML (not a security boundary), but it's the shared materialization path, so guard it
-        let rel = Path::new(rel_path);
-        if rel.is_absolute()
-            || rel.components().any(|c| {
-                matches!(
-                    c,
-                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
-                )
-            })
-        {
-            bail!("workspace file path must be relative and within the workspace: {rel_path}");
-        }
-        let path = dir.path().join(rel);
+        let path = resolve_seeded_path(dir.path(), rel_path, "workspace")?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
                 .with_context(|| format!("create workspace dir {}", parent.display()))?;
@@ -709,6 +774,9 @@ fn run_step(
         ScenarioStep::WaitForText { text, timeout_ms } => harness
             .wait_for_text(text, Duration::from_millis(*timeout_ms))
             .with_context(|| format!("wait for text {text:?}"))?,
+        ScenarioStep::WaitForTextAbsent { text, timeout_ms } => harness
+            .wait_for_text_absent(text, Duration::from_millis(*timeout_ms))
+            .with_context(|| format!("wait for text {text:?} to disappear"))?,
         ScenarioStep::AssertContains { text } => {
             if !harness.contains_text(text) {
                 bail!("expected screen to contain {text:?}");
@@ -1874,6 +1942,7 @@ fn sgr_mouse(button: u16, row: u16, col: u16, suffix: char) -> String {
 fn action_name(step: &ScenarioStep) -> &'static str {
     match step {
         ScenarioStep::WaitForText { .. } => "wait_for_text",
+        ScenarioStep::WaitForTextAbsent { .. } => "wait_for_text_absent",
         ScenarioStep::AssertContains { .. } => "assert_contains",
         ScenarioStep::AssertNotContains { .. } => "assert_not_contains",
         ScenarioStep::TypeText { .. } => "type_text",
@@ -2052,6 +2121,111 @@ mod tests {
                 err.contains("must be relative and within the workspace"),
                 "path {bad:?} must be rejected, got: {err}"
             );
+        }
+    }
+
+    /// `home_files` seeds the run's isolated `$ASTRA_HOME` (e.g. `CHANGELOG.md` for an
+    /// offline `/release-notes`). The path guard is shared with the workspace seeding.
+    #[test]
+    fn home_files_reject_paths_outside_the_home() {
+        let root = std::path::Path::new("/tmp/fake-astra-home");
+
+        let ok = resolve_seeded_path(root, "CHANGELOG.md", "ASTRA_HOME")
+            .expect("a plain relative key is accepted");
+        assert_eq!(ok, root.join("CHANGELOG.md"));
+
+        // Absolute and `..`-traversing keys are rejected before any write.
+        for bad in ["/etc/evil", "../escape", "sub/../../escape"] {
+            let err = resolve_seeded_path(root, bad, "ASTRA_HOME")
+                .unwrap_err()
+                .to_string();
+            assert!(
+                err.contains("must be relative and within the ASTRA_HOME"),
+                "path {bad:?} must be rejected, got: {err}"
+            );
+        }
+    }
+
+    /// Seeding a home also stamps `.metadata_version`, so the pager's startup
+    /// bootstrap treats the home as current and does not delete the seeded
+    /// per-version changelog cache.
+    #[test]
+    fn seeding_home_writes_the_version_marker() {
+        use std::collections::BTreeMap;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path().join(".astra");
+        std::fs::create_dir_all(&home).unwrap();
+
+        seed_home_files(
+            &home,
+            &BTreeMap::from([("CHANGELOG.md".to_string(), "# seeded notes\n".to_string())]),
+        )
+        .expect("seed home files");
+
+        assert_eq!(
+            std::fs::read_to_string(home.join("CHANGELOG.md")).unwrap(),
+            "# seeded notes\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(home.join(".metadata_version")).unwrap(),
+            xai_grok_version::VERSION
+        );
+    }
+
+    /// `home_files` is optional and round-trips through the scenario YAML.
+    #[test]
+    fn scenario_parses_home_files() {
+        let scenario: ScriptedScenario = serde_yaml::from_str(
+            r##"
+name: seed-home
+environment:
+  env:
+    - key: GROK_CHANGELOG_OFFLINE
+      value: "1"
+  home_files:
+    CHANGELOG.md: "# Release Notes\n"
+steps:
+  - action: assert_running
+"##,
+        )
+        .expect("parse scenario");
+
+        assert_eq!(scenario.environment.env.len(), 1);
+        assert_eq!(scenario.environment.env[0].key, "GROK_CHANGELOG_OFFLINE");
+        assert_eq!(
+            scenario
+                .environment
+                .home_files
+                .get("CHANGELOG.md")
+                .map(String::as_str),
+            Some("# Release Notes\n")
+        );
+    }
+
+    /// `wait_for_text_absent` round-trips through the scenario YAML and defaults its timeout.
+    #[test]
+    fn scenario_parses_wait_for_text_absent() {
+        let scenario: ScriptedScenario = serde_yaml::from_str(
+            r##"
+name: tip-expiry
+steps:
+  - action: wait_for_text_absent
+    text: "Tight on space"
+"##,
+        )
+        .expect("parse scenario");
+
+        assert_eq!(scenario.steps.len(), 1);
+        match &scenario.steps[0] {
+            ScenarioStep::WaitForTextAbsent { text, timeout_ms } => {
+                assert_eq!(text, "Tight on space");
+                assert_eq!(
+                    *timeout_ms, DEFAULT_WAIT_TIMEOUT_MS,
+                    "the absent-text wait must inherit the default timeout"
+                );
+            }
+            other => panic!("expected a wait_for_text_absent step, got {other:?}"),
         }
     }
 

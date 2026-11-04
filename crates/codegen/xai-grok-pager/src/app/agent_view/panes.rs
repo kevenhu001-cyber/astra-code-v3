@@ -60,7 +60,7 @@ impl AgentView {
             self.highlighted_link_idx = None;
             return InputOutcome::Action(Action::OpenLink(target));
         }
-        if crate::app::inline_edit::INLINE_EDIT_ENABLED
+        if crate::app::inline_edit::inline_edit_enabled()
             && key!(Enter).matches(key)
             && !self.scrollback.is_selected_group_header()
             && let Some(idx) = self.scrollback.selected()

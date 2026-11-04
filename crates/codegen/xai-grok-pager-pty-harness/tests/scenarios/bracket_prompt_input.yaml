@@ -18,6 +18,16 @@ steps:
     millis: 100
   - action: assert_contains
     text: "["
+  # The first keystroke on the welcome screen starts a session, and the
+  # welcome -> agent transition swallows keystrokes typed while it runs. Wait
+  # for the agent screen's composer hint (and let the transition settle)
+  # before typing the rest, otherwise "link]" is typed mid-transition and
+  # dropped.
+  - action: wait_for_text
+    text: "Enter:send"
+    timeout_ms: 15000
+  - action: wait
+    millis: 500
   - action: type_text
     text: "link]"
   - action: assert_contains

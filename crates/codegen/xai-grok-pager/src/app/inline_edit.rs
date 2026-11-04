@@ -27,6 +27,20 @@ use super::app_view::InputOutcome;
 /// Gates the user entry points (Enter in `agent_view/panes.rs`, double-click in `agent_view/selection.rs`).
 pub(crate) const INLINE_EDIT_ENABLED: bool = false;
 
+/// Runtime gate for the in-place prompt edit feature.
+///
+/// True when the compile-time default is on, or when `GROK_INLINE_EDIT=1` is set in the
+/// environment. The env override exists so a test tier can drive the feature end to end
+/// while it stays dark for users: the nightly `scripted_scenarios` sweep sets it so the
+/// inline-edit scenarios cover real code instead of asserting against a dead gate.
+///
+/// Same shape as the other env flags in this repo (see
+/// `xai_grok_shell_base::util::changelog::changelog_offline`): `1`/`true` on, `0`/empty off.
+pub(crate) fn inline_edit_enabled() -> bool {
+    INLINE_EDIT_ENABLED
+        || std::env::var_os("GROK_INLINE_EDIT").is_some_and(|v| !v.is_empty() && v != "0")
+}
+
 /// State of an in-place edit of a previous user prompt.
 pub struct InlineEditState {
     /// Stable id of the edited entry (indices shift; re-resolve per use).

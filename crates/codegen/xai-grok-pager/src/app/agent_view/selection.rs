@@ -1204,9 +1204,10 @@ impl AgentView {
             }
             2 if is_prompt => {
                 // Edit in place; bash/cron keep the old fold behavior.
-                // Gated OFF for now (unsolved scroll jump on enter; see inline_edit::INLINE_EDIT_ENABLED)
+                // Gated OFF by default (unsolved scroll jump on enter; see inline_edit::inline_edit_enabled)
                 // When disabled this is a no-op, so the block below runs
-                if !(crate::app::inline_edit::INLINE_EDIT_ENABLED && self.enter_inline_edit(idx)) {
+                if !(crate::app::inline_edit::inline_edit_enabled() && self.enter_inline_edit(idx))
+                {
                     if foldable {
                         self.scrollback.toggle_fold_selected();
                     }

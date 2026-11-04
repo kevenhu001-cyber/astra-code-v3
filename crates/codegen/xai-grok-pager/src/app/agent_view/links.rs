@@ -1919,7 +1919,7 @@ mod link_click_tests {
         let registry = ActionRegistry::defaults();
         let enter = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
         let outcome = agent.handle_scrollback_key(&enter, &registry);
-        if crate::app::inline_edit::INLINE_EDIT_ENABLED {
+        if crate::app::inline_edit::inline_edit_enabled() {
             assert!(matches!(outcome, InputOutcome::Changed), "got {outcome:?}");
             assert!(agent.inline_edit.is_some(), "Enter must start inline edit");
         } else {
@@ -1950,7 +1950,7 @@ mod link_click_tests {
     }
     /// Double-click on a user prompt enters inline edit when the feature is enabled.
     /// While gated off it does NOT edit (falls through to the fold arm), leaving the prompt free for text selection.
-    /// Written for both flag states so it stays valid when INLINE_EDIT_ENABLED is flipped back on.
+    /// Written for both flag states so it stays valid when the inline-edit gate is flipped back on.
     #[test]
     fn double_click_on_user_prompt_enters_inline_edit() {
         let mut agent = make_agent();
@@ -1966,7 +1966,7 @@ mod link_click_tests {
         let now = std::time::Instant::now();
         (agent.last_click, _) = agent.handle_scrollback_click(now, 0, false);
         let _ = agent.handle_scrollback_click(now + std::time::Duration::from_millis(10), 0, false);
-        if crate::app::inline_edit::INLINE_EDIT_ENABLED {
+        if crate::app::inline_edit::inline_edit_enabled() {
             assert!(
                 agent.inline_edit.is_some(),
                 "double-click must start inline edit"
