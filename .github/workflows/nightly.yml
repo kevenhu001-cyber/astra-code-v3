@@ -208,8 +208,12 @@ jobs:
         # - pty_e2e: agent-type mismatch modal, feedback modal, subscription
         #   gate, minimal mode, drag autoscroll and endline parking all wait
         #   on screen text that the current build does not render.
+        # `--tests`, not `--all-targets`: the crate's bench targets take the same
+        # `--` argument list, and `--ignored` is not a benchmark-harness flag
+        # ("error: unexpected argument '--ignored' found"). The benches are
+        # covered by the separate `cargo bench` job in this workflow.
         run: |
-          cargo test -p xai-grok-pager-pty-harness --all-targets --no-fail-fast \
+          cargo test -p xai-grok-pager-pty-harness --tests --no-fail-fast \
             -- --ignored --test-threads=2 --nocapture \
             --skip scripted_ \
             --skip campaign_leader_ \
