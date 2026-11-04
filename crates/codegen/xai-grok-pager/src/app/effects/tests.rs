@@ -2450,7 +2450,7 @@ fn format_session_info_session_auth_ignores_api_key_env() {
     assert!(!text.contains("Manage account and credits"), "{text}");
     assert!(!text.contains("Also present: XAI_API_KEY"), "{text}");
     assert!(!text.contains("console.topodrive.top"), "{text}");
-    assert!(!text.contains("grok login"), "{text}");
+    assert!(!text.contains("astra login"), "{text}");
 }
 #[test]
 fn format_session_info_api_key_without_env() {
@@ -2459,7 +2459,7 @@ fn format_session_info_api_key_without_env() {
     assert!(text.contains("Auth method: API key\n"), "{text}");
     assert!(!text.contains("XAI_API_KEY"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
-    assert!(!text.contains("grok login"), "{text}");
+    assert!(!text.contains("astra login"), "{text}");
     assert!(!text.contains("SuperGrok"), "{text}");
     assert!(!text.contains("grok.com"), "{text}");
 }
@@ -2469,7 +2469,7 @@ fn format_session_info_api_key_auth_suggests_grok_login() {
     let text = format_session_info(&info, None, false, true, true);
     assert!(text.contains("Auth method: API key (XAI_API_KEY)"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
-    assert!(!text.contains("grok login"), "{text}");
+    assert!(!text.contains("astra login"), "{text}");
     assert!(!text.contains("SuperGrok"), "{text}");
     assert!(!text.contains("Also present: XAI_API_KEY"), "{text}");
     assert!(!text.contains("console.topodrive.top"), "{text}");
@@ -2483,7 +2483,7 @@ fn format_session_info_session_only_shows_oauth() {
     assert!(!text.contains("Manage account and credits"), "{text}");
     assert!(!text.contains("Also present: XAI_API_KEY"), "{text}");
     assert!(!text.contains("console.topodrive.top"), "{text}");
-    assert!(!text.contains("grok login"), "{text}");
+    assert!(!text.contains("astra login"), "{text}");
 }
 #[test]
 fn format_session_info_shows_conversation_id_when_present() {

@@ -58,7 +58,7 @@ fn h(url: &str) -> agent_client_protocol::McpServer {
 fn allowlist_from(json: serde_json::Value) -> McpServerPolicy {
     parse_managed_settings_json(&json, std::path::Path::new(CLAUDE_PATH)).mcp_allowlist
 }
-/// Some source of `policy` is a full lockdown (what `grok inspect` lists).
+/// Some source of `policy` is a full lockdown (what `astra inspect` lists).
 fn has_lockdown_source(policy: &McpServerPolicy) -> bool {
     policy.sources.iter().any(McpServerAllowlist::is_lockdown)
 }

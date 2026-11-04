@@ -912,7 +912,7 @@ pub(in crate::app::dispatch) fn leave_welcome_for_session(app: &mut AppView) -> 
     }
     dispatch_new_session(app)
 }
-/// Replay the session-startup actions deferred until auth and trust both resolved (`--resume` / `--worktree` / initial-prompt / `grok dashboard`).
+/// Replay the session-startup actions deferred until auth and trust both resolved (`--resume` / `--worktree` / initial-prompt / `astra dashboard`).
 /// Extracted from the `AuthComplete` handler so the folder-trust answer can run the same code.
 /// Whichever gate resolves last drains it (each call site guards on the other gate being `Done`, so it runs exactly once).
 pub(in crate::app::dispatch) fn drain_startup_actions(app: &mut AppView) -> Vec<Effect> {

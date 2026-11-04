@@ -388,7 +388,7 @@ async fn worktree_create_then_session_failure_names_the_orphaned_worktree() {
 
     assert!(err.contains("agent refused"), "{err}");
     assert!(err.contains(&wt_root.path().display().to_string()), "{err}");
-    assert!(err.contains("grok worktree rm"), "{err}");
+    assert!(err.contains("astra worktree rm"), "{err}");
 }
 
 #[tokio::test]

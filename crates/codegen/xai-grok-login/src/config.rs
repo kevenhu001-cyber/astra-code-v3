@@ -184,7 +184,7 @@ pub(crate) fn is_astra_oauth2_issuer(issuer: &str) -> bool {
 pub fn is_xai_oauth2_issuer(issuer: &str) -> bool {
     is_astra_oauth2_issuer(issuer)
 }
-/// auth.json scope key used by historical x.ai / `grok login --legacy` flows.
+/// auth.json scope key used by historical x.ai / `astra login --legacy` flows.
 /// Retained so the manager can scrub stale entries from `auth.json` on every
 /// load — users migrating from the old `accounts.topodrive.top` relay auth still need
 /// these removed from their on-disk credentials. Never used as a URL or issuer.
@@ -199,7 +199,7 @@ impl GrokComConfig {
             || env_lockdown_forced()
     }
     /// When `preferred_method = api_key`, automatic OIDC paths (interactive browser login, external auth provider) must not run.
-    /// The pin is fail-closed; explicit `grok login --devbox` and `--api-key` bypass it.
+    /// The pin is fail-closed; explicit `astra login --devbox` and `--api-key` bypass it.
     pub fn blocks_automatic_oidc(&self) -> bool {
         matches!(self.preferred_method, Some(PreferredAuthMethod::ApiKey))
     }

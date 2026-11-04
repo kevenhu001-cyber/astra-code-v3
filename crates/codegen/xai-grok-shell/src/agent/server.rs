@@ -1,6 +1,6 @@
 //! WebSocket server for remote agent connections.
 //!
-//! Remote TUI clients connect here to a grok agent running on a different machine.
+//! Remote TUI clients connect here to a astra agent running on a different machine.
 //!
 //! The agent persists across WebSocket reconnections: a single MvpAgent instance is created on first connection and reused for all later ones.
 //! Session actors (and any in-flight prompts) therefore survive client disconnects.

@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 use super::common::*;
 
-/// Reproduces the regression reported from the field: `grok wrap "mycli ssh host"` passes one argv element containing spaces.
+/// Reproduces the regression reported from the field: `astra wrap "mycli ssh host"` passes one argv element containing spaces.
 /// It must be handed to `$SHELL -i -c` to word-split; the broken path spawned a program literally named `echo wrap-e2e one two`.
 /// `SHELL` is pinned to `/bin/sh` for determinism.
 #[test]

@@ -377,7 +377,7 @@ fn load_session_marks_standalone_worktree_cwd() {
     );
     assert!(
         app.agents[&AgentId(0)].session.is_worktree,
-        "resume into a standalone grok worktree must set session.is_worktree"
+        "resume into a standalone astra worktree must set session.is_worktree"
     );
     assert_eq!(app.agents[&AgentId(0)].session.cwd, clone.path);
 }

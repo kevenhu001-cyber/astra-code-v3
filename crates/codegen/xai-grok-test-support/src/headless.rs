@@ -1,4 +1,4 @@
-//! Headless mode (`grok -p`) test runner.
+//! Headless mode (`astra -p`) test runner.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;

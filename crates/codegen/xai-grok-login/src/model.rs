@@ -9,11 +9,11 @@ pub const TOKEN_TTL: Duration = Duration::days(30);
 const DEFAULT_EARLY_INVALIDATION_SECS: u64 = 300; // 5 minutes
 
 /// Legacy auth.json scope key. Retained for cleanup of stale `auth.json`
-/// entries from historical x.ai / `grok login --legacy` installations.
+/// entries from historical x.ai / `astra login --legacy` installations.
 /// Never used as a URL or issuer.
 pub(super) const LEGACY_SCOPE: &str = "https://accounts.topodrive.top/sign-in";
 
-/// auth.json scope key for plain API key auth (desktop login, `grok login --api-key`).
+/// auth.json scope key for plain API key auth (desktop login, `astra login --api-key`).
 pub(super) const API_KEY_SCOPE: &str = "xai::api_key";
 
 const BLOCKED_REASON_NO_LOGS: &str = "BLOCKED_REASON_NO_LOGS";
@@ -37,7 +37,7 @@ pub enum AuthMode {
     Oidc,
     /// External auth provider binary
     External,
-    /// Plain API key (e.g. from grok-desktop login or `grok login --api-key`)
+    /// Plain API key (e.g. from grok-desktop login or `astra login --api-key`)
     ApiKey,
 }
 
@@ -300,7 +300,7 @@ pub struct UserInfo {
     pub subscription_tier: Option<String>,
 }
 
-/// Look up auth from the store by scope key. Legacy `WebLogin` tokens (from the pre-OIDC `grok login --legacy` flow) are skipped. They are validated via a per-request DB lookup server-side, which fails at high volume.
+/// Look up auth from the store by scope key. Legacy `WebLogin` tokens (from the pre-OIDC `astra login --legacy` flow) are skipped. They are validated via a per-request DB lookup server-side, which fails at high volume.
 /// Skipping them here forces affected users to re-authenticate via OIDC on next launch.
 pub fn lookup_auth(map: &AuthStore, scope: &str) -> Option<GrokAuth> {
     let auth = map

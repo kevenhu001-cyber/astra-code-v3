@@ -2050,7 +2050,7 @@ fn unrecognized_project_mode_claims_scope_over_global_accept_edits() {
         skipped
             .iter()
             .any(|s| s.rule.contains("dontask") || s.rule.contains("defaultMode=")),
-        "typo should be recorded for grok inspect"
+        "typo should be recorded for astra inspect"
     );
 }
 

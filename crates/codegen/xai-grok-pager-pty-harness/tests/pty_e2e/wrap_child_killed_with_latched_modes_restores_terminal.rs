@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 use super::common::*;
 
-/// Dirty-death e2e: when the wrapped child dies with DEC private modes still latched, `grok wrap`
+/// Dirty-death e2e: when the wrapped child dies with DEC private modes still latched, `astra wrap`
 /// must emit the matching resets. Otherwise the outer terminal is left broken. The PTY hits EOF
 /// with the enables' reset bytes never having arrived.
 #[test]

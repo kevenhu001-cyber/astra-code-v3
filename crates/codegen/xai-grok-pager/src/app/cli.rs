@@ -1425,7 +1425,7 @@ mod tests {
     #[test]
     fn usage_command_parses_session_and_optional_turn() {
         let session_only = PagerArgs::try_parse_from(["grok", "usage", "sess-1"])
-            .expect("grok usage <session-id>");
+            .expect("astra usage <session-id>");
         assert!(matches!(
             session_only.command,
             Some(Command::Usage(crate::usage_cmd::UsageArgs {
@@ -1434,7 +1434,7 @@ mod tests {
             })) if session_id == "sess-1"
         ));
         let with_turn = PagerArgs::try_parse_from(["grok", "usage", "sess-1", "3"])
-            .expect("grok usage <session-id> <turn>");
+            .expect("astra usage <session-id> <turn>");
         assert!(matches!(
             with_turn.command,
             Some(Command::Usage(crate::usage_cmd::UsageArgs {

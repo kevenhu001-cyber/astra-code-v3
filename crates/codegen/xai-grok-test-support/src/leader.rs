@@ -1,4 +1,4 @@
-//! Leader-mode (`grok agent --leader stdio`) test harness.
+//! Leader-mode (`astra agent --leader stdio`) test harness.
 //!
 //! The fixture owns only subprocess handles it created: one initial persistent leader and each returned stdio client.
 //! Lock-file PIDs are observations only; a detached replacement leader is never adopted or signaled.
@@ -165,7 +165,7 @@ impl Drop for FixtureClientRegistration {
     }
 }
 
-/// A `grok agent --leader stdio` client subprocess speaking ACP over pipes.
+/// A `astra agent --leader stdio` client subprocess speaking ACP over pipes.
 pub struct LeaderStdioClient {
     pub conn: acp::ClientSideConnection,
     process: TestProcess,
@@ -627,7 +627,7 @@ impl LeaderStdioClient {
             cmd,
             sandbox,
             TestProcessConfig::new()
-                .label("grok leader stdio client")
+                .label("astra leader stdio client")
                 .stdin(TestStdin::Piped)
                 .stdout(TestOutput::Piped)
                 .env("GROK_CLI_CHAT_PROXY_BASE_URL", base_url)

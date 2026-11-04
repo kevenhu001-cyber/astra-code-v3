@@ -551,7 +551,7 @@ pub async fn apply_post_login_config(
     }
     Ok(())
 }
-/// `grok logout` CLI subcommand: clear the cached session and, when one was cleared, drop any orphaned synced files.
+/// `astra logout` CLI subcommand: clear the cached session and, when one was cleared, drop any orphaned synced files.
 /// The orphan cleanup runs here in shell so auth stays out of managed config.
 pub fn run_cli_logout(grok_com_config: &xai_grok_login::GrokComConfig) -> anyhow::Result<()> {
     let grok_home = xai_grok_shell_base::util::grok_home::grok_home();
