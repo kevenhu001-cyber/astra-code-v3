@@ -35,7 +35,6 @@ jobs:
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
         with:
-          toolchain: "1.94.0"
           components: rustfmt, clippy
 
       - name: Enable Rust cache
@@ -81,8 +80,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2
@@ -157,8 +154,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2
@@ -183,8 +178,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2
@@ -226,8 +219,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2

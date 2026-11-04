@@ -60,7 +60,6 @@ jobs:
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
         with:
-          toolchain: "1.94.0"
           components: rustfmt, clippy
           targets: ${{ matrix.target }}
 
@@ -89,11 +88,8 @@ jobs:
           Expand-Archive -Path $zip -DestinationPath $protocDir -Force
           "PROTOC=$protocDir\bin\protoc.exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
-      - name: Cargo check (fast validation)
-        run: cargo check -p xai-grok-pager-bin --target ${{ matrix.target }}
-
       - name: Build release binary
-        run: cargo build -p xai-grok-pager-bin --release --target ${{ matrix.target }}
+        run: cargo build -p xai-grok-pager-bin --locked --release --target ${{ matrix.target }}
 
       - name: Smoke test the built binary
         # `--version` is host-portable; gives a fast "did the binary actually
@@ -176,7 +172,6 @@ jobs:
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
         with:
-          toolchain: "1.94.0"
           components: rustfmt, clippy
           targets: ${{ matrix.target }}
 
@@ -188,11 +183,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Cargo check (fast validation)
-        run: cargo check -p astra-auth --target ${{ matrix.target }}
-
       - name: Build release binary
-        run: cargo build -p astra-auth --release --target ${{ matrix.target }}
+        run: cargo build -p astra-auth --locked --release --target ${{ matrix.target }}
 
       - name: Smoke test the built binary
         working-directory: target/${{ matrix.target }}/release
@@ -262,7 +254,6 @@ jobs:
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
         with:
-          toolchain: "1.94.0"
           components: rustfmt, clippy
           targets: x86_64-pc-windows-msvc
 
@@ -298,10 +289,19 @@ jobs:
       - name: Ensure WiX Toolset v3
         shell: pwsh
         run: |
-          $candle = if ($env:WIX) { Join-Path $env:WIX "candle.exe" } else { $null }
-          if ($candle -and (Test-Path $candle)) {
-            Write-Host "WiX Toolset v3 found at $env:WIX"
-            exit 0
+          $ErrorActionPreference = "Stop"
+          # Installed WiX uses WIX=<root>; binary archives can be flat.
+          # Pass the actual tool directory to cargo-wix via --bin-path,
+          # rather than letting it append another "bin" to WIX.
+          if ($env:WIX) {
+            foreach ($bin in @((Join-Path $env:WIX "bin"), $env:WIX)) {
+              if ((Test-Path (Join-Path $bin "candle.exe")) -and
+                  (Test-Path (Join-Path $bin "light.exe"))) {
+                "WIX_BIN=$bin" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+                Write-Host "WiX Toolset v3 found at $bin"
+                exit 0
+              }
+            }
           }
           Write-Host "WiX Toolset v3 not found; installing wix3141rtm..."
           $dir = Join-Path $env:RUNNER_TEMP "wix3"
@@ -310,7 +310,8 @@ jobs:
           # `wix314-binaries.zip`. The asset is NOT named after the tag, so
           # guessing the tag as the asset name yields a 404 and the MSI job
           # dies in Expand-Archive.
-          curl.exe -sSL -o $zip "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip"
+          curl.exe --fail --location --retry 3 -o $zip "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip"
+          if ($LASTEXITCODE -ne 0) { throw "WiX Toolset download failed" }
           Expand-Archive -Path $zip -DestinationPath $dir -Force
           $bin = Join-Path $dir "bin"
           if (-not (Test-Path (Join-Path $bin "candle.exe"))) {
@@ -318,11 +319,13 @@ jobs:
             if (-not $found) { throw "candle.exe not found in the WiX archive" }
             $bin = $found.Directory.FullName
           }
-          "WIX=$bin" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          $bin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          if (-not (Test-Path (Join-Path $bin "light.exe"))) {
+            throw "light.exe not found alongside candle.exe"
+          }
+          "WIX_BIN=$bin" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
       - name: Install cargo-wix
-        run: cargo install cargo-wix --locked
+        run: cargo install cargo-wix --version 0.3.9 --locked
 
       - name: Compute installer version
         id: version
@@ -355,6 +358,8 @@ jobs:
           # selected explicitly.
           cargo wix \
             --package xai-grok-pager-bin \
+            --bin-path "${WIX_BIN}" \
+            --nocapture \
             --install-version "${MSI_VERSION}" \
             --output "${ARTIFACT}"
           ls -l "${ARTIFACT}"
@@ -384,7 +389,7 @@ jobs:
     # keep the manual tag-push flow (`v*`) working unchanged.
     # The MSI job is optional: if packaging fails, the five platform archives
     # still ship and the release is published without the .msi.
-    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && needs.build.result == 'success' && needs.astra-auth.result == 'success' && needs.msi.result != 'cancelled'
+    if: ${{ !cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && needs.build.result == 'success' && needs.astra-auth.result == 'success' && needs.msi.result != 'cancelled' }}
     permissions:
       contents: write
     steps:

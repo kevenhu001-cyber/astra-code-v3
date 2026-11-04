@@ -13,7 +13,7 @@ concern so it's obvious where a check belongs when something breaks.
 | `build.yml` | PR, push to main, tag `v*` | Cross-platform release builds + GitHub release | ~25 min (5-platform matrix) |
 | `audit.yml` | PR, push to main, weekly Mon 06:00 UTC | `cargo audit` + third-party-license consistency | ~2 min |
 | `nightly.yml` | daily 04:00 UTC | full test + full scripted + full leader + benches + upstream probe | ~60–90 min |
-| `docs.yml` | PR + main (paths-filtered) | user-guide link rot + shellcheck + pwsh parse + npm smoke + marketing sanity | ~5 min |
+| `docs.yml` | PR + main (paths-filtered) | user-guide link rot + shellcheck + pwsh parse + npm smoke + standalone marketing/brand tests | ~5 min; copy tests take seconds |
 
 `dependabot.yml` (sibling, not a workflow) opens weekly PRs for cargo, npm,
 and GitHub Actions version bumps.
@@ -36,16 +36,20 @@ On-demand   :  workflow_dispatch on every workflow above
 
 ## Conventions
 
-- **Toolchain** is pinned via the repo's `rust-toolchain.toml` (1.94.0). Do
-  not pin it inside individual workflows — let `dtolnay/rust-toolchain@1.94.0`
-  select the right Rust by reading the file.
+- **Toolchain** is pinned to match the repo's `rust-toolchain.toml` (1.94.0).
+  Keep `dtolnay/rust-toolchain@1.94.0` in sync when bumping that file.
+  Version-specific action refs do not accept a `toolchain` input.
 - **Concurrency**: every workflow uses `cancel-in-progress: true` so a stale
   push to a PR doesn't keep racking up minutes after a fix.
 - **Permissions**: default `contents: read`. Only `build.yml`'s `release`
   job uses `contents: write` to publish the GitHub release.
 - **Linux-only** by default; macOS/Windows only appear in the `build` matrix.
-- **Cache**: every workflow uses `Swatinem/rust-cache@v2` with
-  `cache-on-failure: true`.
+- **Cache**: Cargo jobs use `Swatinem/rust-cache@v2` with
+  `cache-on-failure: true`. The docs marketing/brand tests use only `std`
+  and run via `rustc --test`, without compiling the pager's dependency graph.
+- **Release builds**: build each package directly with `--locked --release`.
+  A preceding debug-profile `cargo check` duplicates dependency compilation;
+  lint and test workflows already cover development-profile validation.
 
 ## Known caveats
 
@@ -53,6 +57,10 @@ On-demand   :  workflow_dispatch on every workflow above
   deliberate mirror to dodge `protocolbuffers/protobuf` rate-limiting on
   GitHub-hosted Windows runners. If it ever 4xx/5xxs, swap to the direct
   `https://github.com/...` URL in `build.yml`.
+- MSI packaging pins cargo-wix 0.3.9 and passes the validated directory
+  containing both `candle.exe` and `light.exe` through `--bin-path`.
+  WiX binary archives may be flat, whereas cargo-wix appends `bin` to `WIX`.
+  MSI failure is optional for release publishing; cancellation still stops it.
 - `audit.yml`'s license job is gated by a checked-in `audit-baseline.txt`.
   The first run creates it; later runs fail if the dep license set drifts.
 - `nightly.yml`'s `upstream-merge-probe` job fetches the `xai-org/grok-build`

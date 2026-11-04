@@ -33,7 +33,6 @@ jobs:
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
         with:
-          toolchain: "1.94.0"
           components: rustfmt, clippy
 
       - name: Enable Rust cache

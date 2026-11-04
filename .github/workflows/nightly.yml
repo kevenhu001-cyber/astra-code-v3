@@ -36,8 +36,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2
@@ -56,10 +54,10 @@ jobs:
       - name: Install ripgrep (search-tool tests)
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
-      # `--all-targets` includes every test target (including ignored ones),
-      # which compiles-but-doesn't-run them; the per-target jobs below run
-      # the ignored cases.
-      - name: cargo test (workspace, all-targets, all features)
+      - name: cargo test (workspace, all-targets, including ignored)
+        env:
+          # Match test.yml: large debug futures overflow the default stack.
+          RUST_MIN_STACK: 67108864
         run: |
           set -euo pipefail
           cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
@@ -73,8 +71,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2
@@ -100,7 +96,7 @@ jobs:
         # inference server; running them in parallel has been the source of
         # port-bind flake in past CI history.
         run: |
-          cargo test -p xai-grok-pager --test scripted_scenarios \
+          cargo test -p xai-grok-pager-pty-harness --locked --test scripted_scenarios \
             -- --ignored --test-threads=1
 
   leader-pty-e2e-full:
@@ -112,8 +108,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2
@@ -148,8 +142,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: Enable Rust cache
         uses: Swatinem/rust-cache@v2

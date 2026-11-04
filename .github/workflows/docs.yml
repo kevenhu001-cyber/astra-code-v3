@@ -15,6 +15,9 @@ on:
       - 'crates/codegen/xai-grok-pager/scripts/**'
       - 'crates/codegen/xai-grok-pager/npm/**'
       - 'site/**'
+      - 'crates/codegen/astra-auth/assets/site/**'
+      - 'crates/codegen/xai-grok-pager/tests/marketing_site_no_go_lang.rs'
+      - 'crates/codegen/xai-grok-pager/tests/brand_sweep_no_legacy_xai_refs.rs'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
@@ -22,6 +25,9 @@ on:
       - 'crates/codegen/xai-grok-pager/scripts/**'
       - 'crates/codegen/xai-grok-pager/npm/**'
       - 'site/**'
+      - 'crates/codegen/astra-auth/assets/site/**'
+      - 'crates/codegen/xai-grok-pager/tests/marketing_site_no_go_lang.rs'
+      - 'crates/codegen/xai-grok-pager/tests/brand_sweep_no_legacy_xai_refs.rs'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -42,8 +48,6 @@ jobs:
 
       - name: Install Rust toolchain (pinned, for lychee pin)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
 
       - name: lychee link check
         uses: lycheeverse/lychee-action@v2
@@ -151,26 +155,16 @@ jobs:
 
       - name: Install Rust toolchain (pinned)
         uses: dtolnay/rust-toolchain@1.94.0
-        with:
-          toolchain: "1.94.0"
-
-      - name: Enable Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          cache-directories: |
-            ~/.cargo/registry
-            ~/.cargo/git
-
-      - name: Install dotslash (protoc provider)
-        run: |
-          cargo install dotslash --locked
-          dotslash --help
 
       # Same regression as test.yml `regressions`, kept here so a docs-only PR
-      # still triggers the marketing sanity check.
-      - name: Marketing site (no Go lang leftovers)
-        run: cargo test -p xai-grok-pager --test marketing_site_no_go_lang
-
-      - name: Brand sweep (no leaked legacy xai refs)
-        run: cargo test -p xai-grok-pager --test brand_sweep_no_legacy_xai_refs
+      # still triggers the marketing sanity check. Both tests use only std:
+      # compile them directly instead of building the entire pager graph.
+      - name: Marketing and brand regressions (standalone)
+        working-directory: crates/codegen/xai-grok-pager
+        run: |
+          set -euo pipefail
+          export CARGO_MANIFEST_DIR="$PWD"
+          for test in marketing_site_no_go_lang brand_sweep_no_legacy_xai_refs; do
+            rustc --edition=2024 --test "tests/$test.rs" -o "$RUNNER_TEMP/$test"
+            "$RUNNER_TEMP/$test"
+          done
