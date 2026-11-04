@@ -2386,7 +2386,7 @@ pub struct CliUpdate {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// grok clone (utility process)
+// astra clone (utility process)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// History shape requested by the client or produced by the daemon.
@@ -2566,7 +2566,7 @@ impl CloneDaemonCapabilityClass {
     }
 }
 
-/// One `grok clone` attempt. Content-free: no URL, dest, store, or repo name.
+/// One `astra clone` attempt. Content-free: no URL, dest, store, or repo name.
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct CloneEnded {
     pub requested_history: CloneHistoryMode,

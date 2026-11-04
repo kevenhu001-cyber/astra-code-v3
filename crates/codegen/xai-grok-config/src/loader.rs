@@ -74,7 +74,7 @@ fn line_col(src: &str, byte: usize) -> (usize, usize) {
 }
 
 /// [`load_toml_file`] plus that layer's `[[version_overrides]]`.
-/// Use for grok config files; use [`load_toml_file`] directly for unrelated TOML.
+/// Use for astra config files; use [`load_toml_file`] directly for unrelated TOML.
 pub fn load_config_file(path: &Path) -> std::io::Result<toml::Value> {
     let mut v = load_toml_file(path)?;
     apply_version_overrides_with_registered(&mut v)?;
