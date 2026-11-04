@@ -205,7 +205,18 @@ BIN_DIR="${ASTRA_BIN_DIR:-$HOME/.astra/bin}"
 mkdir -p "$DOWNLOAD_DIR" "$BIN_DIR"
 
 platform="${os}-${arch}"
-CHANNEL="${ASTRA_CHANNEL:-stable}"
+# `GROK_CHANNEL` stays as a legacy alias, like `GROK_PROXY_URL` and
+# `GROK_DEPLOYMENT_KEY`. The value is an allowlist, not free text: it is
+# interpolated into a URL and into the `[cli]` config block, so an unlisted
+# channel must fail closed instead of silently downgrading to `stable`.
+CHANNEL="${ASTRA_CHANNEL:-${GROK_CHANNEL:-stable}}"
+case "$CHANNEL" in
+    stable|alpha|enterprise) ;;
+    *)
+        echo "Error: ASTRA_CHANNEL/GROK_CHANNEL must be one of stable|alpha|enterprise (got: $CHANNEL)" >&2
+        exit 1
+        ;;
+esac
 
 # Pick a working BASE_URL: try Cloudflare-fronted x.ai first, fall back to
 # direct GCS if it's unreachable. The probe doubles as the channel-pointer

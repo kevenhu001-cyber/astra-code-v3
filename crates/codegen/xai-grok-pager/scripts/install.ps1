@@ -156,7 +156,13 @@ $BinDir = if ($env:ASTRA_BIN_DIR) { $env:ASTRA_BIN_DIR } else { Join-Path $Astra
 New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
 
-$Channel = if ($env:ASTRA_CHANNEL) { $env:ASTRA_CHANNEL } else { 'stable' }
+$Channel = if ($env:ASTRA_CHANNEL) { $env:ASTRA_CHANNEL } elseif ($env:GROK_CHANNEL) { $env:GROK_CHANNEL } else { 'stable' }
+# The channel is interpolated into a URL and into the `[cli]` config block, so an
+# unlisted value must fail closed instead of silently downgrading to `stable`.
+if ($Channel -notin @('stable', 'alpha', 'enterprise')) {
+    Write-Error "ASTRA_CHANNEL/GROK_CHANNEL must be one of stable|alpha|enterprise (got: $Channel)"
+    exit 1
+}
 
 # Pick a working BaseUrl: try Cloudflare-fronted x.ai first, fall back to
 # direct GCS if it's unreachable. The probe doubles as the channel-pointer
