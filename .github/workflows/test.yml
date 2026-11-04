@@ -191,11 +191,16 @@ jobs:
         run: |
           # Sample scenarios chosen for fast / low-flake feedback. The full
           # 45+ scenarios run nightly.
+          # `--test-threads=1` matches nightly.yml: each scenario spawns its own
+          # mock inference server and a real pager, so running them in parallel
+          # starves the session-start path and drops keystrokes typed during it
+          # (the `bracket-prompt-input` scenario lost its tail that way).
           cargo test -p xai-grok-pager-pty-harness --test scripted_scenarios -- --ignored \
             scripted_welcome_screen \
             scripted_mock_response \
             scripted_bracket_prompt_input \
-            scripted_image_inputs
+            scripted_image_inputs \
+            --test-threads=1
 
       - name: Upload scripted scenario artifacts
         if: always()
