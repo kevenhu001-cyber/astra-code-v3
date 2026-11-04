@@ -502,6 +502,13 @@ fn fetch_timeout_kills_process_group_with_grandchild() {
         .parse()
         .expect("grandchild pid");
     assert!(!pid_alive(leader), "leader {leader} must not remain live");
+    // Group signals are delivered asynchronously. The fetch leader has been
+    // reaped, but the grandchild may not have exited by the next instruction.
+    // Keep the assertion strict while allowing a bounded scheduling window.
+    let grandchild_deadline = Instant::now() + Duration::from_secs(1);
+    while pid_alive(grandchild) && Instant::now() < grandchild_deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
     assert!(
         !pid_alive(grandchild),
         "grandchild {grandchild} must be killed via killpg"
