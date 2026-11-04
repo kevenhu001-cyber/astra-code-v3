@@ -33,9 +33,12 @@ steps:
   # Past the ~3s TTL the banner clears on its own. The TTL is counted in animation
   # ticks, so its wall-clock lifetime stretches when the runner is loaded: poll for
   # the banner to disappear instead of racing a fixed sleep.
+  # The budget has to cover the stretched case too: on a throttled runner 90 ticks
+  # can take well over 15s, and the step failed there while the very same scenario
+  # passed minutes earlier on the same product code.
   - action: wait_for_text_absent
     text: "Tight on space"
-    timeout_ms: 15000
+    timeout_ms: 45000
   # Dip into the auto-compact zone (19 <= 20) and back into the band: the
   # one-shot must not re-trigger.
   - action: resize
