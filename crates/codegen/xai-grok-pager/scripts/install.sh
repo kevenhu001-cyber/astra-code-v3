@@ -356,7 +356,7 @@ fi
 
 # Fetch managed_config.toml + requirements.toml from server (deployment key only).
 if [ -n "$DEPLOYMENT_KEY" ]; then
-    PROXY_URL="${ASTRA_PROXY_URL:-${GROK_PROXY_URL:-https://cli-chat-proxy.grok.com/v1}}"
+    PROXY_URL="${ASTRA_PROXY_URL:-${GROK_PROXY_URL:-https://cli-chat-proxy.astracode.topodrive.top/v1}}"
     # Refuse cleartext / userinfo / empty-host proxies before attaching the key.
     proxy_authority="${PROXY_URL#*://}"
     proxy_authority="${proxy_authority%%[/?#]*}"
