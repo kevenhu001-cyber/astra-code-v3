@@ -200,6 +200,26 @@ pub(crate) async fn start_dual_agent_type_content() -> ContentController {
     .expect("start content with dual agent types")
 }
 
+/// A built-in agent type whose harness is *strict* (`is_strict_harness_agent_type` is true).
+pub(crate) const STRICT_HARNESS_AGENT_TYPE: &str = "codex";
+
+/// Start the mock server with two models whose agent types really do cross harness families.
+///
+/// The mismatch modal only appears when the shell *rejects* the switch, and the shell rejects
+/// it only when the two harness types are incompatible. `harnesses_are_compatible` treats
+/// "one strict, one not" as incompatible but "neither strict" as compatible, and
+/// `is_strict_harness_agent_type` resolves through `BuiltinAgentName` — a name that is not a
+/// built-in agent (`cursor`) is not strict, so a model pinned to it switches silently and the
+/// modal never appears. The strict model therefore has to name a built-in strict harness.
+pub(crate) async fn start_strict_agent_type_content() -> ContentController {
+    ContentController::start_with_models(vec![
+        MockModel::new("default-model"),
+        MockModel::with_agent_type("codex-model", STRICT_HARNESS_AGENT_TYPE),
+    ])
+    .await
+    .expect("start content with dual agent types")
+}
+
 // ── Folder-trust welcome sub-state e2e ──────────────────────────────────
 
 /// Title line of the folder-trust question (see `render_welcome_trust`).

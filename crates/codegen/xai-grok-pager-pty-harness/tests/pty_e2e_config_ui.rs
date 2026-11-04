@@ -37,8 +37,8 @@ mod reasoning_efforts_fallback_menu_matches_builtin;
 mod reasoning_efforts_from_config_toml_menu;
 #[path = "pty_e2e/reasoning_efforts_menu_renders_and_remaps_on_wire.rs"]
 mod reasoning_efforts_menu_renders_and_remaps_on_wire;
-#[path = "pty_e2e/reverse_agent_type_mismatch_cursor_to_default.rs"]
-mod reverse_agent_type_mismatch_cursor_to_default;
+#[path = "pty_e2e/reverse_agent_type_mismatch_codex_to_default.rs"]
+mod reverse_agent_type_mismatch_codex_to_default;
 #[path = "pty_e2e/same_agent_type_switch_no_modal.rs"]
 mod same_agent_type_switch_no_modal;
 #[path = "pty_e2e/show_thinking_blocks_toggle_hides_existing_pty.rs"]
