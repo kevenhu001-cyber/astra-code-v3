@@ -2464,7 +2464,7 @@ fn format_session_info_api_key_without_env() {
     assert!(!text.contains("grok.com"), "{text}");
 }
 #[test]
-fn format_session_info_api_key_auth_suggests_grok_login() {
+fn format_session_info_api_key_auth_does_not_suggest_login() {
     let info = make_session_info("auto", None, 1000, 10000);
     let text = format_session_info(&info, None, false, true, true);
     assert!(text.contains("Auth method: API key (XAI_API_KEY)"), "{text}");
