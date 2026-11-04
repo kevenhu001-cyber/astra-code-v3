@@ -212,20 +212,12 @@ jobs:
         # harness name the shell does not consider strict, a temp file name
         # that the rename had already moved — and are fixed by name now.
         #
-        # The four below are genuine behaviour gaps that still need product
-        # work. They are skipped by name rather than left to fail the job, so
-        # the rest of the tier stays covered and a *new* failure still turns
-        # this job red. Remove an entry once its case passes; the list must
-        # stay empty of passing names, or the coverage silently shrinks.
-        #
-        # - feedback_modal: the trace question does not render inside the
-        #   feedback modal.
-        # - drag_select_autoscroll: the streamed filler never reaches the
-        #   marker the case waits for.
-        # - minimal_slash_switches_from_fullscreen: the welcome card does
-        #   not re-anchor at the top after the in-process /minimal switch.
-        # - endline_park_is_markerless: the cancel-and-sent turn never
-        #   settles.
+        # Re-enable the last four previously skipped cases. Their original
+        # CI screen dumps showed mismatches in the PTY fixture setup/actions:
+        # the trace offer defaults to off when uploads are enabled, a 120-line
+        # fenced block has its own scroll viewport, in-process /minimal does
+        # not reprint the welcome banner, and queued input needs a second
+        # Enter to send now. These cases must fail this job if they regress.
         run: |
           cargo test -p xai-grok-pager-pty-harness --tests --no-fail-fast \
             -- --ignored --test-threads=2 --nocapture \
@@ -233,11 +225,7 @@ jobs:
             --skip campaign_leader_ \
             --skip leader_n_clients_ \
             --skip leader_reattach_ \
-            --skip leader_two_clients_ \
-            --skip feedback_modal_trace_step_and_upload_ordering_pty \
-            --skip drag_select_autoscroll_full_scrollout_copy_pty \
-            --skip minimal_slash_switches_from_fullscreen \
-            --skip endline_park_is_markerless
+            --skip leader_two_clients_
 
   scripted-scenarios-full:
     name: scripted_scenarios (full sweep, ignored)

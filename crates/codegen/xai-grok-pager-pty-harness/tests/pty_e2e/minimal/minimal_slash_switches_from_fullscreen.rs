@@ -79,9 +79,16 @@ async fn minimal_slash_switches_from_fullscreen() {
         !screen.contains("Reopening session"),
         "main screen should be cleared on /minimal relaunch; leftover reopen text:\n{screen}"
     );
+    // In-process switching commits existing history and a seam marker, but
+    // deliberately does not replay the cold-start welcome card. Requiring the
+    // banner to reappear would force a duplicate header into the transcript.
     assert!(
-        screen.contains("Astra") || harness.full_text().contains("Astra"),
-        "welcome card should re-anchor at top after /minimal relaunch\nscreen:\n{screen}"
+        screen.contains(&sentinel) && screen.contains(MINIMAL_SWITCH_BACK_IDLE_SENTINEL),
+        "switched minimal view must show the committed turn and idle switch-back control\nscreen:\n{screen}"
+    );
+    assert!(
+        !screen.contains("Astra  v"),
+        "in-process /minimal must not reprint the cold-start welcome card\nscreen:\n{screen}"
     );
 
     assert!(

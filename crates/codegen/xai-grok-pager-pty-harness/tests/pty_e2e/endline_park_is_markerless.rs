@@ -123,7 +123,14 @@ async fn endline_park_is_markerless() {
         .inject_keys(b"hurry up please")
         .expect("type mid-park");
     harness.update(Duration::from_millis(300));
-    harness.inject_keys(b"\r").expect("submit mid-park prompt");
+    harness.inject_keys(b"\r").expect("queue mid-park prompt");
+    // A live background task makes the first Enter queue the message rather
+    // than interrupt it. The UI advertises the explicit send-now gesture;
+    // an empty Enter promotes that queued row and cancels the parked turn.
+    harness
+        .wait_for_text("Enter to send now", Duration::from_secs(15))
+        .expect("mid-park prompt is queued and can be promoted");
+    harness.inject_keys(b"\r").expect("send queued prompt now");
 
     harness
         .wait_for_text("ENDLINE_FINAL_ANSWER", Duration::from_secs(90))

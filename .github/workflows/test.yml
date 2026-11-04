@@ -306,6 +306,20 @@ jobs:
           cargo test -p xai-grok-pager-pty-harness --test pty_e2e_smoke \
             -- --ignored --test-threads=2 --nocapture
 
+      # These four were skipped in the nightly sweep; run them explicitly on
+      # every PR before restoring full nightly coverage. A failure remains red.
+      - name: Formerly skipped PTY regressions (four focused cases)
+        run: |
+          set -euo pipefail
+          cargo test -p xai-grok-pager-pty-harness --locked --test pty_e2e_config_ui -- \
+            --ignored --test-threads=1 feedback_modal_trace_step_and_upload_ordering_pty
+          cargo test -p xai-grok-pager-pty-harness --locked --test pty_e2e_scroll_selection -- \
+            --ignored --test-threads=1 drag_select_autoscroll_full_scrollout_copy_pty
+          cargo test -p xai-grok-pager-pty-harness --locked --test pty_e2e_minimal -- \
+            --ignored --test-threads=1 minimal_slash_switches_from_fullscreen
+          cargo test -p xai-grok-pager-pty-harness --locked --test pty_e2e_persistence -- \
+            --ignored --test-threads=1 endline_park_is_markerless
+
   # ── Leader PTY E2E. Multi-process (boots 2-3 pager instances + a leader
   # subprocess). Run serialized on a dedicated job so it can't race with the
   # main pty_e2e pool.
