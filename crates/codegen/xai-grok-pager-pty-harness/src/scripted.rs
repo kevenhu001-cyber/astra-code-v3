@@ -224,6 +224,18 @@ pub enum ScenarioStep {
         #[serde(default = "default_wait_timeout_ms")]
         timeout_ms: u64,
     },
+    /// Wait until the screen no longer contains text.
+    ///
+    /// Preferred over a fixed `wait` before an `assert_not_contains`: it returns as soon as the
+    /// text is gone and keeps polling (instead of failing) while the app is slow to redraw. Use it
+    /// for anything that expires on a *tick* budget rather than on the wall clock — a TTL of
+    /// "90 animation ticks" is only ~3 s at the nominal frame rate, and a loaded CI runner drops
+    /// the frame rate, so a fixed sleep races the expiry.
+    WaitForTextAbsent {
+        text: String,
+        #[serde(default = "default_wait_timeout_ms")]
+        timeout_ms: u64,
+    },
     /// Assert text is present on the current screen.
     AssertContains { text: String },
     /// Assert text is absent from the current screen.
@@ -762,6 +774,9 @@ fn run_step(
         ScenarioStep::WaitForText { text, timeout_ms } => harness
             .wait_for_text(text, Duration::from_millis(*timeout_ms))
             .with_context(|| format!("wait for text {text:?}"))?,
+        ScenarioStep::WaitForTextAbsent { text, timeout_ms } => harness
+            .wait_for_text_absent(text, Duration::from_millis(*timeout_ms))
+            .with_context(|| format!("wait for text {text:?} to disappear"))?,
         ScenarioStep::AssertContains { text } => {
             if !harness.contains_text(text) {
                 bail!("expected screen to contain {text:?}");
@@ -1927,6 +1942,7 @@ fn sgr_mouse(button: u16, row: u16, col: u16, suffix: char) -> String {
 fn action_name(step: &ScenarioStep) -> &'static str {
     match step {
         ScenarioStep::WaitForText { .. } => "wait_for_text",
+        ScenarioStep::WaitForTextAbsent { .. } => "wait_for_text_absent",
         ScenarioStep::AssertContains { .. } => "assert_contains",
         ScenarioStep::AssertNotContains { .. } => "assert_not_contains",
         ScenarioStep::TypeText { .. } => "type_text",
@@ -2185,6 +2201,32 @@ steps:
                 .map(String::as_str),
             Some("# Release Notes\n")
         );
+    }
+
+    /// `wait_for_text_absent` round-trips through the scenario YAML and defaults its timeout.
+    #[test]
+    fn scenario_parses_wait_for_text_absent() {
+        let scenario: ScriptedScenario = serde_yaml::from_str(
+            r##"
+name: tip-expiry
+steps:
+  - action: wait_for_text_absent
+    text: "Tight on space"
+"##,
+        )
+        .expect("parse scenario");
+
+        assert_eq!(scenario.steps.len(), 1);
+        match &scenario.steps[0] {
+            ScenarioStep::WaitForTextAbsent { text, timeout_ms } => {
+                assert_eq!(text, "Tight on space");
+                assert_eq!(
+                    *timeout_ms, DEFAULT_WAIT_TIMEOUT_MS,
+                    "the absent-text wait must inherit the default timeout"
+                );
+            }
+            other => panic!("expected a wait_for_text_absent step, got {other:?}"),
+        }
     }
 
     #[test]

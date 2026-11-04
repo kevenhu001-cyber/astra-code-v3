@@ -30,11 +30,12 @@ steps:
   - action: screenshot
     name: small-screen-tip-shown
     note: One-shot /compact-mode tip on a 24-row terminal.
-  # Past the ~3s TTL the banner clears on its own.
-  - action: wait
-    millis: 4500
-  - action: assert_not_contains
+  # Past the ~3s TTL the banner clears on its own. The TTL is counted in animation
+  # ticks, so its wall-clock lifetime stretches when the runner is loaded: poll for
+  # the banner to disappear instead of racing a fixed sleep.
+  - action: wait_for_text_absent
     text: "Tight on space"
+    timeout_ms: 15000
   # Dip into the auto-compact zone (19 <= 20) and back into the band: the
   # one-shot must not re-trigger.
   - action: resize
