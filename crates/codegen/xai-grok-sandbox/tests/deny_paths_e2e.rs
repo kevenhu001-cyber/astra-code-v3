@@ -615,7 +615,15 @@ fn subprocess_devbox_marker_spoof(workspace: &Path) {
 /// Genuine devbox re-exec: with the marker fast path removed, Landlock must now also apply inside the real bwrap without breaking startup.
 fn subprocess_devbox_genuine(workspace: &Path) {
     let profile = xai_grok_sandbox::ProfileName::Devbox;
-    subprocess_profile_and_bwrap_reexec(&profile, workspace);
+    // The devbox bwrap re-exec exists to compose the `/data` write-deny plan.
+    // A host without `/data` has nothing to re-exec for, so the scenario runs in
+    // place there and Landlock must still apply.
+    let reexec = Path::new("/data").exists();
+    if reexec {
+        subprocess_profile_and_bwrap_reexec(&profile, workspace);
+    } else {
+        eprintln!("note: no /data on this host; devbox composes no bwrap re-exec");
+    }
     let mut sandbox = xai_grok_sandbox::SandboxManager::new(profile, workspace);
     if let Err(e) = sandbox.apply(workspace) {
         eprintln!("sandbox apply failed: {e}");
@@ -639,7 +647,14 @@ fn subprocess_devbox_genuine(workspace: &Path) {
         eprintln!("FAIL: genuine devbox /data must remain readable: {e}");
         std::process::exit(5);
     }
-    eprintln!("OK: devbox enforcement applied inside genuine bwrap");
+    eprintln!(
+        "OK: devbox enforcement applied{}",
+        if reexec {
+            " inside genuine bwrap"
+        } else {
+            " in place"
+        }
+    );
     std::process::exit(0);
 }
 
@@ -1167,8 +1182,7 @@ fn devbox_genuine_reexec_applies_enforcement() {
         .expect("failed to spawn subprocess");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        output.status.success()
-            && stderr.contains("OK: devbox enforcement applied inside genuine bwrap"),
+        output.status.success() && stderr.contains("OK: devbox enforcement applied"),
         "genuine devbox re-exec must keep applying enforcement\nstderr: {stderr}"
     );
 }
