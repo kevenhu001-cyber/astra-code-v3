@@ -388,7 +388,7 @@ mod write_fallback_tests {
         assert_eq!(
             resolve_auth_json_path(
                 Some("/custom/creds.json".into()),
-                Path::new("/home/u/.grok")
+                Path::new("/home/u/.astra")
             ),
             PathBuf::from("/custom/creds.json"),
         );
@@ -397,16 +397,16 @@ mod write_fallback_tests {
     #[test]
     fn auth_json_path_falls_back_to_home() {
         assert_eq!(
-            resolve_auth_json_path(None, Path::new("/home/u/.grok")),
-            PathBuf::from("/home/u/.grok/auth.json"),
+            resolve_auth_json_path(None, Path::new("/home/u/.astra")),
+            PathBuf::from("/home/u/.astra/auth.json"),
         );
     }
 
     #[test]
     fn auth_json_path_treats_empty_override_as_unset() {
         assert_eq!(
-            resolve_auth_json_path(Some(OsString::new()), Path::new("/home/u/.grok")),
-            PathBuf::from("/home/u/.grok/auth.json"),
+            resolve_auth_json_path(Some(OsString::new()), Path::new("/home/u/.astra")),
+            PathBuf::from("/home/u/.astra/auth.json"),
         );
     }
 

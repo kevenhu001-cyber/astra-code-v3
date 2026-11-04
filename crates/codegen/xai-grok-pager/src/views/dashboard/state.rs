@@ -4479,7 +4479,7 @@ pub fn load_persisted_from_path(path: &std::path::Path) -> Option<PersistedDashb
 /// + rename, so concurrent readers never observe a half-truncated file.
 pub fn write_persisted(p: &PersistedDashboard) -> std::io::Result<()> {
     let path = config_path()
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no grok home"))?;
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no astra home"))?;
     write_persisted_to_path(&path, p)
 }
 

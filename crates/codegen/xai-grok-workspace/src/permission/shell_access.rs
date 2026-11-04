@@ -1529,7 +1529,7 @@ mod tests {
         ] {
             assert!(
                 path_is_under_user_grok_hook_root(Path::new(path), home),
-                "must match under custom grok home: {path}"
+                "must match under custom astra home: {path}"
             );
         }
         for path in [

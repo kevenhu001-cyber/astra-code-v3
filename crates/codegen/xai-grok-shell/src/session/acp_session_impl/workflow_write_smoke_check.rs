@@ -1,4 +1,4 @@
-//! When a write or edit tool touches a project `.grok/workflows/*.rhai` script, run the workflow validator on it and warn the model on failure.
+//! When a write or edit tool touches a project `.astra/workflows/*.rhai` script, run the workflow validator on it and warn the model on failure.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
@@ -33,7 +33,7 @@ pub(super) fn is_project_workflow_rhai_path(path: &Path) -> bool {
 
     let components: Vec<_> = path.components().collect();
     components.windows(2).any(|pair| {
-        matches!(pair[0], Component::Normal(name) if name == ".grok")
+        matches!(pair[0], Component::Normal(name) if name == ".astra")
             && matches!(pair[1], Component::Normal(name) if name == "workflows")
     })
 }

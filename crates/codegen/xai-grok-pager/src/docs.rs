@@ -179,7 +179,7 @@ pub static USER_GUIDE: &[Doc] = &[
     // `guide!` hides the path inside concat!($file) and gazelle cannot see it.
     Doc {
         filename: "27-grok-clone.md",
-        title: "grok clone",
+        title: "astra clone",
         description: "Depth-1 Grove clone, --full-history, and safe deepen/switch commands",
         content: include_str!("../docs/user-guide/27-grok-clone.md"),
     },
