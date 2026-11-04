@@ -420,7 +420,7 @@ fn resolve_config(
             StorageMode::from_remote_gated(cfg.remote_settings.as_ref(), has_xai_auth);
     }
     if cfg.storage_mode == StorageMode::Writeback && !has_xai_auth {
-        tracing::info!("Writeback is disabled: requires auth with grok.com");
+        tracing::info!("Writeback is disabled: requires auth with Astra");
         cfg.storage_mode = StorageMode::Local;
     }
     if let Some(rs) = cfg.remote_settings.as_ref()
