@@ -50,13 +50,13 @@ To fetch a repository through Grove (NFS on macOS, FUSE on Linux) after
 `[clone] enabled = true` in Grove config:
 
 ```bash
-grok clone <url> [dir]
+astra clone <url> [dir]
 ```
 
 The default is a depth-1 checkout of the selected branch. Pass `--full-history`
 for a complete clone. Clone enablement is independent of session / `-w` Grove
 worktrees. Git credentials for the remote come from the Grove daemon, not from
-the Astra sign-in below — see [grok clone](27-grok-clone.md#authentication)
+the Astra sign-in below — see [astra clone](27-grok-clone.md#authentication)
 and [Configuration reference](26-config-reference.md).
 
 ---
