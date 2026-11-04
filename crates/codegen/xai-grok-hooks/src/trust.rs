@@ -96,7 +96,7 @@ fn is_hook_disabled_with_file(hook_name: &str, file: &Path) -> bool {
 /// Disable a hook by name (append to `$GROK_HOME/disabled-hooks`).
 pub fn disable_hook(hook_name: &str) -> Result<(), String> {
     let file = disabled_hooks_file_path()
-        .ok_or_else(|| "no user grok home (set $ASTRA_HOME or $HOME)".to_string())?;
+        .ok_or_else(|| "no user astra home (set $ASTRA_HOME or $HOME)".to_string())?;
     disable_hook_with_file(hook_name, &file)
 }
 

@@ -2282,13 +2282,13 @@ async fn reconcile_agent_to_astra(bin_dir: &std::path::Path) {
 
 #[cfg(windows)]
 async fn reconcile_agent_exe_to_astra(bin_dir: &std::path::Path) {
-    let grok_exe = bin_dir.join("astra.exe");
+    let astra_exe = bin_dir.join("astra.exe");
     let agent_exe = bin_dir.join("agent.exe");
 
-    if tokio::fs::metadata(&grok_exe).await.is_err() {
+    if tokio::fs::metadata(&astra_exe).await.is_err() {
         return;
     }
-    match agent_exe_differs(&grok_exe, &agent_exe).await {
+    match agent_exe_differs(&astra_exe, &agent_exe).await {
         Ok(true) => {}
         Ok(false) => return,
         Err(e) => {
@@ -2296,7 +2296,7 @@ async fn reconcile_agent_exe_to_astra(bin_dir: &std::path::Path) {
             return;
         }
     }
-    match windows_replace_exe(&grok_exe, &agent_exe).await {
+    match windows_replace_exe(&astra_exe, &agent_exe).await {
         Ok(()) => tracing::info!("reconciled agent.exe to astra.exe"),
         Err(e) => tracing::warn!("failed to reconcile agent.exe to astra.exe: {e:#}"),
     }

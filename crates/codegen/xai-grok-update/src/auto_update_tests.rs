@@ -2114,7 +2114,7 @@ async fn test_windows_replace_exe_cleans_stale_old_backup() {
     std::fs::write(&src, "new").unwrap();
     let dest = dir.path().join("astra.exe");
     std::fs::write(&dest, "current").unwrap();
-    let old = dir.path().join("grok.exe.old");
+    let old = dir.path().join("astra.exe.old");
     std::fs::write(&old, "stale-from-prior-update").unwrap();
 
     windows_replace_exe(&src, &dest).await.unwrap();
@@ -2159,7 +2159,7 @@ async fn test_windows_replace_exe_locked_file_renames_aside() {
 
     assert_eq!(std::fs::read_to_string(&dest).unwrap(), "updated binary");
 
-    let old = dir.path().join("grok.exe.old");
+    let old = dir.path().join("astra.exe.old");
     assert!(old.exists(), ".old must exist after rename fallback");
     drop(_lock);
     assert_eq!(std::fs::read_to_string(&old).unwrap(), "running binary");
@@ -2168,7 +2168,7 @@ async fn test_windows_replace_exe_locked_file_renames_aside() {
 #[cfg(windows)]
 #[tokio::test]
 async fn test_windows_replace_exe_rollback_on_copy_failure() {
-    // No stale .old: the aside IS grok.exe.old, so this pins the non-diverted rollback branch (rename .old back onto dest)
+    // No stale .old: the aside IS astra.exe.old, so this pins the non-diverted rollback branch (rename .old back onto dest)
     use std::os::windows::fs::OpenOptionsExt;
     const FILE_SHARE_READ: u32 = 0x00000001;
     const FILE_SHARE_DELETE: u32 = 0x00000004;
@@ -2202,7 +2202,7 @@ async fn test_windows_replace_exe_rollback_on_copy_failure() {
         "original",
         "rollback must restore the original binary"
     );
-    let old = dir.path().join("grok.exe.old");
+    let old = dir.path().join("astra.exe.old");
     assert!(!old.exists(), "rollback must consume the .old aside");
 }
 
@@ -2248,7 +2248,7 @@ async fn test_windows_replace_exe_locked_stale_old_does_not_block_update() {
     std::fs::write(&src, "updated binary").unwrap();
     let dest = dir.path().join("astra.exe");
     std::fs::write(&dest, "running binary").unwrap();
-    let old = dir.path().join("grok.exe.old");
+    let old = dir.path().join("astra.exe.old");
     std::fs::write(&old, "previous binary").unwrap();
 
     // No FILE_SHARE_DELETE: .old cannot be deleted or rename-replaced.
@@ -2278,7 +2278,7 @@ async fn test_windows_replace_exe_locked_stale_old_does_not_block_update() {
         .filter(|p| {
             p.file_name()
                 .and_then(|n| n.to_str())
-                .is_some_and(|n| n.starts_with("grok.exe.old.") && n.ends_with(".old"))
+                .is_some_and(|n| n.starts_with("astra.exe.old.") && n.ends_with(".old"))
         })
         .collect();
     assert_eq!(
@@ -2305,7 +2305,7 @@ async fn test_windows_replace_exe_rollback_restores_from_diverted_aside() {
     std::fs::write(&src, "updated binary").unwrap();
     let dest = dir.path().join("astra.exe");
     std::fs::write(&dest, "running binary").unwrap();
-    let old = dir.path().join("grok.exe.old");
+    let old = dir.path().join("astra.exe.old");
     std::fs::write(&old, "previous binary").unwrap();
 
     // No FILE_SHARE_DELETE: .old survives the sweep and forces a divert.
@@ -2342,7 +2342,7 @@ async fn test_windows_replace_exe_rollback_restores_from_diverted_aside() {
         .filter(|e| {
             let name = e.file_name();
             let name = name.to_string_lossy();
-            name.starts_with("grok.exe.old.") && name.ends_with(".old")
+            name.starts_with("astra.exe.old.") && name.ends_with(".old")
         })
         .count();
     assert_eq!(leftover_asides, 0, "rollback must consume the aside");
@@ -2358,10 +2358,10 @@ async fn test_windows_replace_exe_sweeps_accumulated_asides() {
     std::fs::write(&src, "new").unwrap();
     let dest = dir.path().join("astra.exe");
     std::fs::write(&dest, "current").unwrap();
-    let old = dir.path().join("grok.exe.old");
+    let old = dir.path().join("astra.exe.old");
     std::fs::write(&old, "stale").unwrap();
-    let aside_a = dir.path().join("grok.exe.old.1234-0.old");
-    let aside_b = dir.path().join("grok.exe.old.1234-1.old");
+    let aside_a = dir.path().join("astra.exe.old.1234-0.old");
+    let aside_b = dir.path().join("astra.exe.old.1234-1.old");
     std::fs::write(&aside_a, "aside-a").unwrap();
     std::fs::write(&aside_b, "aside-b").unwrap();
     let agent_old = dir.path().join("agent.exe.old");
