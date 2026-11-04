@@ -1,4 +1,4 @@
-//! Regression: `grok plugin marketplace remove` must fail closed when the config-init flock
+//! Regression: `astra plugin marketplace remove` must fail closed when the config-init flock
 //! cannot be acquired — proceeding unlocked is the race the flock exists to prevent.
 
 #[test]

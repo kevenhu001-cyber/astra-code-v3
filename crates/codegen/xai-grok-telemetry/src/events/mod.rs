@@ -67,7 +67,7 @@ pub enum ContextualTipKind {
     WordSelect,
     /// Three nearby drag-copies → tip naming /copy and /export.
     ExportCopy,
-    /// An SSH session without `grok wrap` shows a tip to wrap the ssh command locally.
+    /// An SSH session without `astra wrap` shows a tip to wrap the ssh command locally.
     SshWrap,
 }
 
@@ -162,13 +162,13 @@ impl CliUpdateInstaller {
 }
 
 /// [`CliUpdateTrigger`]'s strum string and `FromStr` are the only rendering; tests pin the round trip with the wire
-/// values. Volume caveat: one-shot `grok update` resolves telemetry from disk and env only. So `user_command`
+/// values. Volume caveat: one-shot `astra update` resolves telemetry from disk and env only. So `user_command`
 /// under-reports relative to the in-process `leader_converge`; the triggers are not directly comparable.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq, strum::AsRefStr, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum CliUpdateTrigger {
-    /// A human ran `grok update` or accepted an update prompt.
+    /// A human ran `astra update` or accepted an update prompt.
     UserCommand,
     /// TUI/stdio launch check spawned a detached update child.
     AutoBackground,
@@ -2028,7 +2028,7 @@ pub struct ClipboardCopy {
     pub osc52_ok: bool,
     /// Evidence classification: `confirmed` | `unverified` | `failed`.
     pub delivery: &'static str,
-    /// An explicit `grok wrap` OSC 52 sink was active.
+    /// An explicit `astra wrap` OSC 52 sink was active.
     pub osc52_sink: bool,
     /// The process was inside a container without a display server.
     pub container_no_display: bool,
@@ -2386,7 +2386,7 @@ pub struct CliUpdate {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// grok clone (utility process)
+// astra clone (utility process)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// History shape requested by the client or produced by the daemon.
@@ -2397,7 +2397,7 @@ pub enum CloneHistoryMode {
     Full,
 }
 
-/// Whether `grok clone` finished the mount.
+/// Whether `astra clone` finished the mount.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CloneOutcome {
@@ -2406,7 +2406,7 @@ pub enum CloneOutcome {
     Cancelled,
 }
 
-/// Where a failed `grok clone` stopped.
+/// Where a failed `astra clone` stopped.
 /// Closed set: no freeform strings.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -2566,7 +2566,7 @@ impl CloneDaemonCapabilityClass {
     }
 }
 
-/// One `grok clone` attempt. Content-free: no URL, dest, store, or repo name.
+/// One `astra clone` attempt. Content-free: no URL, dest, store, or repo name.
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct CloneEnded {
     pub requested_history: CloneHistoryMode,

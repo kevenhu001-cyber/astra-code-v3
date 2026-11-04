@@ -928,19 +928,19 @@ async fn legacy_auth_hint_on_404_model_not_found() {
                 "404 with WebLogin must include deprecation message, got: {msg}"
             );
             assert!(
-                msg.contains("grok update"),
-                "hint must mention `grok update` before re-login, got: {msg}"
+                msg.contains("astra update"),
+                "hint must mention `astra update` before re-login, got: {msg}"
             );
             assert!(
-                msg.contains("grok logout"),
-                "hint must mention `grok logout`, got: {msg}"
+                msg.contains("astra logout"),
+                "hint must mention `astra logout`, got: {msg}"
             );
             assert!(
-                msg.contains("grok login"),
-                "hint must mention `grok login`, got: {msg}"
+                msg.contains("astra login"),
+                "hint must mention `astra login`, got: {msg}"
             );
-            let update_at = msg.find("grok update").expect("grok update");
-            let logout_at = msg.find("grok logout").expect("grok logout");
+            let update_at = msg.find("astra update").expect("astra update");
+            let logout_at = msg.find("astra logout").expect("astra logout");
             assert!(
                 update_at < logout_at,
                 "update must come before logout, got: {msg}"
@@ -959,7 +959,7 @@ async fn legacy_auth_hint_on_404_model_not_found() {
 fn unauthorized_401_error() -> xai_grok_sampler::SamplingErrorInfo {
     xai_grok_sampler::SamplingErrorInfo {
             kind: xai_grok_sampler::SamplingErrorKind::Api,
-            message: "Unauthorized (401) from https://cli-chat-proxy.grok.com/v1/responses: {\"error\":\"Invalid or expired credentials (auth_kind=bearer, x_xai_token_auth=xai-grok-cli, upstream=Unauthenticated, reason=no auth context)\"}".into(),
+            message: "Unauthorized (401) from https://cli-chat-proxy.astracode.topodrive.top/v1/responses: {\"error\":\"Invalid or expired credentials (auth_kind=bearer, x_xai_token_auth=xai-grok-cli, upstream=Unauthenticated, reason=no auth context)\"}".into(),
             status_code: Some(401),
             is_retryable: false,
             retry_after_secs: None,
@@ -1008,19 +1008,19 @@ async fn legacy_auth_hint_on_401_unauthorized() {
                 "401 with WebLogin must include deprecation message, got: {msg}"
             );
             assert!(
-                msg.contains("grok update"),
-                "hint must mention `grok update` before re-login, got: {msg}"
+                msg.contains("astra update"),
+                "hint must mention `astra update` before re-login, got: {msg}"
             );
             assert!(
-                msg.contains("grok logout"),
-                "hint must mention `grok logout`, got: {msg}"
+                msg.contains("astra logout"),
+                "hint must mention `astra logout`, got: {msg}"
             );
             assert!(
-                msg.contains("grok login"),
-                "hint must mention `grok login`, got: {msg}"
+                msg.contains("astra login"),
+                "hint must mention `astra login`, got: {msg}"
             );
-            let update_at = msg.find("grok update").expect("grok update");
-            let logout_at = msg.find("grok logout").expect("grok logout");
+            let update_at = msg.find("astra update").expect("astra update");
+            let logout_at = msg.find("astra logout").expect("astra logout");
             assert!(
                 update_at < logout_at,
                 "update must come before logout, got: {msg}"

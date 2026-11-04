@@ -1,9 +1,9 @@
-//! Data APIs for `grok models`. Rendering is the client's job.
+//! Data APIs for `astra models`. Rendering is the client's job.
 use crate::agent::config::Config as AgentConfig;
 use agent_client_protocol as acp;
 use anyhow::Result;
 use xai_acp_lib::{AcpAgentTx, acp_send};
-/// Status for the `grok models` banner (the display order is not the sampling priority; see [`AuthStatus::resolve`]).
+/// Status for the `astra models` banner (the display order is not the sampling priority; see [`AuthStatus::resolve`]).
 #[derive(Debug, PartialEq, Eq)]
 pub enum AuthStatus {
     ApiKey,

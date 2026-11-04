@@ -1,4 +1,4 @@
-//! CLI-seam tests for `grok mcp enable`/`disable`/`add`/`list` against the real pager binary: no-op
+//! CLI-seam tests for `astra mcp enable`/`disable`/`add`/`list` against the real pager binary: no-op
 //! toggles leave config.toml alone, policy refusals fire before any write, list reports verdicts.
 
 use std::process::{Command, Stdio};
@@ -293,7 +293,7 @@ fn enable_refuses_denied_project_server_in_untrusted_folder() {
     }
 }
 
-/// `grok mcp disable` writes the personal (user-tier) disable, so "already disabled" is judged
+/// `astra mcp disable` writes the personal (user-tier) disable, so "already disabled" is judged
 /// against that tier: a project-tier `enabled = false` must not swallow the write.
 #[test]
 #[ignore = "spawns the real pager binary; CI/Bazel provides PAGER_BINARY"]
@@ -340,7 +340,7 @@ fn disable_persists_personal_disable_over_project_tier_disable() {
     );
 }
 
-/// `grok mcp list` co-reports the policy verdict with the personal disable, in the text note and
+/// `astra mcp list` co-reports the policy verdict with the personal disable, in the text note and
 /// as the additive `blocked_reason` JSON key.
 #[test]
 #[ignore = "spawns the real pager binary; CI/Bazel provides PAGER_BINARY"]
@@ -381,7 +381,7 @@ fn list_reports_policy_block_in_text_and_json() {
     );
 }
 
-/// `grok mcp add` gates on policy before persisting: a URL deny refuses a user-scope add and the
+/// `astra mcp add` gates on policy before persisting: a URL deny refuses a user-scope add and the
 /// project-MCP pin refuses a fresh `--scope project` add, with no config file written either way.
 #[test]
 #[ignore = "spawns the real pager binary; CI/Bazel provides PAGER_BINARY"]

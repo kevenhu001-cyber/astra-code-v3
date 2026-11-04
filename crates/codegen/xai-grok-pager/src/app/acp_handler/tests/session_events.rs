@@ -472,7 +472,7 @@
         apply_retry_state(
             &RetryState::Failed {
                 error_type: "auth".into(),
-                message: "Unauthorized (401) from https://cli-chat-proxy.grok.com/v1/messages: \
+                message: "Unauthorized (401) from https://cli-chat-proxy.astracode.topodrive.top/v1/messages: \
                           no auth context"
                     .into(),
             },
@@ -533,7 +533,7 @@
         ));
     }
 
-    /// Legacy WebLogin auth keeps its verbose message (with `grok logout` / `grok login` guidance), not the generic re-auth prompt.
+    /// Legacy WebLogin auth keeps its verbose message (with `astra logout` / `astra login` guidance), not the generic re-auth prompt.
     #[test]
     fn apply_retry_state_legacy_auth_keeps_detailed_message() {
         let mut session = make_session(Some("s1"));
@@ -542,7 +542,7 @@
             &RetryState::Failed {
                 error_type: "legacy_auth".into(),
                 message: "Unauthorized (401) ... deprecated authentication method (WebLogin) ... \
-                          run `grok logout` then `grok login`"
+                          run `astra logout` then `astra login`"
                     .into(),
             },
             &mut session,

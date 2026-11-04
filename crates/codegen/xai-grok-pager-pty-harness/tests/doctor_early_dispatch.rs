@@ -357,7 +357,7 @@ fn doctor_fix_without_id_lists_only_applicable_automatic_fixes() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(
-        stdout.contains("On your local computer, run: grok doctor fix ssh-wrap"),
+        stdout.contains("On your local computer, run: astra doctor fix ssh-wrap"),
         "{stdout}"
     );
     assert!(!home.join(".bashrc").exists());

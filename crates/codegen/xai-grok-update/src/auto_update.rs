@@ -814,7 +814,7 @@ pub async fn run_update_if_available(
     Ok(false)
 }
 
-/// Launch "grok update" in blocking or non-blocking mode. `NonBlocking` mode returns the spawned child's handle. The
+/// Launch "astra update" in blocking or non-blocking mode. `NonBlocking` mode returns the spawned child's handle. The
 /// TUI's quit-for-update path `wait()`s on that in-flight download instead of spawning a second downloader. Dropping the
 /// handle does not kill the child (`kill_on_drop` is off), so callers that don't care can ignore it.
 async fn run_update_subcommand(
@@ -2282,13 +2282,13 @@ async fn reconcile_agent_to_astra(bin_dir: &std::path::Path) {
 
 #[cfg(windows)]
 async fn reconcile_agent_exe_to_astra(bin_dir: &std::path::Path) {
-    let grok_exe = bin_dir.join("astra.exe");
+    let astra_exe = bin_dir.join("astra.exe");
     let agent_exe = bin_dir.join("agent.exe");
 
-    if tokio::fs::metadata(&grok_exe).await.is_err() {
+    if tokio::fs::metadata(&astra_exe).await.is_err() {
         return;
     }
-    match agent_exe_differs(&grok_exe, &agent_exe).await {
+    match agent_exe_differs(&astra_exe, &agent_exe).await {
         Ok(true) => {}
         Ok(false) => return,
         Err(e) => {
@@ -2296,7 +2296,7 @@ async fn reconcile_agent_exe_to_astra(bin_dir: &std::path::Path) {
             return;
         }
     }
-    match windows_replace_exe(&grok_exe, &agent_exe).await {
+    match windows_replace_exe(&astra_exe, &agent_exe).await {
         Ok(()) => tracing::info!("reconciled agent.exe to astra.exe"),
         Err(e) => tracing::warn!("failed to reconcile agent.exe to astra.exe: {e:#}"),
     }
@@ -2829,7 +2829,7 @@ async fn refresh_deployment_config() {
     match xai_grok_shell::managed_config::sync().await {
         Ok(true) => eprintln!("  Applied managed configuration."),
         Ok(false) => tracing::debug!("no managed configuration to apply"),
-        // Auth issues aren't actionable mid-update: quiet here, loud on `grok setup`.
+        // Auth issues aren't actionable mid-update: quiet here, loud on `astra setup`.
         Err(e) if e.is_auth_rejection() => tracing::debug!("managed config not applied: {e}"),
         Err(e) if e.is_retryable() => {
             tracing::debug!("managed config refresh failed: {e}");

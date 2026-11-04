@@ -71,7 +71,7 @@ pub enum McpServerProblemSeverity {
     Warning,
 }
 
-/// A problem found loading an `[mcp_servers.*]` entry. It is reported (never fatal) and shown by `grok inspect`.
+/// A problem found loading an `[mcp_servers.*]` entry. It is reported (never fatal) and shown by `astra inspect`.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServerConfigProblem {

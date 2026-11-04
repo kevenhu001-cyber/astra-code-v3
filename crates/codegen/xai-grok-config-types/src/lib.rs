@@ -876,7 +876,7 @@ pub struct RemoteSettings {
     /// See `Config::resolve_image_edit`.
     #[serde(default)]
     pub imagine_tools_disabled: Option<Vec<String>>,
-    /// Remote settings gate for the `grok workspace` CLI command (Computer Hub workspace exposure).
+    /// Remote settings gate for the `astra workspace` CLI command (Computer Hub workspace exposure).
     /// It comes from `grok_build_settings.workspace_command_enabled`.
     /// `Some(true)` enables it; `None` or `Some(false)` (the default) keep it off.
     #[serde(default)]
@@ -937,7 +937,7 @@ pub struct ContextualHintsRemote {
     /// Export/copy tip after three nearby drag-copies.
     #[serde(default)]
     pub export_copy: Option<bool>,
-    /// SSH wrap session-load tip (recommend `grok wrap ssh` for remote sessions).
+    /// SSH wrap session-load tip (recommend `astra wrap ssh` for remote sessions).
     #[serde(default)]
     pub ssh_wrap: Option<bool>,
 }

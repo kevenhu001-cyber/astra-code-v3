@@ -552,7 +552,7 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "workflows",
     "yolo",
 ];
-/// Unconditional reservations for `grok inspect`.
+/// Unconditional reservations for `astra inspect`.
 /// Live advertising still includes currently gated-on shell builtins plus [`PAGER_COMMAND_KEYS`].
 static RESERVED_SLASH_NAMES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     let mut taken: HashSet<&'static str> = PAGER_COMMAND_KEYS.iter().copied().collect();

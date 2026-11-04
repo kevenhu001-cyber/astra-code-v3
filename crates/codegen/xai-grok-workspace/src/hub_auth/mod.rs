@@ -1,7 +1,7 @@
 //! Hub [`AuthProvider`] from `~/.grok/auth.json` for the standalone
 //! `workspace_server` binary: loopback `ws://` uses a plain bearer, otherwise an auto-refreshing OIDC provider that persists rotated tokens.
 //!
-//! The in-leader `grok workspace` exposure does NOT use this path.
+//! The in-leader `astra workspace` exposure does NOT use this path.
 //! It gets an in-memory provider from the leader's `AuthManager` (see `LeaderAuthProvider`) so it never races the leader's own auth.json writer.
 
 use std::collections::BTreeMap;
@@ -80,11 +80,11 @@ struct AuthEntry {
 
 pub fn default_auth_path() -> anyhow::Result<PathBuf> {
     let grok = xai_grok_config::user_grok_home()
-        .ok_or_else(|| anyhow::anyhow!("no user grok home (set $GROK_HOME or $HOME)"))?;
+        .ok_or_else(|| anyhow::anyhow!("no user astra home (set $ASTRA_HOME or $HOME)"))?;
     Ok(grok.join("auth.json"))
 }
 
-/// The `grok login` session [`provider`] would build from an auth file: which scope entry, and whose.
+/// The `astra login` session [`provider`] would build from an auth file: which scope entry, and whose.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoginSession {
     /// The `auth.json` scope key the entry lives under; refreshes are persisted back to it.
@@ -117,7 +117,7 @@ pub fn login_session(auth_path: &Path) -> anyhow::Result<Option<LoginSession>> {
 
 /// The session under one scope key of `auth_path`, or `None` when there is no file, no such entry,
 /// or the entry is not an OIDC session. For watching the entry a provider was built from: a
-/// `grok logout` removes it, a `grok login` as someone else replaces its identity.
+/// `astra logout` removes it, a `astra login` as someone else replaces its identity.
 ///
 /// # Errors
 ///
@@ -337,7 +337,7 @@ fn lock_inode_is_live(_file: &std::fs::File, _path: &Path) -> bool {
 }
 
 /// `owner_user_id` is the account this provider was built for: an entry that has since changed hands
-/// (a `grok login` as someone else reusing the scope key) is left alone, because writing this
+/// (a `astra login` as someone else reusing the scope key) is left alone, because writing this
 /// session's rotated chain over theirs would leave a hybrid entry — their identity, our tokens.
 /// An empty owner (the entry named no account) disables that check.
 pub(crate) fn write_refreshed_token(
@@ -782,7 +782,7 @@ mod tests {
         assert_eq!(updated["legacy"]["key"], "xai-old");
     }
 
-    /// A refresh that lands after `grok login` as someone else reused the scope key must not write
+    /// A refresh that lands after `astra login` as someone else reused the scope key must not write
     /// the old account's chain into the new account's entry.
     #[test]
     fn write_refreshed_token_leaves_an_entry_that_changed_hands_alone() {
@@ -818,7 +818,7 @@ mod tests {
         assert_eq!(after["oidc"]["key"], "eyJ.unnamed");
     }
 
-    /// With several OIDC entries (personal and enterprise login), the latest `expires_at` wins; the user's grok sessions refresh that entry.
+    /// With several OIDC entries (personal and enterprise login), the latest `expires_at` wins; the user's astra sessions refresh that entry.
     /// Alphabetical selection could adopt a different principal's refresh token and rotate it out from under the shell.
     #[test]
     fn read_auth_entry_prefers_latest_expiry() {

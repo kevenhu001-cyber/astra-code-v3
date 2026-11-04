@@ -445,7 +445,7 @@ session content
 
     #[test]
     fn shorten_memory_path() {
-        // Paths under the configured grok memory root drop the root and the first directory below it
+        // Paths under the configured astra memory root drop the root and the first directory below it
         let memory_root = xai_grok_config::grok_home().join("memory");
         let session = memory_root.join("xai-50aa78f0/sessions/2026-05-01.md");
         let top = memory_root.join("MEMORY.md");

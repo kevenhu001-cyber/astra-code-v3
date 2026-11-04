@@ -11,7 +11,7 @@ pub const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(
 
 /// Load LSP servers from user/project config, merge plugin-provided configs, and return the
 /// [`ConfigSource`](crate::types::config_source::ConfigSource) of each. Plugin configs fill gaps (new server names) but never override
-/// user/project config. This is the canonical merge function — both session startup and `grok inspect` call it.
+/// user/project config. This is the canonical merge function — both session startup and `astra inspect` call it.
 pub fn load_servers_with_plugins_sourced(
     cwd: &Path,
     plugin_lsp_paths: &[PathBuf],

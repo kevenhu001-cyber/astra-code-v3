@@ -1,4 +1,4 @@
-//! ACP stdio clients for testing grok sessions end-to-end, both backed by the shared [`TestProcess`].
+//! ACP stdio clients for testing astra sessions end-to-end, both backed by the shared [`TestProcess`].
 //! [`GrokStdioClient`] drives the typed `agent-client-protocol` connection.
 //! [`RawStdioClient`] writes verbatim JSON-RPC lines for wire shapes the typed client cannot produce.
 
@@ -19,7 +19,7 @@ use crate::mock_server::MockInferenceServer;
 use crate::process::{TestOutput, TestProcess, TestProcessConfig, TestStdin};
 use crate::sandbox::TestSandbox;
 
-/// Spawn `grok agent stdio` with the sandbox's canonical hermetic environment.
+/// Spawn `astra agent stdio` with the sandbox's canonical hermetic environment.
 /// `leading_args` go before the `agent stdio` subcommand (global flags).
 fn spawn_agent_process(
     sandbox: &mut TestSandbox,
@@ -43,7 +43,7 @@ fn spawn_agent_process(
         cmd,
         sandbox,
         TestProcessConfig::new()
-            .label("grok agent stdio")
+            .label("astra agent stdio")
             .stdin(TestStdin::Piped)
             .stdout(TestOutput::Piped),
     )
@@ -105,7 +105,7 @@ impl acp::Client for TestAcpClient {
     }
 }
 
-/// Drives `grok agent stdio` via the ACP protocol over pipes. Handles the full lifecycle: spawn, initialize,
+/// Drives `astra agent stdio` via the ACP protocol over pipes. Handles the full lifecycle: spawn, initialize,
 /// authenticate, session, prompt. Child process is killed on drop.
 pub struct GrokStdioClient {
     conn: acp::ClientSideConnection,
@@ -421,7 +421,7 @@ impl GrokStdioClient {
     }
 }
 
-/// Drives `grok agent stdio` with verbatim newline-delimited JSON-RPC lines. Exists for wire shapes the typed
+/// Drives `astra agent stdio` with verbatim newline-delimited JSON-RPC lines. Exists for wire shapes the typed
 /// [`GrokStdioClient`] (`ClientSideConnection`, integer ids) can never produce. Example: Xcode's Swift/Foundation
 /// `JSONEncoder` output, with escaped-slash methods (`"session\/prompt"`) and string UUID request ids.
 pub struct RawStdioClient {

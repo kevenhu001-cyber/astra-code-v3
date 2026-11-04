@@ -271,7 +271,7 @@ impl TrustStore {
             tracing::warn!(
                 path = %canonical.display(),
                 trusted,
-                "folder trust: no user grok home resolved; trust decision not recorded"
+                "folder trust: no user astra home resolved; trust decision not recorded"
             );
             return Ok(Recorded::Skipped);
         };
@@ -1742,7 +1742,7 @@ trusted = true
         assert_eq!(
             workspace_key(&wt),
             expected,
-            "a standalone grok worktree must collapse onto its recorded source repo"
+            "a standalone astra worktree must collapse onto its recorded source repo"
         );
         // A cwd nested below the worktree root collapses onto the same key (the registry walk ascends to the registered worktree)
         let nested = wt.join("crates").join("inner");

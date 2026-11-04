@@ -98,7 +98,7 @@ pub enum ConfigChangeEvent {
 /// comparison) skips the update when nothing actually changed, so the
 /// redundant read is harmless. This avoids a class of bugs where an
 /// optimistic suppression window accidentally swallows writes from external
-/// processes (e.g. `grok login` in another terminal).
+/// processes (e.g. `astra login` in another terminal).
 ///
 /// Adds two **non-recursive** watches per `cwd` argument:
 /// `<cwd>/` (catches `.mcp.json` and `.claude.json` at the project root) and
@@ -193,7 +193,7 @@ impl ConfigFileWatcher {
                 tracing::warn!(
                     path = %grok_home.display(),
                     error = %e,
-                    "failed to watch grok home directory"
+                    "failed to watch astra home directory"
                 )
             })
             .ok()?;
@@ -325,7 +325,7 @@ fn watch_cwd_dirs(debouncer: &mut Debouncer<AccessFilteredWatcher>, cwd: &Path) 
     {
         log_watch_error(
             &e,
-            "failed to watch project .grok directory (non-recursive)",
+            "failed to watch project .astra directory (non-recursive)",
         );
     }
 }
@@ -338,7 +338,7 @@ fn unwatch_cwd_dirs(debouncer: &mut Debouncer<AccessFilteredWatcher>, cwd: &Path
     }
     let grok_dir = cwd.join(".astra");
     if let Err(e) = debouncer.watcher().unwatch(&grok_dir) {
-        tracing::debug!(error = %e, "failed to unwatch project .grok directory");
+        tracing::debug!(error = %e, "failed to unwatch project .astra directory");
     }
 }
 
@@ -1317,7 +1317,7 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "linux")]
-    fn project_discovery_watcher_ignores_unclassified_files_under_project_grok() {
+    fn project_discovery_watcher_ignores_unclassified_files_under_project_astra() {
         let tmp = TempDir::new().unwrap();
         let project = tmp.path();
         git2::Repository::init(project).unwrap();
@@ -1329,11 +1329,11 @@ mod tests {
 
         // Batch-mode debounce delivers about SKILLS_DEBOUNCE after the first raw event
         let settle = SKILLS_DEBOUNCE + Duration::from_millis(500);
-        fs::write(project_grok.join("grok-leader.log"), "leader").unwrap();
+        fs::write(project_grok.join("astra-leader.log"), "leader").unwrap();
         std::thread::sleep(settle);
         assert!(
             rx.try_recv().is_err(),
-            "unclassified files under the project .grok must not fire"
+            "unclassified files under the project .astra must not fire"
         );
 
         fs::write(

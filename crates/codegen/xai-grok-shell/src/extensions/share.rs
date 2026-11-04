@@ -164,7 +164,7 @@ fn require_xai_auth_for_share(
     super::auth_gate::require_xai_auth(
         auth_manager,
         "Authentication required to share session",
-        "Share session is disabled. Run `grok login` to authenticate.",
+        "Share session is disabled. Run `astra login` to authenticate.",
     )
 }
 
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn share_rejects_non_xai_auth_with_actionable_grok_login_message() {
+    fn share_rejects_non_xai_auth_with_actionable_astra_login_message() {
         let dir = tempdir().expect("tempdir");
         let mgr = Arc::new(xai_grok_login::AuthManager::new(
             dir.path(),
@@ -270,7 +270,7 @@ mod tests {
 
         assert_eq!(
             data,
-            "Share session is disabled. Run `grok login` to authenticate."
+            "Share session is disabled. Run `astra login` to authenticate."
         );
     }
 }

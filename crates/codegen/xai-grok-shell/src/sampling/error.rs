@@ -828,7 +828,7 @@ mod tests {
                 "{msg}"
             );
             assert!(!msg.contains("subscription"), "{msg}");
-            assert!(!msg.contains("grok logout"), "{msg}");
+            assert!(!msg.contains("astra logout"), "{msg}");
         });
     }
 
@@ -871,7 +871,7 @@ mod tests {
             let data = acp_err.data.unwrap();
             let msg = data.as_str().unwrap();
             assert!(
-                !msg.contains("grok logout"),
+                !msg.contains("astra logout"),
                 "should NOT suggest logout for non-subscription 403: {msg}"
             );
         });

@@ -348,7 +348,7 @@ async fn connect_and_register_with_mode(
 }
 
 /// A Stdio registration must NOT signal relay demand: a leader serving only interactive clients (TUI dashboard, IDE) keeps the grok.com relay off.
-/// The first Headless registration (the devbox / `grok agent headless` flow) flips the watch so `run_leader` starts the deferred relay connection.
+/// The first Headless registration (the devbox / `astra agent headless` flow) flips the watch so `run_leader` starts the deferred relay connection.
 #[tokio::test]
 async fn relay_demand_signals_only_on_headless_registration() {
     let temp = TempDir::new().unwrap();
@@ -1380,7 +1380,7 @@ fn inject_capabilities_omits_user_message_echo_when_false() {
         json["params"]["_meta"]
             .get(crate::session::CLIENT_USER_MESSAGE_ECHO_META)
             .is_none(),
-        "grok agent (echo false) must not inject clientUserMessageEcho=false over initialize"
+        "astra agent (echo false) must not inject clientUserMessageEcho=false over initialize"
     );
 }
 

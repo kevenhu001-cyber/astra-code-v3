@@ -33,20 +33,20 @@ fn path_param_names_come_from_kind_template_map() {
 #[test]
 fn last_smoke_check_keeps_final_edit_per_path() {
     let indices = last_smoke_check_indices([
-        (0, Some(".grok/workflows/a.rhai".to_owned())),
-        (1, Some(".grok/workflows/b.rhai".to_owned())),
-        (2, Some(".grok/workflows/a.rhai".to_owned())),
+        (0, Some(".astra/workflows/a.rhai".to_owned())),
+        (1, Some(".astra/workflows/b.rhai".to_owned())),
+        (2, Some(".astra/workflows/a.rhai".to_owned())),
         (3, None),
     ]);
     assert_eq!(indices, std::collections::HashSet::from([1, 2]));
 }
 
 #[test]
-fn path_helper_matches_only_grok_workflow_rhai_files() {
+fn path_helper_matches_only_astra_workflow_rhai_files() {
     for path in [
-        ".grok/workflows/check.rhai",
-        "project/.grok/workflows/check.rhai",
-        r"C:\project\.grok\workflows\check.rhai",
+        ".astra/workflows/check.rhai",
+        "project/.astra/workflows/check.rhai",
+        r"C:\project\.astra\workflows\check.rhai",
     ] {
         let normalized = path.replace('\\', "/");
         assert!(
@@ -56,9 +56,9 @@ fn path_helper_matches_only_grok_workflow_rhai_files() {
     }
 
     for path in [
-        ".grok/check.rhai",
-        ".grok/workflows/check.txt",
-        ".grok/not-workflows/check.rhai",
+        ".astra/check.rhai",
+        ".astra/workflows/check.txt",
+        ".astra/not-workflows/check.rhai",
         "workflows/check.rhai",
     ] {
         assert!(!is_project_workflow_rhai_path(Path::new(path)), "{path}");
@@ -68,7 +68,7 @@ fn path_helper_matches_only_grok_workflow_rhai_files() {
 #[tokio::test]
 async fn valid_written_workflow_needs_no_warning() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join(".grok/workflows/valid.rhai");
+    let path = directory.path().join(".astra/workflows/valid.rhai");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, workflow("valid", "complete(\"ok\");")).unwrap();
     crate::agent::folder_trust::record_for_test(directory.path(), true);
@@ -91,14 +91,14 @@ async fn valid_written_workflow_needs_no_warning() {
 #[tokio::test]
 async fn invalid_authored_workflow_returns_path_specific_warning() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join(".grok/workflows/broken.rhai");
+    let path = directory.path().join(".astra/workflows/broken.rhai");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, workflow("broken", "unknown_host_function();")).unwrap();
     crate::agent::folder_trust::record_for_test(directory.path(), true);
 
     let snapshot = snapshot_authored_workflow(
         Some(ToolKind::Write),
-        &serde_json::json!({ "file_path": ".grok/workflows/broken.rhai" }),
+        &serde_json::json!({ "file_path": ".astra/workflows/broken.rhai" }),
         &path_keys(&["file_path"]),
         directory.path(),
         None,
@@ -130,7 +130,7 @@ async fn invalid_authored_workflow_returns_path_specific_warning() {
     assert!(
         snapshot_authored_workflow(
             Some(ToolKind::Edit),
-            &serde_json::json!({ "file_path": ".grok/workflows/broken.rhai" }),
+            &serde_json::json!({ "file_path": ".astra/workflows/broken.rhai" }),
             &path_keys(&["file_path"]),
             directory.path(),
             None,
@@ -142,7 +142,7 @@ async fn invalid_authored_workflow_returns_path_specific_warning() {
     assert!(
         snapshot_authored_workflow(
             Some(ToolKind::Write),
-            &serde_json::json!({ "path": ".grok/workflows/broken.rhai" }),
+            &serde_json::json!({ "path": ".astra/workflows/broken.rhai" }),
             &path_keys(&["path"]),
             directory.path(),
             None,
@@ -154,7 +154,7 @@ async fn invalid_authored_workflow_returns_path_specific_warning() {
     assert!(
         snapshot_authored_workflow(
             Some(ToolKind::Edit),
-            &serde_json::json!({ "target_file": ".grok/workflows/broken.rhai" }),
+            &serde_json::json!({ "target_file": ".astra/workflows/broken.rhai" }),
             &path_keys(&["target_file"]),
             directory.path(),
             None,
@@ -166,7 +166,7 @@ async fn invalid_authored_workflow_returns_path_specific_warning() {
     assert!(
         snapshot_authored_workflow(
             Some(ToolKind::Write),
-            &serde_json::json!({ "src": ".grok/workflows/broken.rhai" }),
+            &serde_json::json!({ "src": ".astra/workflows/broken.rhai" }),
             &path_keys(&["src"]),
             directory.path(),
             None,
@@ -180,7 +180,7 @@ async fn invalid_authored_workflow_returns_path_specific_warning() {
 #[tokio::test]
 async fn parse_failure_is_returned_during_snapshot() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join(".grok/workflows/parse-failure.rhai");
+    let path = directory.path().join(".astra/workflows/parse-failure.rhai");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, workflow("parse-failure", "let value = ;")).unwrap();
     crate::agent::folder_trust::record_for_test(directory.path(), true);
@@ -203,7 +203,7 @@ async fn parse_failure_is_returned_during_snapshot() {
 #[tokio::test]
 async fn nonterminating_workflow_times_out_promptly() {
     let snapshot = AuthoredWorkflowSnapshot {
-        path: PathBuf::from(".grok/workflows/loop.rhai"),
+        path: PathBuf::from(".astra/workflows/loop.rhai"),
         script: workflow("loop", "loop {}"),
     };
     let started = std::time::Instant::now();
@@ -221,7 +221,7 @@ async fn nonterminating_workflow_times_out_promptly() {
 async fn dropped_check_releases_permit_after_cancel() {
     let permits = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
     let snapshot = AuthoredWorkflowSnapshot {
-        path: PathBuf::from(".grok/workflows/loop.rhai"),
+        path: PathBuf::from(".astra/workflows/loop.rhai"),
         script: workflow("loop", "loop {}"),
     };
     tokio::select! {
@@ -239,7 +239,7 @@ async fn dropped_check_releases_permit_after_cancel() {
 #[tokio::test]
 async fn irrelevant_tool_or_path_skips_smoke_check() {
     let directory = tempfile::tempdir().unwrap();
-    let missing = serde_json::json!({ "file_path": ".grok/workflows/missing.rhai" });
+    let missing = serde_json::json!({ "file_path": ".astra/workflows/missing.rhai" });
 
     assert!(
         snapshot_authored_workflow(

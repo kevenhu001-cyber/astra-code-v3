@@ -881,7 +881,7 @@ fn list_url_explicit_overrides_derivation() {
         "https://registry.acme.com/api/list-models"
     );
 }
-/// REGRESSION: `grok setup` must send the deployment key to
+/// REGRESSION: `astra setup` must send the deployment key to
 /// the proxy, never the inference endpoint.
 #[test]
 #[serial_test::serial]

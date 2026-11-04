@@ -116,7 +116,7 @@ fn should_evict(leader_version: Option<&str>, client_version: &str) -> bool {
 const RECONNECT_BASE_DELAY: Duration = Duration::from_secs(1);
 /// Maximum delay between reconnection attempts (caps exponential backoff).
 const RECONNECT_MAX_DELAY: Duration = Duration::from_secs(30);
-/// Maximum reconnection attempts for bounded mode (headless/`grok -p`).
+/// Maximum reconnection attempts for bounded mode (headless/`astra -p`).
 /// TUI mode uses unlimited retries controlled by a cancellation token.
 const RECONNECT_MAX_ATTEMPTS_BOUNDED: u32 = 5;
 /// Environment URLs to pass to the leader subprocess.
@@ -902,7 +902,7 @@ pub enum ReconnectPolicy {
     /// Suitable for interactive TUI sessions where the user expects persistence.
     Unbounded,
     /// Retry up to a fixed number of attempts, then fail.
-    /// Suitable for headless/`grok -p` where hanging forever is unacceptable.
+    /// Suitable for headless/`astra -p` where hanging forever is unacceptable.
     Bounded { max_attempts: u32 },
 }
 impl ReconnectPolicy {
@@ -1557,7 +1557,7 @@ pub async fn connect_or_spawn(
 ///
 /// For a **managed install** — the running binary lives under `grok_home`
 /// (e.g. `~/.astra/...`) — prefer the managed `~/.astra/bin/grok` symlink. After an
-/// auto-update or `grok update` atomically swaps that symlink, `current_exe()`
+/// auto-update or `astra update` atomically swaps that symlink, `current_exe()`
 /// still resolves (via `/proc/self/exe` on Linux) to the *old* versioned target,
 /// so spawning it would relaunch the stale binary. The symlink always points to
 /// the freshly-installed version. This mirrors
@@ -1567,23 +1567,23 @@ pub async fn connect_or_spawn(
 /// not under `grok_home`), keep `current_exe()` so the spawned leader matches the
 /// calling binary.
 ///
-/// Falls back to `~/.astra/bin/grok` only when `current_exe()` is unavailable.
+/// Falls back to `~/.astra/bin/astra` only when `current_exe()` is unavailable.
 fn resolve_exe_for_spawn() -> Result<std::path::PathBuf, ConnectionError> {
     resolve_binary_with_home(&crate::util::grok_home::grok_home())
 }
 fn resolve_binary_with_home(grok_home: &Path) -> Result<std::path::PathBuf, ConnectionError> {
     resolve_binary_impl(grok_home, std::env::current_exe().ok())
 }
-/// Binary file name for the managed grok install (`grok` / `grok.exe`).
-fn managed_grok_bin_name() -> &'static str {
-    if cfg!(windows) { "grok.exe" } else { "astra" }
+/// Binary file name for the managed install (`astra` / `astra.exe`).
+fn managed_astra_bin_name() -> &'static str {
+    if cfg!(windows) { "astra.exe" } else { "astra" }
 }
 /// Core leader-binary resolution with the current-exe path injected, for testability.
 fn resolve_binary_impl(
     grok_home: &Path,
     current_exe: Option<std::path::PathBuf>,
 ) -> Result<std::path::PathBuf, ConnectionError> {
-    let managed_bin = grok_home.join("bin").join(managed_grok_bin_name());
+    let managed_bin = grok_home.join("bin").join(managed_astra_bin_name());
     if let Some(ref exe) = current_exe
         && path_is_under(exe, grok_home)
         && managed_bin.exists()
@@ -2525,7 +2525,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let bin_dir = temp.path().join("bin");
         std::fs::create_dir_all(&bin_dir).unwrap();
-        let target_v2 = bin_dir.join("grok-v2");
+        let target_v2 = bin_dir.join("astra-v2");
         std::fs::write(&target_v2, "new-binary").unwrap();
         std::os::unix::fs::symlink(&target_v2, bin_dir.join("astra")).unwrap();
         let result = resolve_binary_with_home(temp.path()).unwrap();
@@ -2538,11 +2538,11 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let bin_dir = temp.path().join("bin");
         std::fs::create_dir_all(&bin_dir).unwrap();
-        let new_target = bin_dir.join("grok-v2");
+        let new_target = bin_dir.join("astra-v2");
         std::fs::write(&new_target, "new-binary").unwrap();
         let managed = bin_dir.join("astra");
         std::os::unix::fs::symlink(&new_target, &managed).unwrap();
-        let stale_target = bin_dir.join("grok-v1");
+        let stale_target = bin_dir.join("astra-v1");
         std::fs::write(&stale_target, "old-binary").unwrap();
         let result = resolve_binary_impl(temp.path(), Some(stale_target)).unwrap();
         assert_eq!(result, managed);
@@ -2552,7 +2552,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let bin_dir = temp.path().join("bin");
         std::fs::create_dir_all(&bin_dir).unwrap();
-        std::fs::write(bin_dir.join(managed_grok_bin_name()), "managed").unwrap();
+        std::fs::write(bin_dir.join(managed_astra_bin_name()), "managed").unwrap();
         let dev_exe = std::env::current_exe().unwrap();
         let result = resolve_binary_impl(temp.path(), Some(dev_exe.clone())).unwrap();
         assert_eq!(result, dev_exe);
@@ -2562,7 +2562,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let bin_dir = temp.path().join("bin");
         std::fs::create_dir_all(&bin_dir).unwrap();
-        let managed = bin_dir.join(managed_grok_bin_name());
+        let managed = bin_dir.join(managed_astra_bin_name());
         std::fs::write(&managed, "managed").unwrap();
         let result = resolve_binary_impl(temp.path(), None).unwrap();
         assert_eq!(result, managed);

@@ -30,7 +30,7 @@ mod tests {
             ContentBlock, ContentChunk, SessionNotification, SessionUpdate, TextContent,
         };
 
-        let auth = load_prod_auth().expect("No auth.json — run `grok login`");
+        let auth = load_prod_auth().expect("No auth.json — run `astra login`");
         let am = Arc::new(xai_grok_login::AuthManager::new(
             &crate::util::grok_home::grok_home(),
             xai_grok_login::GrokComConfig::default(),

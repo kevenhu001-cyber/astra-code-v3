@@ -385,7 +385,7 @@ impl NfsWorktreeClient {
         }
     }
 
-    /// Live mount status for `grok worktree show`. `None` if unreachable.
+    /// Live mount status for `astra worktree show`. `None` if unreachable.
     pub fn status_for_dir(&self, dest: &Path) -> Option<NfsStatusView> {
         let req = Request::Status {
             v: PROTOCOL_VERSION,
