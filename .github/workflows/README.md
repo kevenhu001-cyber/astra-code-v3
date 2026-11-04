@@ -53,10 +53,12 @@ On-demand   :  workflow_dispatch on every workflow above
 
 ## Known caveats
 
-- The Windows `build` job downloads protoc through `gh-proxy.com`. That's a
-  deliberate mirror to dodge `protocolbuffers/protobuf` rate-limiting on
-  GitHub-hosted Windows runners. If it ever 4xx/5xxs, swap to the direct
-  `https://github.com/...` URL in `build.yml`.
+- Every Cargo job installs protoc v29.3 directly ("Install protoc" steps) and
+  points `$PROTOC` at it, bypassing the dotslash `bin/protoc` manifest. The
+  direct `github.com` download is tried first and `gh-proxy.com` is the
+  fallback mirror (deliberate: dodges `protocolbuffers/protobuf` rate-limiting
+  and transient runner DNS failures, which bit macos-15-intel before). Local
+  dev still uses the dotslash `bin/protoc` manifest unchanged.
 - MSI packaging pins cargo-wix 0.3.9 and passes the validated directory
   containing both `candle.exe` and `light.exe` through `--bin-path`.
   WiX binary archives may be flat, whereas cargo-wix appends `bin` to `WIX`.

@@ -45,10 +45,41 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Install dotslash (protoc provider)
+      # Deterministic protoc provisioning. `bin/protoc` is a dotslash manifest
+      # that downloads the binary at build time with no mirror fallback — a
+      # transient runner DNS failure then kills the whole job. Setting $PROTOC
+      # bypasses dotslash entirely (see the lookup order in
+      # crates/build/xai-proto-build/src/find_protoc.rs).
+      # Version pinned to v29.3, matching the bin/protoc manifest.
+      - name: Install protoc (pinned v29.3)
+        shell: bash
         run: |
-          cargo install dotslash --locked
-          dotslash --help
+          set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Darwin-arm64)  asset="protoc-29.3-osx-aarch_64.zip" ;;
+            Darwin-x86_64) asset="protoc-29.3-osx-x86_64.zip" ;;
+            Linux-x86_64)  asset="protoc-29.3-linux-x86_64.zip" ;;
+            Linux-aarch64) asset="protoc-29.3-linux-aarch_64.zip" ;;
+            *) echo "Unsupported platform: $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+          esac
+          dest="$RUNNER_TEMP/protoc-29.3"
+          mkdir -p "$dest"
+          for url in \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}" \
+            "https://gh-proxy.com/https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}"
+          do
+            if curl --fail --location --retry 3 --retry-delay 3 --retry-all-errors \
+                 --silent --show-error -o "$dest/protoc.zip" "$url"; then
+              break
+            fi
+            echo "Download failed from $url; trying next mirror" >&2
+            rm -f "$dest/protoc.zip"
+          done
+          test -s "$dest/protoc.zip" \
+            || { echo "protoc download failed from all mirrors" >&2; exit 1; }
+          unzip -oq "$dest/protoc.zip" -d "$dest"
+          echo "PROTOC=$dest/bin/protoc" >> "$GITHUB_ENV"
+          "$dest/bin/protoc" --version
 
       # The search-tool suites spawn `rg` from PATH; debug builds don't bundle it.
       - name: Install ripgrep (search-tool tests)
@@ -80,10 +111,41 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Install dotslash (protoc provider)
+      # Deterministic protoc provisioning. `bin/protoc` is a dotslash manifest
+      # that downloads the binary at build time with no mirror fallback — a
+      # transient runner DNS failure then kills the whole job. Setting $PROTOC
+      # bypasses dotslash entirely (see the lookup order in
+      # crates/build/xai-proto-build/src/find_protoc.rs).
+      # Version pinned to v29.3, matching the bin/protoc manifest.
+      - name: Install protoc (pinned v29.3)
+        shell: bash
         run: |
-          cargo install dotslash --locked
-          dotslash --help
+          set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Darwin-arm64)  asset="protoc-29.3-osx-aarch_64.zip" ;;
+            Darwin-x86_64) asset="protoc-29.3-osx-x86_64.zip" ;;
+            Linux-x86_64)  asset="protoc-29.3-linux-x86_64.zip" ;;
+            Linux-aarch64) asset="protoc-29.3-linux-aarch_64.zip" ;;
+            *) echo "Unsupported platform: $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+          esac
+          dest="$RUNNER_TEMP/protoc-29.3"
+          mkdir -p "$dest"
+          for url in \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}" \
+            "https://gh-proxy.com/https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}"
+          do
+            if curl --fail --location --retry 3 --retry-delay 3 --retry-all-errors \
+                 --silent --show-error -o "$dest/protoc.zip" "$url"; then
+              break
+            fi
+            echo "Download failed from $url; trying next mirror" >&2
+            rm -f "$dest/protoc.zip"
+          done
+          test -s "$dest/protoc.zip" \
+            || { echo "protoc download failed from all mirrors" >&2; exit 1; }
+          unzip -oq "$dest/protoc.zip" -d "$dest"
+          echo "PROTOC=$dest/bin/protoc" >> "$GITHUB_ENV"
+          "$dest/bin/protoc" --version
 
       - name: Build pager binary for the harness
         run: cargo build -p xai-grok-pager-bin --bin astra
@@ -117,10 +179,41 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Install dotslash (protoc provider)
+      # Deterministic protoc provisioning. `bin/protoc` is a dotslash manifest
+      # that downloads the binary at build time with no mirror fallback — a
+      # transient runner DNS failure then kills the whole job. Setting $PROTOC
+      # bypasses dotslash entirely (see the lookup order in
+      # crates/build/xai-proto-build/src/find_protoc.rs).
+      # Version pinned to v29.3, matching the bin/protoc manifest.
+      - name: Install protoc (pinned v29.3)
+        shell: bash
         run: |
-          cargo install dotslash --locked
-          dotslash --help
+          set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Darwin-arm64)  asset="protoc-29.3-osx-aarch_64.zip" ;;
+            Darwin-x86_64) asset="protoc-29.3-osx-x86_64.zip" ;;
+            Linux-x86_64)  asset="protoc-29.3-linux-x86_64.zip" ;;
+            Linux-aarch64) asset="protoc-29.3-linux-aarch_64.zip" ;;
+            *) echo "Unsupported platform: $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+          esac
+          dest="$RUNNER_TEMP/protoc-29.3"
+          mkdir -p "$dest"
+          for url in \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}" \
+            "https://gh-proxy.com/https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}"
+          do
+            if curl --fail --location --retry 3 --retry-delay 3 --retry-all-errors \
+                 --silent --show-error -o "$dest/protoc.zip" "$url"; then
+              break
+            fi
+            echo "Download failed from $url; trying next mirror" >&2
+            rm -f "$dest/protoc.zip"
+          done
+          test -s "$dest/protoc.zip" \
+            || { echo "protoc download failed from all mirrors" >&2; exit 1; }
+          unzip -oq "$dest/protoc.zip" -d "$dest"
+          echo "PROTOC=$dest/bin/protoc" >> "$GITHUB_ENV"
+          "$dest/bin/protoc" --version
 
       - name: Build pager binary for the leader harness
         run: cargo build -p xai-grok-pager-bin --bin astra
@@ -151,10 +244,41 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Install dotslash (protoc provider)
+      # Deterministic protoc provisioning. `bin/protoc` is a dotslash manifest
+      # that downloads the binary at build time with no mirror fallback — a
+      # transient runner DNS failure then kills the whole job. Setting $PROTOC
+      # bypasses dotslash entirely (see the lookup order in
+      # crates/build/xai-proto-build/src/find_protoc.rs).
+      # Version pinned to v29.3, matching the bin/protoc manifest.
+      - name: Install protoc (pinned v29.3)
+        shell: bash
         run: |
-          cargo install dotslash --locked
-          dotslash --help
+          set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Darwin-arm64)  asset="protoc-29.3-osx-aarch_64.zip" ;;
+            Darwin-x86_64) asset="protoc-29.3-osx-x86_64.zip" ;;
+            Linux-x86_64)  asset="protoc-29.3-linux-x86_64.zip" ;;
+            Linux-aarch64) asset="protoc-29.3-linux-aarch_64.zip" ;;
+            *) echo "Unsupported platform: $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+          esac
+          dest="$RUNNER_TEMP/protoc-29.3"
+          mkdir -p "$dest"
+          for url in \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}" \
+            "https://gh-proxy.com/https://github.com/protocolbuffers/protobuf/releases/download/v29.3/${asset}"
+          do
+            if curl --fail --location --retry 3 --retry-delay 3 --retry-all-errors \
+                 --silent --show-error -o "$dest/protoc.zip" "$url"; then
+              break
+            fi
+            echo "Download failed from $url; trying next mirror" >&2
+            rm -f "$dest/protoc.zip"
+          done
+          test -s "$dest/protoc.zip" \
+            || { echo "protoc download failed from all mirrors" >&2; exit 1; }
+          unzip -oq "$dest/protoc.zip" -d "$dest"
+          echo "PROTOC=$dest/bin/protoc" >> "$GITHUB_ENV"
+          "$dest/bin/protoc" --version
 
       - name: Compile every bench
         run: cargo bench --workspace --no-run --locked
