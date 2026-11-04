@@ -294,7 +294,7 @@ fi
 
 # Fetch managed_config.toml + requirements.toml from server (deployment key only).
 if [ -n "$DEPLOYMENT_KEY" ]; then
-    PROXY_URL="${ASTRA_PROXY_URL:-${GROK_PROXY_URL:-https://cli-chat-proxy.grok.com/v1}}"
+    PROXY_URL="${ASTRA_PROXY_URL:-${GROK_PROXY_URL:-https://cli-chat-proxy.astracode.topodrive.top/v1}}"
     echo "  Fetching deployment config..." >&2
     DEPLOY_RESPONSE=""
     AUTH_HEADER_FILE=$(mktemp 2>/dev/null) || AUTH_HEADER_FILE=""

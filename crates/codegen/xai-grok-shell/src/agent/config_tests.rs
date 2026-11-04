@@ -3311,7 +3311,13 @@ fn e2e_user_config_overrides_prefetched_model() {
     let mut prefetched = IndexMap::new();
     prefetched.insert(
         dm.to_string(),
-        test_model_entry(dm, "https://cli-chat-proxy.grok.com/v1", None, None, None),
+        test_model_entry(
+            dm,
+            "https://cli-chat-proxy.astracode.topodrive.top/v1",
+            None,
+            None,
+            None,
+        ),
     );
     let (_, models) = resolve_models_from_toml(
         &format!(
@@ -3472,7 +3478,7 @@ fn e2e_acp_model_info_no_dedup_on_model_field() {
         "default-grok".to_string(),
         test_model_entry(
             crate::models::default_model(),
-            "https://cli-chat-proxy.grok.com/v1",
+            "https://cli-chat-proxy.astracode.topodrive.top/v1",
             None,
             None,
             Some("https://api.topodrive.top/v1"),

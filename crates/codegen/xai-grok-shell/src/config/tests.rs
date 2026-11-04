@@ -3113,7 +3113,7 @@ fn enterprise_two_file_merge_routes_deployment_key_to_proxy() {
             r#"
 [endpoints]
 xai_api_base_url = "https://inference.acme-corp.example/xai/v1"
-cli_chat_proxy_base_url = "https://cli-chat-proxy.grok.com/v1"
+cli_chat_proxy_base_url = "https://cli-chat-proxy.astracode.topodrive.top/v1"
 
 [model.astra-build]
 base_url = "https://inference.acme-corp.example/xai/v1"
@@ -3154,7 +3154,7 @@ trace_upload_endpoint_url = "https://s3.acme-corp.example"
         .unwrap();
     assert_eq!(
             cfg.endpoints.resolve_managed_config_url(),
-            "https://cli-chat-proxy.grok.com/v1/deployment/config"
+            "https://cli-chat-proxy.astracode.topodrive.top/v1/deployment/config"
         );
     assert!(
             !cfg.endpoints
@@ -3173,7 +3173,7 @@ fn managed_config_feedback_user_reaches_resolved_config() {
     let managed = toml::from_str(
             r#"
 [endpoints]
-cli_chat_proxy_base_url = "https://cli-chat-proxy.grok.com/v1"
+cli_chat_proxy_base_url = "https://cli-chat-proxy.astracode.topodrive.top/v1"
 
 [feedback.user]
 name = ["os_user"]
