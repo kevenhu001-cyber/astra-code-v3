@@ -44,10 +44,11 @@ steps:
     text: collapse
   - action: assert_not_contains
     text: panicked
-  # Move selection off the section header onto the CancelTurn hint
-  # (Essentials order: send, prompt, scrollback, cancel).
+  # The initial selection is Send. Two Down presses select Cancel turn:
+  # Send -> Focus scrollback -> Cancel turn. The former three presses
+  # selected Cycle mode, as confirmed by the nightly #75 failure screen.
   - action: keys
-    keys: "<Down><Down><Down>"
+    keys: "<Down><Down>"
   - action: wait
     millis: 200
   # Inline-expand (right arrow): the action's long_help renders under the row.
