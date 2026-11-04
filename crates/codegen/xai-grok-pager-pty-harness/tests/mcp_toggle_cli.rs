@@ -22,7 +22,7 @@ fn toggle_env(user_config: &str) -> ToggleEnv {
     let grok_home = root.join("grok-home");
     let cwd = root.join("project");
     std::fs::create_dir_all(&home).expect("create HOME");
-    std::fs::create_dir_all(&grok_home).expect("create GROK_HOME");
+    std::fs::create_dir_all(&grok_home).expect("create ASTRA_HOME");
     std::fs::create_dir_all(&cwd).expect("create cwd");
     // Bound the project-config walk to the temp dir.
     git2::Repository::init(&cwd).expect("git init");
@@ -57,7 +57,7 @@ fn run_mcp(env: &ToggleEnv, args: &[&str]) -> std::process::Output {
     command
         .env_clear()
         .env("HOME", &env.home)
-        .env("GROK_HOME", &env.grok_home)
+        .env("ASTRA_HOME", &env.grok_home)
         .env("SHELL", "/bin/sh")
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("TERM", "xterm-256color")
@@ -316,7 +316,7 @@ fn disable_persists_personal_disable_over_project_tier_disable() {
     );
     assert!(
         stdout.contains("Disabled MCP server 'x'.")
-            && stdout.contains("File modified: $GROK_HOME/config.toml"),
+            && stdout.contains("File modified: $ASTRA_HOME/config.toml"),
         "stdout: {stdout}"
     );
     let parsed: toml::Value =
@@ -444,7 +444,7 @@ fn real_toggle_writes_config_and_reports_file_modified() {
         "stdout: {stdout}"
     );
     assert!(
-        stdout.contains("File modified: $GROK_HOME/config.toml"),
+        stdout.contains("File modified: $ASTRA_HOME/config.toml"),
         "stdout: {stdout}"
     );
     let enabled_body = std::fs::read(&env.config).expect("re-read config");
@@ -469,7 +469,7 @@ fn real_toggle_writes_config_and_reports_file_modified() {
         "stdout: {stdout}"
     );
     assert!(
-        stdout.contains("File modified: $GROK_HOME/config.toml"),
+        stdout.contains("File modified: $ASTRA_HOME/config.toml"),
         "stdout: {stdout}"
     );
     let disabled_body = std::fs::read(&env.config).expect("re-read config");
