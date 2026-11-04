@@ -28,7 +28,7 @@ env:
 
 jobs:
   full-test:
-    name: cargo test --workspace --all-targets
+    name: cargo test --workspace (lib + bins + tests + examples)
     runs-on: ubuntu-latest
     # The job runs the whole workspace's *non-ignored* test tier on a cold
     # build. The ignored tier stays out on purpose: those cases are
@@ -101,13 +101,20 @@ jobs:
       - name: Point the harness at the built binary
         run: echo "PAGER_BINARY=${{ github.workspace }}/target/debug/astra" >> "$GITHUB_ENV"
 
-      - name: cargo test (workspace, all-targets)
+      - name: cargo test (workspace, all targets but benches)
         env:
           # Match test.yml: large debug futures overflow the default stack.
           RUST_MIN_STACK: 67108864
         run: |
           set -euo pipefail
-          cargo test --workspace --all-targets --locked --no-fail-fast
+          # `--all-targets` is `--lib --bins --tests --benches --examples`, and
+          # `--benches` makes cargo *run* every bench target in test mode. Two
+          # of them cannot run there: `paste_latency` drives the real macOS
+          # pasteboard, and `pty_bench` needs an explicit `--scenario`. Both
+          # exit non-zero on a Linux runner, so the job was red even with every
+          # test target green. The benches keep their own coverage in the
+          # `cargo bench` job below.
+          cargo test --workspace --lib --bins --tests --examples --locked --no-fail-fast
 
   # ── PTY e2e family. These cases are `#[ignore]`d for ordinary cargo runs, so
   # the `full-test` job above skips them; this job opts them back in with the
