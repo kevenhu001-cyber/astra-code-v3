@@ -58,13 +58,12 @@ async fn connect_wizard_three_step_flow_persists_config() {
         .wait_for_text(WIZARD_TITLE_SENTINEL, WIZARD_TIMEOUT)
         .expect("wizard modal opened");
 
-    // The wizard lands on the Preset field, where Down cycles the preset
-    // in place (`custom` is the last entry). The custom provider has no
-    // baked-in endpoint, so selecting it expands the advanced rows and the
-    // Base URL field starts empty — its placeholder proves both.
-    for _ in 0..9 {
-        harness.inject_keys(keys::DOWN).expect("preset down");
-    }
+    // The wizard lands on the Preset field with the account cloud provider
+    // preselected. Arrowing up selects the `custom` preset immediately
+    // above it. The custom provider has no baked-in endpoint, so selecting
+    // it expands the advanced rows and the Base URL field starts empty — its
+    // placeholder proves both.
+    harness.inject_keys(keys::UP).expect("preset up");
     harness
         .wait_for_text("<Required for custom providers>", WIZARD_TIMEOUT)
         .expect("custom preset selected, URL field empty");
