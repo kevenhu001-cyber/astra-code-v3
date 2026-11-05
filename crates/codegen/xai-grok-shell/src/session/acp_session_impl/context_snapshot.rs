@@ -373,7 +373,10 @@ mod tests {
 
     #[test]
     fn tokenize_uses_baked_product_default_model() {
-        assert_eq!(crate::models::default_model(), "grok-4.6");
+        assert!(
+            crate::models::default_model().is_empty(),
+            "the bundled catalog is intentionally empty; the deployment chooses the default model"
+        );
     }
 
     #[test]
