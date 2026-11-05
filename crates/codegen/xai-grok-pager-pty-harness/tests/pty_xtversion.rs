@@ -5,7 +5,10 @@ use std::time::Duration;
 
 use xai_grok_pager_pty_harness::{ContentController, EnvOp, PtyHarness, pager_binary};
 
-const ROWS: u16 = 50;
+// /doctor now renders more than 50 rows; keep the identity and environment
+// sections in the visible PTY viewport so these tests assert the report
+// rather than accidentally timing out on terminal scrollback.
+const ROWS: u16 = 120;
 const COLS: u16 = 120;
 const WELCOME_TIMEOUT: Duration = Duration::from_secs(20);
 const WELCOME_SCREEN_SENTINEL: &str = "Quit";
