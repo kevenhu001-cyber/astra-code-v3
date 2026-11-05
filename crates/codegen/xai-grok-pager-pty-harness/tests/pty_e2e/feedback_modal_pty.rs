@@ -353,6 +353,10 @@ async fn feedback_modal_trace_step_and_upload_ordering_pty() {
     overrides.push(EnvOp::set("GROK_FEEDBACK_TRACE_CARD", "true"));
     // TestSandbox pins DISABLE_TELEMETRY=1; this test needs product telemetry on.
     overrides.push(EnvOp::remove("DISABLE_TELEMETRY"));
+    // The sandbox pins ASTRA_TELEMETRY_ENABLED=false, which outranks the
+    // legacy GROK_* alias. Enable the canonical flag so the trace-consent
+    // feature is actually eligible during this test.
+    overrides.push(EnvOp::set("ASTRA_TELEMETRY_ENABLED", "true"));
     overrides.push(EnvOp::set("GROK_TELEMETRY_ENABLED", "true"));
     // Trace consent is only offered while automatic trace upload is OFF.
     // With telemetry on, the default trace-upload flag resolves to true;
