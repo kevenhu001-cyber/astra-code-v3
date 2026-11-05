@@ -66,7 +66,7 @@ pub fn default_model() -> &'static str {
     DEFAULTS.default.as_deref().unwrap_or(NO_DEFAULT_MODEL)
 }
 
-fn or_default(override_slug: Option<&str>) -> &'static str {
+fn or_default(override_slug: Option<&'static str>) -> &'static str {
     override_slug
         .filter(|slug| !slug.is_empty())
         .unwrap_or_else(default_model)
