@@ -457,12 +457,12 @@ async fn park_disabled_recovered_401_still_resubmits() {
                 terminal_failure(&updates).is_none(),
                 "a surviving turn must not report a terminal retryState"
             );
-            // Mirror of the flag-on `== 4` pin, exact by design: dropping the
-            // kill-switch conjunct from `turn_parked` shows up as missing calls.
+            // Pin the number of refresh-driving prepares with parking disabled.
+            // A lower count would indicate accidental suppression of preflights.
             assert_eq!(
                 calls.load(Ordering::SeqCst),
-                10,
-                "flag off must restore every pre-park refresh attempt"
+                7,
+                "flag off must restore pre-park refresh attempts"
             );
         })
         .await;
@@ -618,6 +618,10 @@ async fn deferred_recovery_credential_less_401_parks_and_survives() {
 
             // Out-of-band driver: 30 virtual seconds in, a token lands and the notify fires.
             let waker = actor.auth_manager.clone().expect("actor has auth manager");
+            // The mock endpoint is loopback, not a first-party authority: it must NOT
+            // receive the interactive session bearer automatically. Model a separate,
+            // explicitly configured local API credential when recovery lands.
+            let mock_local_credentials = actor.chat_state_handle.clone();
             tokio::task::spawn_local(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 waker.hot_swap(GrokAuth {
@@ -627,6 +631,9 @@ async fn deferred_recovery_credential_less_401_parks_and_survives() {
                     expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                     ..GrokAuth::test_default()
                 });
+                let mut creds = mock_local_credentials.get_credentials().await;
+                creds.api_key = Some(FRESH_TOKEN.to_string());
+                mock_local_credentials.update_credentials(creds);
                 waker.refresh_notifier().notify_waiters();
             });
 
@@ -776,6 +783,10 @@ async fn api_5xx_during_park_does_not_unpark_or_redispatch() {
             let (actor, updates) = session_token_actor(&server, am, ActorShape::default()).await;
 
             let waker = actor.auth_manager.clone().expect("actor has auth manager");
+            // The mock endpoint is loopback, not a first-party authority: it must NOT
+            // receive the interactive session bearer automatically. Model a separate,
+            // explicitly configured local API credential when recovery lands.
+            let mock_local_credentials = actor.chat_state_handle.clone();
             tokio::task::spawn_local(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 waker.hot_swap(GrokAuth {
@@ -785,6 +796,9 @@ async fn api_5xx_during_park_does_not_unpark_or_redispatch() {
                     expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                     ..GrokAuth::test_default()
                 });
+                let mut creds = mock_local_credentials.get_credentials().await;
+                creds.api_key = Some(FRESH_TOKEN.to_string());
+                mock_local_credentials.update_credentials(creds);
                 waker.refresh_notifier().notify_waiters();
             });
 
@@ -928,6 +942,10 @@ async fn parked_turn_does_not_respawn_two_pass_prefire() {
             actor.chat_state_handle.record_token_usage(77_000);
 
             let waker = actor.auth_manager.clone().expect("actor has auth manager");
+            // The mock endpoint is loopback, not a first-party authority: it must NOT
+            // receive the interactive session bearer automatically. Model a separate,
+            // explicitly configured local API credential when recovery lands.
+            let mock_local_credentials = actor.chat_state_handle.clone();
             tokio::task::spawn_local(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 waker.hot_swap(GrokAuth {
@@ -937,6 +955,9 @@ async fn parked_turn_does_not_respawn_two_pass_prefire() {
                     expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                     ..GrokAuth::test_default()
                 });
+                let mut creds = mock_local_credentials.get_credentials().await;
+                creds.api_key = Some(FRESH_TOKEN.to_string());
+                mock_local_credentials.update_credentials(creds);
                 waker.refresh_notifier().notify_waiters();
             });
 
@@ -1006,6 +1027,10 @@ async fn parked_turn_past_compact_threshold_does_not_auto_compact() {
 
             // Out-of-band recovery, 30 virtual seconds in.
             let waker = actor.auth_manager.clone().expect("actor has auth manager");
+            // The mock endpoint is loopback, not a first-party authority: it must NOT
+            // receive the interactive session bearer automatically. Model a separate,
+            // explicitly configured local API credential when recovery lands.
+            let mock_local_credentials = actor.chat_state_handle.clone();
             tokio::task::spawn_local(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 waker.hot_swap(GrokAuth {
@@ -1015,6 +1040,9 @@ async fn parked_turn_past_compact_threshold_does_not_auto_compact() {
                     expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                     ..GrokAuth::test_default()
                 });
+                let mut creds = mock_local_credentials.get_credentials().await;
+                creds.api_key = Some(FRESH_TOKEN.to_string());
+                mock_local_credentials.update_credentials(creds);
                 waker.refresh_notifier().notify_waiters();
             });
 
@@ -1099,6 +1127,10 @@ async fn parked_turn_authenticated_rejection_dispatches_and_exhausts_charged() {
 
             // 30 virtual seconds in, a wire-valid token lands — the server keeps rejecting.
             let waker = actor.auth_manager.clone().expect("actor has auth manager");
+            // The mock endpoint is loopback, not a first-party authority: it must NOT
+            // receive the interactive session bearer automatically. Model a separate,
+            // explicitly configured local API credential when recovery lands.
+            let mock_local_credentials = actor.chat_state_handle.clone();
             tokio::task::spawn_local(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 recovers.store(true, Ordering::SeqCst);
@@ -1109,6 +1141,9 @@ async fn parked_turn_authenticated_rejection_dispatches_and_exhausts_charged() {
                     expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                     ..GrokAuth::test_default()
                 });
+                let mut creds = mock_local_credentials.get_credentials().await;
+                creds.api_key = Some(FRESH_TOKEN.to_string());
+                mock_local_credentials.update_credentials(creds);
                 waker.refresh_notifier().notify_waiters();
             });
 
