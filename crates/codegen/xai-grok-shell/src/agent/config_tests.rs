@@ -3615,6 +3615,31 @@ fn e2e_enterprise_endpoints_apply_to_a_model_without_its_own_urls() {
         "a model without api_base_url should use enterprise xai_api_base_url"
     );
 }
+#[test]
+fn e2e_enterprise_api_endpoint_does_not_override_explicit_model_base_url() {
+    let (_, models) = resolve_models_from_toml(
+        r#"
+            [endpoints]
+            cli_chat_proxy_base_url = "https://enterprise-proxy.acme.com/v1"
+            xai_api_base_url = "https://enterprise-api.acme.com/v1"
+
+            [model."local-model"]
+            model = "local-model"
+            base_url = "https://local-provider.example/v1"
+            api_key = "local-key"
+            "#,
+        None,
+    );
+    let model = models.get("local-model").expect("model should exist");
+    assert_eq!(model.info.base_url, "https://local-provider.example/v1");
+    assert!(
+        model.api_base_url.is_none(),
+        "an explicit model base_url must not inherit an unrelated enterprise API route"
+    );
+    let sampling = resolve_sampling(model, None);
+    assert_eq!(sampling.base_url, "https://local-provider.example/v1");
+    assert_eq!(sampling.api_key.as_deref(), Some("local-key"));
+}
 /// Unset every env var that `EndpointsConfig::default()` reads for endpoints.
 /// The cli-chat-proxy resolver tests below are then deterministic regardless of the ambient environment.
 /// Gated behind `#[serial]`.
