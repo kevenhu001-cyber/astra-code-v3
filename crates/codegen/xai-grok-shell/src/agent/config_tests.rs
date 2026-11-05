@@ -29,6 +29,30 @@ fn fallback_model_uses_gateway_chat_protocol_not_responses() {
     assert_eq!(entry.info.base_url, ASTRA_GATEWAY_BASE_URL_DEFAULT);
 }
 
+/// A bundled default that still declares the Responses protocol posts to
+/// `/v1/responses` on a Chat-Completions-only gateway and comes back as a bare
+/// 404 ("Request failed (HTTP 404). Run /model to pick another."). The catalog
+/// is authoritative once loaded, but defaults are used on cold start/offline.
+#[test]
+fn bundled_defaults_target_the_gateway_chat_endpoint() {
+    let endpoints = EndpointsConfig {
+        cli_chat_proxy_base_url: Some(ASTRA_GATEWAY_BASE_URL_DEFAULT.into()),
+        ..Default::default()
+    };
+    assert_eq!(
+        endpoints.resolve_inference_api_backend(),
+        ApiBackend::ChatCompletions
+    );
+    for (id, entry) in default_model_entries(&endpoints) {
+        assert_eq!(
+            entry.info.api_backend,
+            ApiBackend::ChatCompletions,
+            "{id}: bundled default must not target /v1/responses on the chat gateway"
+        );
+        assert_eq!(entry.info.base_url, ASTRA_GATEWAY_BASE_URL_DEFAULT);
+    }
+}
+
 #[test]
 fn main_cli_tools_override_preserves_profile_injection_policy() {
     let overrides = CliAgentOverrides {
@@ -354,24 +378,21 @@ fn resolve_runtime_fields_propagates_disable_web_search() {
     assert!(cfg.disable_web_search);
 }
 #[test]
-fn new_from_toml_cfg_restores_web_search_and_session_summary_models() {
+fn new_from_toml_cfg_leaves_aux_models_unset_without_a_bundled_default() {
     let empty: toml::Value = toml::Value::Table(toml::map::Map::new());
     let cfg = Config::new_from_toml_cfg(&empty).expect("empty config should parse");
+    // The bundle ships no default catalog, so nothing pins the auxiliary
+    // models: web search resolves to the empty slug (disabled) and the summary
+    // / image-describe models stay unset so their callers reuse the session
+    // model instead of sampling an empty id.
     assert_eq!(
-        cfg.web_search_model,
         crate::models::default_web_search_model(),
-        "empty config should produce the compiled-in default web_search model"
+        "",
+        "the bundled catalog must not pin a web_search model"
     );
-    assert_eq!(
-        cfg.session_summary_model,
-        Some(crate::models::default_session_summary_model().to_owned()),
-        "empty config should produce compiled default session_summary model"
-    );
-    assert_eq!(
-        cfg.image_description_model,
-        Some(crate::models::default_image_description_model().to_owned()),
-        "empty config should produce compiled default image_description model"
-    );
+    assert_eq!(cfg.web_search_model, "");
+    assert_eq!(cfg.session_summary_model, None);
+    assert_eq!(cfg.image_description_model, None);
     let with_overrides: toml::Value = toml::from_str(
         r#"
             [models]
@@ -392,32 +413,24 @@ fn new_from_toml_cfg_restores_web_search_and_session_summary_models() {
         Some("custom-id-model".to_owned())
     );
 }
-/// The hidden default web-search model resolves through the same inference endpoint as every
-/// other default model, and takes its backend from that endpoint rather than pinning one:
-/// the Astra deployment gateway speaks Chat Completions, so the backend follows the endpoint.
+/// With no bundled catalog nothing pins the web-search model. An empty slug must
+/// disable web search instead of sampling with an empty model id.
 #[test]
-fn hidden_default_web_search_resolution_is_explicit_and_endpoint_derived() {
+fn empty_web_search_model_disables_web_search() {
     let endpoints = EndpointsConfig::default();
-    let resolved = resolve_web_search_sampling_config(
-        crate::models::default_web_search_model(),
-        &IndexMap::new(),
-        Some("session-token"),
-        false,
-        None,
-        None,
-        &endpoints,
-    )
-    .expect("hidden default web search model should resolve");
-    assert_eq!(resolved.model, crate::models::default_web_search_model());
-    assert_eq!(resolved.base_url, endpoints.resolve_inference_base_url());
-    assert_eq!(
-        resolved.api_backend,
-        endpoints.resolve_inference_api_backend()
-    );
-    assert_eq!(
-        resolved.api_key.as_deref(),
-        Some("session-token"),
-        "hidden default should still use normal credential resolution"
+    assert_eq!(crate::models::default_web_search_model(), "");
+    assert!(
+        resolve_web_search_sampling_config(
+            "",
+            &IndexMap::new(),
+            Some("session-token"),
+            false,
+            None,
+            None,
+            &endpoints,
+        )
+        .is_none(),
+        "an unpinned web_search model must not produce a sampler"
     );
 }
 #[test]
@@ -1483,6 +1496,32 @@ fn resolve_credentials_sets_auth_type() {
     let byok = test_model_entry("m", "https://example.com/v1", Some("key"), None, None);
     let creds = resolve_credentials(&byok, Some("tok"));
     assert_eq!(creds.auth_type, AuthType::ApiKey);
+}
+
+/// Astra session credentials must not be attached to a user's own model
+/// endpoint. Sending them is the source of the misleading "session expired /
+/// run /login" banner on BYOK and localhost models.
+#[test]
+fn session_token_is_scoped_to_astra_endpoints_only() {
+    assert!(session_token_allowed_for_endpoint(
+        "https://astracode.topodrive.top/v1"
+    ));
+    assert!(session_token_allowed_for_endpoint("https://api.x.ai/v1"));
+    assert!(!session_token_allowed_for_endpoint(
+        "https://api.openai.com/v1"
+    ));
+    assert!(!session_token_allowed_for_endpoint(
+        "http://127.0.0.1:11434/v1"
+    ));
+
+    let model = test_model_entry("local", "https://api.openai.com/v1", None, None, None);
+    let creds = resolve_credentials(&model, Some("astra-session-jwt"));
+    assert_ne!(
+        creds.api_key.as_deref(),
+        Some("astra-session-jwt"),
+        "a third-party BYOK endpoint must not inherit the Astra session token"
+    );
+    assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
 }
 /// Regression: BYOK env-var auth must stay ApiKey even when signed in, otherwise the bearer resolver overwrites the BYOK key with a session JWT. `#[serial]`: mutates the process env. A unique var name is NOT enough.
 /// The `unsafe set_var` hazard is the global `environ` array (realloc races every concurrent `getenv` in the binary) The test must therefore serialize against all env tests
@@ -3277,12 +3316,10 @@ fn config_models_default_custom_model_is_in_resolved_model_list() {
     assert_eq!(model.info.base_url, "https://inference.example.com/v1");
 }
 #[test]
-fn e2e_default_model_with_session_routes_to_gateway() {
-    let (_, models) = resolve_models_from_toml("", None);
-    let model = models
-        .get(crate::models::default_model())
-        .expect("default model should exist");
-    let sampling = resolve_sampling(model, Some("session-token-123"));
+fn e2e_model_without_own_credentials_routes_to_gateway() {
+    let endpoints = EndpointsConfig::default();
+    let model = ModelEntry::fallback("gateway-model", &endpoints);
+    let sampling = resolve_sampling(&model, Some("session-token-123"));
     assert_eq!(sampling.api_key.as_deref(), Some("session-token-123"));
     assert_eq!(
         sampling.base_url, "https://astracode.topodrive.top/v1",
@@ -3291,13 +3328,16 @@ fn e2e_default_model_with_session_routes_to_gateway() {
 }
 #[test]
 #[serial]
-fn e2e_default_model_with_external_api_key_routes_to_api_xai() {
-    let (_, models) = resolve_models_from_toml("", None);
-    let model = models
-        .get(crate::models::default_model())
-        .expect("default model should exist");
+fn e2e_model_with_external_api_key_routes_to_api_xai() {
+    let model = test_model_entry(
+        "gateway-model",
+        "https://astracode.topodrive.top/v1",
+        None,
+        None,
+        Some("https://api.astracode.topodrive.top/v1"),
+    );
     unsafe { std::env::set_var("XAI_API_KEY", "xai-external-key") };
-    let sampling = resolve_sampling(model, None);
+    let sampling = resolve_sampling(&model, None);
     assert_eq!(sampling.api_key.as_deref(), Some("xai-external-key"));
     assert_eq!(
         sampling.base_url, "https://api.astracode.topodrive.top/v1",
@@ -3401,25 +3441,28 @@ fn e2e_credential_priority_model_key_beats_session_beats_env() {
 }
 #[test]
 fn e2e_duplicate_model_field_both_entries_survive() {
-    let dm = crate::models::default_model();
     let (_, models) = resolve_models_from_toml(
-        &format!(
-            r#"
+        r#"
+            [model.gateway-alias]
+            model = "shared-model"
+
             [model.acme-grok]
-            model = "{dm}"
+            model = "shared-model"
             base_url = "https://inference.example.com/v1"
             context_window = 200000
             api_key = "enterprise-key"
             "#,
-        ),
         None,
     );
-    assert!(models.contains_key(dm), "default entry should still exist");
+    assert!(
+        models.contains_key("gateway-alias"),
+        "gateway entry should exist"
+    );
     assert!(
         models.contains_key("acme-grok"),
         "user entry with different key should also exist"
     );
-    let default = models.get(dm).unwrap();
+    let default = models.get("gateway-alias").unwrap();
     let user = models.get("acme-grok").unwrap();
     assert_eq!(default.info.model, user.info.model, "same model field");
     assert_ne!(
@@ -3463,12 +3506,16 @@ fn e2e_enterprise_custom_endpoint_skips_xai_defaults() {
     assert_eq!(resolved.len(), 1, "only the prefetched enterprise model");
 }
 #[test]
-fn e2e_default_endpoint_still_injects_defaults() {
+fn e2e_default_endpoint_without_a_bundle_yields_an_empty_catalog() {
     let cfg = Config::default();
     let resolved = resolve_model_list(&cfg, None);
     assert!(
-        resolved.contains_key(crate::models::default_model()),
-        "default model should be present when using default endpoint"
+        crate::models::default_model().is_empty(),
+        "the bundled catalog must not pin a default model"
+    );
+    assert!(
+        resolved.is_empty(),
+        "with no bundle and no prefetched catalog, selection waits for /v1/models"
     );
 }
 #[test]
@@ -3511,21 +3558,19 @@ fn e2e_acp_model_info_no_dedup_on_model_field() {
 }
 #[test]
 fn e2e_enterprise_endpoints_plus_partial_model_override() {
-    let dm = crate::models::default_model();
     let (_, models) = resolve_models_from_toml(
-        &format!(
-            r#"
+        r#"
             [endpoints]
             cli_chat_proxy_base_url = "https://enterprise-proxy.acme.com/v1"
             xai_api_base_url = "https://enterprise-api.acme.com/v1"
 
-            [model."{dm}"]
+            [model."enterprise-model"]
+            model = "enterprise-model"
             api_key = "acme-api-key"
             "#,
-        ),
         None,
     );
-    let model = models.get(dm).expect("model should exist");
+    let model = models.get("enterprise-model").expect("model should exist");
     assert_eq!(
         model.info.base_url, "https://enterprise-proxy.acme.com/v1",
         "base_url must inherit from [endpoints], not stale default"
@@ -3547,26 +3592,27 @@ fn e2e_enterprise_endpoints_plus_partial_model_override() {
     );
 }
 #[test]
-fn e2e_enterprise_endpoints_only_no_model_override() {
+fn e2e_enterprise_endpoints_apply_to_a_model_without_its_own_urls() {
     let (_, models) = resolve_models_from_toml(
         r#"
             [endpoints]
             cli_chat_proxy_base_url = "https://enterprise-proxy.acme.com/v1"
             xai_api_base_url = "https://enterprise-api.acme.com/v1"
+
+            [model."enterprise-model"]
+            model = "enterprise-model"
             "#,
         None,
     );
-    let model = models
-        .get(crate::models::default_model())
-        .expect("model should exist");
+    let model = models.get("enterprise-model").expect("model should exist");
     assert_eq!(
         model.info.base_url, "https://enterprise-proxy.acme.com/v1",
-        "default model should use enterprise cli_chat_proxy_base_url"
+        "a model without base_url should use enterprise cli_chat_proxy_base_url"
     );
     assert_eq!(
         model.api_base_url.as_deref(),
         Some("https://enterprise-api.acme.com/v1"),
-        "default model should use enterprise xai_api_base_url"
+        "a model without api_base_url should use enterprise xai_api_base_url"
     );
 }
 /// Unset every env var that `EndpointsConfig::default()` reads for endpoints.
@@ -6961,11 +7007,12 @@ fn resolve_runtime_fields_interactive_defaults() {
     assert!(!cfg.managed_mcp_gateway_tools_enabled);
     assert_eq!(
         cfg.web_search_model,
-        crate::models::default_web_search_model()
+        crate::models::default_web_search_model(),
+        "web_search follows the bundled default (empty when the bundle pins none)"
     );
     assert_eq!(
-        cfg.session_summary_model,
-        Some(crate::models::default_session_summary_model().to_owned())
+        cfg.session_summary_model, None,
+        "no bundled default, so the summary model stays unset"
     );
     assert!(!cfg.path_not_found_hints);
 }
@@ -7522,15 +7569,19 @@ fn prefetch_model_entry(slug: &str, context_window: u64, api_backend: ApiBackend
 }
 #[test]
 fn global_extra_headers_apply_to_model_without_override() {
-    let dm = crate::models::default_model();
     let (_, models) = resolve_models_from_toml(
         r#"
             [models]
             extra_headers = { "X-Request-Tags" = "team=example,env=prod" }
+
+            [model."fixture-model"]
+            model = "fixture-model"
             "#,
         None,
     );
-    let model = models.get(dm).expect("default model should exist");
+    let model = models
+        .get("fixture-model")
+        .expect("fixture model should exist");
     assert_eq!(
         model
             .info
@@ -7543,20 +7594,20 @@ fn global_extra_headers_apply_to_model_without_override() {
 }
 #[test]
 fn per_model_extra_headers_override_global_per_key() {
-    let dm = crate::models::default_model();
     let (_, models) = resolve_models_from_toml(
-        &format!(
-            r#"
+        r#"
                 [models]
-                extra_headers = {{ "X-Request-Tags" = "team=example,env=staging", "X-Team" = "platform" }}
+                extra_headers = { "X-Request-Tags" = "team=example,env=staging", "X-Team" = "platform" }
 
-                [model."{dm}"]
-                extra_headers = {{ "X-Request-Tags" = "team=example,env=prod" }}
+                [model."fixture-model"]
+                model = "fixture-model"
+                extra_headers = { "X-Request-Tags" = "team=example,env=prod" }
                 "#,
-        ),
         None,
     );
-    let model = models.get(dm).expect("default model should exist");
+    let model = models
+        .get("fixture-model")
+        .expect("fixture model should exist");
     assert_eq!(
         model
             .info
@@ -7574,20 +7625,20 @@ fn per_model_extra_headers_override_global_per_key() {
 }
 #[test]
 fn per_model_extra_headers_override_global_case_insensitively() {
-    let dm = crate::models::default_model();
     let (_, models) = resolve_models_from_toml(
-        &format!(
-            r#"
+        r#"
                 [models]
-                extra_headers = {{ "X-Request-Tags" = "global" }}
+                extra_headers = { "X-Request-Tags" = "global" }
 
-                [model."{dm}"]
-                extra_headers = {{ "x-request-tags" = "permodel" }}
+                [model."fixture-model"]
+                model = "fixture-model"
+                extra_headers = { "x-request-tags" = "permodel" }
                 "#,
-        ),
         None,
     );
-    let model = models.get(dm).expect("default model should exist");
+    let model = models
+        .get("fixture-model")
+        .expect("fixture model should exist");
     let cost_tags: Vec<&str> = model
         .info
         .extra_headers
@@ -7824,20 +7875,21 @@ fn resolve_model_list_config_reasoning_efforts_beats_remote() {
         "config.toml list must override remote"
     );
 }
+/// The fetched catalog is authoritative: with no bundled entry to inherit from,
+/// the deployment's own `context_window` must reach the resolved list verbatim.
 #[test]
-fn resolve_model_list_inherits_context_window_from_default_when_prefetched_has_fallback() {
+fn resolve_model_list_keeps_prefetched_context_window_without_a_bundle() {
     let cfg = Config::default();
-    let dm = crate::models::default_model();
-    let default_cw = DEFAULT_CONTEXT_WINDOW;
-    let entry = prefetch_model_entry(dm, default_cw, ApiBackend::default());
+    let fetched_cw = DEFAULT_CONTEXT_WINDOW;
+    let entry = prefetch_model_entry("remote-model", fetched_cw, ApiBackend::default());
     let mut prefetched = IndexMap::new();
-    prefetched.insert(dm.to_owned(), entry);
+    prefetched.insert("remote-model".to_owned(), entry);
     let resolved = resolve_model_list(&cfg, Some(prefetched));
-    let entry = resolved.get(dm).expect("model must exist");
-    assert_ne!(
+    let entry = resolved.get("remote-model").expect("model must exist");
+    assert_eq!(
         entry.info.context_window.get(),
-        default_cw,
-        "context_window should have been inherited from hardcoded default, not left at DEFAULT_CONTEXT_WINDOW"
+        fetched_cw,
+        "the server catalog's context_window must be used as-is"
     );
 }
 #[test]
@@ -7903,28 +7955,35 @@ fn hub_config_is_enabled_only_for_nonempty_url() {
     );
 }
 #[test]
-fn resolve_model_list_prunes_bundled_entries_not_in_prefetch() {
+fn resolve_model_list_keeps_prefetched_entries_without_a_bundle() {
     let cfg = Config::default();
-    let dm = crate::models::default_model();
-    let mut defs = default_model_entries(&EndpointsConfig::default());
     let mut p = IndexMap::new();
-    if let Some(e) = defs.shift_remove(dm) {
-        p.insert(dm.to_string(), e);
-    }
+    p.insert(
+        "remote-model".to_string(),
+        prefetch_model_entry("remote-model", 200_000, ApiBackend::default()),
+    );
     let resolved = resolve_model_list(&cfg, Some(p));
-    assert!(resolved.contains_key(dm));
-    let no_p = resolve_model_list(&cfg, None);
-    assert!(no_p.contains_key(dm));
+    assert!(
+        resolved.contains_key("remote-model"),
+        "the fetched catalog must survive the merge"
+    );
+    assert_eq!(
+        resolved.len(),
+        1,
+        "no bundled entry may be injected alongside the fetched catalog"
+    );
 }
 #[test]
 fn resolve_model_list_prefetch_visibility_matches_auth_and_server_list() {
     let cfg = Config::default();
-    let dm = crate::models::default_model();
-    let mut defs = default_model_entries(&EndpointsConfig::default());
+    let mut oauth_only = prefetch_model_entry("oauth-only", 200_000, ApiBackend::default());
+    oauth_only.info.supported_in_api = false;
     let mut p = IndexMap::new();
-    if let Some(e) = defs.shift_remove(dm) {
-        p.insert(dm.to_string(), e);
-    }
+    p.insert("oauth-only".to_string(), oauth_only);
+    p.insert(
+        "shared".to_string(),
+        prefetch_model_entry("shared", 200_000, ApiBackend::default()),
+    );
     let resolved = resolve_model_list(&cfg, Some(p));
     let sess: Vec<_> = resolved
         .values()
@@ -7934,8 +7993,12 @@ fn resolve_model_list_prefetch_visibility_matches_auth_and_server_list() {
         .values()
         .filter(|e| e.visible_for_auth(false))
         .collect();
-    assert_eq!(sess.len(), 1);
-    assert_eq!(api.len(), 1);
+    assert_eq!(sess.len(), 2, "both entries are visible to OAuth users");
+    assert_eq!(
+        api.len(),
+        1,
+        "only the API-visible entry is listed for keys"
+    );
 }
 #[test]
 fn resolve_model_list_keeps_prefetch_only_entries_and_prunes_defaults() {
@@ -7996,31 +8059,37 @@ fn byok_config_overlay_visible_to_api_key_users() {
 /// Guard: a config overlay WITHOUT credentials must NOT flip the bundled supported_in_api flag.
 /// Only BYOK triggers that override.
 #[test]
-fn plain_config_overlay_preserves_bundled_visibility() {
-    let dm = crate::models::default_model();
-    let bundled = default_model_entries(&EndpointsConfig::default())
-        .get(dm)
-        .expect("bundled default must exist")
-        .clone();
-    let raw: toml::Value = toml::from_str(&format!(
+fn plain_config_overlay_preserves_catalog_visibility() {
+    let mut base = prefetch_model_entry("oauth-only", 200_000, ApiBackend::default());
+    base.info.supported_in_api = false;
+    let mut prefetched = IndexMap::new();
+    prefetched.insert("oauth-only".to_owned(), base.clone());
+    let raw: toml::Value = toml::from_str(
         r#"
-            [model."{dm}"]
+            [model.oauth-only]
             context_window = 300000
-            "#
-    ))
+            "#,
+    )
     .unwrap();
     let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-    let resolved = resolve_model_list(&cfg, None);
-    let entry = resolved.get(dm).expect("bundled default must exist");
+    let resolved = resolve_model_list(&cfg, Some(prefetched));
+    let entry = resolved
+        .get("oauth-only")
+        .expect("catalog entry must exist");
+    assert_eq!(
+        entry.info.context_window.get(),
+        300_000,
+        "the overlay must still apply"
+    );
     assert_eq!(
         entry.visible_for_auth(false),
-        bundled.visible_for_auth(false),
-        "non-BYOK config overlay must preserve bundled supported_in_api"
+        base.visible_for_auth(false),
+        "non-BYOK config overlay must preserve the catalog's supported_in_api"
     );
     assert_eq!(
         entry.visible_for_auth(true),
-        bundled.visible_for_auth(true),
-        "non-BYOK config overlay must preserve bundled OAuth visibility"
+        base.visible_for_auth(true),
+        "non-BYOK config overlay must preserve the catalog's OAuth visibility"
     );
 }
 #[test]

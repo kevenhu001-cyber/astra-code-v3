@@ -3,7 +3,7 @@ use super::auth::{
     dispatch_cancel_login, dispatch_login, dispatch_logout, dispatch_submit_auth_code,
     dispatch_switch_account,
 };
-use super::connect_wizard::dispatch_open_connect_wizard;
+use super::connect_wizard::{dispatch_open_connect_wizard, dispatch_pending_connect_wizard};
 use super::ctx::{
     active_agent_session_id, get_active_agent_mut, navigate_clearing_selection, open_url_or_show,
     sync_sleep_inhibitor, with_active_agent, with_scrollback,
@@ -152,7 +152,20 @@ pub(in crate::app::dispatch) fn confirmed_quit(app: &mut AppView) -> Vec<Effect>
     effects.push(Effect::Quit);
     effects
 }
+/// Entry point for every action. Replays a parked `/connect` wizard open
+/// before the requested action runs, so a `/connect` typed on the welcome
+/// screen opens as soon as a session is on screen instead of being dropped.
 pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
+    let mut effects = Vec::new();
+    if matches!(app.active_view, ActiveView::Agent(_))
+        && let Some(request) = app.pending_connect_wizard.take()
+    {
+        effects.extend(dispatch_pending_connect_wizard(app, request));
+    }
+    effects.extend(dispatch_inner(action, app));
+    effects
+}
+fn dispatch_inner(action: Action, app: &mut AppView) -> Vec<Effect> {
     app.reconcile_foreign_resume_launch();
     let effects = match action {
         Action::Quit | Action::QuitConfirmed => confirmed_quit(app),

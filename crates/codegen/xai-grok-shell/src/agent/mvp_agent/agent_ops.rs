@@ -133,6 +133,7 @@ impl MvpAgent {
                 );
                 cfg
             }
+            None if slug.is_empty() => primary.clone(),
             None => {
                 let mut fallback = primary.clone();
                 fallback.model = slug;

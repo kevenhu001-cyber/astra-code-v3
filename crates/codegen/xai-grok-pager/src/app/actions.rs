@@ -2226,7 +2226,7 @@ pub enum Effect {
     FetchPromptSuggestion {
         agent_id: AgentId,
         generation: u64,
-        /// Suggestion model resolved by the pager (`grok-4.6` when the catalog offers it).
+        /// Suggestion model resolved by the pager (bundled default when the catalog offers it).
         /// `None` makes the shell fall back to the session model.
         model: Option<String>,
         session_id: Option<String>,

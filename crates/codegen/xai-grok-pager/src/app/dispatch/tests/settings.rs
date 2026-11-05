@@ -17,6 +17,38 @@ fn connect_defaults_to_account_provider_without_custom_model_write() {
 }
 
 #[test]
+fn connect_from_welcome_parks_the_request_and_replays_it_once_a_session_is_active() {
+    let mut app = test_app_with_agent();
+    app.active_view = ActiveView::Welcome;
+
+    dispatch(Action::OpenConnectWizard, &mut app);
+
+    // The wizard is agent-scoped. From home the open is either parked until a
+    // session exists, or honoured immediately when the home session is revealed
+    // synchronously — never silently dropped.
+    if app.pending_connect_wizard.is_some() {
+        assert!(
+            app.agents[&AgentId(0)].active_modal.is_none(),
+            "no agent is on screen yet, so nothing may be rendered"
+        );
+        app.active_view = ActiveView::Agent(AgentId(0));
+        dispatch(Action::OpenConnectWizard, &mut app);
+    }
+
+    assert!(
+        app.pending_connect_wizard.is_none(),
+        "a parked connect request must be consumed once an agent is active"
+    );
+    assert!(
+        matches!(
+            app.agents[&AgentId(0)].active_modal,
+            Some(crate::views::modal::ActiveModal::ConnectWizard { .. })
+        ),
+        "connect must open the guided wizard, not no-op"
+    );
+}
+
+#[test]
 fn connect_account_provider_opens_live_model_picker() {
     let mut app = test_app_with_agent();
     app.active_view = ActiveView::Agent(AgentId(0));

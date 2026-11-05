@@ -405,6 +405,33 @@ fn model_catalog_preserves_explicit_provider_protocols() {
     }
 }
 #[test]
+fn gateway_catalog_entries_keep_their_configured_protocol() {
+    // The gateway proxies each route in the protocol its administrator chose and
+    // performs no conversion, so the CLI must speak exactly that protocol.
+    // Clamping a gateway entry to Chat Completions would send a Responses or
+    // Messages route to a route the deployment does not serve for it.
+    for (protocol, expected) in [
+        (
+            "openai-compatible",
+            crate::sampling::ApiBackend::ChatCompletions,
+        ),
+        ("openai-responses", crate::sampling::ApiBackend::Responses),
+        ("anthropic-messages", crate::sampling::ApiBackend::Messages),
+    ] {
+        let value = serde_json::json!({
+            "id": "astra-4-8",
+            "protocol": protocol,
+            "baseUrl": "https://astracode.topodrive.top/v1",
+        });
+        let model = parse_remote_model_value(&value, "https://astracode.topodrive.top/v1").unwrap();
+        assert_eq!(model.api_backend, expected, "{protocol}");
+        // The base the sampler appends the protocol path to must be the
+        // gateway API root, so `/responses` becomes `.../v1/responses`.
+        assert_eq!(model.base_url, "https://astracode.topodrive.top/v1");
+    }
+}
+
+#[test]
 fn parse_model_field_takes_priority_over_id() {
     let value = serde_json::json!({
         "id": "display-key",

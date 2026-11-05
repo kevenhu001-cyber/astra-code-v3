@@ -523,6 +523,23 @@ fn is_valid_user_code_format(code: &str) -> bool {
         && bytes[5..].iter().all(u8::is_ascii_alphanumeric)
 }
 
+/// Normalize a code the way a human pastes it: strip separators/whitespace,
+/// upper-case, and re-insert the dash for an 8-character code. The authorize
+/// page shows `XXXX-XXXX`, but clipboard payloads and typed codes routinely
+/// arrive as `xxxxxxxx`, `xxxx xxxx`, or lower-case `xxxx-xxxx`.
+fn normalize_user_code(raw: &str) -> String {
+    let cleaned: String = raw
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    if cleaned.len() == 8 {
+        format!("{}-{}", &cleaned[..4], &cleaned[4..])
+    } else {
+        raw.trim().to_ascii_uppercase()
+    }
+}
+
 pub(crate) async fn consume_reverse_device_code(
     issuer: &str,
     user_code: &str,
@@ -617,55 +634,95 @@ pub(crate) async fn run_reverse_device_login_channels(
 ) -> anyhow::Result<(GrokAuth, bool)> {
     let url = format!("{}/authorize", issuer.trim_end_matches('/'));
 
+    // A front-end listening on `url_tx` renders the URL to a human. Only then is
+    // launching a browser meaningful; headless attempts and unit tests must not
+    // spawn one.
+    let has_front_end = channels.url_tx.is_some();
     if let Some(tx) = channels.url_tx.take() {
         let _ = tx.send(AuthUrlInfo {
             url: url.clone(),
             mode: AuthUrlMode::ReverseDevice,
         });
     }
-
-    let Some(user_code) = channels.code_rx.recv().await else {
-        anyhow::bail!("Device code entry cancelled");
-    };
-
-    let normalized = user_code.trim().to_uppercase();
-    if !is_valid_user_code_format(&normalized) {
-        anyhow::bail!("Invalid device code format ({USER_CODE_FORMAT_DESC})");
+    // Push the URL first, open the browser second: `x.ai/auth/get_url` must not
+    // be blocked on a slow or hanging browser launch (SSH/headless hosts).
+    if has_front_end {
+        open_browser_detached(&url).await;
     }
 
-    consume_reverse_device_code(issuer, &normalized, auth_manager).await
+    // Keep the code channel alive for the whole attempt. A mistyped, expired,
+    // or already-consumed code must not tear down the login: the user pastes a
+    // fresh code from the page that is already open. Previously a single
+    // `recv()` plus an early `bail!` left the TUI in `Authenticating` with a
+    // dead flow, so every later keystroke looked like "no response".
+    let mut code_rx = channels.code_rx;
+    loop {
+        let Some(raw) = code_rx.recv().await else {
+            anyhow::bail!("Device code entry cancelled");
+        };
+        let code = normalize_user_code(&raw);
+        if !is_valid_user_code_format(&code) {
+            tracing::warn!("device auth: malformed code, waiting for a retry");
+            continue;
+        }
+        match consume_reverse_device_code(issuer, &code, auth_manager).await {
+            Ok(result) => return Ok(result),
+            Err(error) => {
+                tracing::warn!(%error, "device auth: code rejected, waiting for a retry");
+            }
+        }
+    }
 }
 
 pub(crate) async fn run_reverse_device_login_cli(
     issuer: &str,
     auth_manager: &Arc<AuthManager>,
 ) -> anyhow::Result<(GrokAuth, bool)> {
-    use std::io::{BufRead, Write};
+    use std::io::{IsTerminal as _, Write};
+    use tokio::io::AsyncBufReadExt as _;
 
     let url = format!("{}/authorize", issuer.trim_end_matches('/'));
     eprintln!();
-    eprintln!("Open this URL in your browser, sign in, and generate a device code:");
+    eprintln!("Sign in from your browser, then paste the code below.");
     eprintln!();
     eprintln!("  {url}");
     eprintln!();
-    eprint!("Paste the code here: ");
-    let _ = std::io::stderr().flush();
-    let _ = std::io::stdout().flush();
 
-    let stdin = std::io::stdin();
-    let line = stdin
-        .lock()
-        .lines()
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("No input"))?
-        .map_err(|e| anyhow::anyhow!("Failed to read input: {e}"))?;
-
-    let normalized = line.trim().to_uppercase();
-    if !is_valid_user_code_format(&normalized) {
-        anyhow::bail!("Invalid device code format ({USER_CODE_FORMAT_DESC})");
+    // Only an attached terminal has a human to complete the browser step.
+    if std::io::stderr().is_terminal() && !open_browser_detached(&url).await {
+        eprintln!("  (Could not open the browser automatically — open the URL above manually.)");
+        eprintln!();
     }
 
-    consume_reverse_device_code(issuer, &normalized, auth_manager).await
+    // Async stdin (not `std::io::stdin().lines()`): the blocking read used to
+    // stall the executor on terminals whose stdin is owned by the TUI. Read in
+    // a loop so an invalid or rejected code can be corrected without restarting
+    // `astra login`.
+    let mut reader = tokio::io::BufReader::new(tokio::io::stdin());
+    loop {
+        eprint!("Paste the code here: ");
+        let _ = std::io::stderr().flush();
+        let mut line = String::new();
+        match reader.read_line(&mut line).await {
+            Ok(0) => anyhow::bail!("No input: stdin closed before a device code was entered"),
+            Ok(_) => {}
+            Err(error) => anyhow::bail!("Failed to read device code: {error}"),
+        }
+
+        let code = normalize_user_code(&line);
+        if !is_valid_user_code_format(&code) {
+            eprintln!("Invalid device code format ({USER_CODE_FORMAT_DESC}); try again.");
+            continue;
+        }
+        match consume_reverse_device_code(issuer, &code, auth_manager).await {
+            Ok(result) => return Ok(result),
+            Err(error) => {
+                eprintln!(
+                    "That code was rejected ({error}); generate a new one and paste it here."
+                );
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -682,6 +739,28 @@ pub mod tests {
             "Server returned unsupported verification URI scheme",
             err.to_string()
         );
+    }
+
+    #[test]
+    fn normalize_user_code_accepts_every_shape_the_authorize_page_produces() {
+        for raw in [
+            "ABCD-EFGH",
+            "abcdefgh",
+            "abcd-efgh",
+            "ABCD EFGH",
+            "  aBcD-eFgH  ",
+        ] {
+            let code = super::normalize_user_code(raw);
+            assert_eq!(code, "ABCD-EFGH", "raw: {raw:?}");
+            assert!(
+                super::is_valid_user_code_format(&code),
+                "normalized code must be wire-valid: {code}"
+            );
+        }
+        // A genuinely wrong length stays wrong and is rejected by validation.
+        assert!(!super::is_valid_user_code_format(
+            &super::normalize_user_code("ABC")
+        ));
     }
 
     fn auth_manager_with_grok_home(

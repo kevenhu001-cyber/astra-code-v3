@@ -2040,9 +2040,11 @@ fn choose_model_route_from(
         return enabled
             .into_iter()
             .find(|route| {
-                route.id == requested_model
+                // Model ids are shown in a picker and often retyped by hand;
+                // compare them case-insensitively like the display name.
+                route.id.eq_ignore_ascii_case(requested_model)
                     || route.display_name.eq_ignore_ascii_case(requested_model)
-                    || route.upstream_model == requested_model
+                    || route.upstream_model.eq_ignore_ascii_case(requested_model)
             })
             .ok_or(ModelRouteSelectionError::UnknownModel);
     }
@@ -2145,7 +2147,33 @@ async fn handlers_gateway_inference(
     let route = match choose_model_route(&s.store, &requested_model) {
         Ok(route) => route,
         Err(ModelRouteSelectionError::UnknownModel) => {
-            return write_err(StatusCode::NOT_FOUND, "requested model is not enabled");
+            // Return a structured JSON envelope: the CLI only surfaces bodies
+            // it can parse, otherwise it degrades every 404 to the useless
+            // "Request failed (HTTP 404). Run /model to pick another."
+            let available: Vec<String> = s
+                .store
+                .model_routes()
+                .into_iter()
+                .filter(|candidate| candidate.enabled)
+                .map(|candidate| candidate.id)
+                .collect();
+            let hint = if available.is_empty() {
+                "no enabled model route is configured".to_string()
+            } else {
+                format!("available model ids: {}", available.join(", "))
+            };
+            return json_response(
+                StatusCode::NOT_FOUND,
+                json!({
+                    "error": {
+                        "type": "model_not_found",
+                        "message": format!(
+                            "Model '{requested_model}' is not enabled ({hint}). \
+                             Refresh the catalog with /model."
+                        )
+                    }
+                }),
+            );
         }
         Err(ModelRouteSelectionError::NoEnabledRoutes) => {
             return write_err(
@@ -2244,6 +2272,13 @@ async fn handlers_gateway_inference(
     provider_response(status, &content_type, bytes.to_vec())
 }
 
+/// Native endpoint suffixes the gateway can append. A configured base may
+/// already contain one (a full endpoint URL, a `/models` catalog URL, or a
+/// stale protocol path). Appending a second one produced nested paths such as
+/// `/v1/responses/chat/completions`; the upstream 404 was then forwarded
+/// verbatim to the CLI as an unstructured "Request failed (HTTP 404)".
+const PROVIDER_ENDPOINT_SUFFIXES: [&str; 3] = ["/chat/completions", "/responses", "/messages"];
+
 fn provider_endpoint(route: &ModelRoute) -> String {
     let suffix = match route.protocol.as_str() {
         "anthropic-messages" => "/messages",
@@ -2253,10 +2288,17 @@ fn provider_endpoint(route: &ModelRoute) -> String {
     let Ok(mut url) = url::Url::parse(&route.base_url) else {
         return format!("{}{suffix}", route.base_url.trim_end_matches('/'));
     };
-    let path = url.path().trim_end_matches('/');
-    let path = if path.ends_with(suffix) {
-        path.to_string()
-    } else if path.is_empty() {
+    let mut path = url.path().trim_end_matches('/').to_string();
+    if let Some(existing) = PROVIDER_ENDPOINT_SUFFIXES
+        .iter()
+        .find(|known| path.ends_with(**known))
+    {
+        path.truncate(path.len() - existing.len());
+    } else if path.ends_with("/models") {
+        path.truncate(path.len() - "/models".len());
+    }
+    let path = path.trim_end_matches('/');
+    let path = if path.is_empty() {
         format!("/v1{suffix}")
     } else {
         format!("{path}{suffix}")
@@ -2434,6 +2476,38 @@ mod model_route_selection_tests {
         }
     }
 
+    /// Regression: a base URL that already contains a (possibly stale) native
+    /// endpoint used to gain a second suffix and 404 at the upstream provider.
+    #[test]
+    fn provider_endpoint_replaces_a_stale_protocol_path() {
+        let mut route = route("test", true, true);
+        for (base, protocol, expected) in [
+            (
+                "https://upstream.example/v1/responses",
+                "openai-compatible",
+                "/v1/chat/completions",
+            ),
+            (
+                "https://upstream.example/v1/models",
+                "openai-responses",
+                "/v1/responses",
+            ),
+            (
+                "https://upstream.example/v1/chat/completions",
+                "anthropic-messages",
+                "/v1/messages",
+            ),
+        ] {
+            route.base_url = base.into();
+            route.protocol = protocol.into();
+            assert_eq!(
+                provider_endpoint(&route),
+                format!("https://upstream.example{expected}"),
+                "base: {base}, protocol: {protocol}"
+            );
+        }
+    }
+
     #[test]
     fn requested_model_selects_its_route() {
         let selected = choose_model_route_from(
@@ -2443,6 +2517,13 @@ mod model_route_selection_tests {
         .unwrap();
 
         assert_eq!(selected.id, "other");
+    }
+
+    #[test]
+    fn requested_model_id_is_case_insensitive() {
+        let selected =
+            choose_model_route_from(vec![route("MyModel", true, true)], "mymodel").unwrap();
+        assert_eq!(selected.id, "MyModel");
     }
 
     #[test]

@@ -677,6 +677,9 @@ pub(crate) fn parse_remote_model_value(
         })
         // Standard /models responses do not advertise a protocol. Responses is
         // opt-in: assuming it here sends chat-only gateways to a missing route.
+        // A catalog that *does* advertise one is authoritative: the gateway
+        // proxies each route in the protocol its administrator configured and
+        // never converts, so the CLI must speak exactly that protocol too.
         .unwrap_or(crate::sampling::ApiBackend::ChatCompletions);
     Some(crate::agent::config::ModelEntryConfig {
         id,

@@ -1151,7 +1151,21 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             external,
             mode,
         } => handle_auth_url_ready(app, request_seq, auth_url, external, mode),
-        TaskResult::AuthCodeSubmitted { .. } => vec![],
+        TaskResult::AuthCodeSubmitted { request_seq } => {
+            // Visible feedback that the paste reached the agent, and a clean
+            // box for the corrected code if the server rejects it. Without the
+            // reset the old code stayed on screen and re-submitting it looked
+            // like the login had hung.
+            if let AuthState::Authenticating {
+                request_seq: current_seq,
+                ..
+            } = &app.auth_state
+                && *current_seq == request_seq
+            {
+                app.auth_code_input.reset();
+            }
+            vec![]
+        }
         TaskResult::AuthCancelComplete => vec![],
         TaskResult::McpsListLoaded { agent_id, result } => {
             use crate::views::extensions_modal::TabDataState;

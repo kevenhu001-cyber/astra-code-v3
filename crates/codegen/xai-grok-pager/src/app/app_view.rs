@@ -218,6 +218,15 @@ impl ActiveView {
         }
     }
 }
+/// A `/connect` wizard open that could not be honoured yet because no agent
+/// view owned a modal stack. Replayed once an agent is on screen.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConnectWizardRequest {
+    /// Bare `/connect`: open the form on its default (account) preset.
+    Generic,
+    /// `/connect <preset>` with an explicit vendor preselected.
+    Preset(String),
+}
 /// Target restored when leaving the dashboard (Ctrl+\ / Esc).
 /// Consumed by `dispatch_exit_dashboard`; dead agents fall back to a live
 /// non-home tab, or Welcome.
@@ -566,6 +575,11 @@ pub struct AppView {
     /// `Some` only while a `/login` (or 401-triggered re-auth) initiated from an active session is in progress.
     /// `None` at startup so the normal login-then-load flow is preserved.
     pub auth_return_view: Option<ActiveView>,
+    /// `/connect` requested while no agent view existed yet (welcome screen or
+    /// dashboard). The wizard lives on the agent's modal stack, so the open is
+    /// parked here and replayed by the first dispatch that runs with an agent
+    /// on screen. Without it the command silently did nothing from home.
+    pub pending_connect_wizard: Option<ConnectWizardRequest>,
     pub agents: IndexMap<AgentId, AgentView>,
     /// Monotonically increasing counter for agent ID allocation.
     /// IDs are never reused after `shift_remove`, to avoid collisions.
@@ -1478,6 +1492,7 @@ impl AppView {
             pending_startup: None,
             active_view: ActiveView::Welcome,
             auth_return_view: None,
+            pending_connect_wizard: None,
             agents: IndexMap::new(),
             next_agent_id: 0,
             models,

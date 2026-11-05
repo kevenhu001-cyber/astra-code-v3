@@ -194,7 +194,13 @@ impl SessionTokenAuthGate {
             is_session_based: auth_method_id
                 .is_some_and(crate::agent::auth_method::is_session_based_method),
             model_byok,
-            endpoint_is_first_party: crate::util::is_topodrive_api_url(base_url),
+            // Same seam as `resolve_credentials`: `is_topodrive_api_url` is
+            // scheme-agnostic and deliberately trusts loopback for *refusal*,
+            // so it cannot decide where to *attach* a session bearer. A local
+            // BYOK / Ollama endpoint must not be treated as the Astra gateway.
+            endpoint_is_first_party: crate::agent::config::session_token_allowed_for_endpoint(
+                base_url,
+            ),
         }
     }
 
@@ -658,7 +664,14 @@ impl SessionActor {
         let auth_method = self.auth_method_id.load();
         let gate =
             SessionTokenAuthGate::new(auth_method.as_deref(), model_facts.byok, &cfg.base_url);
-        let use_bearer_resolver = gate.active();
+        // A definite `NotByok` classification does not imply a first-party
+        // endpoint: a locally configured model without its own key is also
+        // `NotByok`. Wiring the session resolver there strips the configured
+        // credential and stamps the Astra session token, which a local provider
+        // rejects with a 401 that the UI reports as "session expired, /login".
+        // The resolver is the sole auth source, so it must only be attached to
+        // endpoints that actually accept that session.
+        let use_bearer_resolver = gate.active() && gate.endpoint_is_first_party;
         self.log_auth_gate_unknown("reconstruct_full_config", gate, &cfg.base_url);
         // Refresh the session token before the sampler reads it; gated to sessions that use it.
         if use_bearer_resolver && let Some(am) = self.auth_manager.as_ref() {

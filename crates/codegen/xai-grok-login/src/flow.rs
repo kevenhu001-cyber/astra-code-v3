@@ -268,14 +268,19 @@ pub async fn run_auth_flow_with_stderr_bridge(
                     Some(lines.join("\n"))
                 }
             };
+            // Only an actual provider URL may claim `url_tx`. Arbitrary stderr
+            // (progress text, the "Signing in with browser instead..." notice)
+            // used to be forwarded as a `Command` URL, so the TUI showed a
+            // waiting status with no paste box and swallowed every device-code
+            // keystroke. Leave `url_tx` for `run_reverse_device_login_channels`
+            // when the external provider never printed a URL.
             if let Some(joined) = content
+                && let Some(url) = joined
+                    .split_whitespace()
+                    .find(|w| w.starts_with("https://") || w.starts_with("http://"))
+                    .map(|u| u.to_owned())
                 && let Some(tx) = url_tx_bridge.borrow_mut().take()
             {
-                let url = joined
-                    .split_whitespace()
-                    .find(|w| w.starts_with("https://"))
-                    .map(|u| u.to_owned())
-                    .unwrap_or(joined);
                 let _ = tx.send(AuthUrlInfo {
                     url,
                     mode: AuthUrlMode::Command,

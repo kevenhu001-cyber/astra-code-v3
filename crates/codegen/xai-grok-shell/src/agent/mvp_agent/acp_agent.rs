@@ -796,7 +796,11 @@ impl acp::Agent for MvpAgent {
                 let client_seq = auth_meta.request_seq;
                 let auth_result = if !auth_meta.headless {
                     let (url_tx, url_rx) = tokio::sync::oneshot::channel();
-                    let (code_tx, code_rx) = tokio::sync::mpsc::channel(1);
+                    // The reverse device flow keeps the receiver alive across
+                    // retries. A capacity of one made a second paste (or a
+                    // quick correction) fail `try_send` and look like a dead
+                    // login; leave a small backlog instead.
+                    let (code_tx, code_rx) = tokio::sync::mpsc::channel(8);
                     let (cancel, _guard) = self
                         .interactive_auth
                         .begin(

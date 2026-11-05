@@ -51,11 +51,13 @@ pub const CLI_CHAT_PROXY_BASE_URL_DEFAULT: &str =
 /// Keep this separate from the cli-chat-proxy, which serves login and auxiliary APIs.
 pub const ASTRA_GATEWAY_BASE_URL_DEFAULT: &str = "https://astracode.topodrive.top/v1";
 /// The account catalog and inference API must use the same deployment.
+/// Some deployments configure the issuer *with* its `/v1` API prefix; adding
+/// the prefix again produced `/v1/v1/...` and an unstructured 404 from the
+/// site's static fallback. Normalize to exactly one `/v1`.
 pub(crate) fn astra_gateway_base_url() -> String {
-    format!(
-        "{}/v1",
-        xai_grok_login::xai_oauth2_issuer().trim_end_matches('/')
-    )
+    let issuer = xai_grok_login::xai_oauth2_issuer().trim_end_matches('/');
+    let origin = issuer.strip_suffix("/v1").unwrap_or(issuer);
+    format!("{origin}/v1")
 }
 
 /// Default base URL for the public Astra API.
@@ -291,19 +293,44 @@ impl EndpointsConfig {
     }
     /// Session-authenticated model requests use the deployment gateway by default.
     /// Explicit `models_base_url` or legacy `cli_chat_proxy_base_url` overrides still win.
+    /// The default must come from `astra_gateway_base_url()` (the issuer) rather
+    /// than the hardcoded constant: the catalog is fetched from the issuer, so
+    /// a local/self-hosted deployment otherwise advertised models from one host
+    /// and sent inference to another, which surfaced as a gateway 404.
     pub(crate) fn resolve_inference_base_url(&self) -> String {
         self.models_base_url
             .clone()
             .or_else(|| blank_as_unset(&self.cli_chat_proxy_base_url))
-            .unwrap_or_else(|| ASTRA_GATEWAY_BASE_URL_DEFAULT.to_owned())
+            .unwrap_or_else(astra_gateway_base_url)
     }
-    /// The deployed Astra gateway accepts OpenAI Chat Completions requests.
-    /// Other configured endpoints retain the bundled model protocol.
+    /// Whether inference goes to an Astra gateway deployment.
+    ///
+    /// This only picks the *bootstrap* protocol for models whose protocol is
+    /// unknown (no catalog entry, no explicit override). The gateway serves all
+    /// three native protocols and proxies each route in the protocol its
+    /// administrator configured, so a catalog entry always wins; see
+    /// `remote::client::parse_remote_model_value`.
+    ///
+    /// Recognize the *active deployment's* issuer host too, so a local or
+    /// self-hosted Astra gateway is not misclassified as a foreign endpoint.
     fn uses_astra_gateway(&self) -> bool {
-        url::Url::parse(&self.resolve_inference_base_url())
+        let Some(host) = url::Url::parse(&self.resolve_inference_base_url())
             .ok()
             .and_then(|url| url.host_str().map(str::to_owned))
-            .is_some_and(|host| host.eq_ignore_ascii_case("astracode.topodrive.top"))
+        else {
+            return false;
+        };
+        let issuer_host = url::Url::parse(&astra_gateway_base_url())
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_owned));
+        host.eq_ignore_ascii_case("astracode.topodrive.top")
+            // `resolve_inference_base_url()` falls back to this host when an
+            // install pins `cli_chat_proxy_base_url`; same deployment, same
+            // gateway catalog.
+            || host.eq_ignore_ascii_case("cli-chat-proxy.astracode.topodrive.top")
+            || issuer_host
+                .as_deref()
+                .is_some_and(|candidate| candidate.eq_ignore_ascii_case(&host))
     }
     pub(crate) fn resolve_inference_api_backend(&self) -> ApiBackend {
         if self.uses_astra_gateway() {
@@ -1042,7 +1069,7 @@ pub struct ModelsConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image_description: Option<String>,
     /// Model pin for next-prompt suggestions (tab-autocomplete ghost text).
-    /// When unset: the remote pin, then the client hint / built-in `grok-4.6` default with the catalog guard; see `ModelOverrideConfig::resolve`.
+    /// When unset: the remote pin, then the client hint / bundled default with the catalog guard; see `ModelOverrideConfig::resolve`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt_suggestion: Option<String>,
     /// Restricts which models are user-selectable for normal chat (picker, `/model`, `-m`).
@@ -1532,10 +1559,10 @@ pub struct Config {
     #[serde(skip)]
     pub web_search_model: String,
     /// Session title model.
-    /// Resolved to the compiled default (`default_session_summary_model`) when unset; see `ModelOverrideConfig::resolve`.
+    /// Resolved to the bundled default (`default_session_summary_model`) when unset; see `ModelOverrideConfig::resolve`.
     #[serde(skip)]
     pub session_summary_model: Option<String>,
-    /// Image describe model (`grok-4.6` default via `ModelOverrideConfig::resolve`).
+    /// Image describe model (bundled default via `ModelOverrideConfig::resolve`; the session model is used when unset).
     #[serde(skip)]
     pub image_description_model: Option<String>,
     /// Next-prompt suggestion model pin (`env > [models] prompt_suggestion > remote`).
@@ -4747,6 +4774,43 @@ impl<'de> Deserialize<'de> for FeatureEntries {
         deserializer.deserialize_map(EntriesVisitor)
     }
 }
+/// Whether this endpoint may receive the first-party Astra session credential.
+///
+/// `is_topodrive_api_url` also trusts every loopback host (so tests and the
+/// local auth server work), which makes a user's own loopback model server
+/// (Ollama / LM Studio / vLLM) look first-party. Scope the session to:
+///   * first-party Astra hosts and the legacy `*.x.ai` inference hosts;
+///   * the deployment's configured inference gateway (including local dev);
+/// and never to an arbitrary `[model.*]` base_url. A BYOK provider rejects the
+/// Astra token with a 401 that the UI mislabels as "session expired, /login".
+pub(crate) fn session_token_allowed_for_endpoint(url: &str) -> bool {
+    let parsed = url::Url::parse(url).ok();
+    let host = parsed
+        .as_ref()
+        .and_then(|u| u.host_str())
+        .unwrap_or_default();
+    let loopback = matches!(host, "localhost" | "127.0.0.1" | "::1");
+    let normalized = url.trim_end_matches('/');
+    let issuer_gateway = astra_gateway_base_url();
+    // `EndpointsConfig::default()` only reads env overrides (no disk I/O), so
+    // this stays cheap on the per-model credential seam.
+    let configured_gateway = EndpointsConfig::default().resolve_inference_base_url();
+    let is_gateway = normalized == issuer_gateway.trim_end_matches('/')
+        || normalized == configured_gateway.trim_end_matches('/');
+    if loopback {
+        // A loopback URL without an explicit port is the local Astra auth
+        // service (dev/test gateway). A loopback URL *with* a port is a
+        // user-run model server (Ollama, LM Studio, vLLM) and only qualifies
+        // when it is explicitly configured as the deployment gateway.
+        let has_explicit_port = parsed.as_ref().and_then(|u| u.port()).is_some();
+        return is_gateway || !has_explicit_port;
+    }
+    crate::util::is_topodrive_api_url(url)
+        || host == "api.x.ai"
+        || host.ends_with(".x.ai")
+        || is_gateway
+}
+
 /// Resolved credentials for a model session.
 pub(crate) struct ResolvedCredentials {
     pub api_key: Option<String>,
@@ -4789,6 +4853,20 @@ pub(crate) fn resolve_credentials(
             &xai_grok_login::backend::ActiveAuthBackend::default(),
             &info.base_url,
         )
+        // The backend deliberately says "yes" to every URL (customers may run
+        // their own gateway). At the credential seam we must still fail closed:
+        // a BYOK / localhost model has its own endpoint and must never receive
+        // the Astra session token, which that provider rejects with a 401.
+        //
+        // A model that declares an Astra `api_base_url` is opting into dual
+        // auth: `base_url` carries the session, `api_base_url` carries an API
+        // key (see `ModelEntry::api_base_url`). That declaration is what lets
+        // a proxied model on another host still authenticate with the session.
+        && (session_token_allowed_for_endpoint(&info.base_url)
+            || model
+                .api_base_url
+                .as_deref()
+                .is_some_and(session_token_allowed_for_endpoint))
     {
         (
             Some(key.to_owned()),
@@ -4968,6 +5046,11 @@ pub(crate) fn resolve_aux_model_sampling_config(
     alpha_test_key: Option<String>,
     client_version: Option<String>,
 ) -> Option<SamplerConfig> {
+    // No slug pinned and no compiled default: let the caller reuse its session
+    // model instead of sampling with an empty model id.
+    if model_id.trim().is_empty() {
+        return None;
+    }
     let catalog_entry = find_model_by_id(models, model_id).cloned();
     if let Some(entry) = &catalog_entry {
         let credentials = resolve_credentials_enforced(entry, session_key, disable_api_key_auth);
@@ -5289,6 +5372,12 @@ pub(crate) fn resolve_web_search_sampling_config(
     client_version: Option<String>,
     endpoints: &EndpointsConfig,
 ) -> Option<SamplerConfig> {
+    // An empty slug means nothing pinned it and the bundle has no compiled
+    // default. Disable web search rather than sampling with an empty model id.
+    if model_id.trim().is_empty() {
+        tracing::debug!("no web_search model configured; disabling web search");
+        return None;
+    }
     let resolved = if let Some(entry) = find_model_by_id(models, model_id).cloned() {
         let credentials = resolve_credentials_enforced(&entry, session_key, disable_api_key_auth);
         if credentials.api_key.is_none() && entry.effective_auth_provider().is_some() {

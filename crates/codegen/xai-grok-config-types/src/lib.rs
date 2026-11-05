@@ -603,7 +603,8 @@ pub struct RemoteSettings {
     pub image_description_model: Option<String>,
     /// Server-side pin for the next-prompt suggestion model (tab-autocomplete ghost text), from the `grok_build_settings` remote settings flag.
     /// It sits below env (`GROK_PROMPT_SUGGESTIONS_MODEL`) and `[models] prompt_suggestion` in config.toml.
-    /// It sits above the client hint and the built-in `grok-4.6` default.
+    /// It sits above the client hint and the bundled default (empty unless
+    /// `default_models.json` ships one).
     /// When the effective model is not in the shell's model catalog the suggestion request is skipped entirely; the session model is never used instead.
     /// See `ModelOverrideConfig::resolve` and `handle_suggest_prompt`.
     #[serde(default)]
