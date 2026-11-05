@@ -317,9 +317,19 @@ async fn startup_gate_shows_paywall_for_free_user_after_live_check() {
         .expect("welcome text");
     // The verified gate renders. Normally the check response resolves the deferral within seconds.
     // The budget also covers the 30s hung-check safety net under full-suite contention
+    // Server gate copy and upgrade links are deliberately replaced with a
+    // neutral access message by AppView::gate_info_from_fields. Verify that
+    // the confirmed block appears without leaking subscription marketing.
     harness
-        .wait_for_text(GATE_MSG, Duration::from_secs(45))
-        .expect("gate copy renders for a genuinely-free user");
+        .wait_for_text(
+            "Astra access is currently unavailable.",
+            Duration::from_secs(45),
+        )
+        .expect("neutral access gate renders for a genuinely-free user");
+    assert!(
+        !harness.contains_text(GATE_MSG),
+        "server-supplied upgrade copy must not be rendered"
+    );
 
     assert!(
         user_check_count(&content) >= 1,
