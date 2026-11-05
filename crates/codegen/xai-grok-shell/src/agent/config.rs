@@ -4399,7 +4399,11 @@ impl ModelEntry {
             api_key: None,
             env_key: None,
             auth_provider: None,
-            api_base_url: None,
+            // A custom enterprise API endpoint explicitly defines the API-key route;
+            // keep it alongside the session proxy for a model with no own URLs.
+            // The built-in xAI endpoint alone must not invent a second route.
+            api_base_url: (endpoints.xai_api_base_url != XAI_API_BASE_URL_DEFAULT)
+                .then(|| endpoints.xai_api_base_url.clone()),
         }
     }
     pub fn info(&self) -> &ModelInfo {
