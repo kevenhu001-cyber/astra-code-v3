@@ -3418,6 +3418,11 @@ pub(crate) async fn run(
         }
 
         presenter.present_if_dirty(&mut app, terminal);
+        // Draw-time triggers (such as the one-shot small-screen tip) can
+        // activate animation after the select arm has scheduled its timers.
+        // Re-check demand after painting so an otherwise idle app still
+        // advances the tip TTL; with no demand this schedules nothing.
+        schedule_tick(&mut animation_tick_at, &app, tick_interval);
     }
 
     flush_pending_stall(&mut stall_rollup);
