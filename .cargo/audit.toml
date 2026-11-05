@@ -55,6 +55,11 @@ ignore = [
     "RUSTSEC-2026-0370",
     "RUSTSEC-2026-0371",
     "RUSTSEC-2026-0372",
+    # pin-utils 0.1.0 is unmaintained (RUSTSEC-2026-0441); still pulled in
+    # transitively by async-std, hyper and AWS Smithy crates. This is a
+    # maintenance advisory, not a published vulnerability. Revisit when
+    # those upstream crates stop depending on pin-utils.
+    "RUSTSEC-2026-0441",
 ]
 
 # Yanked crates (aes 0.9.0, spin 0.9.8/0.10.0) are pulled via transitive deps
