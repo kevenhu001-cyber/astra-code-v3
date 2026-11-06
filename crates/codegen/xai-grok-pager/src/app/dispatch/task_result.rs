@@ -1163,6 +1163,9 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
                 && *current_seq == request_seq
             {
                 app.auth_code_input.reset();
+                // The RPC acknowledges queue delivery, not server acceptance.
+                // Surface a visible state change without claiming login succeeded.
+                app.show_toast("Code received. Checking with server; retry with a new code if needed.");
             }
             vec![]
         }
