@@ -120,6 +120,42 @@ jobs:
           Expand-Archive -Path $zip -DestinationPath $protocDir -Force
           "PROTOC=$protocDir\bin\protoc.exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
+      # The xai-grok-tools build script downloads the pinned ripgrep release
+      # at compile time. GitHub asset downloads can transiently fail on macOS
+      # Intel, breaking an otherwise healthy release build. Pre-provision the
+      # exact target binary and offer a crates.io source-build fallback; the
+      # build script will embed this binary via GROK_TOOLS_BUNDLE_RG_PATH.
+      - name: Install bundled ripgrep (macOS, pinned v15.0.0)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="15.0.0"
+          asset="ripgrep-${version}-${{ matrix.target }}.tar.gz"
+          dest="$RUNNER_TEMP/ripgrep-${version}"
+          mkdir -p "$dest"
+          archive="$dest/$asset"
+          binary="$dest/rg"
+          url="https://github.com/BurntSushi/ripgrep/releases/download/${version}/${asset}"
+          if curl --fail --location --retry 5 --retry-delay 3 --retry-all-errors \
+               --connect-timeout 15 --max-time 120 --silent --show-error \
+               --output "$archive" "$url" \
+             && tar -tzf "$archive" >/dev/null; then
+            member="$(tar -tzf "$archive" | awk '/\\/rg$/ { entry=$0 } END { print entry }')"
+            test -n "$member" || { echo "ripgrep archive missing rg" >&2; exit 1; }
+            tar -xOzf "$archive" "$member" > "$binary"
+          else
+            # Reproducible version, compiled for the runner architecture.
+            # This fallback avoids both an untrusted binary mirror and a
+            # single-point-of-failure dependency on GitHub release assets.
+            echo "GitHub ripgrep artifact unavailable; building pinned version from crates.io" >&2
+            cargo install ripgrep --version "$version" --locked --root "$dest/source"
+            cp "$dest/source/bin/rg" "$binary"
+          fi
+          chmod +x "$binary"
+          "$binary" --version
+          echo "GROK_TOOLS_BUNDLE_RG_PATH=$binary" >> "$GITHUB_ENV"
+
       - name: Build release binary
         run: cargo build -p xai-grok-pager-bin --locked --release --target ${{ matrix.target }}
 
