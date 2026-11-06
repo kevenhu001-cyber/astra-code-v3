@@ -1171,6 +1171,20 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             }
             vec![]
         }
+        TaskResult::AuthCodeSubmitFailed { request_seq, error } => {
+            // A full or closed code channel is not an account-authentication
+            // failure. Keep the input and active attempt available for retry.
+            if matches!(
+                &app.auth_state,
+                AuthState::Authenticating {
+                    request_seq: current,
+                    ..
+                } if *current == request_seq
+            ) {
+                app.show_toast(&format!("Could not send device code: {error}. Please retry."));
+            }
+            vec![]
+        }
         TaskResult::AuthCancelComplete => vec![],
         TaskResult::McpsListLoaded { agent_id, result } => {
             use crate::views::extensions_modal::TabDataState;
