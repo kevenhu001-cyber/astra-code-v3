@@ -413,7 +413,23 @@ enum EndpointTemplate {
 
 impl EndpointTemplate {
     fn new(base_url: &str, query_params: &IndexMap<String, String>) -> Self {
-        let base = base_url.trim_end_matches('/').to_string();
+        // A provider's configured base may be either its API root or a full
+        // endpoint URL copied from a dashboard. Do not post to nested routes
+        // like /v1/responses/chat/completions (which return HTTP 404).
+        let base = match reqwest::Url::parse(base_url) {
+            Ok(mut url) => {
+                let path = url.path().trim_end_matches('/');
+                let suffix = ["/chat/completions", "/responses", "/messages", "/models"]
+                    .into_iter()
+                    .find(|suffix| path.ends_with(suffix));
+                if let Some(suffix) = suffix {
+                    let root = path.strip_suffix(suffix).expect("matched suffix");
+                    url.set_path(if root.is_empty() { "/" } else { root });
+                }
+                url.to_string().trim_end_matches('/').to_owned()
+            }
+            Err(_) => base_url.trim_end_matches('/').to_owned(),
+        };
         // The fast path is safe only when there is nothing to fold: no configured params and no query already on the base
         // A base query would otherwise land before the appended path
         if query_params.is_empty() && !base.contains('?') {
@@ -2803,6 +2819,35 @@ mod tests {
         );
         assert!(url.contains("api-version=x"), "url: {url}");
         assert!(!url.contains("x/responses"), "url: {url}");
+    }
+
+    #[test]
+    fn endpoint_accepts_full_provider_url_without_doubling_api_paths() {
+        for configured in [
+            "https://gateway.example/v1/responses",
+            "https://gateway.example/v1/chat/completions",
+            "https://gateway.example/v1/messages",
+            "https://gateway.example/v1/models",
+        ] {
+            let endpoint = EndpointTemplate::new(configured, &IndexMap::new());
+            assert_eq!(
+                endpoint.url_for_path("chat/completions"),
+                "https://gateway.example/v1/chat/completions",
+                "configured base: {configured}",
+            );
+        }
+    }
+
+    #[test]
+    fn endpoint_preserves_query_params_after_normalizing_full_api_url() {
+        let endpoint = EndpointTemplate::new(
+            "https://gateway.example/proxy/v2/responses?api-version=preview",
+            &IndexMap::new(),
+        );
+        assert_eq!(
+            endpoint.url_for_path("messages"),
+            "https://gateway.example/proxy/v2/messages?api-version=preview",
+        );
     }
 
     #[test]
