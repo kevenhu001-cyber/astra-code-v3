@@ -93,6 +93,49 @@ fn custom_model_static_key_takes_precedence_over_session() {
 }
 
 #[test]
+fn user_model_auth_scheme_overrides_provider_defaults() {
+    let input: toml::Value = toml::from_str(
+        r#"
+        [model.anthropic-direct]
+        model = "claude-test"
+        base_url = "https://api.anthropic.com/v1"
+        api_backend = "messages"
+        auth_scheme = "x_api_key"
+        api_key = "anthropic-provider-key"
+        context_window = 200000
+
+        [model.proxy-bearer]
+        model = "proxy-test"
+        base_url = "https://litellm.example/v1"
+        api_backend = "messages"
+        auth_scheme = "bearer"
+        api_key = "proxy-key"
+        context_window = 200000
+
+        [model.anthropic-default]
+        model = "claude-default"
+        base_url = "https://api.anthropic.com/v1"
+        api_backend = "messages"
+        api_key = "anthropic-key"
+        context_window = 200000
+        "#,
+    )
+    .expect("valid custom model config");
+    let config = Config::new_from_toml_cfg(&input).expect("config parses");
+    let models = resolve_model_list(&config, None);
+
+    for id in ["anthropic-direct", "anthropic-default"] {
+        let entry = models.get(id).expect("anthropic model is configured");
+        assert_eq!(entry.info.auth_scheme, AuthScheme::XApiKey);
+        let creds = resolve_credentials(entry, Some("astra-session"));
+        assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
+        assert_ne!(creds.api_key.as_deref(), Some("astra-session"));
+    }
+    let proxy = models.get("proxy-bearer").expect("proxy model is configured");
+    assert_eq!(proxy.info.auth_scheme, AuthScheme::Bearer);
+}
+
+#[test]
 fn main_cli_tools_override_preserves_profile_injection_policy() {
     let overrides = CliAgentOverrides {
         tools: Some(vec!["read_file".into()]),
