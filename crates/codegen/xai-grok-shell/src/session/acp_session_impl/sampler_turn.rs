@@ -684,7 +684,10 @@ impl SessionActor {
         let use_bearer_resolver = gate.active() && gate.endpoint_is_first_party;
         self.log_auth_gate_unknown("reconstruct_full_config", gate, &cfg.base_url);
         // Refresh the session token before the sampler reads it; gated to sessions that use it.
-        if allow_session_refresh && use_bearer_resolver && let Some(am) = self.auth_manager.as_ref() {
+        if allow_session_refresh
+            && use_bearer_resolver
+            && let Some(am) = self.auth_manager.as_ref()
+        {
             let _ = am.auth().await;
         }
         // Session path: only seed a wire-valid AT
