@@ -402,7 +402,7 @@ pub enum AuthState {
 /// Normalize a pasted / typed device code into the `XXXX-XXXX` shape the
 /// authorize page shows, so a code copied without its dash still submits.
 /// Returns non-8-character input trimmed and upper-cased, unchanged otherwise.
-fn normalize_device_code(raw: &str) -> String {
+pub(crate) fn normalize_device_code(raw: &str) -> String {
     let cleaned: String = raw
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())

@@ -306,7 +306,10 @@ pub async fn run_device_code_login_channels(
             mode: AuthUrlMode::Device,
         });
     }
-    open_browser_detached(&display_uri).await;
+    // Do not delay the device poll on a slow desktop browser launcher.
+    tokio::spawn(async move {
+        open_browser_detached(&display_uri).await;
+    });
     complete_device_code_login(issuer, client_id, device_code, auth_manager, surface).await
 }
 
@@ -359,14 +362,27 @@ async fn prompt_and_poll(
 /// The CLI eprintlns; the TUI does nothing since the URL is already rendered in the widget.
 async fn open_browser_detached(url: &str) -> bool {
     let url = url.to_owned();
-    match tokio::task::spawn_blocking(move || webbrowser::open(&url)).await {
-        Ok(Ok(())) => true,
-        Ok(Err(e)) => {
+    // A desktop launcher may hang (WSL, SSH, broken browser association).
+    // Bound the wait, and keep the displayed URL as the manual fallback.
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        tokio::task::spawn_blocking(move || webbrowser::open(&url)),
+    )
+    .await
+    {
+        Ok(Ok(Ok(()))) => true,
+        Ok(Ok(Err(e))) => {
             tracing::info!(error = %e, "device auth: could not open browser automatically");
             false
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             tracing::info!(error = %e, "device auth: browser-open task failed");
+            false
+        }
+        Err(_) => {
+            tracing::warn!(
+                "device auth: browser launcher timed out; open the displayed URL manually"
+            );
             false
         }
     }
@@ -647,7 +663,10 @@ pub(crate) async fn run_reverse_device_login_channels(
     // Push the URL first, open the browser second: `x.ai/auth/get_url` must not
     // be blocked on a slow or hanging browser launch (SSH/headless hosts).
     if has_front_end {
-        open_browser_detached(&url).await;
+        // Code entry must stay live even when the browser launcher hangs.
+        tokio::spawn(async move {
+            open_browser_detached(&url).await;
+        });
     }
 
     // Keep the code channel alive for the whole attempt. A mistyped, expired,
@@ -689,7 +708,11 @@ pub(crate) async fn run_reverse_device_login_cli(
     eprintln!();
 
     // Only an attached terminal has a human to complete the browser step.
-    if std::io::stderr().is_terminal() && !open_browser_detached(&url).await {
+    if (std::io::stdin().is_terminal()
+        || std::io::stdout().is_terminal()
+        || std::io::stderr().is_terminal())
+        && !open_browser_detached(&url).await
+    {
         eprintln!("  (Could not open the browser automatically — open the URL above manually.)");
         eprintln!();
     }

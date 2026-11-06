@@ -285,10 +285,30 @@ pub(super) fn dispatch_cancel_login(app: &mut AppView) -> Vec<Effect> {
 
 /// User submitted a manually-pasted auth token in loopback mode.
 pub(super) fn dispatch_submit_auth_code(app: &mut AppView, code: String) -> Vec<Effect> {
-    let request_seq = match &app.auth_state {
-        AuthState::Authenticating { request_seq, .. } => *request_seq,
+    let (request_seq, mode) = match &app.auth_state {
+        AuthState::Authenticating {
+            request_seq, mode, ..
+        } => (*request_seq, *mode),
         _ => return vec![],
     };
+
+    if mode == AuthMode::ReverseDevice {
+        let normalized = crate::app::app_view::normalize_device_code(&code);
+        let bytes = normalized.as_bytes();
+        let valid = bytes.len() == 9
+            && bytes[4] == b'-'
+            && bytes[..4].iter().all(u8::is_ascii_alphanumeric)
+            && bytes[5..].iter().all(u8::is_ascii_alphanumeric);
+        if !valid {
+            // Keep the code box editable and the auth attempt alive.
+            app.show_toast("Invalid device code. Enter eight letters or digits (XXXX-XXXX).");
+            return vec![];
+        }
+        return vec![Effect::SubmitAuthCode {
+            request_seq,
+            code: normalized,
+        }];
+    }
 
     vec![Effect::SubmitAuthCode { request_seq, code }]
 }

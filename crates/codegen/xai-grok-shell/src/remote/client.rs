@@ -667,6 +667,12 @@ pub(crate) fn parse_remote_model_value(
     let api_backend = get_string(obj, "apiBackend")
         .or_else(|| get_string(obj, "api_backend"))
         .or_else(|| get_string(obj, "protocol"))
+        // Standard catalogs may put protocol metadata under _meta rather
+        // than alongside the model id. Falling back to Chat here silently
+        // posts a Responses-only model to a route that does not exist (404).
+        .or_else(|| meta.and_then(|m| get_string(m, "apiBackend")))
+        .or_else(|| meta.and_then(|m| get_string(m, "api_backend")))
+        .or_else(|| meta.and_then(|m| get_string(m, "protocol")))
         .and_then(|s| match s.as_str() {
             "responses" | "openai-responses" => Some(crate::sampling::ApiBackend::Responses),
             "chat_completions" | "openai-compatible" => {
@@ -830,6 +836,29 @@ pub(crate) fn parse_remote_model_value(
             .and_then(|v| u32::try_from(v).ok()),
     })
 }
+#[cfg(test)]
+mod catalog_protocol_regression_tests {
+    use super::parse_remote_model_value;
+    use crate::sampling::ApiBackend;
+
+    #[test]
+    fn reads_protocol_from_nested_meta_when_top_level_omits_it() {
+        for (protocol, expected) in [
+            ("openai-responses", ApiBackend::Responses),
+            ("anthropic-messages", ApiBackend::Messages),
+            ("openai-compatible", ApiBackend::ChatCompletions),
+        ] {
+            let model = serde_json::json!({
+                "id": "cloud-model",
+                "_meta": {"protocol": protocol}
+            });
+            let parsed = parse_remote_model_value(&model, "https://astracode.topodrive.top/v1")
+                .expect("catalog entry should parse");
+            assert_eq!(parsed.api_backend, expected, "{protocol}");
+        }
+    }
+}
+
 fn model_description(obj: &serde_json::Map<String, serde_json::Value>) -> Option<String> {
     let description = get_string(obj, "description");
     let price = |key| {

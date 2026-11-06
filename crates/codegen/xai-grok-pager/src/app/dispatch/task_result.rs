@@ -1163,6 +1163,27 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
                 && *current_seq == request_seq
             {
                 app.auth_code_input.reset();
+                // The RPC acknowledges queue delivery, not server acceptance.
+                // Surface a visible state change without claiming login succeeded.
+                app.show_toast(
+                    "Code received. Checking with server; retry with a new code if needed.",
+                );
+            }
+            vec![]
+        }
+        TaskResult::AuthCodeSubmitFailed { request_seq, error } => {
+            // A full or closed code channel is not an account-authentication
+            // failure. Keep the input and active attempt available for retry.
+            if matches!(
+                &app.auth_state,
+                AuthState::Authenticating {
+                    request_seq: current,
+                    ..
+                } if *current == request_seq
+            ) {
+                app.show_toast(&format!(
+                    "Could not send device code: {error}. Please retry."
+                ));
             }
             vec![]
         }

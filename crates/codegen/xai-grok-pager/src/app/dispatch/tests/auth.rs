@@ -792,3 +792,67 @@ fn auth_complete_preserves_show_resolved_model_when_absent() {
 
     assert!(!app.show_resolved_model);
 }
+
+#[test]
+fn reverse_device_login_rejects_bad_input_without_closing_auth_attempt() {
+    let mut app = test_app();
+    app.auth_state = AuthState::Authenticating {
+        request_seq: 42,
+        handle: None,
+        auth_url: Some("https://astracode.topodrive.top/authorize".into()),
+        mode: AuthMode::ReverseDevice,
+    };
+    let effects = dispatch(Action::SubmitAuthCode("bad".into()), &mut app);
+    assert!(effects.is_empty());
+    assert!(matches!(
+        app.auth_state,
+        AuthState::Authenticating {
+            request_seq: 42,
+            ..
+        }
+    ));
+    assert!(app.welcome_toast.is_some());
+}
+
+#[test]
+fn reverse_device_login_normalizes_code_before_sending_to_agent() {
+    let mut app = test_app();
+    app.auth_state = AuthState::Authenticating {
+        request_seq: 43,
+        handle: None,
+        auth_url: Some("https://astracode.topodrive.top/authorize".into()),
+        mode: AuthMode::ReverseDevice,
+    };
+    let effects = dispatch(Action::SubmitAuthCode("ab12cd34".into()), &mut app);
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::SubmitAuthCode { request_seq: 43, code }] if code == "AB12-CD34"
+    ));
+}
+
+#[test]
+fn code_submit_rpc_error_keeps_login_active_and_input_editable() {
+    let mut app = test_app();
+    app.auth_state = AuthState::Authenticating {
+        request_seq: 44,
+        handle: None,
+        auth_url: Some("https://astracode.topodrive.top/authorize".into()),
+        mode: AuthMode::ReverseDevice,
+    };
+    let effects = dispatch(
+        Action::TaskComplete(TaskResult::AuthCodeSubmitFailed {
+            request_seq: 44,
+            error: "code queue is busy".into(),
+        }),
+        &mut app,
+    );
+    assert!(effects.is_empty());
+    assert!(matches!(
+        app.auth_state,
+        AuthState::Authenticating {
+            request_seq: 44,
+            ..
+        }
+    ));
+    assert!(app.welcome_toast.is_some());
+}

@@ -3964,6 +3964,9 @@ pub struct ConfigModelOverride {
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub api_backend: Option<ApiBackend>,
+    /// Authentication header for this model: bearer (default) or x_api_key.
+    /// Direct Anthropic Messages models use x_api_key by default.
+    pub auth_scheme: Option<AuthScheme>,
     #[serde(default)]
     pub extra_headers: IndexMap<String, String>,
     #[serde(default)]
@@ -4047,6 +4050,20 @@ impl ConfigModelOverride {
         }
         if let Some(ref v) = self.api_backend {
             entry.info.api_backend = v.clone();
+        }
+        if let Some(scheme) = self.auth_scheme {
+            entry.info.auth_scheme = scheme;
+        } else if self.base_url.is_some()
+            && matches!(entry.info.api_backend, ApiBackend::Messages)
+            && url::Url::parse(&entry.info.base_url)
+                .ok()
+                .and_then(|url| url.host_str().map(str::to_owned))
+                .as_deref()
+                == Some("api.anthropic.com")
+        {
+            // The direct Anthropic Messages API requires x-api-key, unlike
+            // first-party Astra and third-party Messages proxies (Bearer).
+            entry.info.auth_scheme = AuthScheme::XApiKey;
         }
         if !self.extra_headers.is_empty() {
             entry.info.extra_headers = self.extra_headers.clone();
@@ -4862,15 +4879,10 @@ pub(crate) fn resolve_credentials(
         // a BYOK / localhost model has its own endpoint and must never receive
         // the Astra session token, which that provider rejects with a 401.
         //
-        // A model that declares an Astra `api_base_url` is opting into dual
-        // auth: `base_url` carries the session, `api_base_url` carries an API
-        // key (see `ModelEntry::api_base_url`). That declaration is what lets
-        // a proxied model on another host still authenticate with the session.
-        && (session_token_allowed_for_endpoint(&info.base_url)
-            || model
-                .api_base_url
-                .as_deref()
-                .is_some_and(session_token_allowed_for_endpoint))
+        // Check the actual session request destination, not the optional
+        // API-key fallback URL. A first-party `api_base_url` does not make an
+        // unrelated custom `base_url` safe for the Astra session bearer.
+        && session_token_allowed_for_endpoint(&info.base_url)
     {
         (
             Some(key.to_owned()),

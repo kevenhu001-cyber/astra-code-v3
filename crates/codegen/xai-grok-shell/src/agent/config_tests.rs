@@ -53,6 +53,90 @@ fn bundled_defaults_target_the_gateway_chat_endpoint() {
     }
 }
 
+/// An API-key fallback on a trusted host must never turn an unrelated model
+/// destination into an Astra session-token destination. The provider would
+/// reject that JWT with HTTP 401 and the pager would incorrectly suggest /login.
+#[test]
+fn custom_model_does_not_inherit_session_from_api_key_fallback_url() {
+    for endpoint in [
+        "https://third-party.example/v1",
+        "http://127.0.0.1:11434/v1",
+    ] {
+        let mut model = test_model_entry("custom", endpoint, None, None, None);
+        model.api_base_url = Some(ASTRA_GATEWAY_BASE_URL_DEFAULT.to_owned());
+
+        let creds = resolve_credentials(&model, Some("astra-session-jwt"));
+        assert_eq!(
+            creds.api_key, None,
+            "unsafe session destination: {endpoint}"
+        );
+        assert_eq!(creds.base_url, endpoint);
+        assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
+    }
+}
+
+/// A locally configured provider with its own key never uses the Astra session,
+/// regardless of whether a user is already logged into the first-party service.
+#[test]
+fn custom_model_static_key_takes_precedence_over_session() {
+    let model = test_model_entry(
+        "custom",
+        "http://127.0.0.1:1234/v1",
+        Some("provider-key"),
+        None,
+        None,
+    );
+    let creds = resolve_credentials(&model, Some("astra-session-jwt"));
+    assert_eq!(creds.api_key.as_deref(), Some("provider-key"));
+    assert_eq!(creds.base_url, "http://127.0.0.1:1234/v1");
+    assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
+}
+
+#[test]
+fn user_model_auth_scheme_overrides_provider_defaults() {
+    let input: toml::Value = toml::from_str(
+        r#"
+        [model.anthropic-direct]
+        model = "claude-test"
+        base_url = "https://api.anthropic.com/v1"
+        api_backend = "messages"
+        auth_scheme = "x_api_key"
+        api_key = "anthropic-provider-key"
+        context_window = 200000
+
+        [model.proxy-bearer]
+        model = "proxy-test"
+        base_url = "https://litellm.example/v1"
+        api_backend = "messages"
+        auth_scheme = "bearer"
+        api_key = "proxy-key"
+        context_window = 200000
+
+        [model.anthropic-default]
+        model = "claude-default"
+        base_url = "https://api.anthropic.com/v1"
+        api_backend = "messages"
+        api_key = "anthropic-key"
+        context_window = 200000
+        "#,
+    )
+    .expect("valid custom model config");
+    let config = Config::new_from_toml_cfg(&input).expect("config parses");
+    let models = resolve_model_list(&config, None);
+
+    for id in ["anthropic-direct", "anthropic-default"] {
+        let entry = models.get(id).expect("anthropic model is configured");
+        assert_eq!(entry.info.auth_scheme, AuthScheme::XApiKey);
+        let creds = resolve_credentials(entry, Some("astra-session"));
+        assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
+        assert_ne!(creds.api_key.as_deref(), Some("astra-session"));
+    }
+    let proxy = models
+        .get("proxy-bearer")
+        .expect("proxy model is configured");
+    assert_eq!(proxy.info.auth_scheme, AuthScheme::Bearer);
+}
+
 #[test]
 fn main_cli_tools_override_preserves_profile_injection_policy() {
     let overrides = CliAgentOverrides {
