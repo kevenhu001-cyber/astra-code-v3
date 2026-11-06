@@ -21,6 +21,9 @@ pub mod effort_levels;
 pub mod exit;
 pub mod expand;
 pub mod export;
+// Keep the internal helpers used by queued inline-feedback drafts until the
+// full feature removal is complete; only the user-facing command is disabled.
+pub mod feedback;
 pub mod find;
 pub mod fork;
 pub mod gboom;
