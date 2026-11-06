@@ -829,3 +829,30 @@ fn reverse_device_login_normalizes_code_before_sending_to_agent() {
         [Effect::SubmitAuthCode { request_seq: 43, code }] if code == "AB12-CD34"
     ));
 }
+
+#[test]
+fn code_submit_rpc_error_keeps_login_active_and_input_editable() {
+    let mut app = test_app();
+    app.auth_state = AuthState::Authenticating {
+        request_seq: 44,
+        handle: None,
+        auth_url: Some("https://astracode.topodrive.top/authorize".into()),
+        mode: AuthMode::ReverseDevice,
+    };
+    let effects = dispatch(
+        Action::TaskComplete(TaskResult::AuthCodeSubmitFailed {
+            request_seq: 44,
+            error: "code queue is busy".into(),
+        }),
+        &mut app,
+    );
+    assert!(effects.is_empty());
+    assert!(matches!(
+        app.auth_state,
+        AuthState::Authenticating {
+            request_seq: 44,
+            ..
+        }
+    ));
+    assert!(app.welcome_toast.is_some());
+}
