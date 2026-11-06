@@ -3489,12 +3489,15 @@ fn e2e_credential_priority_model_key_beats_session_beats_env() {
         sampling.base_url, "https://custom.api/v1",
         "model's own base_url must be used"
     );
+    // Session-token priority only applies to a trusted first-party endpoint.
+    // A custom proxy must never receive the Astra session bearer merely
+    // because its API-key fallback URL points at a first-party service.
     let model_no_key = test_model_entry(
         "test",
-        "https://proxy.api/v1",
+        "https://api.topodrive.top/v1",
         None,
         None,
-        Some("https://api.topodrive.top/v1"),
+        Some("https://api.astracode.topodrive.top/v1"),
     );
     let sampling = resolve_sampling(&model_no_key, Some("session-key"));
     assert_eq!(
@@ -3503,8 +3506,8 @@ fn e2e_credential_priority_model_key_beats_session_beats_env() {
         "session token should beat env key when model has no own credentials"
     );
     assert_eq!(
-        sampling.base_url, "https://proxy.api/v1",
-        "session auth should use base_url, not api_base_url"
+        sampling.base_url, "https://api.topodrive.top/v1",
+        "session auth should use the trusted base_url, not api_base_url"
     );
     let sampling = resolve_sampling(&model_no_key, None);
     assert_eq!(
@@ -3513,15 +3516,31 @@ fn e2e_credential_priority_model_key_beats_session_beats_env() {
         "env key should be used when no session and no model credentials"
     );
     assert_eq!(
-        sampling.base_url, "https://api.topodrive.top/v1",
+        sampling.base_url, "https://api.astracode.topodrive.top/v1",
         "env key should route to api_base_url"
     );
+    // A third-party model with no own key remains scoped to API-key auth,
+    // even while an Astra session exists. Keep this assertion in the same
+    // priority test to prevent a future unsafe regression.
+    let custom_proxy = test_model_entry(
+        "test",
+        "https://proxy.api/v1",
+        None,
+        None,
+        Some("https://api.topodrive.top/v1"),
+    );
+    let custom_sampling = resolve_sampling(&custom_proxy, Some("session-key"));
+    assert_eq!(custom_sampling.api_key.as_deref(), Some("env-key"));
+    assert_eq!(custom_sampling.base_url, "https://api.topodrive.top/v1");
+
     unsafe { std::env::remove_var("XAI_API_KEY") };
     let sampling = resolve_sampling(&model_no_key, None);
     assert!(
         sampling.api_key.is_none(),
         "no credentials available → api_key should be None"
     );
+    let custom_sampling = resolve_sampling(&custom_proxy, Some("session-key"));
+    assert!(custom_sampling.api_key.is_none());
 }
 #[test]
 fn e2e_duplicate_model_field_both_entries_survive() {
