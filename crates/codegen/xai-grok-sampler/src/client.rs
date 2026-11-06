@@ -421,7 +421,7 @@ impl EndpointTemplate {
                 let path = url.path().trim_end_matches('/').to_owned();
                 let suffix = ["/chat/completions", "/responses", "/messages", "/models"]
                     .into_iter()
-                    .find(|suffix| path.ends_with(suffix));
+                    .find(|suffix| path.ends_with(*suffix));
                 if let Some(suffix) = suffix {
                     let root = path.strip_suffix(suffix).expect("matched suffix");
                     url.set_path(if root.is_empty() { "/" } else { root });
