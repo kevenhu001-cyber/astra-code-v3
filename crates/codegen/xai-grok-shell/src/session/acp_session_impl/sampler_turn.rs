@@ -1467,7 +1467,10 @@ impl SessionActor {
 
         // 4d. Bounded resubmit, after the auth arms, before the terminal paths.
         //     Budgeted workflow children stay terminal (guards above)
-        if transient_retry_eligible(&error) && transient.enabled {
+        // A parked credential-less 401 must survive an unrelated transient API outage,
+        // even when foreground auto-retries were disabled. Keep the existing bounded
+        // per-step, per-prompt, and wall-clock budgets for both cases.
+        if transient_retry_eligible(&error) && (transient.enabled || park.is_parked()) {
             if transient.budget_remaining() {
                 // Count intercepted attempts; section 5 sees only the final one.
                 if matches!(error.kind, SamplingErrorKind::IdleTimeout) {
