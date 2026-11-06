@@ -233,6 +233,10 @@ async fn session_token_actor(
     cfg.base_url = server.url();
     cfg.api_backend = xai_grok_sampling_types::ApiBackend::Responses;
     cfg.model = "test".to_string();
+    // Parked retries now rebuild their sampler config from chat state. Keep
+    // the fixture's zero sampler-internal retries across that rebuild, so
+    // explicit shell-side 429 pacing remains the sole retry owner.
+    cfg.max_retries = Some(0);
     actor.chat_state_handle.update_sampling_config(cfg);
     let mut creds = actor.chat_state_handle.get_credentials().await;
     creds.api_key = None;
@@ -675,11 +679,12 @@ async fn deferred_recovery_credential_less_401_parks_and_survives() {
                 "exactly one recovery dispatch (two attempts) — parked cycles \
                  must not dispatch"
             );
-            // Exact by design: every preflight belongs to the pre-park iteration; a
-            // regression letting parked cycles refresh shows up as extra dispatches.
+            // Exact by design: the parked sampler snapshots updated credentials
+            // without a fresh auth preflight. The three calls are all from the
+            // unparked setup; any parked refresh would add an extra dispatch.
             assert_eq!(
                 pre_request_calls.load(Ordering::SeqCst),
-                4,
+                3,
                 "parked cycles must not drive preflight refreshes"
             );
             assert!(
