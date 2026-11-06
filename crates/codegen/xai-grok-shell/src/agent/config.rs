@@ -4862,15 +4862,10 @@ pub(crate) fn resolve_credentials(
         // a BYOK / localhost model has its own endpoint and must never receive
         // the Astra session token, which that provider rejects with a 401.
         //
-        // A model that declares an Astra `api_base_url` is opting into dual
-        // auth: `base_url` carries the session, `api_base_url` carries an API
-        // key (see `ModelEntry::api_base_url`). That declaration is what lets
-        // a proxied model on another host still authenticate with the session.
-        && (session_token_allowed_for_endpoint(&info.base_url)
-            || model
-                .api_base_url
-                .as_deref()
-                .is_some_and(session_token_allowed_for_endpoint))
+        // Check the actual session request destination, not the optional
+        // API-key fallback URL. A first-party `api_base_url` does not make an
+        // unrelated custom `base_url` safe for the Astra session bearer.
+        && session_token_allowed_for_endpoint(&info.base_url)
     {
         (
             Some(key.to_owned()),
