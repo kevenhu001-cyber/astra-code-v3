@@ -806,7 +806,10 @@ fn reverse_device_login_rejects_bad_input_without_closing_auth_attempt() {
     assert!(effects.is_empty());
     assert!(matches!(
         app.auth_state,
-        AuthState::Authenticating { request_seq: 42, .. }
+        AuthState::Authenticating {
+            request_seq: 42,
+            ..
+        }
     ));
     assert!(app.welcome_toast.is_some());
 }
