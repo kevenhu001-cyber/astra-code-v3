@@ -2701,6 +2701,11 @@ pub enum TaskResult {
     AuthCodeSubmitted {
         request_seq: u64,
     },
+    /// The code could not be queued; unlike AuthFailed this must not close the login.
+    AuthCodeSubmitFailed {
+        request_seq: u64,
+        error: String,
+    },
     /// MCP server list fetched from shell.
     McpsListLoaded {
         agent_id: AgentId,
