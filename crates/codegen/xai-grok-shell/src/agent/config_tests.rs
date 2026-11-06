@@ -53,6 +53,42 @@ fn bundled_defaults_target_the_gateway_chat_endpoint() {
     }
 }
 
+/// An API-key fallback on a trusted host must never turn an unrelated model
+/// destination into an Astra session-token destination. The provider would
+/// reject that JWT with HTTP 401 and the pager would incorrectly suggest /login.
+#[test]
+fn custom_model_does_not_inherit_session_from_api_key_fallback_url() {
+    for endpoint in [
+        "https://third-party.example/v1",
+        "http://127.0.0.1:11434/v1",
+    ] {
+        let mut model = test_model_entry("custom", endpoint, None, None, None);
+        model.api_base_url = Some(ASTRA_GATEWAY_BASE_URL_DEFAULT.to_owned());
+
+        let creds = resolve_credentials(&model, Some("astra-session-jwt"));
+        assert_eq!(creds.api_key, None, "unsafe session destination: {endpoint}");
+        assert_eq!(creds.base_url, endpoint);
+        assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
+    }
+}
+
+/// A locally configured provider with its own key never uses the Astra session,
+/// regardless of whether a user is already logged into the first-party service.
+#[test]
+fn custom_model_static_key_takes_precedence_over_session() {
+    let model = test_model_entry(
+        "custom",
+        "http://127.0.0.1:1234/v1",
+        Some("provider-key"),
+        None,
+        None,
+    );
+    let creds = resolve_credentials(&model, Some("astra-session-jwt"));
+    assert_eq!(creds.api_key.as_deref(), Some("provider-key"));
+    assert_eq!(creds.base_url, "http://127.0.0.1:1234/v1");
+    assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
+}
+
 #[test]
 fn main_cli_tools_override_preserves_profile_injection_policy() {
     let overrides = CliAgentOverrides {
