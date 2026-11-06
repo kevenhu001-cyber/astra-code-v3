@@ -1181,7 +1181,9 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
                     ..
                 } if *current == request_seq
             ) {
-                app.show_toast(&format!("Could not send device code: {error}. Please retry."));
+                app.show_toast(&format!(
+                    "Could not send device code: {error}. Please retry."
+                ));
             }
             vec![]
         }
