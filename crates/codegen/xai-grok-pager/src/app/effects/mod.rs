@@ -2409,7 +2409,9 @@ pub(crate) fn execute(
                                 None,
                                 Some(serde_json::json!({"error": &error})),
                             );
-                            TaskResult::AuthFailed {
+                            // A queued-code RPC failure (e.g. channel is busy)
+                            // is retryable; do NOT tear down the active login.
+                            TaskResult::AuthCodeSubmitFailed {
                                 request_seq,
                                 error,
                             }
