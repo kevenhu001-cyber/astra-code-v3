@@ -307,7 +307,9 @@ pub async fn run_device_code_login_channels(
         });
     }
     // Do not delay the device poll on a slow desktop browser launcher.
-    tokio::spawn(async move { open_browser_detached(&display_uri).await; });
+    tokio::spawn(async move {
+        open_browser_detached(&display_uri).await;
+    });
     complete_device_code_login(issuer, client_id, device_code, auth_manager, surface).await
 }
 
@@ -378,7 +380,9 @@ async fn open_browser_detached(url: &str) -> bool {
             false
         }
         Err(_) => {
-            tracing::warn!("device auth: browser launcher timed out; open the displayed URL manually");
+            tracing::warn!(
+                "device auth: browser launcher timed out; open the displayed URL manually"
+            );
             false
         }
     }
@@ -660,7 +664,9 @@ pub(crate) async fn run_reverse_device_login_channels(
     // be blocked on a slow or hanging browser launch (SSH/headless hosts).
     if has_front_end {
         // Code entry must stay live even when the browser launcher hangs.
-        tokio::spawn(async move { open_browser_detached(&url).await; });
+        tokio::spawn(async move {
+            open_browser_detached(&url).await;
+        });
     }
 
     // Keep the code channel alive for the whole attempt. A mistyped, expired,
