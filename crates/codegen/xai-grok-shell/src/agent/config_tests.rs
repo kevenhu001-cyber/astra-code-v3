@@ -131,7 +131,9 @@ fn user_model_auth_scheme_overrides_provider_defaults() {
         assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
         assert_ne!(creds.api_key.as_deref(), Some("astra-session"));
     }
-    let proxy = models.get("proxy-bearer").expect("proxy model is configured");
+    let proxy = models
+        .get("proxy-bearer")
+        .expect("proxy model is configured");
     assert_eq!(proxy.info.auth_scheme, AuthScheme::Bearer);
 }
 
