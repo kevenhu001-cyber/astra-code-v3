@@ -769,13 +769,16 @@ async fn api_5xx_during_park_does_not_unpark_or_redispatch() {
             )
             .await
             .expect("mock inference server");
-            // Scripts outrank the auth gate, so rungs are positional: send 1 parks (401), the first parked resubmit burns an edge-502 streak (every sampler-internal retry must 5xx for the.
-            // Api error to surface), and later sends fall back to the gate.
+            // Scripts outrank the auth gate: the first request parks on 401,
+            // then the parked turn survives up to the three bounded outer
+            // transient retries. This fixture disables sampler-internal retries,
+            // so four consecutive 502s would intentionally exhaust the outer
+            // retry budget and must NOT be used for a recovery-success test.
             server.enqueue_response(
                 "/v1/responses",
                 ScriptedResponse::json(401, serde_json::json!({ "error": "missing API key" })),
             );
-            for _ in 0..4 {
+            for _ in 0..3 {
                 server.enqueue_response(
                     "/v1/responses",
                     ScriptedResponse::json(502, serde_json::json!({ "error": "bad gateway" })),
