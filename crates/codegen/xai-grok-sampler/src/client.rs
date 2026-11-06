@@ -418,7 +418,7 @@ impl EndpointTemplate {
         // like /v1/responses/chat/completions (which return HTTP 404).
         let base = match reqwest::Url::parse(base_url) {
             Ok(mut url) => {
-                let path = url.path().trim_end_matches('/');
+                let path = url.path().trim_end_matches('/').to_owned();
                 let suffix = ["/chat/completions", "/responses", "/messages", "/models"]
                     .into_iter()
                     .find(|suffix| path.ends_with(suffix));
