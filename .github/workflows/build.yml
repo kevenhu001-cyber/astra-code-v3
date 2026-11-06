@@ -141,7 +141,7 @@ jobs:
                --connect-timeout 15 --max-time 120 --silent --show-error \
                --output "$archive" "$url" \
              && tar -tzf "$archive" >/dev/null; then
-            member="$(tar -tzf "$archive" | awk '/\\/rg$/ { entry=$0 } END { print entry }')"
+            member="$(tar -tzf "$archive" | awk -F/ '$NF == "rg" { entry=$0 } END { print entry }')"
             test -n "$member" || { echo "ripgrep archive missing rg" >&2; exit 1; }
             tar -xOzf "$archive" "$member" > "$binary"
           else
