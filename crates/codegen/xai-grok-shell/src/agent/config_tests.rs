@@ -66,7 +66,10 @@ fn custom_model_does_not_inherit_session_from_api_key_fallback_url() {
         model.api_base_url = Some(ASTRA_GATEWAY_BASE_URL_DEFAULT.to_owned());
 
         let creds = resolve_credentials(&model, Some("astra-session-jwt"));
-        assert_eq!(creds.api_key, None, "unsafe session destination: {endpoint}");
+        assert_eq!(
+            creds.api_key, None,
+            "unsafe session destination: {endpoint}"
+        );
         assert_eq!(creds.base_url, endpoint);
         assert_eq!(creds.auth_type, xai_chat_state::AuthType::ApiKey);
     }
