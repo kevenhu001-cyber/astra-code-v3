@@ -852,10 +852,8 @@ mod catalog_protocol_regression_tests {
                 "id": "cloud-model",
                 "_meta": {"protocol": protocol}
             });
-            let parsed = parse_remote_model_value(
-                &model,
-                "https://astracode.topodrive.top/v1",
-            ).expect("catalog entry should parse");
+            let parsed = parse_remote_model_value(&model, "https://astracode.topodrive.top/v1")
+                .expect("catalog entry should parse");
             assert_eq!(parsed.api_backend, expected, "{protocol}");
         }
     }
