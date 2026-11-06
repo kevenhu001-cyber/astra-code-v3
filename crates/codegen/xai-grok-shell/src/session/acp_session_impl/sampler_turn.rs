@@ -619,6 +619,16 @@ impl SessionActor {
     /// Reconstruct a full `SamplerConfig` (with credentials) by combining the actor's `SamplingConfig` and `Credentials`.
     /// Folds in the URL-derived headers (cli-chat-proxy auth, the staging auth header) so the sampler crate stays URL-agnostic.
     pub(super) async fn reconstruct_full_config(&self) -> SamplingConfig {
+        self.reconstruct_full_config_with_auth_refresh(true).await
+    }
+
+    /// Rebuild credentials for a parked retry without initiating another OIDC refresh.
+    /// A local API key may land out-of-band while the turn is parked; the sampler
+    /// must observe it, even though refresh-driving preflights remain suppressed.
+    async fn reconstruct_full_config_with_auth_refresh(
+        &self,
+        allow_session_refresh: bool,
+    ) -> SamplingConfig {
         #[allow(clippy::items_after_statements)]
         #[derive(Debug)]
         struct TraceContextInjector;
@@ -674,7 +684,7 @@ impl SessionActor {
         let use_bearer_resolver = gate.active() && gate.endpoint_is_first_party;
         self.log_auth_gate_unknown("reconstruct_full_config", gate, &cfg.base_url);
         // Refresh the session token before the sampler reads it; gated to sessions that use it.
-        if use_bearer_resolver && let Some(am) = self.auth_manager.as_ref() {
+        if allow_session_refresh && use_bearer_resolver && let Some(am) = self.auth_manager.as_ref() {
             let _ = am.auth().await;
         }
         // Session path: only seed a wire-valid AT
@@ -1017,7 +1027,16 @@ impl SessionActor {
     /// Refresh auth and push a fresh `SamplerConfig` before each turn.
     pub(crate) async fn prepare_sampler_for_turn(&self) {
         self.refresh_token_if_expired().await;
-        let mut sampler_config = self.reconstruct_full_config().await;
+        self.update_sampler_config_for_turn(true).await;
+    }
+
+    /// Update the sampler from live chat-state credentials. A parked 401 must
+    /// never trigger a refresh dispatch, but it must pick up explicit API-key
+    /// rotations (or other out-of-band credential changes) before resubmitting.
+    async fn update_sampler_config_for_turn(&self, allow_session_refresh: bool) {
+        let mut sampler_config = self
+            .reconstruct_full_config_with_auth_refresh(allow_session_refresh)
+            .await;
         if self.tool_context.task_output_token_budget.is_some()
             || self.tool_context.sampler_retry_only_before_output
         {
@@ -1655,9 +1674,13 @@ impl SessionActor {
         mid_salvage_continuation: bool,
         park: TurnParkState,
     ) -> Result<SamplerTurnOutcome, acp::Error> {
-        // Per-turn auth refresh + sampler config push. Mirrors
-        // `prepare_chat_completion(false)` from the legacy path.
-        if !park.is_parked() {
+        // Refresh only on fresh turns. Parked 401 retries still need a fresh
+        // sampler snapshot to observe credentials supplied out-of-band, but
+        // must not drive additional OIDC refreshes or exhaust the shared IdP
+        // retry budget while waiting.
+        if park.is_parked() {
+            self.update_sampler_config_for_turn(false).await;
+        } else {
             self.prepare_sampler_for_turn().await;
         }
 
