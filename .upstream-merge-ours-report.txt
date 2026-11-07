@@ -1,0 +1,32 @@
+MERGE_EXIT=1
+LOCAL_MAIN=1ea1e6353aa978f372cbfb28961edfd24b02220d
+UPSTREAM_MAIN=75810042ca2762aa0b0fa17864f3f68823ccbea5
+MERGE_BASE=19d42e35c07a9c9244f03f6df0c4c353f970d4f9
+
+=== REMAINING UNMERGED PATHS AFTER -X ours ===
+U	crates/codegen/xai-grok-pager/examples/real_session_benchmark.rs
+U	crates/codegen/xai-grok-pager/npm/astra/bin/grok-bootstrap.js
+U	crates/codegen/xai-grok-pager/tests/fixtures/historic_bash_cmds.txt
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/feedback_slash_opens_descriptive_pane.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/minimal/minimal_feedback_session_gate_and_pane.rs
+U	crates/codegen/xai-grok-pager/tests/pty_e2e/welcome_screen_braille_logo_renders_correctly.rs
+U	crates/codegen/xai-grok-shell/src/auth/manager.rs
+U	crates/codegen/xai-grok-shell/src/managed_config.rs
+U	crates/codegen/xai-grok-shell/tests/git_contention_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/session_load_perf.rs
+U	crates/codegen/xai-grok-shell/tests/test_agent_type_invariant.rs
+U	crates/codegen/xai-grok-shell/tests/test_built_binary_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/test_debug_logging.rs
+U	crates/codegen/xai-grok-shell/tests/test_global_extra_headers_e2e.rs
+U	crates/codegen/xai-grok-shell/tests/test_leader_soak.rs
+U	crates/codegen/xai-grok-shell/tests/test_leader_version_skew.rs
+U	crates/codegen/xai-grok-shell/tests/test_session_load_memory.rs
+U	crates/codegen/xai-grok-shell/tests/test_summary_reasoning_effort.rs
+U	crates/codegen/xai-grok-shell/tests/test_tool_dispatch_duration_smoke.rs
+U	crates/codegen/xai-grok-shell/tests/test_vendor_compat.rs
+U	crates/codegen/xai-grok-workspace/src/hub_auth.rs
+
+=== DIFF CHECK ===
+
+CARGO_CHECK_EXIT=126
+cargo check skipped because merge still has unmerged paths

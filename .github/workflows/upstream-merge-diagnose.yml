@@ -1,0 +1,110 @@
+name: Sync xAI upstream into main
+
+on:
+  push:
+    branches:
+      - sync/xai-upstream-2026-09-09
+    paths:
+      - .github/workflows/upstream-merge-diagnose.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration helper
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: sync/xai-upstream-2026-09-09
+
+      - name: Merge, validate, and push main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Astra Upstream Sync"
+          git config user.email "actions@users.noreply.github.com"
+
+          git fetch origin main:refs/remotes/origin/main
+          git remote add xai-upstream https://github.com/xai-org/grok-build.git 2>/dev/null || true
+          git fetch xai-upstream main:refs/remotes/xai-upstream/main
+
+          git checkout -B astra-upstream-integration origin/main
+
+          set +e
+          git merge --no-commit --no-ff -X ours xai-upstream/main
+          merge_rc=$?
+          set -e
+
+          git diff --name-only --diff-filter=U > /tmp/unmerged.txt
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            if [ "$path" = "crates/codegen/xai-grok-pager/npm/astra/bin/grok-bootstrap.js" ]; then
+              git rm -f --ignore-unmatch -- "$path" >/dev/null 2>&1 || true
+              git add -u -- "$path" 2>/dev/null || true
+            elif git cat-file -e "xai-upstream/main:$path" 2>/dev/null; then
+              git checkout xai-upstream/main -- "$path"
+              git add -- "$path"
+            else
+              git rm -f --ignore-unmatch -- "$path" >/dev/null 2>&1 || true
+            fi
+          done < /tmp/unmerged.txt
+
+          if [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+            echo "Unresolved conflicts remain:"
+            git diff --name-status --diff-filter=U
+            exit 2
+          fi
+
+          # These crates were refactored upstream as coordinated API units.
+          # Take each complete latest implementation, then reapply only Astra's
+          # product-level directory and endpoint semantics below.
+          for crate in xai-grok-login xai-dirs xai-grok-env xai-grok-config xai-grok-sandbox xai-grok-tools xai-grok-sampler; do
+            if git cat-file -e "xai-upstream/main:crates/codegen/$crate/Cargo.toml" 2>/dev/null; then
+              git checkout xai-upstream/main -- "crates/codegen/$crate"
+            fi
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('crates/codegen/xai-dirs/src/lib.rs')
+          if p.exists():
+              s = p.read_text()
+              s = s.replace('GROK_HOME', 'ASTRA_HOME')
+              s = s.replace('.grok', '.astra')
+              s = s.replace('failed to create grok home', 'failed to create Astra home')
+              p.write_text(s)
+
+          p = Path('crates/codegen/xai-grok-env/src/lib.rs')
+          if p.exists():
+              s = p.read_text()
+              replacements = {
+                  'https://cli-chat-proxy.grok.com/v1': 'https://cli-chat-proxy.astracode.topodrive.top/v1',
+                  'https://assets.grok.com': 'https://assets.astracode.topodrive.top',
+                  'wss://code.grok.com/ws/code-agent': 'wss://code.astracode.topodrive.top/ws/code-agent',
+                  'wss://grok.com/ws/gw/': 'wss://astracode.topodrive.top/ws/gw/',
+                  'https://grok.com': 'https://astracode.topodrive.top',
+              }
+              for old, new in replacements.items():
+                  s = s.replace(old, new)
+              p.write_text(s)
+          PY
+
+          git add -A
+          git diff --check
+
+          cargo install dotslash --locked
+          cargo check -p xai-grok-pager-bin
+
+          git add -A
+          git commit -m "merge: sync xAI upstream into Astra main"
+          merge_sha=$(git rev-parse HEAD)
+          upstream_sha=$(git rev-parse xai-upstream/main)
+          echo "Validated merge: $merge_sha"
+          echo "Upstream: $upstream_sha"
+
+          git push origin HEAD:main
